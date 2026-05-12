@@ -26,6 +26,8 @@ import BiologicalControlDashboard from '@/components/advice/BiologicalControlDas
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
+import { fieldRowCropHistoryService } from '@/services/fieldRowCropHistoryService'
+import { cropRotationService } from '@/services/cropRotationService'
 import type { GardenTask } from '@/types'
 
 interface AIAdvice {
@@ -101,28 +103,50 @@ export default function AdvicePage() {
       const openTasks = activeGarden?.id ? await storageProvider.getTasks(activeGarden.id) : []
       const pendingTasks = openTasks.filter((task: any) => !task.completed)
       const taskCount = pendingTasks.length
+      const rotationHistory = activeGarden?.id && firstFieldRow?.id
+        ? await fieldRowCropHistoryService.getFieldRowHistory(firstFieldRow.id).catch(() => [])
+        : []
+      const rotationSuggestions = activeGarden?.id && firstFieldRow?.id
+        ? await fieldRowCropHistoryService.getRotationSuggestions(firstFieldRow.id).catch(() => [])
+        : []
+      const rotationAnalysis = activeGarden?.id
+        ? await fieldRowCropHistoryService.getGardenRotationAnalysis(activeGarden.id).catch(() => [])
+        : []
+      const bestRotationSuggestion = rotationSuggestions[0]
+      const selectedRowAnalysis = firstFieldRow?.id
+        ? rotationAnalysis.find((entry: any) => entry.row_id === firstFieldRow.id || entry.row_id === firstFieldRow.id)
+        : rotationAnalysis[0]
 
       const groundedAdvice: AIAdvice[] = [
         {
           id: 'advice-rotation',
           type: 'rotation',
-          title: isControlled ? 'Rotazione/Turnazione del sistema' : 'Rotazione Colture',
+          title: isControlled ? 'Turnazione del sistema' : 'Rotazione Colture',
           description: isControlled
             ? `Il sistema risulta controllato: mantieni turnazione e pulizia del ciclo per ${rowLabel}, con attenzione ai carichi residui e alle finestre di riposo.`
-            : `Usa lo storico attività per pianificare una rotazione coerente attorno a ${rowLabel} e ridurre accumulo di patogeni.`,
+            : rotationHistory.length > 0
+              ? `Storico rilevato su ${rowLabel}: l'ultima coltura nota è ${rotationHistory[0]?.crop_name || 'n/d'} (${rotationHistory[0]?.crop_family || 'famiglia ignota'}). La prossima scelta deve evitare la stessa famiglia e seguire la rotazione compatibile. ${bestRotationSuggestion ? `Suggerimento migliore: ${bestRotationSuggestion.family} perché ${bestRotationSuggestion.reason}.` : ''}`
+              : `Usa lo storico del filare e della zona per decidere la prossima coltura su ${rowLabel}, evitando ripetizioni della stessa famiglia e rotazioni sfavorevoli.`,
           priority: 'high',
-          confidence: isControlled ? 0.81 : 0.76,
+          confidence: isControlled ? 0.81 : rotationHistory.length > 0 ? 0.84 : 0.72,
           timing: 'Prossimi 10 giorni',
           actions: [{
             type: 'scheduled',
             title: 'Rivedi il ciclo',
             description: isControlled
               ? 'Controlla sequenza di coltivazione, pulizia e ripartenza del sistema'
-              : 'Definisci successioni colturali per i prossimi cicli e per il filare specifico',
+              : rotationHistory.length > 0
+                ? 'Usa memoria del filare/zona per scegliere la coltura successiva più coerente'
+                : 'Definisci successioni colturali per i prossimi cicli e per il filare specifico',
             estimatedTime: '45 minuti',
             difficulty: 'medium',
           }],
-          benefits: ['Riduce deriva del ciclo', 'Migliora continuità operativa'],
+          benefits: rotationHistory.length > 0
+            ? ['Evita ripetizione della stessa famiglia', 'Protegge la memoria del suolo', 'Migliora la successione colturale']
+            : ['Riduce deriva del ciclo', 'Migliora continuità operativa'],
+          risks: rotationHistory.length > 0
+            ? ['Non ripetere famiglie affini nello stesso filare', 'Attenzione ai residui della coltura precedente']
+            : undefined,
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
@@ -176,6 +200,13 @@ export default function AdvicePage() {
           seasonalRelevance: 0.65
         }
       ]
+
+      if (selectedRowAnalysis) {
+        groundedAdvice[0] = {
+          ...groundedAdvice[0],
+          confidence: Math.max(groundedAdvice[0].confidence, (selectedRowAnalysis.avg_rotation_score || 0) / 100)
+        } as AIAdvice
+      }
 
       setAdvice(groundedAdvice)
     } catch (error) {
@@ -571,15 +602,21 @@ export default function AdvicePage() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
-                  <RefreshCw className="w-8 h-8 text-green-600" />
-                  <div>
-                    <div className="font-medium">Pianifica Rotazione</div>
-                    <div className="text-sm text-gray-600">Ottimizza le colture</div>
-                  </div>
-                </button>
-                
-                <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+              <button
+                onClick={() => setActiveTab('rotation')}
+                className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+              >
+                <RefreshCw className="w-8 h-8 text-green-600" />
+                <div>
+                  <div className="font-medium">Pianifica Rotazione</div>
+                  <div className="text-sm text-gray-600">Ottimizza le colture</div>
+                </div>
+              </button>
+              
+                <button
+                  onClick={() => setActiveTab('biological')}
+                  className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+                >
                   <Bug className="w-8 h-8 text-blue-600" />
                   <div>
                     <div className="font-medium">Controllo Biologico</div>
@@ -587,7 +624,10 @@ export default function AdvicePage() {
                   </div>
                 </button>
                 
-                <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                <button
+                  onClick={() => setActiveTab('seasonal')}
+                  className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+                >
                   <Calendar className="w-8 h-8 text-purple-600" />
                   <div>
                     <div className="font-medium">Calendario Stagionale</div>
