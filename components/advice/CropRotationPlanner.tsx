@@ -31,6 +31,8 @@ export default function CropRotationPlanner() {
   const [showHistory, setShowHistory] = useState(false)
   const [readOnlyFallback, setReadOnlyFallback] = useState(false)
   const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
+  const [availableZoneIds, setAvailableZoneIds] = useState<string[]>([])
+  const [selectedZoneId, setSelectedZoneId] = useState('')
   const [selectedFieldRowId, setSelectedFieldRowId] = useState('')
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function CropRotationPlanner() {
     if (activeGarden?.id) {
       loadData(selectedFieldRowId || undefined)
     }
-  }, [activeGarden?.id, selectedFieldRowId])
+  }, [activeGarden?.id, selectedFieldRowId, selectedZoneId])
 
   const loadFieldRows = async () => {
     if (!activeGarden) return
@@ -52,10 +54,13 @@ export default function CropRotationPlanner() {
         ? await storageProvider.getFieldRows(activeGarden.id).catch(() => [])
         : []
       setFieldRows(rows || [])
+      setAvailableZoneIds(Array.from(new Set((rows || []).map((row: any) => row.zoneId).filter(Boolean))))
       setSelectedFieldRowId((current) => current || rows?.[0]?.id || '')
+      setSelectedZoneId((current) => current || (rows || []).find((row: any) => row.zoneId)?.zoneId || '')
     } catch (error) {
       console.error('Error loading field rows for rotation planner:', error)
       setFieldRows([])
+      setAvailableZoneIds([])
     }
   }
 
@@ -64,8 +69,14 @@ export default function CropRotationPlanner() {
     
     try {
       setLoading(true)
+      const scopedRowId = fieldRowId || selectedFieldRowId || undefined
+      const scopedZoneId = selectedZoneId || undefined
+      const scopedRows = scopedZoneId
+        ? fieldRows.filter((row: any) => row.zoneId === scopedZoneId)
+        : fieldRows
+      const effectiveRowId = scopedRowId || scopedRows[0]?.id
       const [historyData, plansData] = await Promise.all([
-        cropRotationService.getHistory(activeGarden.id, fieldRowId),
+        cropRotationService.getHistory(activeGarden.id, effectiveRowId),
         cropRotationService.getPlans(activeGarden.id, 'SUGGESTED')
       ])
       setHistory(historyData)
@@ -160,6 +171,33 @@ export default function CropRotationPlanner() {
         </button>
       </div>
 
+      {availableZoneIds.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-4 flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Zona
+            </label>
+            <select
+              value={selectedZoneId}
+              onChange={(e) => {
+                const nextZoneId = e.target.value
+                setSelectedZoneId(nextZoneId)
+                const nextRow = fieldRows.find((row: any) => row.zoneId === nextZoneId) || fieldRows[0]
+                setSelectedFieldRowId(nextRow?.id || '')
+              }}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Tutte le zone</option>
+              {availableZoneIds.map((zoneId) => (
+                <option key={zoneId} value={zoneId}>
+                  Zona {zoneId}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {fieldRows.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -170,7 +208,7 @@ export default function CropRotationPlanner() {
             onChange={(e) => setSelectedFieldRowId(e.target.value)}
             className="w-full md:w-96 rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
-            {fieldRows.map((row) => (
+            {(selectedZoneId ? fieldRows.filter((row: any) => row.zoneId === selectedZoneId) : fieldRows).map((row) => (
               <option key={row.id} value={row.id}>
                 {row.name}{row.cultivar ? ` - ${row.cultivar}` : ''}
               </option>
