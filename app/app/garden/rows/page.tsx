@@ -540,6 +540,7 @@ export default function GardenRowsPage() {
                 <FieldRowCropHistoryPanel
                   rowId={selectedRowForHistory}
                   rowName={fieldRows.find(r => r.id === selectedRowForHistory)?.name || 'Filare'}
+                  zoneId={fieldRows.find(r => r.id === selectedRowForHistory)?.zoneId || undefined}
                 />
               </div>
             </div>
