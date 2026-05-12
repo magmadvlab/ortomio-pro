@@ -15,11 +15,13 @@ import {
 interface FieldRowCropHistoryPanelProps {
   rowId: string;
   rowName: string;
+  zoneId?: string;
 }
 
 export default function FieldRowCropHistoryPanel({
   rowId,
-  rowName
+  rowName,
+  zoneId
 }: FieldRowCropHistoryPanelProps) {
   const [history, setHistory] = useState<CropHistoryEntry[]>([]);
   const [suggestions, setSuggestions] = useState<RotationSuggestion[]>([]);
@@ -28,7 +30,7 @@ export default function FieldRowCropHistoryPanel({
 
   useEffect(() => {
     loadData();
-  }, [rowId]);
+  }, [rowId, zoneId]);
 
   const loadData = async () => {
     setLoading(true);
