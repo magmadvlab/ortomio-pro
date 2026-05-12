@@ -16,31 +16,56 @@ import {
   Sparkles
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { cropRotationService, isVirtualCropRotationPlanId } from '@/services/cropRotationService'
 import { CropRotationHistory, CropRotationPlan, SuggestedCrop } from '@/types/activeAIAdvice'
+import type { FieldRow } from '@/types/fieldRow'
 
 export default function CropRotationPlanner() {
   const { activeGarden } = useGarden()
+  const { storageProvider } = useStorage()
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<CropRotationHistory[]>([])
   const [plans, setPlans] = useState<CropRotationPlan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<CropRotationPlan | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [readOnlyFallback, setReadOnlyFallback] = useState(false)
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
+  const [selectedFieldRowId, setSelectedFieldRowId] = useState('')
 
   useEffect(() => {
     if (activeGarden) {
-      loadData()
+      loadFieldRows()
     }
-  }, [activeGarden])
+  }, [activeGarden?.id])
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (activeGarden?.id) {
+      loadData(selectedFieldRowId || undefined)
+    }
+  }, [activeGarden?.id, selectedFieldRowId])
+
+  const loadFieldRows = async () => {
+    if (!activeGarden) return
+    try {
+      const rows = storageProvider.getFieldRows
+        ? await storageProvider.getFieldRows(activeGarden.id).catch(() => [])
+        : []
+      setFieldRows(rows || [])
+      setSelectedFieldRowId((current) => current || rows?.[0]?.id || '')
+    } catch (error) {
+      console.error('Error loading field rows for rotation planner:', error)
+      setFieldRows([])
+    }
+  }
+
+  const loadData = async (fieldRowId?: string) => {
     if (!activeGarden) return
     
     try {
       setLoading(true)
       const [historyData, plansData] = await Promise.all([
-        cropRotationService.getHistory(activeGarden.id),
+        cropRotationService.getHistory(activeGarden.id, fieldRowId),
         cropRotationService.getPlans(activeGarden.id, 'SUGGESTED')
       ])
       setHistory(historyData)
@@ -56,7 +81,7 @@ export default function CropRotationPlanner() {
   const handleAcceptPlan = async (planId: string, cropName: string) => {
     try {
       await cropRotationService.acceptPlan(planId, cropName)
-      await loadData()
+      await loadData(selectedFieldRowId || undefined)
       setSelectedPlan(null)
     } catch (error) {
       console.error('Error accepting plan:', error)
@@ -66,7 +91,7 @@ export default function CropRotationPlanner() {
   const handleRejectPlan = async (planId: string) => {
     try {
       await cropRotationService.rejectPlan(planId)
-      await loadData()
+      await loadData(selectedFieldRowId || undefined)
       setSelectedPlan(null)
     } catch (error) {
       console.error('Error rejecting plan:', error)
@@ -134,6 +159,25 @@ export default function CropRotationPlanner() {
           {showHistory ? 'Nascondi' : 'Mostra'} Storia
         </button>
       </div>
+
+      {fieldRows.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filare / area da analizzare
+          </label>
+          <select
+            value={selectedFieldRowId}
+            onChange={(e) => setSelectedFieldRowId(e.target.value)}
+            className="w-full md:w-96 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          >
+            {fieldRows.map((row) => (
+              <option key={row.id} value={row.id}>
+                {row.name}{row.cultivar ? ` - ${row.cultivar}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* AI Info Banner */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
