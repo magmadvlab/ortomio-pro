@@ -165,19 +165,42 @@ export default function AdvicePage() {
           title: 'Verifica controllo biologico',
           description: taskCount > 0
             ? `Hai ${taskCount} task aperti: verifica se qualcuno riguarda trattamenti, monitoraggi o ispezioni su ${rowLabel}.`
-            : `Nessun task aperto rilevante: programma un controllo biologico di base su ${rowLabel}.`,
+            : rotationHistory.length > 0
+              ? `Storico biologico e rotazione del filare su ${rowLabel}: controlla se le ultime colture hanno lasciato rischio residuo di parassiti o patogeni prima del prossimo ciclo.`
+              : `Nessun task aperto rilevante: programma un controllo biologico di base su ${rowLabel}.`,
           priority: taskCount > 2 ? 'high' : 'medium',
-          confidence: 0.74,
+          confidence: rotationHistory.length > 0 ? 0.8 : 0.74,
           plantName: cropLabel,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
           timing: 'Immediato',
-          actions: [{
+          actions: rotationHistory.length > 0 ? [
+            {
+              type: 'monitoring',
+              title: 'Apri ispezione',
+              description: 'Controlla foglie, fusti e segni di pressione biotica',
+              estimatedTime: '20 minuti',
+              difficulty: 'easy',
+            },
+            {
+              type: 'preparation',
+              title: 'Aggiorna barriera preventiva',
+              description: 'Valuta rotazione, pulizia residui e difese fisiche prima del prossimo impianto',
+              estimatedTime: '25 minuti',
+              difficulty: 'medium',
+            }
+          ] : [{
             type: 'monitoring',
             title: 'Apri ispezione',
             description: 'Controlla foglie, fusti e segni di pressione biotica',
             estimatedTime: '20 minuti',
             difficulty: 'easy',
           }],
-          benefits: ['Intercetta problemi presto', 'Riduce interventi reattivi'],
+          benefits: rotationHistory.length > 0
+            ? ['Intercetta problemi presto', 'Riduce residui di pressione biotica', 'Allinea il controllo al ciclo reale del filare']
+            : ['Intercetta problemi presto', 'Riduce interventi reattivi'],
+          risks: rotationHistory.length > 0
+            ? ['Non saltare il controllo prima di reimpiantare', 'Attenzione alle malattie persistenti nel filare']
+            : undefined,
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
