@@ -74,6 +74,7 @@ export default function AdvicePage() {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [creatingTaskKeys, setCreatingTaskKeys] = useState<Record<string, boolean>>({})
   const [taskFeedback, setTaskFeedback] = useState<Record<string, TaskFeedback>>({})
+  const [seasonalAdvice, setSeasonalAdvice] = useState<AIAdvice[]>([])
 
   useEffect(() => {
     loadAIAdvice()
@@ -116,6 +117,12 @@ export default function AdvicePage() {
       const selectedRowAnalysis = firstFieldRow?.id
         ? rotationAnalysis.find((entry: any) => entry.row_id === firstFieldRow.id || entry.row_id === firstFieldRow.id)
         : rotationAnalysis[0]
+      const currentMonth = new Date().getMonth()
+      const currentSeason =
+        currentMonth >= 2 && currentMonth <= 4 ? 'Primavera' :
+        currentMonth >= 5 && currentMonth <= 7 ? 'Estate' :
+        currentMonth >= 8 && currentMonth <= 10 ? 'Autunno' : 'Inverno'
+      const seasonalZoneLabel = firstFieldRow?.zoneId ? `zona ${firstFieldRow.zoneId}` : rowLabel
 
       const groundedAdvice: AIAdvice[] = [
         {
@@ -209,8 +216,45 @@ export default function AdvicePage() {
       }
 
       setAdvice(groundedAdvice)
+      setSeasonalAdvice([
+        {
+          id: 'seasonal-1',
+          type: 'weather',
+          title: `${currentSeason}: piano operativo per ${seasonalZoneLabel}`,
+          description: isControlled
+            ? `Ambiente controllato: regola turni di ventilazione, luce e irrigazione per mantenere stabilità nel ciclo ${currentSeason.toLowerCase()}.`
+            : `In ${currentSeason.toLowerCase()} usa il contesto del garden e del filare per adattare semine, trapianti e protezioni su ${seasonalZoneLabel}.`,
+          priority: 'high',
+          confidence: rotationHistory.length > 0 ? 0.82 : 0.74,
+          plantName: cropLabel,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: currentSeason,
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Ricalibra il calendario',
+              description: isControlled
+                ? 'Verifica fotoperiodo, ventilazione e turni di irrigazione'
+                : 'Aggiorna semine e trapianti in base a esposizione, suolo e rotazione storica',
+              estimatedTime: '30 minuti',
+              difficulty: 'medium'
+            }
+          ],
+          benefits: isControlled
+            ? ['Migliora la stabilità del ciclo', 'Riduce stress da sovra-regolazione']
+            : ['Allinea le attività alla stagione reale', 'Riduce errori di calendario'],
+          risks: isControlled
+            ? ['Attenzione a sbalzi di temperatura interni']
+            : ['Non ignorare lo storico del filare e della zona'],
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 1
+        }
+      ])
     } catch (error) {
       console.error('Error loading AI advice:', error)
+      setSeasonalAdvice([])
     } finally {
       setLoading(false)
     }
@@ -861,15 +905,53 @@ export default function AdvicePage() {
 
         {/* Seasonal Tab */}
         {activeTab === 'seasonal' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Consigli Stagionali</h3>
-            <p className="text-gray-600 mb-6">
-              Consigli personalizzati basati sulla stagione corrente e le condizioni climatiche locali.
-            </p>
-            <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
-              Genera Consigli Stagionali
-            </button>
+          <div className="space-y-4">
+            {seasonalAdvice.length > 0 ? seasonalAdvice.map((item) => (
+              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-start gap-4">
+                  <Calendar className="w-8 h-8 text-purple-600" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                      <span className="text-sm text-gray-500">{item.timing}</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium border text-orange-600 bg-orange-50 border-orange-200">
+                        {Math.round(item.confidence * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-gray-700 mb-3">{item.description}</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-medium text-purple-900 mb-2">Azioni</h4>
+                        {item.actions.map((action, index) => (
+                          <div key={index} className="text-sm text-purple-800">
+                            {action.title}: {action.description}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-medium text-green-900 mb-2">Benefici</h4>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          {item.benefits.map((benefit, index) => (
+                            <li key={index}>• {benefit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Consigli Stagionali</h3>
+                <p className="text-gray-600 mb-6">
+                  Consigli personalizzati basati sulla stagione corrente e le condizioni climatiche locali.
+                </p>
+                <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                  Genera Consigli Stagionali
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
