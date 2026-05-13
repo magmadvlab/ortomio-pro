@@ -19,7 +19,8 @@ import {
   Target,
   Droplets,
   Sun,
-  Thermometer
+  Thermometer,
+  Scissors
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
@@ -32,12 +33,14 @@ import type { GardenTask } from '@/types'
 
 interface AIAdvice {
   id: string
-  type: 'rotation' | 'biological_control' | 'nutrition' | 'irrigation' | 'weather' | 'pest_prevention' | 'harvest_timing'
+  type: 'rotation' | 'biological_control' | 'nutrition' | 'irrigation' | 'weather' | 'pest_prevention' | 'harvest_timing' | 'work'
   title: string
   description: string
   priority: 'low' | 'medium' | 'high' | 'critical'
   confidence: number
   plantName?: string
+  rowId?: string
+  zoneId?: string
   zone?: string
   timing: string
   actions: AdviceAction[]
@@ -89,6 +92,7 @@ export default function AdvicePage() {
       const garden = resolvedContext?.garden || activeGarden
       const firstFieldRow = resolvedContext?.structure.fieldRows?.[0]
       const cropLabel = garden?.primaryCrop?.label || garden?.name || 'coltura attiva'
+      const cropType = garden?.primaryCrop?.cropType || garden?.primaryCrop?.canonicalPlantName || cropLabel
       const rowLabel = firstFieldRow?.name || firstFieldRow?.cultivar || cropLabel
       const isControlled = Boolean(
         resolvedContext?.structure.indoorSpace ||
@@ -107,6 +111,7 @@ export default function AdvicePage() {
       const rotationHistory = activeGarden?.id && firstFieldRow?.id
         ? await fieldRowCropHistoryService.getFieldRowHistory(firstFieldRow.id).catch(() => [])
         : []
+      const previousCropFamily = rotationHistory[0]?.crop_family || rotationHistory[0]?.crop_name || null
       const rotationSuggestions = activeGarden?.id && firstFieldRow?.id
         ? await fieldRowCropHistoryService.getRotationSuggestions(firstFieldRow.id).catch(() => [])
         : []
@@ -137,6 +142,8 @@ export default function AdvicePage() {
           priority: 'high',
           confidence: isControlled ? 0.81 : rotationHistory.length > 0 ? 0.84 : 0.72,
           timing: 'Prossimi 10 giorni',
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
           actions: [{
             type: 'scheduled',
             title: 'Rivedi il ciclo',
@@ -158,6 +165,85 @@ export default function AdvicePage() {
           validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
           seasonalRelevance: 0.8
+        },
+        {
+          id: 'advice-nutrition',
+          type: 'nutrition',
+          title: 'Nutrizione mirata per filare',
+          description: rotationHistory.length > 0
+            ? `Il filare ${rowLabel} segue ${previousCropFamily || 'la coltura precedente'}: calibra la fertilizzazione sulla coltura effettiva e sulla memoria del suolo, evitando pacchetti generici.`
+            : `Definisci una nutrizione specifica per ${rowLabel} in base a coltura, suolo e obiettivo produttivo, non su schema standard.`,
+          priority: 'high',
+          confidence: rotationHistory.length > 0 ? 0.83 : 0.76,
+          plantName: cropLabel,
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: 'Prossimi 7 giorni',
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Allinea la fertilizzazione',
+              description: rotationHistory.length > 0
+                ? `Usa il profilo della coltura ${cropType} e il contesto del filare per scegliere elementi e dosi coerenti.`
+                : 'Allinea elemento, dose e tempistica al tipo di coltura e alla fase attuale.',
+              estimatedTime: '35 minuti',
+              difficulty: 'medium'
+            },
+            {
+              type: 'monitoring',
+              title: 'Verifica risposta vegetativa',
+              description: 'Controlla crescita, colore fogliare e vigore per correggere il piano nutrizionale.',
+              estimatedTime: '20 minuti',
+              difficulty: 'easy'
+            }
+          ],
+          benefits: rotationHistory.length > 0
+            ? ['Riduce sprechi di fertilizzanti', 'Segue la coltura reale del filare', 'Migliora la risposta vegetativa']
+            : ['Migliora la coerenza del piano nutrizionale', 'Riduce interventi generici'],
+          risks: rotationHistory.length > 0
+            ? ['Non usare dosi standard se il filare ha già storicità diversa', 'Evita correzioni cieche senza risposta osservata']
+            : ['Non trasformare la nutrizione in calendario fisso'],
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 0.9
+        },
+        {
+          id: 'advice-work',
+          type: 'work',
+          title: 'Lavorazioni mirate sul contesto',
+          description: rotationHistory.length > 0
+            ? `Le lavorazioni sul filare ${rowLabel} devono seguire la coltura effettiva e la zona: sarchiatura, gestione interfilare, pulizia o ripristino non sono intercambiabili con altri filari.`
+            : `Pianifica le lavorazioni su ${rowLabel} in modo specifico per coltura, suolo e stagione, evitando operazioni generiche.`,
+          priority: 'medium',
+          confidence: rotationHistory.length > 0 ? 0.8 : 0.73,
+          plantName: cropLabel,
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: 'Prossimi 5 giorni',
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Seleziona la lavorazione corretta',
+              description: rotationHistory.length > 0
+                ? 'Scegli tra pulizia, sarchiatura, gestione interfilare o ripristino in base alla coltura nel filare.'
+                : 'Seleziona la lavorazione in base a coltura e stato del terreno.',
+              estimatedTime: '40 minuti',
+              difficulty: 'medium'
+            }
+          ],
+          benefits: rotationHistory.length > 0
+            ? ['Intervento più preciso', 'Meno lavoro inutile', 'Maggiore coerenza col filare']
+            : ['Evita lavorazioni generiche', 'Allinea lavoro e coltura'],
+          risks: rotationHistory.length > 0
+            ? ['Non applicare la stessa lavorazione a filari con colture diverse']
+            : undefined,
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 0.75
         },
         {
           id: 'advice-biological',
@@ -311,6 +397,7 @@ export default function AdvicePage() {
       case 'weather': return <Sun className="w-5 h-5" />
       case 'pest_prevention': return <AlertTriangle className="w-5 h-5" />
       case 'harvest_timing': return <Target className="w-5 h-5" />
+      case 'work': return <Scissors className="w-5 h-5" />
       default: return <Lightbulb className="w-5 h-5" />
     }
   }
@@ -371,6 +458,8 @@ export default function AdvicePage() {
         return 'Irrigation'
       case 'nutrition':
         return 'Fertilize'
+      case 'work':
+        return 'Hoeing'
       case 'harvest_timing':
         return 'Harvest'
       case 'biological_control':
@@ -450,6 +539,8 @@ export default function AdvicePage() {
 
       const taskData: Omit<GardenTask, 'id'> = {
         gardenId: activeGarden.id,
+        rowId: item.rowId,
+        zoneId: item.zoneId,
         plantName,
         taskType: mapAdviceTypeToTaskType(item.type),
         date: taskDate,
@@ -747,6 +838,7 @@ export default function AdvicePage() {
                   <option value="rotation">Rotazione</option>
                   <option value="biological_control">Controllo biologico</option>
                   <option value="nutrition">Nutrizione</option>
+                  <option value="work">Lavorazioni</option>
                   <option value="irrigation">Irrigazione</option>
                   <option value="harvest_timing">Timing raccolta</option>
                 </select>

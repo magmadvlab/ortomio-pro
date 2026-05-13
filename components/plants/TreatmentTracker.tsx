@@ -14,12 +14,14 @@ interface TreatmentTrackerProps {
   plantId: string
   gardenId: string
   plantName: string
+  fieldRowId?: string
 }
 
 export default function TreatmentTracker({
   plantId,
   gardenId,
-  plantName
+  plantName,
+  fieldRowId
 }: TreatmentTrackerProps) {
   const [activeTreatments, setActiveTreatments] = useState<TreatmentTracking[]>([])
   const [effectiveness, setEffectiveness] = useState<any>(null)
@@ -28,13 +30,13 @@ export default function TreatmentTracker({
 
   useEffect(() => {
     loadTreatmentData()
-  }, [plantId])
+  }, [plantId, fieldRowId])
 
   const loadTreatmentData = async () => {
     try {
       const [active, eff] = await Promise.all([
-        treatmentTrackingService.getActiveTreatments(plantId),
-        treatmentTrackingService.calculateTreatmentEffectiveness(plantId)
+        treatmentTrackingService.getActiveTreatments(plantId, fieldRowId),
+        treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId)
       ])
       
       setActiveTreatments(active)
@@ -84,6 +86,9 @@ export default function TreatmentTracker({
             Tracking Trattamenti
           </h3>
           <p className="text-sm text-gray-600">{plantName}</p>
+          {fieldRowId && (
+            <p className="text-xs text-gray-500">Contesto filare: {fieldRowId}</p>
+          )}
         </div>
         <button
           onClick={() => setShowStartModal(true)}
