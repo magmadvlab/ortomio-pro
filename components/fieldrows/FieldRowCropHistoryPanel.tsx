@@ -36,8 +36,8 @@ export default function FieldRowCropHistoryPanel({
     setLoading(true);
     try {
       const [historyData, suggestionsData] = await Promise.all([
-        fieldRowCropHistoryService.getFieldRowHistory(rowId),
-        fieldRowCropHistoryService.getRotationSuggestions(rowId)
+        fieldRowCropHistoryService.getFieldRowHistory(rowId, zoneId),
+        fieldRowCropHistoryService.getRotationSuggestions(rowId, zoneId)
       ]);
       
       setHistory(historyData);

@@ -363,15 +363,22 @@ export async function recordCropHarvest(
  * Ottiene lo storico di un filare
  */
 export async function getFieldRowHistory(
-  rowId: string
+  rowId: string,
+  zoneId?: string
 ): Promise<CropHistoryEntry[]> {
   try {
     const supabase = getRequiredSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from('field_row_crop_history')
       .select('*')
       .eq('garden_row_id', rowId)
       .order('planting_date', { ascending: false });
+
+    if (zoneId) {
+      query = query.eq('zone_id', zoneId);
+    }
+
+    const { data, error } = await query;
     
     if (error) throw error;
     
@@ -410,14 +417,15 @@ export async function calculateRotationScore(
  * Ottiene suggerimenti di rotazione per un filare
  */
 export async function getRotationSuggestions(
-  rowId: string
+  rowId: string,
+  zoneId?: string
 ): Promise<RotationSuggestion[]> {
   try {
     const supabase = getRequiredSupabaseClient();
-    const { data, error } = await supabase
-      .rpc('get_rotation_suggestions', {
-        row_id: rowId
-      });
+    const { data, error } = await supabase.rpc('get_rotation_suggestions', {
+      row_id: rowId,
+      zone_id: zoneId || null
+    });
     
     if (error) throw error;
     
