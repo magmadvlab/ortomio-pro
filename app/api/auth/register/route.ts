@@ -22,13 +22,18 @@ const resolveRegistrationAuthSiteUrl = (): string => {
   )
 }
 
-const isConfirmationEmailError = (error: unknown): error is { message: string } => {
+const isConfirmationEmailError = (error: unknown): error is { message: string; status?: number } => {
   return Boolean(
     error &&
       typeof error === 'object' &&
       'message' in error &&
       typeof (error as { message?: unknown }).message === 'string' &&
-      (error as { message: string }).message.includes('Error sending confirmation email')
+      (
+        (error as { message: string }).message.includes('Error sending confirmation email') ||
+        (error as { message: string }).message.includes('Email address not authorized') ||
+        (error as { message: string }).message.includes('template') ||
+        (error as { message: string }).message.includes('parse error')
+      )
   )
 }
 
@@ -127,13 +132,15 @@ export async function POST(request: NextRequest) {
           success: false,
           error: {
             type: RegistrationErrorType.DATABASE_ERROR,
-            message: 'La registrazione e stata creata ma la mail di conferma non e partita. Controlla la configurazione SMTP/Supabase e riprova.',
-            code: 'REG_EMAIL_001',
+            message: 'La registrazione e stata creata ma la mail di conferma non e partita. Controlla SMTP, template confirmation e redirect URL.',
+            code: 'REG_EMAIL_CONFIRM_001',
             details: [
               'Verifica le impostazioni email del progetto Supabase',
               'Controlla SMTP, sender e template di conferma',
               'Usa la pagina di verifica per reinviare la mail dopo la correzione'
-            ]
+            ],
+            originalMessage: authError.message,
+            originalStatus: authError.status
           },
           requiresEmailVerification: true
         } as RegistrationResponse, { status: 502 })

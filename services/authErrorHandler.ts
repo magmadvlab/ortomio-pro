@@ -28,8 +28,24 @@ export class AuthErrorHandler {
     if (error?.message?.includes('Error sending confirmation email')) {
       return {
         type: RegistrationErrorType.DATABASE_ERROR,
-        message: 'Impossibile inviare l\'email di conferma. Riprova piu tardi o contatta il supporto.',
-        code: 'SUPABASE_005'
+        message: 'Impossibile inviare l\'email di conferma. Verifica SMTP, template confirmation e redirect URL.',
+        code: 'SUPABASE_EMAIL_CONFIRM_001'
+      };
+    }
+
+    if (error?.message?.includes('Email address not authorized')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'L\'indirizzo email non è autorizzato dal provider Supabase. Configura SMTP custom o autorizza il destinatario.',
+        code: 'SUPABASE_EMAIL_CONFIRM_002'
+      };
+    }
+
+    if (error?.message?.includes('template') || error?.message?.includes('parse error')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'Errore nel template email Supabase. Controlla il template di conferma o recovery.',
+        code: 'SUPABASE_EMAIL_TEMPLATE_001'
       };
     }
 
@@ -141,6 +157,30 @@ export class AuthErrorHandler {
    * Gestione errori reset password
    */
   public handlePasswordResetError(error: any): AuthError {
+    if (error?.message?.includes('Error sending recovery email')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'Impossibile inviare l\'email di recovery. Verifica SMTP, template recovery e redirect URL.',
+        code: 'SUPABASE_EMAIL_RECOVERY_001'
+      };
+    }
+
+    if (error?.message?.includes('Email address not authorized')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'L\'indirizzo email non è autorizzato dal provider Supabase. Configura SMTP custom o autorizza il destinatario.',
+        code: 'SUPABASE_EMAIL_RECOVERY_002'
+      };
+    }
+
+    if (error?.message?.includes('template') || error?.message?.includes('parse error')) {
+      return {
+        type: RegistrationErrorType.DATABASE_ERROR,
+        message: 'Errore nel template email Supabase. Controlla il template di recovery.',
+        code: 'SUPABASE_EMAIL_TEMPLATE_002'
+      };
+    }
+
     if (error?.code) {
       switch (error.code) {
         case 'email_address_invalid':
