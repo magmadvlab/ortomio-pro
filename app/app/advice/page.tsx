@@ -212,18 +212,27 @@ export default function AdvicePage() {
           title: isControlled ? 'Bilanciamento idrico del sistema' : 'Ottimizzazione Irrigazione',
           description: isControlled
             ? 'In ambiente controllato conta di più la stabilità: verifica portate, drenaggi e ritorni prima di aumentare i cicli.'
-            : `Ricalibra l'irrigazione sul contesto reale del giardino e del filare ${rowLabel} per evitare sovra/interventi.`,
+            : rotationHistory.length > 0
+              ? `Filare ${rowLabel} e zona correlata: bilancia l'acqua in base alla coltura precedente, al ritmo di crescita e alla memoria idrica del sito.`
+              : `Ricalibra l'irrigazione sul contesto reale del giardino e del filare ${rowLabel} per evitare sovra/interventi.`,
           priority: 'medium',
-          confidence: isControlled ? 0.79 : 0.72,
+          confidence: isControlled ? 0.79 : rotationHistory.length > 0 ? 0.8 : 0.72,
           timing: 'Prossimi 3 giorni',
           actions: [{
             type: 'preparation',
             title: 'Controlla parametri',
-            description: 'Verifica timer, portate e uniformità di distribuzione',
+            description: rotationHistory.length > 0
+              ? 'Verifica timer, portate, uniformità di distribuzione e eventuale accumulo nel filare selezionato'
+              : 'Verifica timer, portate e uniformità di distribuzione',
             estimatedTime: '20 minuti',
             difficulty: 'easy'
           }],
-          benefits: ['Meno sprechi', 'Maggiore stabilità'],
+          benefits: rotationHistory.length > 0
+            ? ['Meno sprechi', 'Maggiore stabilità', "Allinea l'acqua al ciclo reale del filare"]
+            : ['Meno sprechi', 'Maggiore stabilità'],
+          risks: rotationHistory.length > 0
+            ? ['Evita irrigazioni uniformi su filari con esigenze diverse']
+            : undefined,
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
