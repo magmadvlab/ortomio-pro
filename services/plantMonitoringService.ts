@@ -74,7 +74,18 @@ function writeStore(store: MonitoringStore): void {
     return
   }
 
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn(
+        '[plantMonitoringService] localStorage quota exceeded — le foto sono in memoria ma non persisteranno al ricaricamento. ' +
+        'Considera di caricare le foto su storage cloud.'
+      )
+    } else {
+      throw error
+    }
+  }
 }
 
 function updateStore<T>(updater: (store: MonitoringStore) => T): T {
