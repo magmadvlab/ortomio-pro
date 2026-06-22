@@ -374,7 +374,7 @@ export interface IrrigationSchedule {
 
 export interface WateringLog {
   id: string
-  zoneId: string
+  zoneId?: string
   gardenId: string
   taskId?: string
   bedId?: string

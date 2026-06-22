@@ -83,7 +83,7 @@ export interface TreatmentRegistry extends MicroZoneReference {
  */
 export interface WateringLog extends MicroZoneReference {
   id: string;
-  zoneId: string; // irrigation_zones (obbligatorio)
+  zoneId?: string; // irrigation_zones (opzionale per operazioni non zone-based)
   gardenId: string;
   taskId?: string;
   wateredAt: string; // ISO timestamp

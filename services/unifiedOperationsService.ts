@@ -495,7 +495,7 @@ export class UnifiedOperationsService {
 
     const wateringLog = await this.storageProvider.createWateringLog({
       gardenId: request.gardenId,
-      zoneId: '', // Not zone-based
+      zoneId: undefined, // Not zone-based
       bedId: request.gardenRowId ? await this.getBedIdForRow(request.gardenRowId) : undefined,
       rowId: request.gardenRowId,
       fieldRowId: request.fieldRowId,
