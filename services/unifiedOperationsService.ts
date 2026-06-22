@@ -1055,9 +1055,9 @@ export class UnifiedOperationsService {
 
   private async getBedIdForRow(rowId: string): Promise<string | undefined> {
     try {
-      // This would query to find the bed that contains this row
-      // For now, return undefined
-      return undefined;
+      if (!this.storageProvider.getGardenRow) return undefined;
+      const row = await this.storageProvider.getGardenRow(rowId);
+      return row?.bedId ?? undefined;
     } catch (error) {
       console.error('Error getting bed ID for row:', error);
       return undefined;
