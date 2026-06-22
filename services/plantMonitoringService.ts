@@ -18,6 +18,8 @@ import {
   calculateAdaptiveQualityPrice,
   resolveAdaptiveQualityPricingBenchmarkForGarden,
 } from '@/services/adaptiveMarketPricingService'
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { ensurePlantOperationLineageContext } from '@/utils/plantOperationLineage'
 
 type MonitoringStore = {
   photos: PlantPhoto[]
@@ -27,6 +29,7 @@ type MonitoringStore = {
 }
 
 const STORE_KEY = 'ortomio:plant-monitoring:v1'
+const storageProvider = getDefaultStorageProvider()
 
 const emptyStore = (): MonitoringStore => ({
   photos: [],
@@ -71,7 +74,18 @@ function writeStore(store: MonitoringStore): void {
     return
   }
 
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(store))
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn(
+        '[plantMonitoringService] localStorage quota exceeded — le foto sono in memoria ma non persisteranno al ricaricamento. ' +
+        'Considera di caricare le foto su storage cloud.'
+      )
+    } else {
+      throw error
+    }
+  }
 }
 
 function updateStore<T>(updater: (store: MonitoringStore) => T): T {
@@ -556,6 +570,38 @@ export const treatmentTrackingService = {
       return tracking
     })
 
+    if (storageProvider.createPlantOperation) {
+      const operationContext = ensurePlantOperationLineageContext({
+        gardenId,
+        plantId,
+        fieldRowId: data.fieldRowId,
+        eventType: 'treatment_start',
+      })
+      await storageProvider.createPlantOperation({
+        plantId,
+        gardenId,
+        fieldRowId: data.fieldRowId,
+        operationType: 'treatment',
+        operationCategory: 'protection',
+        date: new Date().toISOString().split('T')[0],
+        operationDate: new Date().toISOString().split('T')[0],
+        productName: data.treatment.productName,
+        quantity: data.treatment.dosage,
+        unit: data.treatment.unit,
+        notes: `Treatment tracking started: ${data.issueName} (${data.severity})`,
+        sourceType: 'manual',
+        actorType: 'manual',
+        recordedBy: 'user',
+        operationContext,
+        context: operationContext,
+        weatherConditions: {
+          source: 'not_captured',
+          captureMode: 'manual_monitoring',
+        },
+        photos: [],
+      })
+    }
+
     return tracking
   },
 
@@ -580,6 +626,36 @@ export const treatmentTrackingService = {
           : tracking
       )
     })
+
+    const tracking = readStore().treatments.find((item) => item.id === trackingId)
+    if (tracking && storageProvider.createPlantOperation) {
+      const operationContext = ensurePlantOperationLineageContext({
+        gardenId: tracking.gardenId,
+        plantId: tracking.plantId,
+        fieldRowId: tracking.fieldRowId,
+        eventType: 'treatment_followup',
+      })
+      await storageProvider.createPlantOperation({
+        plantId: tracking.plantId,
+        gardenId: tracking.gardenId,
+        fieldRowId: tracking.fieldRowId,
+        operationType: 'health',
+        operationCategory: 'maintenance',
+        date: new Date().toISOString().split('T')[0],
+        operationDate: new Date().toISOString().split('T')[0],
+        notes: `Treatment follow-up +${daysAfterTreatment}d (${improvementScore ?? 'n/a'}%)`,
+        sourceType: 'manual',
+        actorType: 'manual',
+        recordedBy: 'user',
+        operationContext,
+        context: operationContext,
+        weatherConditions: {
+          source: 'not_captured',
+          captureMode: 'manual_monitoring',
+        },
+        photos: [],
+      })
+    }
   },
 
   async completeTreatmentTracking(
@@ -597,6 +673,37 @@ export const treatmentTrackingService = {
           : tracking
       )
     })
+
+    const tracking = readStore().treatments.find((item) => item.id === trackingId)
+    if (tracking && storageProvider.createPlantOperation) {
+      const operationContext = ensurePlantOperationLineageContext({
+        gardenId: tracking.gardenId,
+        plantId: tracking.plantId,
+        fieldRowId: tracking.fieldRowId,
+        eventType: 'treatment_outcome',
+      })
+      await storageProvider.createPlantOperation({
+        plantId: tracking.plantId,
+        gardenId: tracking.gardenId,
+        fieldRowId: tracking.fieldRowId,
+        operationType: 'health',
+        operationCategory: 'maintenance',
+        date: new Date().toISOString().split('T')[0],
+        operationDate: new Date().toISOString().split('T')[0],
+        notes: `Treatment outcome: ${outcome?.status ?? 'n/a'} (${outcome?.effectiveness ?? 0}%)`,
+        effectivenessScore: outcome?.effectiveness ? Math.round(outcome.effectiveness / 10) : undefined,
+        sourceType: 'manual',
+        actorType: 'manual',
+        recordedBy: 'user',
+        operationContext,
+        context: operationContext,
+        weatherConditions: {
+          source: 'not_captured',
+          captureMode: 'manual_monitoring',
+        },
+        photos: [],
+      })
+    }
   },
 
   async getActiveTreatments(plantId: string, fieldRowId?: string): Promise<TreatmentTracking[]> {
@@ -831,14 +938,14 @@ export const harvestRecommendationService = {
 }
 
 export const monitoringDashboardService = {
-  async getPlantMonitoringDashboard(plantId: string, fieldRowId?: string): Promise<PlantMonitoringDashboard> {
+  async getPlantMonitoringDashboard(plantId: string, fieldRowId?: string, gardenId?: string): Promise<PlantMonitoringDashboard> {
     const [photos, currentMaturity, brixTrend, activeTreatments, effectiveness, recommendation] = await Promise.all([
       plantPhotoService.getPlantPhotos(plantId, fieldRowId),
       maturityTrackingService.getCurrentMaturityStage(plantId, fieldRowId),
       brixManagementService.getBrixTrend(plantId, fieldRowId),
       treatmentTrackingService.getActiveTreatments(plantId, fieldRowId),
       treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId),
-      harvestRecommendationService.generateHarvestRecommendation(plantId, '', fieldRowId)
+      harvestRecommendationService.generateHarvestRecommendation(plantId, gardenId ?? '', fieldRowId)
     ])
 
     const photoStats = createPhotoTypeStats()

@@ -237,7 +237,7 @@ export interface IStorageProvider {
   deleteGardenRow(id: string): Promise<void>;
 
   // Mechanical Work (Pro Feature)
-  getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]>;
+  getMechanicalWorks(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<MechanicalWorkRecord[]>;
   getMechanicalWork(id: string): Promise<MechanicalWorkRecord | null>;
   createMechanicalWork(work: Omit<MechanicalWorkRecord, 'id' | 'user_id' | 'created_at'>): Promise<MechanicalWorkRecord>;
   updateMechanicalWork(id: string, updates: Partial<MechanicalWorkRecord>): Promise<MechanicalWorkRecord>;
@@ -272,7 +272,7 @@ export interface IStorageProvider {
   deleteFertilizerApplicationLog(id: string): Promise<void>;
 
   // Treatments (Pro Feature)
-  getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]>;
+  getTreatments(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<TreatmentRecordDB[]>;
   getTreatment(id: string): Promise<TreatmentRecordDB | null>;
   createTreatment(treatment: Omit<TreatmentRecordDB, 'id' | 'user_id' | 'created_at'>): Promise<TreatmentRecordDB>;
   updateTreatment(id: string, updates: Partial<TreatmentRecordDB>): Promise<TreatmentRecordDB>;

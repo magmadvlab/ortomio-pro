@@ -23,6 +23,10 @@ import type { PrescriptionExecutionRecord, PrescriptionMap, PrescriptionMapExpor
 import type { PlantOperation } from '@/types/individualPlant';
 import { normalizeGeoCoordinates } from '@/utils/coordinates';
 import {
+  ensurePlantOperationLineageContext,
+  extractRowScopeFromOperationContext,
+} from '@/utils/plantOperationLineage';
+import {
   hasAgronomicScope,
   normalizeSmartDeviceScope,
   touchesAgronomicScope,
@@ -1347,15 +1351,21 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Mechanical Work
-  async getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]> {
+  async getMechanicalWorks(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<MechanicalWorkRecord[]> {
     const key = 'ortomio_mechanical_works';
     const allWorks = JSON.parse(localStorage.getItem(key) || '[]') as MechanicalWorkRecord[];
-    
+
     let filtered = allWorks;
     if (gardenId) {
       filtered = allWorks.filter(w => w.garden_id === gardenId);
     }
-    
+    if (options?.dateFrom) {
+      filtered = filtered.filter(w => w.work_date >= options.dateFrom!);
+    }
+    if (options?.dateTo) {
+      filtered = filtered.filter(w => w.work_date <= options.dateTo!);
+    }
+
     return filtered.sort((a, b) => new Date(b.work_date).getTime() - new Date(a.work_date).getTime());
   }
 
@@ -1678,15 +1688,21 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   // Treatments
-  async getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]> {
+  async getTreatments(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<TreatmentRecordDB[]> {
     const key = 'ortomio_treatments';
     const allTreatments = JSON.parse(localStorage.getItem(key) || '[]') as TreatmentRecordDB[];
-    
+
     let filtered = allTreatments;
     if (gardenId) {
       filtered = allTreatments.filter(t => t.garden_id === gardenId);
     }
-    
+    if (options?.dateFrom) {
+      filtered = filtered.filter(t => t.treatment_date >= options.dateFrom!);
+    }
+    if (options?.dateTo) {
+      filtered = filtered.filter(t => t.treatment_date <= options.dateTo!);
+    }
+
     return filtered.sort((a, b) => new Date(b.treatment_date).getTime() - new Date(a.treatment_date).getTime());
   }
 
@@ -2668,11 +2684,17 @@ export class LocalStorageProvider implements IStorageProvider {
         .filter((op: any) => op.plantId === plantId)
         .map((op: any) => {
           const parsedNotes = this.parsePlantOperationNotes(op.notes);
-          const operationContext =
-            op.operationContext ||
-            op.context ||
-            parsedNotes.metadata?.operationContext ||
-            parsedNotes.metadata?.context;
+          const operationContext = ensurePlantOperationLineageContext({
+            gardenId: op.gardenId,
+            plantId: op.plantId,
+            operationContext:
+              op.operationContext ||
+              op.context ||
+              parsedNotes.metadata?.operationContext ||
+              parsedNotes.metadata?.context,
+            eventType: 'operation_read',
+          });
+          const rowScope = extractRowScopeFromOperationContext(operationContext);
           const weatherConditions =
             op.weatherConditions ||
             parsedNotes.metadata?.weatherConditions;
@@ -2691,6 +2713,8 @@ export class LocalStorageProvider implements IStorageProvider {
             notes: parsedNotes.cleanNotes,
             context: operationContext,
             operationContext,
+            fieldRowId: rowScope.fieldRowId || op.fieldRowId,
+            gardenRowId: rowScope.gardenRowId || op.gardenRowId,
             weatherConditions,
             geoSnapshot,
             actorType,
@@ -2715,7 +2739,16 @@ export class LocalStorageProvider implements IStorageProvider {
       const sourceType = operation.sourceType
         || (operation.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
         || (operation.parentOperationTable === 'manual_orchestrator' ? 'manual' : 'manual');
-      const operationContext = operation.operationContext || operation.context || undefined;
+      const operationContext = ensurePlantOperationLineageContext({
+        gardenId: operation.gardenId,
+        plantId: operation.plantId,
+        fieldRowId: operation.fieldRowId,
+        gardenRowId: operation.gardenRowId,
+        operationContext: operation.operationContext,
+        context: operation.context,
+        eventType: 'operation_write',
+      });
+      const rowScope = extractRowScopeFromOperationContext(operationContext);
       const weatherConditions = operation.weatherConditions || undefined;
       const geoSnapshot = operation.geoSnapshot || undefined;
       const actorType = operation.actorType || undefined;
@@ -2746,6 +2779,8 @@ export class LocalStorageProvider implements IStorageProvider {
         notes: notesWithMetadata,
         context: operationContext,
         operationContext,
+        fieldRowId: rowScope.fieldRowId || operation.fieldRowId,
+        gardenRowId: rowScope.gardenRowId || operation.gardenRowId,
         weatherConditions,
         geoSnapshot,
         photos: operation.photos || [],

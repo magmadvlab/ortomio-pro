@@ -19,7 +19,8 @@ import {
   Target,
   Droplets,
   Sun,
-  Thermometer
+  Thermometer,
+  Scissors
 } from 'lucide-react'
 import CropRotationPlanner from '@/components/advice/CropRotationPlanner'
 import BiologicalControlDashboard from '@/components/advice/BiologicalControlDashboard'
@@ -32,12 +33,14 @@ import type { GardenTask } from '@/types'
 
 interface AIAdvice {
   id: string
-  type: 'rotation' | 'biological_control' | 'nutrition' | 'irrigation' | 'weather' | 'pest_prevention' | 'harvest_timing'
+  type: 'rotation' | 'biological_control' | 'nutrition' | 'irrigation' | 'weather' | 'pest_prevention' | 'harvest_timing' | 'work'
   title: string
   description: string
   priority: 'low' | 'medium' | 'high' | 'critical'
   confidence: number
   plantName?: string
+  rowId?: string
+  zoneId?: string
   zone?: string
   timing: string
   actions: AdviceAction[]
@@ -74,6 +77,7 @@ export default function AdvicePage() {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [creatingTaskKeys, setCreatingTaskKeys] = useState<Record<string, boolean>>({})
   const [taskFeedback, setTaskFeedback] = useState<Record<string, TaskFeedback>>({})
+  const [seasonalAdvice, setSeasonalAdvice] = useState<AIAdvice[]>([])
 
   useEffect(() => {
     loadAIAdvice()
@@ -88,6 +92,7 @@ export default function AdvicePage() {
       const garden = resolvedContext?.garden || activeGarden
       const firstFieldRow = resolvedContext?.structure.fieldRows?.[0]
       const cropLabel = garden?.primaryCrop?.label || garden?.name || 'coltura attiva'
+      const cropType = garden?.primaryCrop?.cropType || garden?.primaryCrop?.canonicalPlantName || cropLabel
       const rowLabel = firstFieldRow?.name || firstFieldRow?.cultivar || cropLabel
       const isControlled = Boolean(
         resolvedContext?.structure.indoorSpace ||
@@ -106,6 +111,7 @@ export default function AdvicePage() {
       const rotationHistory = activeGarden?.id && firstFieldRow?.id
         ? await fieldRowCropHistoryService.getFieldRowHistory(firstFieldRow.id).catch(() => [])
         : []
+      const previousCropFamily = rotationHistory[0]?.crop_family || rotationHistory[0]?.crop_name || null
       const rotationSuggestions = activeGarden?.id && firstFieldRow?.id
         ? await fieldRowCropHistoryService.getRotationSuggestions(firstFieldRow.id).catch(() => [])
         : []
@@ -116,6 +122,12 @@ export default function AdvicePage() {
       const selectedRowAnalysis = firstFieldRow?.id
         ? rotationAnalysis.find((entry: any) => entry.row_id === firstFieldRow.id || entry.row_id === firstFieldRow.id)
         : rotationAnalysis[0]
+      const currentMonth = new Date().getMonth()
+      const currentSeason =
+        currentMonth >= 2 && currentMonth <= 4 ? 'Primavera' :
+        currentMonth >= 5 && currentMonth <= 7 ? 'Estate' :
+        currentMonth >= 8 && currentMonth <= 10 ? 'Autunno' : 'Inverno'
+      const seasonalZoneLabel = firstFieldRow?.zoneId ? `zona ${firstFieldRow.zoneId}` : rowLabel
 
       const groundedAdvice: AIAdvice[] = [
         {
@@ -130,6 +142,8 @@ export default function AdvicePage() {
           priority: 'high',
           confidence: isControlled ? 0.81 : rotationHistory.length > 0 ? 0.84 : 0.72,
           timing: 'Prossimi 10 giorni',
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
           actions: [{
             type: 'scheduled',
             title: 'Rivedi il ciclo',
@@ -153,24 +167,126 @@ export default function AdvicePage() {
           seasonalRelevance: 0.8
         },
         {
+          id: 'advice-nutrition',
+          type: 'nutrition',
+          title: 'Nutrizione mirata per filare',
+          description: rotationHistory.length > 0
+            ? `Il filare ${rowLabel} segue ${previousCropFamily || 'la coltura precedente'}: calibra la fertilizzazione sulla coltura effettiva e sulla memoria del suolo, evitando pacchetti generici.`
+            : `Definisci una nutrizione specifica per ${rowLabel} in base a coltura, suolo e obiettivo produttivo, non su schema standard.`,
+          priority: 'high',
+          confidence: rotationHistory.length > 0 ? 0.83 : 0.76,
+          plantName: cropLabel,
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: 'Prossimi 7 giorni',
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Allinea la fertilizzazione',
+              description: rotationHistory.length > 0
+                ? `Usa il profilo della coltura ${cropType} e il contesto del filare per scegliere elementi e dosi coerenti.`
+                : 'Allinea elemento, dose e tempistica al tipo di coltura e alla fase attuale.',
+              estimatedTime: '35 minuti',
+              difficulty: 'medium'
+            },
+            {
+              type: 'monitoring',
+              title: 'Verifica risposta vegetativa',
+              description: 'Controlla crescita, colore fogliare e vigore per correggere il piano nutrizionale.',
+              estimatedTime: '20 minuti',
+              difficulty: 'easy'
+            }
+          ],
+          benefits: rotationHistory.length > 0
+            ? ['Riduce sprechi di fertilizzanti', 'Segue la coltura reale del filare', 'Migliora la risposta vegetativa']
+            : ['Migliora la coerenza del piano nutrizionale', 'Riduce interventi generici'],
+          risks: rotationHistory.length > 0
+            ? ['Non usare dosi standard se il filare ha già storicità diversa', 'Evita correzioni cieche senza risposta osservata']
+            : ['Non trasformare la nutrizione in calendario fisso'],
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 0.9
+        },
+        {
+          id: 'advice-work',
+          type: 'work',
+          title: 'Lavorazioni mirate sul contesto',
+          description: rotationHistory.length > 0
+            ? `Le lavorazioni sul filare ${rowLabel} devono seguire la coltura effettiva e la zona: sarchiatura, gestione interfilare, pulizia o ripristino non sono intercambiabili con altri filari.`
+            : `Pianifica le lavorazioni su ${rowLabel} in modo specifico per coltura, suolo e stagione, evitando operazioni generiche.`,
+          priority: 'medium',
+          confidence: rotationHistory.length > 0 ? 0.8 : 0.73,
+          plantName: cropLabel,
+          rowId: firstFieldRow?.id ?? undefined,
+          zoneId: firstFieldRow?.zoneId ?? undefined,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: 'Prossimi 5 giorni',
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Seleziona la lavorazione corretta',
+              description: rotationHistory.length > 0
+                ? 'Scegli tra pulizia, sarchiatura, gestione interfilare o ripristino in base alla coltura nel filare.'
+                : 'Seleziona la lavorazione in base a coltura e stato del terreno.',
+              estimatedTime: '40 minuti',
+              difficulty: 'medium'
+            }
+          ],
+          benefits: rotationHistory.length > 0
+            ? ['Intervento più preciso', 'Meno lavoro inutile', 'Maggiore coerenza col filare']
+            : ['Evita lavorazioni generiche', 'Allinea lavoro e coltura'],
+          risks: rotationHistory.length > 0
+            ? ['Non applicare la stessa lavorazione a filari con colture diverse']
+            : undefined,
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 0.75
+        },
+        {
           id: 'advice-biological',
           type: 'biological_control',
           title: 'Verifica controllo biologico',
           description: taskCount > 0
             ? `Hai ${taskCount} task aperti: verifica se qualcuno riguarda trattamenti, monitoraggi o ispezioni su ${rowLabel}.`
-            : `Nessun task aperto rilevante: programma un controllo biologico di base su ${rowLabel}.`,
+            : rotationHistory.length > 0
+              ? `Storico biologico e rotazione del filare su ${rowLabel}: controlla se le ultime colture hanno lasciato rischio residuo di parassiti o patogeni prima del prossimo ciclo.`
+              : `Nessun task aperto rilevante: programma un controllo biologico di base su ${rowLabel}.`,
           priority: taskCount > 2 ? 'high' : 'medium',
-          confidence: 0.74,
+          confidence: rotationHistory.length > 0 ? 0.8 : 0.74,
           plantName: cropLabel,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
           timing: 'Immediato',
-          actions: [{
+          actions: rotationHistory.length > 0 ? [
+            {
+              type: 'monitoring',
+              title: 'Apri ispezione',
+              description: 'Controlla foglie, fusti e segni di pressione biotica',
+              estimatedTime: '20 minuti',
+              difficulty: 'easy',
+            },
+            {
+              type: 'preparation',
+              title: 'Aggiorna barriera preventiva',
+              description: 'Valuta rotazione, pulizia residui e difese fisiche prima del prossimo impianto',
+              estimatedTime: '25 minuti',
+              difficulty: 'medium',
+            }
+          ] : [{
             type: 'monitoring',
             title: 'Apri ispezione',
             description: 'Controlla foglie, fusti e segni di pressione biotica',
             estimatedTime: '20 minuti',
             difficulty: 'easy',
           }],
-          benefits: ['Intercetta problemi presto', 'Riduce interventi reattivi'],
+          benefits: rotationHistory.length > 0
+            ? ['Intercetta problemi presto', 'Riduce residui di pressione biotica', 'Allinea il controllo al ciclo reale del filare']
+            : ['Intercetta problemi presto', 'Riduce interventi reattivi'],
+          risks: rotationHistory.length > 0
+            ? ['Non saltare il controllo prima di reimpiantare', 'Attenzione alle malattie persistenti nel filare']
+            : undefined,
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
@@ -182,18 +298,27 @@ export default function AdvicePage() {
           title: isControlled ? 'Bilanciamento idrico del sistema' : 'Ottimizzazione Irrigazione',
           description: isControlled
             ? 'In ambiente controllato conta di più la stabilità: verifica portate, drenaggi e ritorni prima di aumentare i cicli.'
-            : `Ricalibra l'irrigazione sul contesto reale del giardino e del filare ${rowLabel} per evitare sovra/interventi.`,
+            : rotationHistory.length > 0
+              ? `Filare ${rowLabel} e zona correlata: bilancia l'acqua in base alla coltura precedente, al ritmo di crescita e alla memoria idrica del sito.`
+              : `Ricalibra l'irrigazione sul contesto reale del giardino e del filare ${rowLabel} per evitare sovra/interventi.`,
           priority: 'medium',
-          confidence: isControlled ? 0.79 : 0.72,
+          confidence: isControlled ? 0.79 : rotationHistory.length > 0 ? 0.8 : 0.72,
           timing: 'Prossimi 3 giorni',
           actions: [{
             type: 'preparation',
             title: 'Controlla parametri',
-            description: 'Verifica timer, portate e uniformità di distribuzione',
+            description: rotationHistory.length > 0
+              ? 'Verifica timer, portate, uniformità di distribuzione e eventuale accumulo nel filare selezionato'
+              : 'Verifica timer, portate e uniformità di distribuzione',
             estimatedTime: '20 minuti',
             difficulty: 'easy'
           }],
-          benefits: ['Meno sprechi', 'Maggiore stabilità'],
+          benefits: rotationHistory.length > 0
+            ? ['Meno sprechi', 'Maggiore stabilità', "Allinea l'acqua al ciclo reale del filare"]
+            : ['Meno sprechi', 'Maggiore stabilità'],
+          risks: rotationHistory.length > 0
+            ? ['Evita irrigazioni uniformi su filari con esigenze diverse']
+            : undefined,
           createdAt: new Date().toISOString(),
           validUntil: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
           weatherDependent: false,
@@ -209,8 +334,45 @@ export default function AdvicePage() {
       }
 
       setAdvice(groundedAdvice)
+      setSeasonalAdvice([
+        {
+          id: 'seasonal-1',
+          type: 'weather',
+          title: `${currentSeason}: piano operativo per ${seasonalZoneLabel}`,
+          description: isControlled
+            ? `Ambiente controllato: regola turni di ventilazione, luce e irrigazione per mantenere stabilità nel ciclo ${currentSeason.toLowerCase()}.`
+            : `In ${currentSeason.toLowerCase()} usa il contesto del garden e del filare per adattare semine, trapianti e protezioni su ${seasonalZoneLabel}.`,
+          priority: 'high',
+          confidence: rotationHistory.length > 0 ? 0.82 : 0.74,
+          plantName: cropLabel,
+          zone: firstFieldRow?.zoneId ? `Zona ${firstFieldRow.zoneId}` : undefined,
+          timing: currentSeason,
+          actions: [
+            {
+              type: 'scheduled',
+              title: 'Ricalibra il calendario',
+              description: isControlled
+                ? 'Verifica fotoperiodo, ventilazione e turni di irrigazione'
+                : 'Aggiorna semine e trapianti in base a esposizione, suolo e rotazione storica',
+              estimatedTime: '30 minuti',
+              difficulty: 'medium'
+            }
+          ],
+          benefits: isControlled
+            ? ['Migliora la stabilità del ciclo', 'Riduce stress da sovra-regolazione']
+            : ['Allinea le attività alla stagione reale', 'Riduce errori di calendario'],
+          risks: isControlled
+            ? ['Attenzione a sbalzi di temperatura interni']
+            : ['Non ignorare lo storico del filare e della zona'],
+          createdAt: new Date().toISOString(),
+          validUntil: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+          weatherDependent: true,
+          seasonalRelevance: 1
+        }
+      ])
     } catch (error) {
       console.error('Error loading AI advice:', error)
+      setSeasonalAdvice([])
     } finally {
       setLoading(false)
     }
@@ -235,6 +397,7 @@ export default function AdvicePage() {
       case 'weather': return <Sun className="w-5 h-5" />
       case 'pest_prevention': return <AlertTriangle className="w-5 h-5" />
       case 'harvest_timing': return <Target className="w-5 h-5" />
+      case 'work': return <Scissors className="w-5 h-5" />
       default: return <Lightbulb className="w-5 h-5" />
     }
   }
@@ -295,6 +458,8 @@ export default function AdvicePage() {
         return 'Irrigation'
       case 'nutrition':
         return 'Fertilize'
+      case 'work':
+        return 'Hoeing'
       case 'harvest_timing':
         return 'Harvest'
       case 'biological_control':
@@ -374,6 +539,8 @@ export default function AdvicePage() {
 
       const taskData: Omit<GardenTask, 'id'> = {
         gardenId: activeGarden.id,
+        rowId: item.rowId,
+        zoneId: item.zoneId,
         plantName,
         taskType: mapAdviceTypeToTaskType(item.type),
         date: taskDate,
@@ -671,6 +838,7 @@ export default function AdvicePage() {
                   <option value="rotation">Rotazione</option>
                   <option value="biological_control">Controllo biologico</option>
                   <option value="nutrition">Nutrizione</option>
+                  <option value="work">Lavorazioni</option>
                   <option value="irrigation">Irrigazione</option>
                   <option value="harvest_timing">Timing raccolta</option>
                 </select>
@@ -861,15 +1029,53 @@ export default function AdvicePage() {
 
         {/* Seasonal Tab */}
         {activeTab === 'seasonal' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Consigli Stagionali</h3>
-            <p className="text-gray-600 mb-6">
-              Consigli personalizzati basati sulla stagione corrente e le condizioni climatiche locali.
-            </p>
-            <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
-              Genera Consigli Stagionali
-            </button>
+          <div className="space-y-4">
+            {seasonalAdvice.length > 0 ? seasonalAdvice.map((item) => (
+              <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-start gap-4">
+                  <Calendar className="w-8 h-8 text-purple-600" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                      <span className="text-sm text-gray-500">{item.timing}</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium border text-orange-600 bg-orange-50 border-orange-200">
+                        {Math.round(item.confidence * 100)}%
+                      </span>
+                    </div>
+                    <p className="text-gray-700 mb-3">{item.description}</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 className="font-medium text-purple-900 mb-2">Azioni</h4>
+                        {item.actions.map((action, index) => (
+                          <div key={index} className="text-sm text-purple-800">
+                            {action.title}: {action.description}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-medium text-green-900 mb-2">Benefici</h4>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          {item.benefits.map((benefit, index) => (
+                            <li key={index}>• {benefit}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Consigli Stagionali</h3>
+                <p className="text-gray-600 mb-6">
+                  Consigli personalizzati basati sulla stagione corrente e le condizioni climatiche locali.
+                </p>
+                <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                  Genera Consigli Stagionali
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

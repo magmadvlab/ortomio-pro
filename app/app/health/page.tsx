@@ -59,6 +59,8 @@ interface HealthAlert {
   triggers: string[]
   location?: string
   zone?: string
+  rowId?: string
+  zoneId?: string
 }
 
 interface HealthAction {
@@ -674,6 +676,17 @@ export default function PlantHealthPage() {
     }
   }
 
+  const getPrimaryHealthScope = () => {
+    const fieldRowScope = scopeInsights.find(scope => scope.scopeType === 'field_row')
+    const zoneScope = scopeInsights.find(scope => scope.scopeType === 'zone')
+
+    return {
+      rowId: fieldRowScope?.scopeId,
+      zoneId: fieldRowScope?.zoneId || zoneScope?.scopeId,
+      zoneLabel: fieldRowScope?.zoneName || zoneScope?.scopeName,
+    }
+  }
+
   const buildHealthTaskNotes = (alert: HealthAlert, action: HealthAction) => {
     const lines = [
       `Alert salute: ${alert.plantName}`,
@@ -735,8 +748,11 @@ export default function PlantHealthPage() {
       }
 
       const taskDate = inferActionDate(alert, action)
+      const primaryScope = getPrimaryHealthScope()
       const taskData: Omit<GardenTask, 'id'> = {
         gardenId: activeGarden.id,
+        rowId: alert.rowId || primaryScope.rowId,
+        zoneId: alert.zoneId || primaryScope.zoneId,
         plantName: alert.plantName,
         taskType: mapHealthActionToTaskType(action.type),
         date: taskDate,
@@ -921,6 +937,8 @@ export default function PlantHealthPage() {
       const newTask = {
         id: `task-${Date.now()}`,
         gardenId: 'garden-1',
+        rowId: photoModal.alert?.rowId || getPrimaryHealthScope().rowId,
+        zoneId: photoModal.alert?.zoneId || getPrimaryHealthScope().zoneId,
         plantName: photoModal.alert.plantName,
         taskType: 'Treatment',
         date: new Date().toISOString().split('T')[0],
