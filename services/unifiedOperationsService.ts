@@ -146,6 +146,11 @@ export interface UnifiedOperationResponse {
   errors?: string[];
 }
 
+function normalizeDosageUnit(unit: string | undefined): 'g' | 'ml' | 'kg' | 'L' {
+  const valid = ['g', 'ml', 'kg', 'L'] as const;
+  return valid.includes(unit as 'g') ? (unit as 'g' | 'ml' | 'kg' | 'L') : 'ml';
+}
+
 /**
  * UNIFIED OPERATIONS SERVICE
  */
@@ -558,7 +563,7 @@ export class UnifiedOperationsService {
       treatment_date: request.operationDate,
       product_name: request.productName || 'Prodotto generico',
       dosage: request.quantity,
-      dosage_unit: (request.unit || 'ml') as 'g' | 'ml' | 'kg' | 'L',
+      dosage_unit: normalizeDosageUnit(request.unit),
       method: 'spray',
       reason: 'preventive',
       weather_conditions: request.weatherConditions || undefined,
@@ -1109,7 +1114,7 @@ export const createUnifiedOperationsService = (storageProvider: IStorageProvider
  * Execute bulk operation with unified approach
  */
 export const executeBulkUnifiedOperation = async (
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   request: UnifiedOperationRequest
 ): Promise<UnifiedOperationResponse> => {
   const service = createUnifiedOperationsService(storageProvider);
@@ -1130,7 +1135,7 @@ export interface OperationStatistics {
 }
 
 export const getOperationStatistics = async (
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   gardenId: string,
   dateFrom?: string,
   dateTo?: string
