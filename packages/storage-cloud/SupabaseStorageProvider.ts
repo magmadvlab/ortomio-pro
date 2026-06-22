@@ -21,6 +21,10 @@ import { HealthAlert } from '@/types/healthAlert';
 import { sendNotification, createTaskCompletedNotification, createTaskReminderNotification } from '@/services/notificationService';
 import { normalizeGeoCoordinates } from '@/utils/coordinates';
 import {
+  ensurePlantOperationLineageContext,
+  extractRowScopeFromOperationContext,
+} from '@/utils/plantOperationLineage';
+import {
   hasAgronomicScope,
   normalizeSmartDeviceScope,
   touchesAgronomicScope,
@@ -4202,7 +4206,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Mechanical Work
-  async getMechanicalWorks(gardenId?: string): Promise<MechanicalWorkRecord[]> {
+  async getMechanicalWorks(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<MechanicalWorkRecord[]> {
     const client = this.ensureClient();
     let query = client
       .from('mechanical_work_register')
@@ -4211,6 +4215,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
+    }
+    if (options?.dateFrom) {
+      query = query.gte('work_date', options.dateFrom);
+    }
+    if (options?.dateTo) {
+      query = query.lte('work_date', options.dateTo);
     }
 
     const { data, error } = await query;
@@ -4566,7 +4576,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   // Treatments
-  async getTreatments(gardenId?: string): Promise<TreatmentRecordDB[]> {
+  async getTreatments(gardenId?: string, options?: { dateFrom?: string; dateTo?: string }): Promise<TreatmentRecordDB[]> {
     const client = this.ensureClient();
     let query = client
       .from('treatment_register')
@@ -4575,6 +4585,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     if (gardenId) {
       query = query.eq('garden_id', gardenId);
+    }
+    if (options?.dateFrom) {
+      query = query.gte('treatment_date', options.dateFrom);
+    }
+    if (options?.dateTo) {
+      query = query.lte('treatment_date', options.dateTo);
     }
 
     const { data, error } = await query;
@@ -6378,7 +6394,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     return (data || []).map(db => {
       const operationTime = db.operation_time ? String(db.operation_time).slice(0, 5) : undefined;
       const parsedNotes = this.parsePlantOperationNotes(db.notes);
-      const operationContext = db.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context || undefined;
+      const operationContext = ensurePlantOperationLineageContext({
+        gardenId: db.garden_id,
+        plantId: db.plant_id,
+        operationContext: db.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context,
+        eventType: 'operation_read',
+      });
+      const rowScope = extractRowScopeFromOperationContext(operationContext);
       const weatherConditions = db.weather_conditions || parsedNotes.metadata?.weatherConditions || undefined;
       const geoSnapshot = db.geo_snapshot || parsedNotes.metadata?.geoSnapshot || undefined;
       const actorType = db.actor_type || parsedNotes.metadata?.actorType || undefined;
@@ -6401,6 +6423,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
         notes: parsedNotes.cleanNotes,
         context: operationContext,
         operationContext,
+        fieldRowId: rowScope.fieldRowId,
+        gardenRowId: rowScope.gardenRowId,
         weatherConditions,
         geoSnapshot,
         parentOperationId: db.parent_operation_id || undefined,
@@ -6419,7 +6443,16 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     console.log('Creating plant operation:', operation);
 
-    const operationContext = operation.operationContext || operation.context || null;
+    const operationContext = ensurePlantOperationLineageContext({
+      gardenId: operation.gardenId,
+      plantId: operation.plantId,
+      fieldRowId: operation.fieldRowId,
+      gardenRowId: operation.gardenRowId,
+      operationContext: operation.operationContext,
+      context: operation.context,
+      eventType: 'operation_write',
+    });
+    const rowScope = extractRowScopeFromOperationContext(operationContext);
     const weatherConditions = operation.weatherConditions || null;
     const geoSnapshot = operation.geoSnapshot || null;
     const actorType = operation.actorType || null;
@@ -6512,7 +6545,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
 
     const parsedNotes = this.parsePlantOperationNotes(data.notes);
-    const operationContextFromDb = data.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context || undefined;
+    const operationContextFromDb = ensurePlantOperationLineageContext({
+      gardenId: data.garden_id,
+      plantId: data.plant_id,
+      fieldRowId: rowScope.fieldRowId,
+      gardenRowId: rowScope.gardenRowId,
+      operationContext: data.operation_context || parsedNotes.metadata?.operationContext || parsedNotes.metadata?.context,
+      eventType: 'operation_read',
+    });
+    const persistedRowScope = extractRowScopeFromOperationContext(operationContextFromDb);
     const weatherConditionsFromDb = data.weather_conditions || parsedNotes.metadata?.weatherConditions || undefined;
     const geoSnapshotFromDb = data.geo_snapshot || parsedNotes.metadata?.geoSnapshot || undefined;
     const actorTypeFromDb = data.actor_type || parsedNotes.metadata?.actorType || undefined;
@@ -6535,6 +6576,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       notes: parsedNotes.cleanNotes,
       context: operationContextFromDb,
       operationContext: operationContextFromDb,
+      fieldRowId: persistedRowScope.fieldRowId,
+      gardenRowId: persistedRowScope.gardenRowId,
       weatherConditions: weatherConditionsFromDb,
       geoSnapshot: geoSnapshotFromDb,
       parentOperationId: data.parent_operation_id || undefined,

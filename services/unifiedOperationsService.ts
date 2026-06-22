@@ -933,7 +933,10 @@ export class UnifiedOperationsService {
     filters?: { dateFrom?: string; dateTo?: string }
   ): Promise<UnifiedOperation[]> {
     if (!this.storageProvider.getTreatments) return [];
-    const logs = await this.storageProvider.getTreatments(gardenId);
+    const logs = await this.storageProvider.getTreatments(gardenId, {
+      dateFrom: filters?.dateFrom,
+      dateTo: filters?.dateTo,
+    });
 
     return (logs || []).map((log: any) =>
       this.asUnifiedOperation({
@@ -961,7 +964,10 @@ export class UnifiedOperationsService {
     filters?: { dateFrom?: string; dateTo?: string }
   ): Promise<UnifiedOperation[]> {
     if (!this.storageProvider.getMechanicalWorks) return [];
-    const logs = await this.storageProvider.getMechanicalWorks(gardenId);
+    const logs = await this.storageProvider.getMechanicalWorks(gardenId, {
+      dateFrom: filters?.dateFrom,
+      dateTo: filters?.dateTo,
+    });
 
     return (logs || []).map((log: any) =>
       this.asUnifiedOperation({
