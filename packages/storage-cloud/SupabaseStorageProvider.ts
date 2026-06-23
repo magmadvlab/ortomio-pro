@@ -68,6 +68,7 @@ import type {
   OperationalLedgerProjectionFilters,
 } from '@/types/operationalLedger';
 import { StoragePersistenceError, StorageReadError } from '../core/storage/errors';
+import type { FieldAlert } from '@/types/fieldAlerts';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
@@ -7212,6 +7213,76 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (reading.observations !== undefined) db.observations = reading.observations;
 
     return db;
+  }
+
+  async getFieldAlerts(gardenId: string): Promise<FieldAlert[]> {
+    if (!this.client) return [];
+    const now = new Date().toISOString();
+    const { data, error } = await this.client
+      .from('field_alerts')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .gt('expires_at', now)
+      .order('expires_at', { ascending: false });
+    if (error) {
+      throw this.buildCloudReadError(
+        'getFieldAlerts',
+        'Impossibile leggere gli alert di campo.',
+        error
+      );
+    }
+    return (data ?? []).map(row => ({
+      id: row.id,
+      gardenId: row.garden_id,
+      category: row.category,
+      severity: row.severity,
+      message: row.message,
+      computedAt: row.computed_at,
+      expiresAt: row.expires_at,
+      meta: row.meta ?? undefined,
+    }));
+  }
+
+  async upsertFieldAlerts(gardenId: string, alerts: FieldAlert[]): Promise<void> {
+    if (!this.client) return;
+
+    if (alerts.length === 0) {
+      await this.client.from('field_alerts').delete().eq('garden_id', gardenId);
+      return;
+    }
+
+    const { error: insertError } = await this.client
+      .from('field_alerts')
+      .insert(
+        alerts.map(a => ({
+          garden_id: a.gardenId,
+          category: a.category,
+          severity: a.severity,
+          message: a.message,
+          computed_at: a.computedAt,
+          expires_at: a.expiresAt,
+          meta: a.meta ?? null,
+        }))
+      );
+
+    if (insertError) {
+      throw this.buildCloudPersistenceError(
+        'upsertFieldAlerts',
+        'Impossibile aggiornare gli alert di campo.',
+        insertError
+      );
+    }
+
+    // Delete old alerts only after insert succeeded
+    const { error: deleteError } = await this.client
+      .from('field_alerts')
+      .delete()
+      .eq('garden_id', gardenId)
+      .lt('computed_at', alerts[0]?.computedAt ?? new Date().toISOString());
+
+    if (deleteError) {
+      console.error('Field alerts cleanup failed:', deleteError);
+    }
   }
 
 }

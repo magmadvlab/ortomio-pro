@@ -32,6 +32,7 @@ import {
   touchesAgronomicScope,
   validateSmartDeviceScope,
 } from '@/utils/smartDeviceScope';
+import type { FieldAlert } from '@/types/fieldAlerts';
 
 export class LocalStorageProvider implements IStorageProvider {
   private readonly STORAGE_KEYS = {
@@ -2845,5 +2846,13 @@ export class LocalStorageProvider implements IStorageProvider {
     } catch (_error) {
       return { cleanNotes: raw || undefined, metadata: undefined };
     }
+  }
+
+  async getFieldAlerts(_gardenId: string): Promise<FieldAlert[]> {
+    return [];
+  }
+
+  async upsertFieldAlerts(_gardenId: string, _alerts: FieldAlert[]): Promise<void> {
+    // localStorage non persiste alert calcolati server-side
   }
 }
