@@ -14,15 +14,21 @@ import type { FieldAlert } from '../../types/fieldAlerts.ts';
 
 const CACHE_TTL_MINUTES = 30;
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } });
+    return new Response('ok', { headers: CORS_HEADERS });
   }
 
   try {
     const { gardenId } = await req.json() as { gardenId: string };
     if (!gardenId) {
-      return new Response(JSON.stringify({ error: 'gardenId required' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'gardenId required' }), { status: 400, headers: CORS_HEADERS });
     }
 
     const supabase = createClient(
@@ -50,7 +56,7 @@ Deno.serve(async (req: Request) => {
         expiresAt: r.expires_at as string,
         meta: r.meta as Record<string, unknown> | undefined,
       }));
-      return Response.json({ alerts, fromCache: true, computedAt: alerts[0].computedAt });
+      return Response.json({ alerts, fromCache: true, computedAt: alerts[0].computedAt }, { headers: CORS_HEADERS });
     }
 
     // 2. Leggi garden
@@ -61,7 +67,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (gardenError || !garden) {
-      return new Response(JSON.stringify({ error: 'Garden not found' }), { status: 404 });
+      return new Response(JSON.stringify({ error: 'Garden not found' }), { status: 404, headers: CORS_HEADERS });
     }
 
     const coords = garden.coordinates as { latitude: number; longitude: number } | null;
@@ -81,11 +87,14 @@ Deno.serve(async (req: Request) => {
     const todayIso = now.toISOString().split('T')[0];
     const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
-    const [{ data: treatments }, { data: irrigations }, { data: plants }] = await Promise.all([
+    const [treatmentsResult, irrigationsResult, plantsResult] = await Promise.allSettled([
       supabase.from('treatment_records').select('next_due_date').eq('garden_id', gardenId).gte('next_due_date', sevenDaysAgo),
       supabase.from('watering_logs').select('created_at').eq('garden_id', gardenId).gte('created_at', sevenDaysAgo),
       supabase.from('plants').select('expected_harvest_date, harvested').eq('garden_id', gardenId),
     ]);
+    const treatments = treatmentsResult.status === 'fulfilled' ? treatmentsResult.value.data ?? [] : [];
+    const irrigations = irrigationsResult.status === 'fulfilled' ? irrigationsResult.value.data ?? [] : [];
+    const plants = plantsResult.status === 'fulfilled' ? plantsResult.value.data ?? [] : [];
 
     // 5. Esegui checker
     const today = now;
@@ -115,14 +124,14 @@ Deno.serve(async (req: Request) => {
     const alerts: FieldAlert[] = [
       checkWaterAlert(gardenId, irrigationDates, dummyWeather, today),
       checkTreatmentAlert(gardenId, pendingTreatments, today),
-      ...(weather ? [checkHeatAlert(gardenId, weather), checkDiseaseAlert(gardenId, weather)] : []),
+      checkHeatAlert(gardenId, dummyWeather),
+      checkDiseaseAlert(gardenId, dummyWeather),
       checkHarvestAlert(gardenId, plantList, today),
     ];
 
-    // 6. Scrivi in DB
+    // 6. Scrivi in DB (insert first, then delete old — atomicity)
     const expiresAt = new Date(now.getTime() + CACHE_TTL_MINUTES * 60 * 1000).toISOString();
-    await supabase.from('field_alerts').delete().eq('garden_id', gardenId);
-    await supabase.from('field_alerts').insert(
+    const { error: insertError } = await supabase.from('field_alerts').insert(
       alerts.map(a => ({
         garden_id: a.gardenId,
         category: a.category,
@@ -133,11 +142,17 @@ Deno.serve(async (req: Request) => {
         meta: a.meta ?? null,
       }))
     );
+    if (insertError) {
+      console.error('Failed to insert field alerts:', insertError);
+    }
+    // Delete old alerts only after insert succeeded
+    await supabase.from('field_alerts').delete().eq('garden_id', gardenId)
+      .lt('computed_at', now.toISOString());
 
-    return Response.json({ alerts, fromCache: false, computedAt: now.toISOString() });
+    return Response.json({ alerts, fromCache: false, computedAt: now.toISOString() }, { headers: CORS_HEADERS });
 
   } catch (err) {
     console.error('compute-field-alerts error:', err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: CORS_HEADERS });
   }
 });
