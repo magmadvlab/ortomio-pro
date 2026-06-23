@@ -25,6 +25,7 @@ import type {
   AgronomicPrecisionExecutionProjection,
   OperationalLedgerProjectionFilters,
 } from '../../../types/operationalLedger';
+import type { FieldAlert } from '../../../types/fieldAlerts';
 
 export interface IStorageProvider {
   // Gardens
@@ -408,4 +409,8 @@ export interface IStorageProvider {
 
   // Check if provider is available
   isAvailable(): boolean;
+
+  // Field Alerts (Farm Command Center)
+  getFieldAlerts(gardenId: string): Promise<FieldAlert[]>;
+  upsertFieldAlerts(gardenId: string, alerts: FieldAlert[]): Promise<void>;
 }

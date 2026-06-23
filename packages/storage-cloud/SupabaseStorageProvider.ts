@@ -68,6 +68,7 @@ import type {
   OperationalLedgerProjectionFilters,
 } from '@/types/operationalLedger';
 import { StoragePersistenceError, StorageReadError } from '../core/storage/errors';
+import type { FieldAlert } from '@/types/fieldAlerts';
 
 export class SupabaseStorageProvider implements IStorageProvider {
   private client: SupabaseClient | null;
@@ -7212,6 +7213,46 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (reading.observations !== undefined) db.observations = reading.observations;
 
     return db;
+  }
+
+  async getFieldAlerts(gardenId: string): Promise<FieldAlert[]> {
+    if (!this.client) return [];
+    const now = new Date().toISOString();
+    const { data, error } = await this.client
+      .from('field_alerts')
+      .select('*')
+      .eq('garden_id', gardenId)
+      .gt('expires_at', now)
+      .order('expires_at', { ascending: false });
+    if (error) return [];
+    return (data ?? []).map(row => ({
+      id: row.id,
+      gardenId: row.garden_id,
+      category: row.category,
+      severity: row.severity,
+      message: row.message,
+      computedAt: row.computed_at,
+      expiresAt: row.expires_at,
+      meta: row.meta ?? undefined,
+    }));
+  }
+
+  async upsertFieldAlerts(gardenId: string, alerts: FieldAlert[]): Promise<void> {
+    if (!this.client) return;
+    // cancella vecchi alert per questo garden, poi inserisce i nuovi
+    await this.client.from('field_alerts').delete().eq('garden_id', gardenId);
+    if (alerts.length === 0) return;
+    await this.client.from('field_alerts').insert(
+      alerts.map(a => ({
+        garden_id: a.gardenId,
+        category: a.category,
+        severity: a.severity,
+        message: a.message,
+        computed_at: a.computedAt,
+        expires_at: a.expiresAt,
+        meta: a.meta ?? null,
+      }))
+    );
   }
 
 }
