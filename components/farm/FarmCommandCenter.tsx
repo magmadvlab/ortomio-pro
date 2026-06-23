@@ -21,7 +21,7 @@ export function FarmCommandCenter() {
   const [highlightedId, setHighlightedId] = useState<string | undefined>();
   const [nextRefresh, setNextRefresh] = useState<Date | null>(null);
 
-  const loadAlerts = useCallback(async (gardenList: Garden[], forceRefresh = false) => {
+  const loadAlerts = useCallback(async (gardenList: Garden[], forceRefresh = false, isCancelled?: () => boolean) => {
     if (forceRefresh) clearFieldAlertsCache();
     setLoading(true);
     try {
@@ -29,24 +29,28 @@ export function FarmCommandCenter() {
         gardenList.map(g => getFieldAlerts(g.id, SUPABASE_FUNCTIONS_URL))
       );
       const flat = alertArrays.flat();
+      if (isCancelled?.()) return;
       setAllAlerts(flat);
       if (flat.length > 0) {
         const expires = flat.reduce((min, a) =>
           a.expiresAt < min ? a.expiresAt : min, flat[0].expiresAt
         );
         setNextRefresh(new Date(expires));
+      } else {
+        setNextRefresh(null);
       }
     } finally {
-      setLoading(false);
+      if (!isCancelled?.()) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    if (!storageProvider) return;
     let cancelled = false;
     storageProvider.getGardens().then(gs => {
       if (cancelled) return;
       setGardens(gs);
-      loadAlerts(gs);
+      loadAlerts(gs, false, () => cancelled);
     });
     return () => { cancelled = true; };
   }, [storageProvider, loadAlerts]);
@@ -64,6 +68,14 @@ export function FarmCommandCenter() {
     return (
       <div className="flex items-center justify-center h-64 text-green-400">
         <span className="animate-pulse">Caricamento appezzamenti...</span>
+      </div>
+    );
+  }
+
+  if (!loading && gardens.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-green-400">
+        <p className="text-sm">Nessun appezzamento configurato.</p>
       </div>
     );
   }
