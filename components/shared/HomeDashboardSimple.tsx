@@ -265,6 +265,14 @@ export function HomeDashboardSimple({ garden }: HomeDashboardProps) {
               <Wrench size={24} className="text-gray-600 mb-2" />
               <span className="text-sm font-medium text-gray-900">Impostazioni</span>
             </Link>
+
+            <Link
+              href="/farm"
+              className="flex flex-col items-center p-4 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
+            >
+              <span className="text-2xl mb-2">🌾</span>
+              <span className="text-sm font-medium text-green-900">Command Center</span>
+            </Link>
           </div>
         </div>
       </main>
