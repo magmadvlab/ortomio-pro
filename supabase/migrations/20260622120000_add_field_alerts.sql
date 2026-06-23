@@ -20,7 +20,13 @@ ALTER TABLE field_alerts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "owner can manage field_alerts"
   ON field_alerts
+  FOR ALL
   USING (
+    garden_id IN (
+      SELECT id FROM gardens WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
     garden_id IN (
       SELECT id FROM gardens WHERE user_id = auth.uid()
     )
