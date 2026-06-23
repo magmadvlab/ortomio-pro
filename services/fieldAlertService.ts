@@ -21,15 +21,19 @@ export async function getFieldAlerts(
     return cached.alerts;
   }
 
-  const res = await fetch(`${supabaseFunctionsUrl}/compute-field-alerts`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ gardenId }),
-  });
+  try {
+    const res = await fetch(`${supabaseFunctionsUrl}/compute-field-alerts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gardenId }),
+    });
 
-  if (!res.ok) return [];
+    if (!res.ok) return [];
 
-  const { alerts } = await res.json() as { alerts: FieldAlert[] };
-  cache.set(gardenId, { alerts, ts: Date.now() });
-  return alerts;
+    const { alerts } = await res.json() as { alerts: FieldAlert[] };
+    cache.set(gardenId, { alerts, ts: Date.now() });
+    return alerts;
+  } catch {
+    return [];
+  }
 }

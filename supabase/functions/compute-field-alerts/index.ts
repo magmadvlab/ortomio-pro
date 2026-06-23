@@ -88,9 +88,9 @@ Deno.serve(async (req: Request) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
     const [treatmentsResult, irrigationsResult, plantsResult] = await Promise.allSettled([
-      supabase.from('treatment_records').select('next_due_date').eq('garden_id', gardenId).gte('next_due_date', sevenDaysAgo),
-      supabase.from('watering_logs').select('created_at').eq('garden_id', gardenId).gte('created_at', sevenDaysAgo),
-      supabase.from('plants').select('expected_harvest_date, harvested').eq('garden_id', gardenId),
+      supabase.from('treatment_register').select('next_due_date').eq('garden_id', gardenId).gte('next_due_date', sevenDaysAgo),
+      supabase.from('watering_logs').select('watered_at').eq('garden_id', gardenId).gte('watered_at', sevenDaysAgo),
+      supabase.from('garden_plants').select('expected_harvest_date, status').eq('garden_id', gardenId),
     ]);
     const treatments = treatmentsResult.status === 'fulfilled' ? treatmentsResult.value.data ?? [] : [];
     const irrigations = irrigationsResult.status === 'fulfilled' ? irrigationsResult.value.data ?? [] : [];
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
       }
     };
 
-    const irrigationDates = (irrigations ?? []).map((r: Record<string, string>) => r.created_at);
+    const irrigationDates = (irrigations ?? []).map((r: Record<string, string>) => r.watered_at);
     const pendingTreatments = (treatments ?? [])
       .filter((r: Record<string, string>) => r.next_due_date)
       .map((r: Record<string, string>) => ({ nextDueDate: r.next_due_date }));
@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
       .filter((r: Record<string, unknown>) => r.expected_harvest_date)
       .map((r: Record<string, unknown>) => ({
         expectedHarvestDate: r.expected_harvest_date as string,
-        harvested: Boolean(r.harvested),
+        harvested: r.status === 'harvested',
       }));
 
     const alerts: FieldAlert[] = [
