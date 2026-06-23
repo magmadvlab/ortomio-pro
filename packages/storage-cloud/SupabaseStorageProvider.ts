@@ -7224,7 +7224,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('garden_id', gardenId)
       .gt('expires_at', now)
       .order('expires_at', { ascending: false });
-    if (error) return [];
+    if (error) {
+      throw this.buildCloudReadError(
+        'getFieldAlerts',
+        'Impossibile leggere gli alert di campo.',
+        error
+      );
+    }
     return (data ?? []).map(row => ({
       id: row.id,
       gardenId: row.garden_id,
@@ -7239,20 +7245,44 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   async upsertFieldAlerts(gardenId: string, alerts: FieldAlert[]): Promise<void> {
     if (!this.client) return;
-    // cancella vecchi alert per questo garden, poi inserisce i nuovi
-    await this.client.from('field_alerts').delete().eq('garden_id', gardenId);
-    if (alerts.length === 0) return;
-    await this.client.from('field_alerts').insert(
-      alerts.map(a => ({
-        garden_id: a.gardenId,
-        category: a.category,
-        severity: a.severity,
-        message: a.message,
-        computed_at: a.computedAt,
-        expires_at: a.expiresAt,
-        meta: a.meta ?? null,
-      }))
-    );
+
+    if (alerts.length === 0) {
+      await this.client.from('field_alerts').delete().eq('garden_id', gardenId);
+      return;
+    }
+
+    const { error: insertError } = await this.client
+      .from('field_alerts')
+      .insert(
+        alerts.map(a => ({
+          garden_id: a.gardenId,
+          category: a.category,
+          severity: a.severity,
+          message: a.message,
+          computed_at: a.computedAt,
+          expires_at: a.expiresAt,
+          meta: a.meta ?? null,
+        }))
+      );
+
+    if (insertError) {
+      throw this.buildCloudPersistenceError(
+        'upsertFieldAlerts',
+        'Impossibile aggiornare gli alert di campo.',
+        insertError
+      );
+    }
+
+    // Delete old alerts only after insert succeeded
+    const { error: deleteError } = await this.client
+      .from('field_alerts')
+      .delete()
+      .eq('garden_id', gardenId)
+      .lt('computed_at', alerts[0]?.computedAt ?? new Date().toISOString());
+
+    if (deleteError) {
+      console.error('Field alerts cleanup failed:', deleteError);
+    }
   }
 
 }
