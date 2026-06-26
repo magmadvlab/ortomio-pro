@@ -50,7 +50,7 @@ import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
 import { calculatePhotoperiodHours } from '@/services/photoperiodService'
-import { getLunarPhase } from '@/services/lunarPhaseService'
+import { getLunarPhase, getLunarActivities } from '@/services/lunarPhaseService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -344,7 +344,7 @@ class DirectorService {
                 environmentalHistorySummary?.lowDryingPowerDays,
             }
           : undefined,
-        lunarPhase: { phase: getLunarPhase(today) },
+        lunarPhase: (() => { const p = getLunarPhase(today); return { phase: p, favorable_for: getLunarActivities(p) } })(),
         recommendations,
         stats
       }

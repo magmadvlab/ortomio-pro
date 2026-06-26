@@ -36,3 +36,24 @@ export function getLunarPhase(date: Date): LunarPhase {
   if (pos < 23.99) return 'last_quarter'
   return 'waning_crescent'
 }
+
+/**
+ * Lookup table delle attività biodinamiche favorevoli per ogni fase lunare
+ */
+const LUNAR_ACTIVITIES: Record<LunarPhase, string[]> = {
+  new_moon: ['piantagione', 'semina radici', 'riposo vegetativo'],
+  waxing_crescent: ['semina', 'trapianto', 'potatura verde'],
+  first_quarter: ['semina frutta', 'irrigazione', 'concimazione fogliare'],
+  waxing_gibbous: ['raccolta frutti', 'potatura produzione', 'concimazione'],
+  full_moon: ['raccolta', 'conservazione', 'lavorazione prodotti'],
+  waning_gibbous: ['potatura secco', 'trattamenti preventivi', 'propagazione'],
+  last_quarter: ['lavorazione terreno', 'sarchiatura', 'trattamenti'],
+  waning_crescent: ['riposo', 'preparazione terreno', 'compostaggio'],
+}
+
+/**
+ * Restituisce le attività biodinamiche favorevoli per una fase lunare
+ */
+export function getLunarActivities(phase: LunarPhase): string[] {
+  return LUNAR_ACTIVITIES[phase]
+}
