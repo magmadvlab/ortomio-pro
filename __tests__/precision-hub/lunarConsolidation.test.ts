@@ -19,8 +19,13 @@ test('getIlluminationFraction: full moon returns ~1.0', () => {
 
 test('isWaxingPhase: waxing_crescent returns true', () => {
   assert.strictEqual(isWaxingPhase('waxing_crescent'), true)
+  assert.strictEqual(isWaxingPhase('first_quarter'), true)
+  assert.strictEqual(isWaxingPhase('waxing_gibbous'), true)
+  assert.strictEqual(isWaxingPhase('new_moon'), false)
   assert.strictEqual(isWaxingPhase('full_moon'), false)
   assert.strictEqual(isWaxingPhase('waning_gibbous'), false)
+  assert.strictEqual(isWaxingPhase('last_quarter'), false)
+  assert.strictEqual(isWaxingPhase('waning_crescent'), false)
 })
 
 test('getPhaseEmoji: new_moon returns 🌑', () => {
@@ -31,4 +36,10 @@ test('getPhaseEmoji: new_moon returns 🌑', () => {
 test('getDayInCycle: returns number in [0, 29.53)', () => {
   const day = getDayInCycle(new Date('2026-06-26T00:00:00Z'))
   assert.ok(day >= 0 && day < 29.53058867, `dayInCycle out of range: ${day}`)
+})
+
+test('getDayInCycle: reference new moon date returns ~0', () => {
+  // Reference new moon: 2000-01-06T18:14:00Z — should be at start of cycle
+  const refMoon = getDayInCycle(new Date('2000-01-06T18:14:00Z'))
+  assert.ok(refMoon < 0.1 || refMoon > 29.43, `reference new moon should be near 0 in cycle, got ${refMoon}`)
 })
