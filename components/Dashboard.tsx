@@ -184,13 +184,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Filtra i task in base alla stagione selezionata
   const pendingTasks = (tasks || []).filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
   
-  const upcomingReminders = mounted && currentDate ? (tasks || []).filter(t => {
+  const upcomingReminders = useMemo(() => {
+    if (!mounted || !currentDate) return [];
+    return (tasks || []).filter(t => {
       if (!t.nextDueDate || t.completed) return false;
       const due = new Date(t.nextDueDate);
       const diffTime = due.getTime() - currentDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      return diffDays >= 0 && diffDays <= 7; 
-  }) : [];
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 7;
+    });
+  }, [tasks, currentDate, mounted]);
+
+  const moonInfo = useMemo(() => calculateMoonPhase(new Date()), [currentDate]);
 
   // Weather Fetching Logic
   useEffect(() => {
@@ -1142,10 +1147,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* MOON PHASE WIDGET */}
       {(() => {
-        const moonInfo = calculateMoonPhase(new Date());
-        const moonName = moonInfo.name; // Reuse the name from moonInfo instead of recalculating
+        const moonName = moonInfo.name;
         const moonEmoji = moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
-        
         return (
           <div className="bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl p-5 text-white shadow-lg">
             <div className="flex items-center justify-between">
