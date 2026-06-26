@@ -46,9 +46,13 @@ import type {
   AgronomicScopeDescriptor,
 } from '@/types/agronomicKernel'
 import type { Garden, GardenTask, SmartDevice } from '@/types'
+import type { HealthAlert } from '@/services/plantHealthMonitoringService'
+import type { GardenPlant } from '@/types/individualPlant'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
+import { calculatePhotoperiodHours } from '@/services/photoperiodService'
+import { getLunarPhase, getLunarActivities, getPhaseDisplayName } from '@/services/lunarPhaseService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -218,6 +222,48 @@ export interface DirectorFieldRowInsights {
 }
 
 // ============================================================================
+// PLANT HEALTH BRIDGE
+// ============================================================================
+
+/**
+ * Maps individual GardenPlant records with unhealthy statuses to HealthAlert objects
+ * suitable for inclusion in the agronomic action queue briefing.
+ *
+ * Plants with status 'harvested' or 'transplanted' are terminal/neutral states
+ * and are excluded. Plants with status 'diseased' or 'dead' generate alerts.
+ * Severity is 'critical' when healthScore <= 20, otherwise 'high'.
+ */
+export function mapUnhealthyPlantsToAlerts(plants: GardenPlant[]): HealthAlert[] {
+  const now = new Date().toISOString()
+  return plants
+    .filter(p => p.status === 'diseased' || p.status === 'dead')
+    .map(p => {
+      const isCritical = p.healthScore <= 20
+      const severity: HealthAlert['severity'] = isCritical ? 'critical' : 'high'
+      const name = p.plantName ?? p.variety ?? 'Pianta sconosciuta'
+      const triggers: string[] = [`stato: ${p.status}`, `health score: ${p.healthScore}/100`]
+      if (p.plantCode) triggers.push(`codice: ${p.plantCode}`)
+      return {
+        id: `plant-health-${p.id}`,
+        type: 'stress_symptoms' as const,
+        severity,
+        plantCode: p.plantCode,
+        plantName: name,
+        description: p.status === 'dead'
+          ? `Pianta ${name} in stato terminale: valutare rimozione e sostituzione.`
+          : `Pianta ${name} in stato ${p.status}: monitorare e intervenire.`,
+        detectedAt: now,
+        suggestedActions: [],
+        photoRequired: false,
+        agronomistConsultation: isCritical,
+        urgencyDays: isCritical ? 1 : 3,
+        confidence: isCritical ? 0.9 : 0.7,
+        triggers,
+      } satisfies HealthAlert
+    })
+}
+
+// ============================================================================
 // DIRECTOR SERVICE
 // ============================================================================
 
@@ -309,7 +355,9 @@ class DirectorService {
         gdd_base_10: diaryEntry.tracking[0].daily_gdd,
         heat_stress_hours: diaryEntry.tracking[0].heat_stress_index,
         water_stress_index: diaryEntry.tracking[0].water_stress_index,
-        photoperiod_hours: 0 // TODO: calcolare
+        photoperiod_hours: gardenForContext?.coordinates
+          ? calculatePhotoperiodHours(gardenForContext.coordinates.latitude, today)
+          : 0
       } : {}
       
       return {
@@ -340,7 +388,7 @@ class DirectorService {
                 environmentalHistorySummary?.lowDryingPowerDays,
             }
           : undefined,
-        lunarPhase: undefined, // TODO: aggiungere calcolo fase lunare
+        lunarPhase: (() => { const p = getLunarPhase(today); return { phase: getPhaseDisplayName(p), favorable_for: getLunarActivities(p) } })(),
         recommendations,
         stats
       }
@@ -499,6 +547,13 @@ class DirectorService {
     return getDailyGardenPlan(...args)
   }
 
+  async getOperationalDailyPlan(
+    ...args: Parameters<typeof getDailyGardenPlan>
+  ): ReturnType<typeof getDailyGardenPlan> {
+    const plan = await this.getLegacyDailyPlanBridge(...args)
+    return this.normalizeLegacyDailyPlanShape(plan)
+  }
+
   async getUrgentWeatherAlerts(garden: Garden, currentDate: Date = new Date()): Promise<UrgentAlert[]> {
     return generateUrgentAlerts(garden, currentDate)
   }
@@ -513,9 +568,9 @@ class DirectorService {
       cultivar?: string
     }
     currentDate?: Date
-    storageProvider?: unknown
+    storageProvider?: IStorageProvider
   }): Promise<DirectorFieldRowInsights> {
-    const dailyPlan = await this.getLegacyDailyPlanBridge(
+    const dailyPlan = await this.getOperationalDailyPlan(
       input.garden,
       input.tasks,
       input.currentDate || new Date(),
@@ -547,6 +602,19 @@ class DirectorService {
         ? `${dailyPlan.lunarAdvice.phaseName}: ${dailyPlan.lunarAdvice.advice}`
         : 'Informazioni lunari non disponibili',
       weatherAlerts: (dailyPlan.climateWarnings || []).slice(0, 2).map((warning) => warning.message),
+    }
+  }
+
+  private normalizeLegacyDailyPlanShape(plan: Awaited<ReturnType<typeof getDailyGardenPlan>>) {
+    return {
+      ...plan,
+      urgentAlerts: Array.isArray((plan as any)?.urgentAlerts) ? (plan as any).urgentAlerts : [],
+      climateWarnings: Array.isArray((plan as any)?.climateWarnings) ? (plan as any).climateWarnings : [],
+      lifecycleTasks: Array.isArray((plan as any)?.lifecycleTasks) ? (plan as any).lifecycleTasks : [],
+      nutrientTasks: Array.isArray((plan as any)?.nutrientTasks) ? (plan as any).nutrientTasks : [],
+      healthTasks: Array.isArray((plan as any)?.healthTasks) ? (plan as any).healthTasks : [],
+      baselinePrompts: Array.isArray((plan as any)?.baselinePrompts) ? (plan as any).baselinePrompts : [],
+      irrigationTasks: Array.isArray((plan as any)?.irrigationTasks) ? (plan as any).irrigationTasks : [],
     }
   }
   
@@ -783,6 +851,23 @@ class DirectorService {
         case 'market_data':
           signals.add('quality_result')
           break
+        case 'local_sensor':
+          signals.add('flow_rate_actual')
+          signals.add('line_pressure')
+          signals.add('rain_gauge_local')
+          break
+        case 'user_observation':
+          signals.add('phenology_observation')
+          signals.add('canopy_temperature')
+          break
+        case 'satellite':
+          signals.add('ndvi')
+          signals.add('satellite_vigor')
+          break
+        case 'irrigation_meter':
+          signals.add('flow_rate_actual')
+          signals.add('line_pressure')
+          break
         default:
           break
       }
@@ -826,15 +911,21 @@ class DirectorService {
     }
 
     const dominantCropName = this.getDominantCropName(tasks)
-    const [healthAlerts, phenologyCandidate] = await Promise.all([
+    const [healthAlerts, phenologyCandidate, individualPlants] = await Promise.all([
       plantHealthMonitoringService
         .analyzeGardenHealth(garden, tasks, { devices, storageProvider })
         .catch(() => []),
       this.buildPhenologyCandidate(storageProvider, garden, dominantCropName),
+      typeof storageProvider.getIndividualPlants === 'function'
+        ? storageProvider.getIndividualPlants(gardenId).catch(() => [])
+        : Promise.resolve([]),
     ])
 
+    const plantHealthAlerts = mapUnhealthyPlantsToAlerts(individualPlants)
+    const mergedHealthAlerts = [...healthAlerts, ...plantHealthAlerts]
+
     return buildAgronomicActionQueue({
-      healthAlerts,
+      healthAlerts: mergedHealthAlerts,
       irrigationReports,
       prescriptionSummary,
       directorActions,
