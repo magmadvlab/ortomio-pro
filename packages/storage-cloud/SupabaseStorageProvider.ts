@@ -350,7 +350,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   private getLocalStoredDevices(): SmartDevice[] {
-    const saved = localStorage.getItem('ortoDevices');
+    if (typeof window === 'undefined') return [];
+    const saved = window.localStorage.getItem('ortoDevices');
     if (!saved) return [];
     try {
       return (JSON.parse(saved) as SmartDevice[]).map(device => normalizeSmartDeviceScope(device));
@@ -359,12 +360,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredDevices(devices: SmartDevice[]) {
-    localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
+  private saveLocalStoredDevices(devices: SmartDevice[]): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
   }
 
   private getLocalStoredAutomationLogs(): SmartDeviceAutomationLog[] {
-    const saved = localStorage.getItem('ortoSmartDeviceAutomationLogs');
+    if (typeof window === 'undefined') return [];
+    const saved = window.localStorage.getItem('ortoSmartDeviceAutomationLogs');
     if (!saved) return [];
     try {
       return JSON.parse(saved) as SmartDeviceAutomationLog[];
@@ -373,8 +376,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]) {
-    localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
+  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
