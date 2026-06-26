@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { Garden, GardenTask } from '@/types'
@@ -77,12 +77,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const { tier, isPro } = useTier()
   const router = useRouter()
 
-  console.log('🏠 HomeDashboard render:', {
-    gardenProp: garden?.name || 'NO GARDEN PROP',
-    gardenId: garden?.id,
-    tasksCount: tasks.length
-  })
-
   const getBaselineDismissKey = (gardenId: string) => `ortomio_baseline_dismissed_${gardenId}`
   const getBaselineShowAllKey = (gardenId: string) => `ortomio_baseline_show_all_${gardenId}`
   const getBaselineDismissPrefKey = (gardenId: string) => `baseline_dismissed_${gardenId}`
@@ -123,7 +117,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       try {
         localStorage.setItem('ortoActiveGardenId', garden.id)
         localStorage.setItem('ortoLastUsedGardenId', garden.id)
-        console.log('✅ HomeDashboard: Orto attivo salvato:', garden.name, garden.id)
       } catch (e) {
         console.error('Errore nel salvare orto attivo:', e)
       }
@@ -133,7 +126,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   // Sync activeGarden with garden prop - memoized to prevent loops
   useEffect(() => {
     if (garden && (!activeGarden || garden.id !== activeGarden.id)) {
-      console.log('🔄 Syncing activeGarden from prop:', garden.name, garden.id)
       setActiveGarden(garden)
     }
   }, [garden?.id, activeGarden?.id]) // Only re-run if IDs actually change
@@ -234,9 +226,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         setIrrigationZones(zones);
         setFieldRows(rows || []);
         setFieldRowPlants(plants || []);
-
-        console.log('✅ HomeDashboard: Loaded field rows:', rows?.length || 0);
-        console.log('✅ HomeDashboard: Loaded individual plants:', plants?.length || 0);
       } catch (error) {
         console.error('Error loading garden data:', error);
       }
@@ -252,9 +241,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
 
     const loadGardens = async () => {
       try {
-        console.log('🔄 HomeDashboard: Loading gardens internally...')
         const loadedGardens = await storageProvider.getGardens()
-        console.log('✅ HomeDashboard: Gardens loaded:', loadedGardens.length)
         setGardens(loadedGardens)
         setGardensLoaded(true)
 
@@ -274,10 +261,8 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             : null
 
           if (savedGarden) {
-            console.log('✅ HomeDashboard: Ripristinato ultimo orto usato:', savedGarden.name)
             setActiveGarden(savedGarden)
           } else {
-            console.log('✅ HomeDashboard: Setting first garden as active:', loadedGardens[0].name)
             setActiveGarden(loadedGardens[0])
           }
         }
@@ -411,14 +396,15 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }
 
   // Load daily plan when dependencies change - debounced to prevent loops
-  const [planLoadTimer, setPlanLoadTimer] = useState<NodeJS.Timeout | null>(null)
+  const planLoadTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!activeGarden || !tasks) return
 
     // Clear existing timer
-    if (planLoadTimer) {
-      clearTimeout(planLoadTimer)
+    if (planLoadTimerRef.current) {
+      clearTimeout(planLoadTimerRef.current)
+      planLoadTimerRef.current = null
     }
 
     // Debounce plan loading by 500ms
@@ -439,7 +425,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       } catch (error) {
         // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
         // Il director continua comunque a funzionare senza irrigation tasks
-        console.warn('Error loading daily plan (continuing without irrigation tasks):', error)
         // Imposta un piano vuoto per evitare loop
         setDailyPlan({
           date: new Date().toISOString().split('T')[0],
@@ -458,10 +443,13 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       }
     }, 500)
 
-    setPlanLoadTimer(timer)
+    planLoadTimerRef.current = timer
 
     return () => {
-      if (timer) clearTimeout(timer)
+      if (planLoadTimerRef.current) {
+        clearTimeout(planLoadTimerRef.current)
+        planLoadTimerRef.current = null
+      }
     }
   }, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length]) // Only re-run when IDs/lengths change
 
@@ -487,7 +475,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }
 
   if (!activeGarden) {
-    console.log('⚠️ HomeDashboard: No activeGarden, showing create message. Gardens:', gardens.length)
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
@@ -500,18 +487,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     )
   }
 
-  // DEBUG: Log coordinate orto attivo per meteo
-  console.log('✅ HomeDashboard: Rendering with activeGarden:', activeGarden.name, activeGarden.id)
-  console.log('🌤️ HomeDashboard METEO DEBUG:', {
-    gardenName: activeGarden.name,
-    gardenId: activeGarden.id,
-    coordinates: activeGarden.coordinates,
-    normalizedCoordinates: activeGardenCoordinates,
-    latitude: activeGardenCoordinates?.latitude,
-    longitude: activeGardenCoordinates?.longitude,
-    hasCoordinates: !!activeGardenCoordinates
-  })
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 pb-20">
       {/* Header con Garden Selector Card - Solo mobile */}
@@ -521,7 +496,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           activeGarden={activeGarden}
           tasks={tasks}
           onGardenChange={(garden) => {
-            console.log('🔄 HomeDashboard: Cambio orto a:', garden.name, garden.coordinates)
             setActiveGarden(garden)
             if (onUpdateGarden) onUpdateGarden(garden)
           }}
