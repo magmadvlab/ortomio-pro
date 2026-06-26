@@ -5,6 +5,7 @@ import type { GardenBed } from '@/types/gardenBed'
 import type { FieldRow } from '@/types/fieldRow'
 import type { SmartDevice } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
+import { logServiceError } from '@/utils/serviceError'
 
 export interface ResolvedGardenContext {
   garden: Garden
@@ -55,7 +56,13 @@ export async function resolveGardenContext(
 ): Promise<ResolvedGardenContext | null> {
   if (!storageProvider?.getGarden) return null
 
-  const garden = await storageProvider.getGarden(gardenId).catch(() => null)
+  let garden: Awaited<ReturnType<NonNullable<typeof storageProvider.getGarden>>> | null = null
+  try {
+    garden = await storageProvider.getGarden(gardenId)
+  } catch (err) {
+    logServiceError(err, 'GARDEN_CONTEXT_RESOLVER_ERROR', { gardenId })
+    return null
+  }
   if (!garden) return null
 
   const [tasks, beds, zones, fieldRows, devices] = await Promise.all([
