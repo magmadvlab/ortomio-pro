@@ -265,11 +265,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Calculate lifecycle advices for active plants
   useEffect(() => {
     if (!activeGarden) return;
-    
+
+    let cancelled = false;
+
     const activePlantTasks = getActivePlants((tasks || []).filter(t => t.gardenId === activeGardenId));
     if (activePlantTasks.length === 0) {
       setLifecycleAdvices(new Map());
-      return;
+      return () => { cancelled = true; };
     }
 
     setLifecycleLoading(true);
@@ -290,9 +292,15 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       })
     ).then(() => {
-      setLifecycleAdvices(advicesMap);
-      setLifecycleLoading(false);
+      if (!cancelled) {
+        setLifecycleAdvices(advicesMap);
+        setLifecycleLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLifecycleLoading(false);
     });
+
+    return () => { cancelled = true; };
   }, [tasks, activeGarden, activeGardenId]);
 
   // Calculate succession opportunities
