@@ -38,6 +38,7 @@ export interface BuildAgronomicRefinedContextInput {
   altitudeMeters?: number | null
   slopePercentage?: number | null
   dailySunHours?: number | null
+  photoperiodHours?: number | null
   sunExposure?: string | null
   aspectDirection?: string | null
   windProtection?: string | null
@@ -426,6 +427,7 @@ export const resolveSiteOperationalProfile = (
     | 'altitudeMeters'
     | 'slopePercentage'
     | 'dailySunHours'
+    | 'photoperiodHours'
     | 'sunExposure'
     | 'aspectDirection'
     | 'windProtection'
@@ -454,6 +456,7 @@ export const resolveSiteOperationalProfile = (
     altitudeMeters: toFiniteNumber(input.altitudeMeters),
     slopePercentage: toFiniteNumber(input.slopePercentage),
     dailySunHours: toFiniteNumber(input.dailySunHours),
+    photoperiodHours: toFiniteNumber(input.photoperiodHours),
     sunExposure: normalizeToken(input.sunExposure),
     aspectDirection: normalizeToken(input.aspectDirection),
     windProtection: normalizeToken(input.windProtection),
@@ -592,6 +595,7 @@ export const buildAgronomicRefinedContext = (
     altitudeMeters: input.altitudeMeters,
     slopePercentage: input.slopePercentage,
     dailySunHours: input.dailySunHours,
+    photoperiodHours: input.photoperiodHours,
     sunExposure: input.sunExposure,
     aspectDirection: input.aspectDirection,
     windProtection: input.windProtection,

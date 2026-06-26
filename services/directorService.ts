@@ -52,7 +52,7 @@ import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
 import { calculatePhotoperiodHours } from '@/services/photoperiodService'
-import { getLunarPhase, getLunarActivities, getPhaseDisplayName } from '@/services/lunarPhaseService'
+import { getLunarPhase, getLunarActivities, getPhaseDisplayName, isWaxingPhase, type LunarPhase } from '@/services/lunarPhaseService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -326,10 +326,12 @@ class DirectorService {
       ).slice(0, 5)
       
       // 6. Genera raccomandazioni testuali
+      const todayLunarPhase = getLunarPhase(today)
       const recommendations = this.generateRecommendations(
         diaryEntry,
         criticalActions,
-        environmentalHistorySummary
+        environmentalHistorySummary,
+        todayLunarPhase
       )
       
       // 7. Calcola statistiche
@@ -649,14 +651,19 @@ class DirectorService {
     const priorityScores = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25 }
     const baseScore = priorityScores[suggestion.action_priority] || 50
     const agronomicFocus = this.getAgronomicFocusFromSuggestion(suggestion)
+    // metadata is Record<string, unknown> — cast to typed accessors for downstream consumers
+    const metaRaw = suggestion.metadata ?? {}
+    const metaStr = metaRaw as Record<string, string | undefined>
+    const metaNum = metaRaw as Record<string, number | undefined>
+    const meta = metaStr
     const resolvedAgronomicProfile = resolveAgronomicPriorityProfileSync({
       hints: [
         suggestion.context,
         suggestion.title,
         suggestion.description,
-        suggestion.metadata?.plantName,
-        suggestion.metadata?.cropName,
-        suggestion.metadata?.gardenType,
+        meta.plantName,
+        meta.cropName,
+        meta.gardenType,
       ],
       fallbackProfileId: this.getFallbackAgronomicProfileIdFromSuggestion(suggestion),
     })
@@ -666,9 +673,9 @@ class DirectorService {
         suggestion.context,
         suggestion.title,
         suggestion.description,
-        suggestion.metadata?.plantName,
-        suggestion.metadata?.cropName,
-        suggestion.metadata?.gardenType,
+        meta.plantName,
+        meta.cropName,
+        meta.gardenType,
         garden?.name,
         garden?.primaryCrop?.canonicalPlantName,
         garden?.primaryCrop?.label,
@@ -679,30 +686,33 @@ class DirectorService {
         garden?.aspectDirection,
         garden?.windProtection,
       ],
-      cultivarId: suggestion.metadata?.cultivarId || suggestion.metadata?.varietyId,
+      cultivarId: meta.cultivarId || meta.varietyId,
       cultivarLabel:
-        suggestion.metadata?.cultivar ||
-        suggestion.metadata?.variety ||
-        suggestion.metadata?.cropVariety,
+        meta.cultivar ||
+        meta.variety ||
+        meta.cropVariety,
       speciesLabel:
-        suggestion.metadata?.plantName ||
-        suggestion.metadata?.cropName ||
+        meta.plantName ||
+        meta.cropName ||
         suggestion.context,
-      productionIntent: suggestion.metadata?.varietyType,
-      gardenType: suggestion.metadata?.gardenType || garden?.gardenType,
-      cultivationSystem: suggestion.metadata?.cultivationSystem,
-      irrigationMode: suggestion.metadata?.irrigationMode,
-      trainingSystem: suggestion.metadata?.trainingSystem,
-      rootstock: suggestion.metadata?.rootstock,
-      altitudeMeters: suggestion.metadata?.altitudeMeters ?? garden?.altitudeMeters,
-      slopePercentage: suggestion.metadata?.slopePercentage,
+      productionIntent: meta.varietyType,
+      gardenType: meta.gardenType || garden?.gardenType,
+      cultivationSystem: meta.cultivationSystem,
+      irrigationMode: meta.irrigationMode,
+      trainingSystem: meta.trainingSystem,
+      rootstock: meta.rootstock,
+      altitudeMeters: metaNum.altitudeMeters ?? garden?.altitudeMeters,
+      slopePercentage: metaNum.slopePercentage,
       dailySunHours: garden?.dailySunHours,
-      sunExposure: suggestion.metadata?.sunExposure || garden?.sunExposure,
+      photoperiodHours: garden?.coordinates != null
+        ? calculatePhotoperiodHours(garden.coordinates.latitude, new Date())
+        : undefined,
+      sunExposure: meta.sunExposure || garden?.sunExposure,
       aspectDirection: garden?.aspectDirection,
       windProtection: garden?.windProtection,
-      soilType: suggestion.metadata?.soilType || garden?.soilType,
+      soilType: meta.soilType || garden?.soilType,
       soilPh: garden?.soilPh,
-      terroir: suggestion.metadata?.terroir,
+      terroir: meta.terroir,
       shadowObstaclesCount: Array.isArray(garden?.obstacles) ? garden.obstacles.length : undefined,
     })
     const operationalContextTags = refinedContextResult.operationalContextTags
@@ -715,8 +725,8 @@ class DirectorService {
       operationalContextTags,
       refinedContext: refinedContextResult.refinedContext,
       cropNameHint:
-        suggestion.metadata?.plantName ||
-        suggestion.metadata?.cropName ||
+        meta.plantName ||
+        meta.cropName ||
         suggestion.context ||
         suggestion.title,
     })
@@ -1114,7 +1124,8 @@ class DirectorService {
   private generateRecommendations(
     diaryEntry: any,
     actions: PrioritizedAction[],
-    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
+    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null,
+    lunarPhase?: LunarPhase
   ): string[] {
     const recommendations: string[] = []
     
@@ -1175,8 +1186,18 @@ class DirectorService {
       }
     }
     
-    // Raccomandazioni lunari
-    if (diaryEntry?.lunar_phase?.favorable_for) {
+    // Raccomandazioni lunari basate su fase computata (priorità) o diary entry (fallback)
+    if (lunarPhase) {
+      const favorable = getLunarActivities(lunarPhase)
+      if (favorable.length > 0) {
+        recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)
+      }
+      if (isWaxingPhase(lunarPhase)) {
+        recommendations.push('🌱 Luna crescente: ottimo per semina, trapianto e interventi fogliari')
+      } else if (lunarPhase !== 'full_moon' && lunarPhase !== 'new_moon') {
+        recommendations.push('✂️ Luna calante: favorevole per potatura, trattamenti radicali e raccolta')
+      }
+    } else if (diaryEntry?.lunar_phase?.favorable_for) {
       const favorable = diaryEntry.lunar_phase.favorable_for
       if (favorable.length > 0) {
         recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)

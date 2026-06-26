@@ -232,6 +232,7 @@ export interface SiteOperationalProfile {
   altitudeMeters?: number;
   slopePercentage?: number;
   dailySunHours?: number;
+  photoperiodHours?: number;
   sunExposure?: string;
   aspectDirection?: string;
   windProtection?: string;

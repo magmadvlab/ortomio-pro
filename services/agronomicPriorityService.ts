@@ -176,6 +176,12 @@ const resolveRefinedContextScoreAdjustment = (
       if (typeof dailySunHours === 'number' && dailySunHours <= 4) adjustment += 3
       if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) adjustment += 2
     }
+
+    // Photoperiod: high evapotranspiration in long days, disease pressure in short days
+    if (typeof site.photoperiodHours === 'number') {
+      if (focus === 'water' && site.photoperiodHours > 14) adjustment += 1
+      if (focus === 'health' && site.photoperiodHours < 10) adjustment += 1
+    }
   }
 
   // Site-only adjustment: clamped with the original ceiling of 8

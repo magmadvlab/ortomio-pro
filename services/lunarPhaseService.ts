@@ -72,3 +72,38 @@ const PHASE_DISPLAY_NAMES: Record<LunarPhase, string> = {
 export function getPhaseDisplayName(phase: LunarPhase): string {
   return PHASE_DISPLAY_NAMES[phase]
 }
+
+const PHASE_EMOJI: Record<LunarPhase, string> = {
+  new_moon: '🌑',
+  waxing_crescent: '🌒',
+  first_quarter: '🌓',
+  waxing_gibbous: '🌔',
+  full_moon: '🌕',
+  waning_gibbous: '🌖',
+  last_quarter: '🌗',
+  waning_crescent: '🌘',
+}
+
+export function getPhaseEmoji(phase: LunarPhase): string {
+  return PHASE_EMOJI[phase]
+}
+
+export function getDayInCycle(date: Date): number {
+  const daysSinceRef = (date.getTime() - REF_NEW_MOON) / MS_PER_DAY
+  return ((daysSinceRef % SYNODIC_CYCLE) + SYNODIC_CYCLE) % SYNODIC_CYCLE
+}
+
+const WAXING_PHASES: ReadonlySet<LunarPhase> = new Set([
+  'waxing_crescent',
+  'first_quarter',
+  'waxing_gibbous',
+])
+
+export function isWaxingPhase(phase: LunarPhase): boolean {
+  return WAXING_PHASES.has(phase)
+}
+
+export function getIlluminationFraction(date: Date): number {
+  const cycleRatio = getDayInCycle(date) / SYNODIC_CYCLE
+  return (1 - Math.cos(cycleRatio * 2 * Math.PI)) / 2
+}

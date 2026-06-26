@@ -365,7 +365,7 @@ export default function AISuggestionCard({
                   </label>
                   <input
                     type="text"
-                    value={modifiedParams[key]}
+                    value={modifiedParams[key] as string | number | readonly string[] | undefined}
                     onChange={(e) => setModifiedParams({
                       ...modifiedParams,
                       [key]: e.target.value

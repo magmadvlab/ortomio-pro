@@ -9,14 +9,31 @@ import type {
   WeatherSnapshot,
 } from '@/types/environmental'
 import { createWeatherService } from './weatherService';
-import { createLunarService } from './lunarService';
+import {
+  getLunarPhase as getRawLunarPhase,
+  getPhaseDisplayName,
+  getPhaseEmoji,
+  isWaxingPhase,
+  getIlluminationFraction,
+  getDayInCycle,
+} from './lunarPhaseService';
 
 export type OperationContextWeatherSource = EnvironmentalWeatherSource
 export type { OperationContext } from '@/types/environmental'
 
 class OperationContextService {
   private weatherService = createWeatherService();
-  private lunarService = createLunarService();
+
+  private computeLunar(date: Date) {
+    const phase = getRawLunarPhase(date)
+    return {
+      phase: getPhaseDisplayName(phase),
+      phaseEmoji: getPhaseEmoji(phase),
+      illumination: Math.round(getIlluminationFraction(date) * 100),
+      isWaxing: isWaxingPhase(phase),
+      dayInCycle: getDayInCycle(date),
+    }
+  }
 
   buildEstimatedContext(
     date: Date,
@@ -73,7 +90,7 @@ class OperationContextService {
         : await this.weatherService.getCurrentWeather(latitude, longitude);
 
       // 2. Calcola fase lunare
-      const lunar = this.lunarService.getLunarPhase(date);
+      const lunar = this.computeLunar(date)
 
       // 3. Determina stagione
       return this.buildDerivedContext(date, latitude, {
@@ -102,17 +119,18 @@ class OperationContextService {
     date: Date,
     latitude: number,
     weather: WeatherSnapshot,
-    lunar = this.lunarService.getLunarPhase(date)
+    lunar?: ReturnType<OperationContextService['computeLunar']>
   ): OperationContext {
+    const resolvedLunar = lunar ?? this.computeLunar(date)
     return {
       timestamp: date.toISOString(),
       weather,
       lunar: {
-        phase: lunar.phase,
-        phaseEmoji: lunar.phaseEmoji,
-        illumination: lunar.illumination,
-        isWaxing: lunar.isWaxing,
-        dayInCycle: lunar.dayInCycle,
+        phase: resolvedLunar.phase,
+        phaseEmoji: resolvedLunar.phaseEmoji,
+        illumination: resolvedLunar.illumination,
+        isWaxing: resolvedLunar.isWaxing,
+        dayInCycle: resolvedLunar.dayInCycle,
       },
       season: this.getSeason(date),
       daylight: this.calculateDaylight(latitude, date),
@@ -211,7 +229,7 @@ ${context.lunar.phaseEmoji} ${context.lunar.phase} (${context.lunar.illumination
       }
     }
 
-    if (operationType === 'fertilizing' && context.lunar.phase === 'Full Moon') {
+    if (operationType === 'fertilizing' && context.lunar.phase === 'Luna piena') {
       recommendations.push('Luna piena - momento ottimale per fertilizzazione');
     }
 

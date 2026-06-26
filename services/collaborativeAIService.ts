@@ -4,6 +4,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase'
+import { logServiceError } from '@/utils/serviceError'
 import type {
   AISuggestion,
   UserDecision,
@@ -45,7 +46,7 @@ class CollaborativeAIService {
       if (error) throw error
       return data
     } catch (error) {
-      console.error('Error creating AI suggestion:', error)
+      logServiceError(error, 'COLLABORATIVE_AI_CREATE_SUGGESTION', { userId: suggestion.user_id, gardenId: suggestion.garden_id ?? undefined })
       return null
     }
   }
@@ -89,7 +90,7 @@ class CollaborativeAIService {
       if (error) throw error
       return data || []
     } catch (error) {
-      console.error('Error fetching suggestions:', error)
+      logServiceError(error, 'COLLABORATIVE_AI_GET_SUGGESTIONS', { userId, gardenId: filter?.gardenId ?? undefined })
       return []
     }
   }
@@ -163,7 +164,7 @@ class CollaborativeAIService {
       
       return data
     } catch (error) {
-      console.error('Error recording decision:', error)
+      logServiceError(error, 'COLLABORATIVE_AI_RECORD_DECISION', { suggestionId: decision.suggestion_id })
       return null
     }
   }

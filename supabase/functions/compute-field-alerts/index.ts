@@ -30,6 +30,10 @@ Deno.serve(async (req: Request) => {
     if (!gardenId) {
       return new Response(JSON.stringify({ error: 'gardenId required' }), { status: 400, headers: CORS_HEADERS });
     }
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(gardenId)) {
+      return new Response(JSON.stringify({ error: 'gardenId must be a valid UUID' }), { status: 400, headers: CORS_HEADERS });
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -72,14 +76,16 @@ Deno.serve(async (req: Request) => {
 
     const coords = garden.coordinates as { latitude: number; longitude: number } | null;
 
-    // 3. Fetch meteo (fallback a Roma se no coordinate)
+    if (!coords?.latitude || !coords?.longitude) {
+      return new Response(JSON.stringify({ error: 'Garden has no geographic coordinates — cannot compute weather-based alerts' }), { status: 422, headers: CORS_HEADERS });
+    }
+
+    // 3. Fetch meteo
     let weather;
     try {
-      weather = await fetchWeatherForecast(
-        coords?.latitude ?? 41.9,
-        coords?.longitude ?? 12.5
-      );
-    } catch {
+      weather = await fetchWeatherForecast(coords.latitude, coords.longitude);
+    } catch (weatherErr) {
+      console.error(JSON.stringify({ code: 'weather_fetch_failed', gardenId, error: String(weatherErr) }));
       weather = null;
     }
 
@@ -88,7 +94,7 @@ Deno.serve(async (req: Request) => {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
 
     const [treatmentsResult, irrigationsResult, plantsResult] = await Promise.allSettled([
-      supabase.from('treatment_register').select('next_due_date').eq('garden_id', gardenId).gte('next_due_date', sevenDaysAgo),
+      supabase.from('garden_tasks').select('next_due_date').eq('garden_id', gardenId).gte('next_due_date', sevenDaysAgo),
       supabase.from('watering_logs').select('watered_at').eq('garden_id', gardenId).gte('watered_at', sevenDaysAgo),
       supabase.from('garden_plants').select('expected_harvest_date, status').eq('garden_id', gardenId),
     ]);
@@ -98,6 +104,7 @@ Deno.serve(async (req: Request) => {
 
     // 5. Esegui checker
     const today = now;
+    // Fallback weather data when fetch fails (coordinates are already validated above)
     const dummyWeather = weather ?? {
       daily: {
         time: Array(7).fill(todayIso),

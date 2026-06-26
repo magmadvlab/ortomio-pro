@@ -41,7 +41,7 @@ export interface DataSource {
     | 'satellite'
     | 'irrigation_meter'
   timestamp: string
-  data: any
+  data: Record<string, unknown>
   reliability: number // 0-1
 }
 
@@ -87,13 +87,13 @@ export interface AISuggestion {
   action_deadline?: string
   
   // Parametri
-  suggested_parameters: Record<string, any>
+  suggested_parameters: Record<string, unknown>
   
   // Alternative
   alternatives?: Array<{
     title: string
     description: string
-    parameters: Record<string, any>
+    parameters: Record<string, unknown>
     pros: string[]
     cons: string[]
   }>
@@ -108,7 +108,7 @@ export interface AISuggestion {
   created_at: string
   expires_at?: string
   
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // =====================================================
@@ -127,9 +127,9 @@ export interface UserDecision {
   decision_reason?: string
   
   // Modifiche
-  modifications?: Record<string, any>
-  original_parameters?: Record<string, any>
-  modified_parameters?: Record<string, any>
+  modifications?: Record<string, unknown>
+  original_parameters?: Record<string, unknown>
+  modified_parameters?: Record<string, unknown>
   
   // Feedback
   feedback_rating?: number // 1-5
@@ -144,7 +144,7 @@ export interface UserDecision {
   // Timestamp
   decided_at: string
   
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // =====================================================
@@ -198,7 +198,7 @@ export interface SuccessMetric {
   measurement_period_start?: string
   measurement_period_end?: string
   
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // =====================================================
@@ -222,14 +222,14 @@ export interface LearningFeedback {
   // Pattern
   pattern_type: PatternType
   pattern_description: string
-  pattern_data: Record<string, any>
+  pattern_data: Record<string, unknown>
   
   // Apprendimento
   learning_source: LearningSource
   confidence_level: number // 0-1
   
   // Applicabilità
-  applicable_to?: Record<string, any>
+  applicable_to?: Record<string, unknown>
   
   // Impatto
   impact_on_future_suggestions: string
@@ -246,7 +246,7 @@ export interface LearningFeedback {
   learned_at: string
   last_validated_at?: string
   
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // =====================================================
@@ -266,7 +266,7 @@ export interface AITransparencyLog {
   
   // Processo decisionale
   decision_tree: DecisionTreeNode[]
-  data_inputs: Record<string, any>
+  data_inputs: Record<string, unknown>
   weights_applied: Record<string, number>
   rules_triggered: Array<{
     rule: string
@@ -278,8 +278,8 @@ export interface AITransparencyLog {
   calculations: Array<{
     step: string
     formula: string
-    inputs: Record<string, any>
-    output: any
+    inputs: Record<string, unknown>
+    output: unknown
   }>
   thresholds_used: Record<string, number>
   
@@ -291,11 +291,11 @@ export interface AITransparencyLog {
   }>
   
   // Fonti dati
-  weather_data_used?: any
-  soil_data_used?: any
-  plant_health_data_used?: any
-  historical_data_used?: any
-  user_preferences_used?: any
+  weather_data_used?: Record<string, unknown>
+  soil_data_used?: Record<string, unknown>
+  plant_health_data_used?: Record<string, unknown>
+  historical_data_used?: Record<string, unknown>
+  user_preferences_used?: Record<string, unknown>
   
   // Modelli
   models_used: string[]
@@ -304,7 +304,7 @@ export interface AITransparencyLog {
   // Timestamp
   logged_at: string
   
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // =====================================================
@@ -330,7 +330,7 @@ export interface SuggestionCardProps {
   suggestion: AISuggestion
   onAccept: (suggestionId: string) => void
   onReject: (suggestionId: string, reason?: string) => void
-  onModify: (suggestionId: string, modifications: Record<string, any>) => void
+  onModify: (suggestionId: string, modifications: Record<string, unknown>) => void
   onViewTransparency: (suggestionId: string) => void
 }
 
