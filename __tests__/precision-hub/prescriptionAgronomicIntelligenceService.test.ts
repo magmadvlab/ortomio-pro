@@ -509,6 +509,158 @@ test('harvest prescription keeps vineyard production intent instead of forcing f
   )
 })
 
+test('borderline irrigation prescription flips urgency at the immediate cutoff on exposed sites', () => {
+  const efficacySummary: PrescriptionExecutionEfficacySummary = {
+    totalZones: 1,
+    scoredZones: 1,
+    averageEfficacyScore: 58,
+    averageMicroclimateScore: 56,
+    averageSoilResponseScore: 54,
+    highZones: 0,
+    mediumZones: 1,
+    lowZones: 0,
+    unknownZones: 0,
+    cropContextScores: [{ key: 'brassicas', label: 'Brassiche', averageScore: 58, zones: 1 }],
+    seasonScores: [{ key: 'Estate', label: 'Estate', averageScore: 58, zones: 1 }],
+    zoneScores: [
+      {
+        zoneId: 'zone-cutoff',
+        zoneName: 'Zona Soglia',
+        efficacyScore: 58,
+        efficacyStatus: 'medium',
+        varianceStatus: 'off_target',
+        outcomeStatus: 'negative',
+        microclimateStatus: 'watch',
+        microclimateScore: 56,
+        soilResponseStatus: 'watch',
+        soilResponseScore: 54,
+        fungalPressure: 'medium',
+        waterStress: 'medium',
+        heatStress: 'medium',
+        cropContextId: 'brassicas',
+        seasonLabel: 'Estate',
+      },
+    ],
+  }
+
+  const varianceSummary: PrescriptionExecutionVarianceSummary = {
+    totalZones: 1,
+    alignedZones: 0,
+    partialZones: 0,
+    offTargetZones: 1,
+    missedZones: 0,
+    pendingZones: 0,
+    averageAdherenceScore: 52,
+    zoneVariances: [
+      {
+        zoneId: 'zone-cutoff',
+        zoneName: 'Zona Soglia',
+        latestStatus: 'completed',
+        varianceStatus: 'off_target',
+        plannedRate: 100,
+        actualRate: 62,
+        plannedAreaSqm: 5000,
+        areaAppliedSqm: 3100,
+        rateDeviationPercent: 38,
+        areaCoveragePercent: 62,
+        adherenceScore: 52,
+      },
+    ],
+  }
+
+  const outcomeSummary: PrescriptionExecutionOutcomeSummary = {
+    totalZones: 1,
+    zonesWithOutcome: 1,
+    positiveZones: 0,
+    mixedZones: 0,
+    negativeZones: 1,
+    noDataZones: 0,
+    averageOutcomeScore: 28,
+    zoneOutcomes: [
+      {
+        zoneId: 'zone-cutoff',
+        zoneName: 'Zona Soglia',
+        latestStatus: 'completed',
+        outcomeStatus: 'negative',
+        outcomeScore: 28,
+      },
+    ],
+  }
+
+  const exposedMap: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-cutoff-exposed',
+    gardenName: 'Campo Aperto Brassiche',
+    name: 'Mappa soglia esposta',
+    mapType: 'irrigation',
+  }
+  const shelteredMap: PrescriptionMap = {
+    ...prescriptionMap,
+    id: 'map-cutoff-sheltered',
+    gardenName: 'Serra Brassiche',
+    name: 'Mappa soglia riparata',
+    mapType: 'irrigation',
+  }
+
+  const exposedSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    exposedMap,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary,
+    [],
+    [],
+    {
+      'zone-cutoff': {
+        zoneId: 'zone-cutoff',
+        gardenId: 'garden-1',
+        entries: 4,
+        highSoilWaterStressDays: 3,
+        mediumSoilWaterStressDays: 0,
+        highDiseasePressureDays: 0,
+        sensorLocalDays: 2,
+        deficitWaterBalanceDays: 3,
+        surplusWaterBalanceDays: 0,
+        lowDryingPowerDays: 0,
+        latestSoilWaterStressLevel: 'high',
+        dominantWeatherSourceClass: 'station',
+      },
+    }
+  )
+
+  const shelteredSummary = buildPrescriptionAgronomicIntelligenceSummary(
+    shelteredMap,
+    efficacySummary,
+    varianceSummary,
+    outcomeSummary,
+    [],
+    [],
+    {
+      'zone-cutoff': {
+        zoneId: 'zone-cutoff',
+        gardenId: 'garden-1',
+        entries: 4,
+        highSoilWaterStressDays: 0,
+        mediumSoilWaterStressDays: 0,
+        highDiseasePressureDays: 0,
+        sensorLocalDays: 0,
+        deficitWaterBalanceDays: 0,
+        surplusWaterBalanceDays: 0,
+        lowDryingPowerDays: 0,
+        latestSoilWaterStressLevel: 'low',
+        dominantWeatherSourceClass: 'station',
+      },
+    }
+  )
+
+  assert.equal(exposedSummary.operationalPriorities[0]?.urgency, 'immediate')
+  assert.equal(shelteredSummary.operationalPriorities[0]?.urgency, 'immediate')
+  assert.ok(
+    (exposedSummary.operationalPriorities[0]?.priorityScore || 0) >=
+      (shelteredSummary.operationalPriorities[0]?.priorityScore || 0),
+    `Expected exposed priorityScore (${exposedSummary.operationalPriorities[0]?.priorityScore}) >= sheltered (${shelteredSummary.operationalPriorities[0]?.priorityScore})`
+  )
+})
+
 test('nutrition prescription ranks sandy sites above clay sites when the remaining inputs are equal', () => {
   const efficacySummary: PrescriptionExecutionEfficacySummary = {
     totalZones: 2,

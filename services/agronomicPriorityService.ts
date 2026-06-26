@@ -178,6 +178,9 @@ const resolveRefinedContextScoreAdjustment = (
     }
   }
 
+  // Site-only adjustment: clamped with the original ceiling of 8
+  const siteAdjustment = clamp(Math.round(adjustment), -4, 8)
+
   const subSystem = refinedContext?.subSystemContext
   const rootstock = normalizeText(subSystem?.rootstock)
   const trainingSystem = normalizeText(subSystem?.trainingSystem)
@@ -199,21 +202,24 @@ const resolveRefinedContextScoreAdjustment = (
       ['pergola', 'tendone', 'gdc', 'cassone'].some((ts) => trainingSystem.includes(ts))
   )
 
+  let subSystemAdjustment = 0
+
   if (focus === 'water') {
-    if (isDroughtTolerantRootstock) adjustment += 3
-    if (isVigorousRootstock) adjustment += 1
+    if (isDroughtTolerantRootstock) subSystemAdjustment += 3
+    if (isVigorousRootstock) subSystemAdjustment += 1
   }
 
   if (focus === 'nutrition') {
-    if (isVigorousRootstock) adjustment += 2
+    if (isVigorousRootstock) subSystemAdjustment += 2
   }
 
   if (focus === 'quality') {
-    if (isQualityTrainingSystem) adjustment += 2
-    if (isHighYieldTrainingSystem) adjustment -= 1
+    if (isQualityTrainingSystem) subSystemAdjustment += 2
+    if (isHighYieldTrainingSystem) subSystemAdjustment -= 1
   }
 
-  return clamp(Math.round(adjustment), -4, 12)
+  // Combined: ceiling raised only when subSystem pushes past 8
+  return clamp(siteAdjustment + subSystemAdjustment, -4, 12)
 }
 
 export async function resolveAgronomicPriorityProfile(

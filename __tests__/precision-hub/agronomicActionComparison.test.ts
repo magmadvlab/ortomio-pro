@@ -87,6 +87,171 @@ test('agronomic action queue propagates action comparison explanation and urgenc
   )
 })
 
+test('agronomic action queue ranks the same irrigation demand differently on exposed and sheltered contexts', () => {
+  const sharedSuggestion = {
+    id: 'dir-irrigation-context',
+    type: 'HIGH' as const,
+    title: 'Verifica irrigazione',
+    description: 'Controllare la parcella prima del prossimo turno.',
+    urgency: 75,
+    impact: 60,
+    feasibility: 82,
+    cost: 140,
+    priorityScore: 75,
+    dependencies: [],
+    source: 'ai_suggestion' as const,
+    sourceId: 'dir-irrigation-context',
+    reasoning: 'Verifica idrica prioritaria.',
+    confidence: 0.72,
+    priorityConfidence: 0.72,
+    agronomicFocus: 'water' as const,
+  }
+
+  const queue = buildAgronomicActionQueue({
+    directorActions: [
+      {
+        ...sharedSuggestion,
+        id: 'dir-irrigation-exposed',
+        title: 'Verifica irrigazione parcella esposta',
+        refinedContext: {
+          siteOperationalProfile: {
+            dailySunHours: 8.6,
+            exposureClass: 'exposed',
+            windProtection: 'Low',
+            soilType: 'Sandy',
+          },
+        } as any,
+      },
+      {
+        ...sharedSuggestion,
+        id: 'dir-irrigation-sheltered',
+        title: 'Verifica irrigazione parcella riparata',
+        refinedContext: {
+          siteOperationalProfile: {
+            dailySunHours: 3.2,
+            exposureClass: 'sheltered',
+            windProtection: 'High',
+            soilType: 'Clay',
+          },
+        } as any,
+      },
+    ],
+  })
+
+  assert.equal(queue.length, 2)
+  assert.equal(queue[0]?.id, 'director:dir-irrigation-exposed')
+  assert.ok((queue[0]?.priorityScore || 0) >= (queue[1]?.priorityScore || 0))
+  assert.equal(
+    (queue[0]?.metadata?.actionComparison as { recommendedAction?: string } | undefined)
+      ?.recommendedAction,
+    'intervene_now'
+  )
+  assert.equal(
+    (queue[1]?.metadata?.actionComparison as { recommendedAction?: string } | undefined)
+      ?.recommendedAction,
+    'intervene_now'
+  )
+  assert.ok(
+    ((queue[0]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
+      ?.dominanceMargin || 0) >=
+      ((queue[1]?.metadata?.actionComparison as { dominanceMargin?: number } | undefined)
+        ?.dominanceMargin || 0)
+  )
+})
+
+test('site context can move a borderline irrigation comparison without changing the action label yet', () => {
+  const sheltered = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 28,
+    priorityConfidence: 0.61,
+    agronomicProfileId: 'field_brassicas',
+    averageEfficiency: 82,
+    waterUseEfficiency: 80,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Clay',
+        dailySunHours: 3.1,
+        exposureClass: 'sheltered',
+        windProtection: 'High',
+        shadowObstaclesCount: 2,
+      },
+    },
+  })
+
+  const exposed = buildAgronomicEconomicPrioritySummary({
+    source: 'irrigation',
+    focus: 'water',
+    priorityScore: 28,
+    priorityConfidence: 0.61,
+    agronomicProfileId: 'field_brassicas',
+    averageEfficiency: 82,
+    waterUseEfficiency: 80,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Sandy',
+        dailySunHours: 8.6,
+        exposureClass: 'exposed',
+        windProtection: 'Low',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  assert.equal(sheltered.actionComparison?.recommendedAction, 'intervene_now')
+  assert.equal(exposed.actionComparison?.recommendedAction, 'intervene_now')
+  assert.ok((exposed.actionComparison?.dominanceMargin || 0) > (sheltered.actionComparison?.dominanceMargin || 0))
+  assert.ok((exposed.estimatedCostOfDelay || 0) > (sheltered.estimatedCostOfDelay || 0))
+})
+
+test('site context can move prescription economics at the cutoff without flipping the action label', () => {
+  const sheltered = buildAgronomicEconomicPrioritySummary({
+    source: 'prescription',
+    focus: 'water',
+    priorityScore: 69,
+    priorityConfidence: 0.58,
+    averageEfficiency: 74,
+    waterUseEfficiency: 72,
+    interventionCost: 120,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Clay',
+        dailySunHours: 3.2,
+        exposureClass: 'sheltered',
+        windProtection: 'High',
+        aspectDirection: 'North',
+        shadowObstaclesCount: 3,
+      },
+    },
+  })
+
+  const exposed = buildAgronomicEconomicPrioritySummary({
+    source: 'prescription',
+    focus: 'water',
+    priorityScore: 69,
+    priorityConfidence: 0.58,
+    averageEfficiency: 74,
+    waterUseEfficiency: 72,
+    interventionCost: 120,
+    refinedContext: {
+      siteOperationalProfile: {
+        soilType: 'Sandy',
+        dailySunHours: 8.6,
+        exposureClass: 'exposed',
+        windProtection: 'Low',
+        aspectDirection: 'South',
+        shadowObstaclesCount: 0,
+      },
+    },
+  })
+
+  assert.equal(sheltered.actionComparison?.recommendedAction, 'intervene_now')
+  assert.equal(exposed.actionComparison?.recommendedAction, 'intervene_now')
+  assert.equal(exposed.actionComparison?.recommendedUrgencyLabel, 'immediate')
+  assert.equal(sheltered.actionComparison?.recommendedUrgencyLabel, 'immediate')
+  assert.ok((exposed.actionComparison?.dominanceMargin || 0) >= (sheltered.actionComparison?.dominanceMargin || 0))
+})
+
 test('economic priority summary can select next_cycle when immediate benefit is only marginally better', () => {
   const summary = buildAgronomicEconomicPrioritySummary({
     source: 'irrigation',

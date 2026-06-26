@@ -58,8 +58,8 @@ test('vigorous rootstock (SO4) increases nutrition focus score', () => {
   })
 
   assert.ok(
-    vigorousResult.score >= noRootstockResult.score,
-    `Expected vigorous rootstock nutrition score (${vigorousResult.score}) >= baseline (${noRootstockResult.score})`
+    vigorousResult.score > noRootstockResult.score,
+    `Expected vigorous rootstock score (${vigorousResult.score}) > baseline (${noRootstockResult.score})`
   )
 })
 
