@@ -24,42 +24,43 @@ const base: Pick<AISuggestion, 'id' | 'user_id' | 'garden_id' | 'suggestion_type
   metadata: {},
 }
 
-test('local_sensor source type maps to ndvi and satellite_vigor signals', () => {
+test('local_sensor source type maps to flow_rate_actual, line_pressure, rain_gauge_local', () => {
   const suggestion: AISuggestion = {
     ...base,
-    data_sources: [{ type: 'local_sensor', description: 'sensor IoT', value: 0 }] as any,
+    data_sources: [{ type: 'local_sensor', timestamp: '2026-06-01T00:00:00.000Z', data: {}, reliability: 1 }],
   }
   const signals: Set<string> = (directorService as any).getAvailableSignalsFromSuggestion(suggestion)
-  assert.ok(signals.has('ndvi') || signals.has('satellite_vigor') || signals.has('flow_rate_actual'),
-    `Expected at least one sensor-derived signal, got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('flow_rate_actual'), `Missing 'flow_rate_actual', got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('line_pressure'), `Missing 'line_pressure', got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('rain_gauge_local'), `Missing 'rain_gauge_local', got: ${[...signals].join(', ')}`)
 })
 
 test('user_observation source type maps to phenology_observation and canopy_temperature', () => {
   const suggestion: AISuggestion = {
     ...base,
-    data_sources: [{ type: 'user_observation', description: 'osservazione operatore', value: 0 }] as any,
+    data_sources: [{ type: 'user_observation', timestamp: '2026-06-01T00:00:00.000Z', data: {}, reliability: 1 }],
   }
   const signals: Set<string> = (directorService as any).getAvailableSignalsFromSuggestion(suggestion)
-  assert.ok(signals.has('phenology_observation') || signals.has('canopy_temperature'),
-    `Expected phenology or canopy signal, got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('phenology_observation'), `Missing 'phenology_observation', got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('canopy_temperature'), `Missing 'canopy_temperature', got: ${[...signals].join(', ')}`)
 })
 
 test('satellite source type maps to ndvi and satellite_vigor', () => {
   const suggestion: AISuggestion = {
     ...base,
-    data_sources: [{ type: 'satellite', description: 'immagine NDVI', value: 0 }] as any,
+    data_sources: [{ type: 'satellite', timestamp: '2026-06-01T00:00:00.000Z', data: {}, reliability: 1 }],
   }
   const signals: Set<string> = (directorService as any).getAvailableSignalsFromSuggestion(suggestion)
-  assert.ok(signals.has('ndvi') || signals.has('satellite_vigor'),
-    `Expected ndvi or satellite_vigor, got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('ndvi'), `Missing 'ndvi', got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('satellite_vigor'), `Missing 'satellite_vigor', got: ${[...signals].join(', ')}`)
 })
 
 test('irrigation_meter source type maps to flow_rate_actual and line_pressure', () => {
   const suggestion: AISuggestion = {
     ...base,
-    data_sources: [{ type: 'irrigation_meter', description: 'contatore portata', value: 0 }] as any,
+    data_sources: [{ type: 'irrigation_meter', timestamp: '2026-06-01T00:00:00.000Z', data: {}, reliability: 1 }],
   }
   const signals: Set<string> = (directorService as any).getAvailableSignalsFromSuggestion(suggestion)
-  assert.ok(signals.has('flow_rate_actual') || signals.has('line_pressure'),
-    `Expected flow or pressure signal, got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('flow_rate_actual'), `Missing 'flow_rate_actual', got: ${[...signals].join(', ')}`)
+  assert.ok(signals.has('line_pressure'), `Missing 'line_pressure', got: ${[...signals].join(', ')}`)
 })

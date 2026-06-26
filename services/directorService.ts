@@ -806,8 +806,7 @@ class DirectorService {
         case 'local_sensor':
           signals.add('flow_rate_actual')
           signals.add('line_pressure')
-          signals.add('ndvi')
-          signals.add('satellite_vigor')
+          signals.add('rain_gauge_local')
           break
         case 'user_observation':
           signals.add('phenology_observation')

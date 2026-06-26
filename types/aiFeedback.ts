@@ -29,7 +29,17 @@ export type SuggestionStatus =
 export type ActionPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 
 export interface DataSource {
-  type: 'weather' | 'soil' | 'plant_health' | 'historical' | 'user_preference' | 'market_data'
+  type:
+    | 'weather'
+    | 'soil'
+    | 'plant_health'
+    | 'historical'
+    | 'user_preference'
+    | 'market_data'
+    | 'local_sensor'
+    | 'user_observation'
+    | 'satellite'
+    | 'irrigation_meter'
   timestamp: string
   data: any
   reliability: number // 0-1
