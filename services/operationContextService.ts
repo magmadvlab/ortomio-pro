@@ -9,14 +9,20 @@ import type {
   WeatherSnapshot,
 } from '@/types/environmental'
 import { createWeatherService } from './weatherService';
-import { createLunarService } from './lunarService';
+import {
+  getLunarPhase as getRawLunarPhase,
+  getPhaseDisplayName,
+  getPhaseEmoji,
+  isWaxingPhase,
+  getIlluminationFraction,
+  getDayInCycle,
+} from './lunarPhaseService';
 
 export type OperationContextWeatherSource = EnvironmentalWeatherSource
 export type { OperationContext } from '@/types/environmental'
 
 class OperationContextService {
   private weatherService = createWeatherService();
-  private lunarService = createLunarService();
 
   buildEstimatedContext(
     date: Date,
@@ -73,7 +79,14 @@ class OperationContextService {
         : await this.weatherService.getCurrentWeather(latitude, longitude);
 
       // 2. Calcola fase lunare
-      const lunar = this.lunarService.getLunarPhase(date);
+      const _phase = getRawLunarPhase(date)
+      const lunar = {
+        phase: getPhaseDisplayName(_phase),
+        phaseEmoji: getPhaseEmoji(_phase),
+        illumination: Math.round(getIlluminationFraction(date) * 100),
+        isWaxing: isWaxingPhase(_phase),
+        dayInCycle: getDayInCycle(date),
+      }
 
       // 3. Determina stagione
       return this.buildDerivedContext(date, latitude, {
@@ -102,7 +115,16 @@ class OperationContextService {
     date: Date,
     latitude: number,
     weather: WeatherSnapshot,
-    lunar = this.lunarService.getLunarPhase(date)
+    lunar = (() => {
+      const _phase = getRawLunarPhase(date)
+      return {
+        phase: getPhaseDisplayName(_phase),
+        phaseEmoji: getPhaseEmoji(_phase),
+        illumination: Math.round(getIlluminationFraction(date) * 100),
+        isWaxing: isWaxingPhase(_phase),
+        dayInCycle: getDayInCycle(date),
+      }
+    })()
   ): OperationContext {
     return {
       timestamp: date.toISOString(),
