@@ -520,7 +520,7 @@ class DirectorService {
       cultivar?: string
     }
     currentDate?: Date
-    storageProvider?: unknown
+    storageProvider?: IStorageProvider
   }): Promise<DirectorFieldRowInsights> {
     const dailyPlan = await this.getOperationalDailyPlan(
       input.garden,
