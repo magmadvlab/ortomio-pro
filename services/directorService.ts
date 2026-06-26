@@ -499,6 +499,13 @@ class DirectorService {
     return getDailyGardenPlan(...args)
   }
 
+  async getOperationalDailyPlan(
+    ...args: Parameters<typeof getDailyGardenPlan>
+  ): ReturnType<typeof getDailyGardenPlan> {
+    const plan = await this.getLegacyDailyPlanBridge(...args)
+    return this.normalizeLegacyDailyPlanShape(plan)
+  }
+
   async getUrgentWeatherAlerts(garden: Garden, currentDate: Date = new Date()): Promise<UrgentAlert[]> {
     return generateUrgentAlerts(garden, currentDate)
   }
@@ -515,7 +522,7 @@ class DirectorService {
     currentDate?: Date
     storageProvider?: unknown
   }): Promise<DirectorFieldRowInsights> {
-    const dailyPlan = await this.getLegacyDailyPlanBridge(
+    const dailyPlan = await this.getOperationalDailyPlan(
       input.garden,
       input.tasks,
       input.currentDate || new Date(),
@@ -547,6 +554,19 @@ class DirectorService {
         ? `${dailyPlan.lunarAdvice.phaseName}: ${dailyPlan.lunarAdvice.advice}`
         : 'Informazioni lunari non disponibili',
       weatherAlerts: (dailyPlan.climateWarnings || []).slice(0, 2).map((warning) => warning.message),
+    }
+  }
+
+  private normalizeLegacyDailyPlanShape(plan: Awaited<ReturnType<typeof getDailyGardenPlan>>) {
+    return {
+      ...plan,
+      urgentAlerts: Array.isArray((plan as any)?.urgentAlerts) ? (plan as any).urgentAlerts : [],
+      climateWarnings: Array.isArray((plan as any)?.climateWarnings) ? (plan as any).climateWarnings : [],
+      lifecycleTasks: Array.isArray((plan as any)?.lifecycleTasks) ? (plan as any).lifecycleTasks : [],
+      nutrientTasks: Array.isArray((plan as any)?.nutrientTasks) ? (plan as any).nutrientTasks : [],
+      healthTasks: Array.isArray((plan as any)?.healthTasks) ? (plan as any).healthTasks : [],
+      baselinePrompts: Array.isArray((plan as any)?.baselinePrompts) ? (plan as any).baselinePrompts : [],
+      irrigationTasks: Array.isArray((plan as any)?.irrigationTasks) ? (plan as any).irrigationTasks : [],
     }
   }
   
@@ -782,6 +802,24 @@ class DirectorService {
           break
         case 'market_data':
           signals.add('quality_result')
+          break
+        case 'local_sensor':
+          signals.add('flow_rate_actual')
+          signals.add('line_pressure')
+          signals.add('ndvi')
+          signals.add('satellite_vigor')
+          break
+        case 'user_observation':
+          signals.add('phenology_observation')
+          signals.add('canopy_temperature')
+          break
+        case 'satellite':
+          signals.add('ndvi')
+          signals.add('satellite_vigor')
+          break
+        case 'irrigation_meter':
+          signals.add('flow_rate_actual')
+          signals.add('line_pressure')
           break
         default:
           break
