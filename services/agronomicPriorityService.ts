@@ -126,60 +126,94 @@ const resolveRefinedContextScoreAdjustment = (
   refinedContext?: AgronomicRefinedContext | null
 ): number => {
   const site = refinedContext?.siteOperationalProfile
-  if (!site) {
-    return 0
-  }
 
-  const soilPh = site.soilPh
-  const dailySunHours = site.dailySunHours
-  const shadowObstaclesCount = site.shadowObstaclesCount || 0
-  const windProtection = normalizeText(site.windProtection)
+  const soilPh = site?.soilPh
+  const dailySunHours = site?.dailySunHours
+  const shadowObstaclesCount = site?.shadowObstaclesCount || 0
+  const windProtection = normalizeText(site?.windProtection)
   const exposedToWind = Boolean(
     windProtection && ['low', 'bassa', 'scarsa', 'none', 'no'].includes(windProtection)
   )
 
   let adjustment = 0
 
-  if (focus === 'water') {
-    if (isSandySoil(site.soilType)) adjustment += 4
-    if (isClaySoil(site.soilType)) adjustment += 1
-    if (site.exposureClass === 'exposed') adjustment += 3
-    if (exposedToWind) adjustment += 2
-    if (typeof dailySunHours === 'number') {
-      if (dailySunHours >= 8) adjustment += 4
-      else if (dailySunHours >= 6) adjustment += 2
-      else if (dailySunHours <= 3.5) adjustment -= 3
+  if (site) {
+    if (focus === 'water') {
+      if (isSandySoil(site.soilType)) adjustment += 4
+      if (isClaySoil(site.soilType)) adjustment += 1
+      if (site.exposureClass === 'exposed') adjustment += 3
+      if (exposedToWind) adjustment += 2
+      if (typeof dailySunHours === 'number') {
+        if (dailySunHours >= 8) adjustment += 4
+        else if (dailySunHours >= 6) adjustment += 2
+        else if (dailySunHours <= 3.5) adjustment -= 3
+      }
+      if (shadowObstaclesCount >= 2) adjustment -= 2
     }
-    if (shadowObstaclesCount >= 2) adjustment -= 2
+
+    if (focus === 'health') {
+      if (site.exposureClass === 'sheltered') adjustment += 2
+      if (typeof dailySunHours === 'number' && dailySunHours <= 4) adjustment += 3
+      if (shadowObstaclesCount >= 2) adjustment += 3
+      if (isClaySoil(site.soilType)) adjustment += 1
+      if (site.exposureClass === 'exposed' && typeof dailySunHours === 'number' && dailySunHours >= 7) {
+        adjustment -= 2
+      }
+    }
+
+    if (focus === 'nutrition') {
+      if (typeof soilPh === 'number') {
+        if (soilPh < 5.8 || soilPh > 7.8) adjustment += 6
+        else if (soilPh < 6.2 || soilPh > 7.3) adjustment += 3
+      }
+      if (isSandySoil(site.soilType)) adjustment += 2
+      if (isClaySoil(site.soilType)) adjustment += 1
+    }
+
+    if (focus === 'quality') {
+      if ((site.altitudeMeters || 0) >= 700) adjustment += 3
+      if (site.slopeClass === 'steep') adjustment += 1
+      if (typeof dailySunHours === 'number' && dailySunHours <= 4) adjustment += 3
+      if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) adjustment += 2
+    }
   }
 
-  if (focus === 'health') {
-    if (site.exposureClass === 'sheltered') adjustment += 2
-    if (typeof dailySunHours === 'number' && dailySunHours <= 4) adjustment += 3
-    if (shadowObstaclesCount >= 2) adjustment += 3
-    if (isClaySoil(site.soilType)) adjustment += 1
-    if (site.exposureClass === 'exposed' && typeof dailySunHours === 'number' && dailySunHours >= 7) {
-      adjustment -= 2
-    }
+  const subSystem = refinedContext?.subSystemContext
+  const rootstock = normalizeText(subSystem?.rootstock)
+  const trainingSystem = normalizeText(subSystem?.trainingSystem)
+
+  const isDroughtTolerantRootstock = Boolean(
+    rootstock &&
+      ['110r', '140ru', '1103p', '775p', '99r', '41b'].some((rs) => rootstock.includes(rs))
+  )
+  const isVigorousRootstock = Boolean(
+    rootstock &&
+      ['so4', 'so 4', '101-14', '420a', 'kober 5bb', '5bb'].some((rs) => rootstock.includes(rs))
+  )
+  const isQualityTrainingSystem = Boolean(
+    trainingSystem &&
+      ['guyot', 'alberello', 'cordone speronato', 'sylvoz'].some((ts) => trainingSystem.includes(ts))
+  )
+  const isHighYieldTrainingSystem = Boolean(
+    trainingSystem &&
+      ['pergola', 'tendone', 'gdc', 'cassone'].some((ts) => trainingSystem.includes(ts))
+  )
+
+  if (focus === 'water') {
+    if (isDroughtTolerantRootstock) adjustment += 3
+    if (isVigorousRootstock) adjustment += 1
   }
 
   if (focus === 'nutrition') {
-    if (typeof soilPh === 'number') {
-      if (soilPh < 5.8 || soilPh > 7.8) adjustment += 6
-      else if (soilPh < 6.2 || soilPh > 7.3) adjustment += 3
-    }
-    if (isSandySoil(site.soilType)) adjustment += 2
-    if (isClaySoil(site.soilType)) adjustment += 1
+    if (isVigorousRootstock) adjustment += 2
   }
 
   if (focus === 'quality') {
-    if ((site.altitudeMeters || 0) >= 700) adjustment += 3
-    if (site.slopeClass === 'steep') adjustment += 1
-    if (typeof dailySunHours === 'number' && dailySunHours <= 4) adjustment += 3
-    if (typeof soilPh === 'number' && (soilPh < 5.8 || soilPh > 7.8)) adjustment += 2
+    if (isQualityTrainingSystem) adjustment += 2
+    if (isHighYieldTrainingSystem) adjustment -= 1
   }
 
-  return clamp(Math.round(adjustment), -4, 8)
+  return clamp(Math.round(adjustment), -4, 12)
 }
 
 export async function resolveAgronomicPriorityProfile(
