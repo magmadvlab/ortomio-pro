@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
 import { scoreAgronomicPriority } from '../../services/agronomicPriorityService'
+import { isWaxingPhase } from '../../services/lunarPhaseService'
 import type { AgronomicRefinedContext } from '../../types/agronomicKernel'
 
 function makeRefinedContextWithPhotoperiod(hours: number): AgronomicRefinedContext {
@@ -66,4 +67,28 @@ test('missing photoperiodHours does not affect score', () => {
     focus: 'water',
   })
   assert.strictEqual(withoutPhotoperiod.score, noContext.score)
+})
+
+test('isWaxingPhase: correctly classifies all 8 lunar phases', () => {
+  // Waxing phases
+  assert.strictEqual(isWaxingPhase('waxing_crescent'), true)
+  assert.strictEqual(isWaxingPhase('first_quarter'), true)
+  assert.strictEqual(isWaxingPhase('waxing_gibbous'), true)
+  // Non-waxing phases
+  assert.strictEqual(isWaxingPhase('new_moon'), false)
+  assert.strictEqual(isWaxingPhase('full_moon'), false)
+  assert.strictEqual(isWaxingPhase('waning_gibbous'), false)
+  assert.strictEqual(isWaxingPhase('last_quarter'), false)
+  assert.strictEqual(isWaxingPhase('waning_crescent'), false)
+})
+
+test('water focus score ordering: photoperiod 16h > 12h >= 8h', () => {
+  const makeContext = (hours: number) => ({
+    siteOperationalProfile: { photoperiodHours: hours },
+  })
+  const s8 = scoreAgronomicPriority({ baseScore: 50, focus: 'water', refinedContext: makeContext(8) })
+  const s12 = scoreAgronomicPriority({ baseScore: 50, focus: 'water', refinedContext: makeContext(12) })
+  const s16 = scoreAgronomicPriority({ baseScore: 50, focus: 'water', refinedContext: makeContext(16) })
+  assert.ok(s16.score >= s12.score, `16h (${s16.score}) should be >= 12h (${s12.score}) for water focus`)
+  assert.ok(s12.score >= s8.score, `12h (${s12.score}) should be >= 8h (${s8.score}) for water focus`)
 })
