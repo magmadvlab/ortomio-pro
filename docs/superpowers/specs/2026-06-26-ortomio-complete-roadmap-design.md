@@ -82,13 +82,13 @@ Colmare i gap non coperti dai piani esistenti: intelligenza dell'orchestrator, t
 **Soluzione:**
 - `scoreAgronomicPriority()` in `agronomicPriorityService.ts` riceve `photoperiodHours?: number` → aggiustamento score: focus `water` +1 se photoperiod > 14h (alta evapotraspirazione), focus `health` +1 se photoperiod < 10h (rischio funghi per umidità)
 - `generateRecommendations()` in `directorService.ts` usa `lunarPhase.phase` per filtrare raccomandazioni: luna calante → priorità potatura/trattamenti, luna crescente → priorità semina/trapianto
-- `buildAgronomicRefinedContext()` riceve `photoperiodHours` come parametro esplicito nel `SubSystemContext`
+- `buildAgronomicRefinedContext()` riceve `photoperiodHours` come parametro esplicito in `SiteOperationalProfile` (non in `SubSystemContext` che descrive il sottosistema colturale — il photoperiod è un dato ambientale del sito, come `dailySunHours`)
 
 **File:**
 - Modify: `services/agronomicPriorityService.ts`
 - Modify: `services/directorService.ts`
 - Modify: `services/agronomicRefinedContextService.ts`
-- Modify: `types/agronomicKernel.ts` (aggiungere `photoperiodHours?` a SubSystemContext)
+- Modify: `types/agronomicKernel.ts` (aggiungere `photoperiodHours?` a `SiteOperationalProfile`)
 
 **Test:** `__tests__/precision-hub/orchestratorIntelligence.test.ts` — verifica che score cambi con photoperiod alto/basso
 
@@ -98,8 +98,8 @@ Colmare i gap non coperti dai piani esistenti: intelligenza dell'orchestrator, t
 **Problema:** `DataSource.data: any`, `suggested_parameters: Record<string, any>` rendono impossibile la validazione degli input AI.
 
 **Soluzione:**
-- `DataSource.data` → `Record<string, string | number | boolean | null>`
-- `suggested_parameters` → `Record<string, string | number | boolean | null | string[]>`
+- `DataSource.data` → `Record<string, unknown>` (payload AI può contenere strutture annidate; `unknown` è type-safe senza essere restrittivo)
+- `suggested_parameters` → `Record<string, unknown>` (stesso motivo)
 - Aggiungere type guard `isValidAISuggestion(obj: unknown): obj is AISuggestion` usato nella entry point `suggestionToAction()`
 
 **File:**
