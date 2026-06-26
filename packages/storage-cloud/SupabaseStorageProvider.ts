@@ -95,8 +95,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   // Garden Rows (Filari)
   private mapGardenRowFromDB(db: any): GardenRow {
-    console.log('🔍 GARDEN ROW MAPPING DEBUG - Raw DB object keys:', Object.keys(db));
-
     return {
       id: db.id,
       gardenId: db.garden_id,
@@ -138,7 +136,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.notes !== undefined) db.notes = row.notes;
 
-    console.log('🔍 GARDEN ROW MAPPING DEBUG - Mapped to DB (new schema):', Object.keys(db));
     return db;
   }
 
@@ -276,11 +273,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
 
-    console.log('🔍 GARDEN ROWS DEBUG - Getting garden rows for bedId:', bedId);
-
     // The database is using the NEW schema (garden_zone_id), so query with that
     try {
-      console.log('🔍 GARDEN ROWS DEBUG - Using garden_zone_id column (new schema)...');
       const { data, error } = await client
         .from('garden_rows')
         .select('*')
@@ -288,16 +282,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
         .order('row_number', { ascending: true });
 
       if (error) {
-        console.error('🔍 GARDEN ROWS ERROR - Query failed:', error);
         throw error;
       }
 
-      console.log('🔍 GARDEN ROWS DEBUG - Query successful, found', data?.length || 0, 'rows');
       return (data || []).map((db) => this.mapGardenRowFromDB(db));
 
     } catch (error: any) {
-      console.error('🔍 GARDEN ROWS ERROR - Exception:', error.message);
-      throw new Error(`Failed to query garden_rows: ${error.message}`);
+      throw this.buildCloudReadError(
+        'GARDEN_ROWS_FETCH_FAILED',
+        `Impossibile caricare i filari: ${error?.message ?? error}`,
+        error
+      );
     }
   }
 
