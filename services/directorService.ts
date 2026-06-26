@@ -52,7 +52,7 @@ import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
 import { calculatePhotoperiodHours } from '@/services/photoperiodService'
-import { getLunarPhase, getLunarActivities, getPhaseDisplayName } from '@/services/lunarPhaseService'
+import { getLunarPhase, getLunarActivities, getPhaseDisplayName, isWaxingPhase, type LunarPhase } from '@/services/lunarPhaseService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -326,10 +326,12 @@ class DirectorService {
       ).slice(0, 5)
       
       // 6. Genera raccomandazioni testuali
+      const todayLunarPhase = getLunarPhase(today)
       const recommendations = this.generateRecommendations(
         diaryEntry,
         criticalActions,
-        environmentalHistorySummary
+        environmentalHistorySummary,
+        todayLunarPhase
       )
       
       // 7. Calcola statistiche
@@ -697,6 +699,10 @@ class DirectorService {
       altitudeMeters: suggestion.metadata?.altitudeMeters ?? garden?.altitudeMeters,
       slopePercentage: suggestion.metadata?.slopePercentage,
       dailySunHours: garden?.dailySunHours,
+      photoperiodHours: (() => {
+        const lat = (garden?.coordinates as { latitude?: number } | null | undefined)?.latitude
+        return lat != null ? calculatePhotoperiodHours(lat, new Date()) : undefined
+      })(),
       sunExposure: suggestion.metadata?.sunExposure || garden?.sunExposure,
       aspectDirection: garden?.aspectDirection,
       windProtection: garden?.windProtection,
@@ -1114,7 +1120,8 @@ class DirectorService {
   private generateRecommendations(
     diaryEntry: any,
     actions: PrioritizedAction[],
-    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
+    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null,
+    lunarPhase?: LunarPhase
   ): string[] {
     const recommendations: string[] = []
     
@@ -1175,8 +1182,18 @@ class DirectorService {
       }
     }
     
-    // Raccomandazioni lunari
-    if (diaryEntry?.lunar_phase?.favorable_for) {
+    // Raccomandazioni lunari basate su fase computata (priorità) o diary entry (fallback)
+    if (lunarPhase) {
+      const favorable = getLunarActivities(lunarPhase)
+      if (favorable.length > 0) {
+        recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)
+      }
+      if (isWaxingPhase(lunarPhase)) {
+        recommendations.push('🌱 Luna crescente: ottimo per semina, trapianto e interventi fogliari')
+      } else if (lunarPhase !== 'full_moon' && lunarPhase !== 'new_moon') {
+        recommendations.push('✂️ Luna calante: favorevole per potatura, trattamenti radicali e raccolta')
+      }
+    } else if (diaryEntry?.lunar_phase?.favorable_for) {
       const favorable = diaryEntry.lunar_phase.favorable_for
       if (favorable.length > 0) {
         recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)
