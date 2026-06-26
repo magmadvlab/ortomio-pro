@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { GardenTask, Garden } from '../types';
 import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3, Grid, Clock } from 'lucide-react';
@@ -544,6 +544,20 @@ const Dashboard: React.FC<DashboardProps> = ({
     setGardenToDelete(null);
   };
 
+  const handleMarkWateringDone = useCallback(async (zoneId: string | undefined) => {
+    const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
+    if (systems.length > 0) {
+      const zones = await storageProvider.getIrrigationZones(systems[0].id);
+      setIrrigationZones(zones);
+      const zone = zones.find(z => z.id === zoneId);
+      if (zone) {
+        setSelectedZoneForLog(zone);
+        setSourceTaskIdForWateringLog(undefined);
+        setShowWateringLogForm(true);
+      }
+    }
+  }, [storageProvider, activeGarden?.id]);
+
   return (
     <>
       {showDeleteConfirm && gardenToDelete && (
@@ -1085,22 +1099,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                             ⏱️ Avvia Timer
                           </button>
                           <button
-                            onClick={async () => {
-                              // Carica zona per log
-                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-                              const storageProvider = getDefaultStorageProvider();
-                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
-                              if (systems.length > 0) {
-                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
-                                setIrrigationZones(zones);
-	                                const zone = zones.find(z => z.id === task.zoneId);
-	                                if (zone) {
-	                                  setSelectedZoneForLog(zone);
-	                                  setSourceTaskIdForWateringLog(undefined);
-	                                  setShowWateringLogForm(true);
-	                                }
-                              }
-                            }}
+                            onClick={() => handleMarkWateringDone(task.zoneId)}
                             className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-3"
                           >
                             ✓ Segna fatto
@@ -1111,22 +1110,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {showLitersOnly && (
                         <div className="mt-3">
                           <button
-                            onClick={async () => {
-                              // Carica zona per log
-                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-                              const storageProvider = getDefaultStorageProvider();
-                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
-                              if (systems.length > 0) {
-                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
-                                setIrrigationZones(zones);
-	                                const zone = zones.find(z => z.id === task.zoneId);
-	                                if (zone) {
-	                                  setSelectedZoneForLog(zone);
-	                                  setSourceTaskIdForWateringLog(undefined);
-	                                  setShowWateringLogForm(true);
-	                                }
-                              }
-                            }}
+                            onClick={() => handleMarkWateringDone(task.zoneId)}
                             className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
                           >
                             ✓ Segna come fatto
