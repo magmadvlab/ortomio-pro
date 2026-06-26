@@ -57,3 +57,18 @@ const LUNAR_ACTIVITIES: Record<LunarPhase, string[]> = {
 export function getLunarActivities(phase: LunarPhase): string[] {
   return LUNAR_ACTIVITIES[phase]
 }
+
+const PHASE_DISPLAY_NAMES: Record<LunarPhase, string> = {
+  new_moon: 'Luna nuova',
+  waxing_crescent: 'Luna crescente',
+  first_quarter: 'Primo quarto',
+  waxing_gibbous: 'Gibbosa crescente',
+  full_moon: 'Luna piena',
+  waning_gibbous: 'Gibbosa calante',
+  last_quarter: 'Ultimo quarto',
+  waning_crescent: 'Luna calante',
+}
+
+export function getPhaseDisplayName(phase: LunarPhase): string {
+  return PHASE_DISPLAY_NAMES[phase]
+}
