@@ -3,8 +3,8 @@
  * Usa l'approssimazione Spencer/Forsythe.
  */
 export function calculatePhotoperiodHours(latitudeDegrees: number, date: Date): number {
-  const startOfYear = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
-  const dayOfYear = Math.ceil((date.getTime() - startOfYear.getTime()) / 86400000) + 1
+  const startOfYearMs = Date.UTC(date.getUTCFullYear(), 0, 1)
+  const dayOfYear = Math.floor((date.getTime() - startOfYearMs) / 86400000) + 1
 
   const declinationDeg = 23.45 * Math.sin(((2 * Math.PI) / 365) * (284 + dayOfYear))
   const declinationRad = (declinationDeg * Math.PI) / 180

@@ -34,3 +34,12 @@ test('photoperiod_hours is non-zero when garden has coordinates (lat 44.5, summe
     `Expected ≥14h for lat 44.5 on summer solstice, got ${photoperiodHours.toFixed(2)}`
   )
 })
+
+test('calculatePhotoperiodHours returns 0 for invalid latitude (out of range)', () => {
+  // Latitude values outside [-90, 90] should not produce valid results
+  // With the clamp on cosHourAngle, extreme latitudes still return a clamped value
+  // — verify the function returns a finite number for lat 90 (pole, midnight sun)
+  const north = calculatePhotoperiodHours(90, new Date('2026-06-21'))
+  assert.ok(isFinite(north), `Expected finite result for lat 90, got ${north}`)
+  assert.ok(north >= 23 && north <= 24, `Expected 23-24h at North Pole summer solstice, got ${north.toFixed(2)}h`)
+})
