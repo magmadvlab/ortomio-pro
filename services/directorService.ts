@@ -49,6 +49,7 @@ import type { Garden, GardenTask, SmartDevice } from '@/types'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
+import { calculatePhotoperiodHours } from '@/services/photoperiodService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -309,7 +310,9 @@ class DirectorService {
         gdd_base_10: diaryEntry.tracking[0].daily_gdd,
         heat_stress_hours: diaryEntry.tracking[0].heat_stress_index,
         water_stress_index: diaryEntry.tracking[0].water_stress_index,
-        photoperiod_hours: 0 // TODO: calcolare
+        photoperiod_hours: gardenForContext?.coordinates
+          ? calculatePhotoperiodHours(gardenForContext.coordinates.latitude, today)
+          : 0
       } : {}
       
       return {
