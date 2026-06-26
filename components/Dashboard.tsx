@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { GardenTask, Garden } from '../types';
 import { Sun, CloudRain, CalendarCheck, AlertTriangle, AlertCircle, Settings, Save, Cloud, CloudLightning, Snowflake, CloudFog, Loader2, MapPin, Droplets, ThermometerSun, FlaskConical, Shovel, ChevronDown, Plus, Trash2, Home, Sparkles, CheckCircle, XCircle, Moon, Package, Plane, BarChart3, Grid, Clock } from 'lucide-react';
@@ -184,13 +184,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Filtra i task in base alla stagione selezionata
   const pendingTasks = (tasks || []).filter(t => !t.completed && (!t.season || t.season === seasonFilter)).length;
   
-  const upcomingReminders = mounted && currentDate ? (tasks || []).filter(t => {
+  const upcomingReminders = useMemo(() => {
+    if (!mounted || !currentDate) return [];
+    return (tasks || []).filter(t => {
       if (!t.nextDueDate || t.completed) return false;
       const due = new Date(t.nextDueDate);
       const diffTime = due.getTime() - currentDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      return diffDays >= 0 && diffDays <= 7; 
-  }) : [];
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 7;
+    });
+  }, [tasks, currentDate, mounted]);
+
+  const moonInfo = useMemo(() => calculateMoonPhase(new Date()), [currentDate]);
 
   // Weather Fetching Logic
   useEffect(() => {
@@ -265,11 +270,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   // Calculate lifecycle advices for active plants
   useEffect(() => {
     if (!activeGarden) return;
-    
+
+    let cancelled = false;
+
     const activePlantTasks = getActivePlants((tasks || []).filter(t => t.gardenId === activeGardenId));
     if (activePlantTasks.length === 0) {
       setLifecycleAdvices(new Map());
-      return;
+      return () => { cancelled = true; };
     }
 
     setLifecycleLoading(true);
@@ -290,9 +297,15 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
       })
     ).then(() => {
-      setLifecycleAdvices(advicesMap);
-      setLifecycleLoading(false);
+      if (!cancelled) {
+        setLifecycleAdvices(advicesMap);
+        setLifecycleLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLifecycleLoading(false);
     });
+
+    return () => { cancelled = true; };
   }, [tasks, activeGarden, activeGardenId]);
 
   // Calculate succession opportunities
@@ -535,6 +548,20 @@ const Dashboard: React.FC<DashboardProps> = ({
     setShowDeleteConfirm(false);
     setGardenToDelete(null);
   };
+
+  const handleMarkWateringDone = useCallback(async (zoneId: string | undefined) => {
+    const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
+    if (systems.length > 0) {
+      const zones = await storageProvider.getIrrigationZones(systems[0].id);
+      setIrrigationZones(zones);
+      const zone = zones.find(z => z.id === zoneId);
+      if (zone) {
+        setSelectedZoneForLog(zone);
+        setSourceTaskIdForWateringLog(undefined);
+        setShowWateringLogForm(true);
+      }
+    }
+  }, [storageProvider, activeGarden?.id]);
 
   return (
     <>
@@ -1077,22 +1104,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                             ⏱️ Avvia Timer
                           </button>
                           <button
-                            onClick={async () => {
-                              // Carica zona per log
-                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-                              const storageProvider = getDefaultStorageProvider();
-                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
-                              if (systems.length > 0) {
-                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
-                                setIrrigationZones(zones);
-	                                const zone = zones.find(z => z.id === task.zoneId);
-	                                if (zone) {
-	                                  setSelectedZoneForLog(zone);
-	                                  setSourceTaskIdForWateringLog(undefined);
-	                                  setShowWateringLogForm(true);
-	                                }
-                              }
-                            }}
+                            onClick={() => handleMarkWateringDone(task.zoneId)}
                             className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-3"
                           >
                             ✓ Segna fatto
@@ -1103,22 +1115,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {showLitersOnly && (
                         <div className="mt-3">
                           <button
-                            onClick={async () => {
-                              // Carica zona per log
-                              const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-                              const storageProvider = getDefaultStorageProvider();
-                              const systems = await storageProvider.getIrrigationSystems(activeGarden?.id || '');
-                              if (systems.length > 0) {
-                                const zones = await storageProvider.getIrrigationZones(systems[0].id);
-                                setIrrigationZones(zones);
-	                                const zone = zones.find(z => z.id === task.zoneId);
-	                                if (zone) {
-	                                  setSelectedZoneForLog(zone);
-	                                  setSourceTaskIdForWateringLog(undefined);
-	                                  setShowWateringLogForm(true);
-	                                }
-                              }
-                            }}
+                            onClick={() => handleMarkWateringDone(task.zoneId)}
                             className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700"
                           >
                             ✓ Segna come fatto
@@ -1150,10 +1147,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* MOON PHASE WIDGET */}
       {(() => {
-        const moonInfo = calculateMoonPhase(new Date());
-        const moonName = moonInfo.name; // Reuse the name from moonInfo instead of recalculating
+        const moonName = moonInfo.name;
         const moonEmoji = moonInfo.isWaxing ? '🌒' : moonInfo.isWaning ? '🌘' : moonInfo.phase === 'Full' ? '🌕' : moonInfo.phase === 'New' ? '🌑' : '🌓';
-        
         return (
           <div className="bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl p-5 text-white shadow-lg">
             <div className="flex items-center justify-between">

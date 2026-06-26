@@ -3,7 +3,7 @@
  * Sistema scalabile per gestione piante individuali e di gruppo
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Garden } from '../../types';
 import { GardenPlant, BulkRowOperation } from '../../types/individualPlant';
 import { useStorage } from '../../packages/core/hooks/useStorage';
@@ -58,9 +58,15 @@ interface PlantSelection {
 const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow }) => {
   const { storageProvider } = useStorage();
   
-  // Services
-  const unifiedOperationsService = createUnifiedOperationsService(storageProvider);
-  const plantRowSyncService = createPlantRowSyncService(storageProvider);
+  // Services — memoized to prevent recreation on every render
+  const unifiedOperationsService = useMemo(
+    () => createUnifiedOperationsService(storageProvider),
+    [storageProvider]
+  );
+  const plantRowSyncService = useMemo(
+    () => createPlantRowSyncService(storageProvider),
+    [storageProvider]
+  );
   
   // State
   const [plants, setPlants] = useState<GardenPlant[]>([]);
@@ -94,7 +100,6 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       setFieldRowFilter(fieldRow);
       setRowFilter(fieldRow);
       setViewMode('list');
-      console.log('🌾 SmartPlantManager: Filtering by fieldRow:', fieldRow);
     } else {
       setFieldRowFilter(null);
       setRowFilter('all');
@@ -135,16 +140,13 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       let existingPlants: GardenPlant[] = [];
       try {
         existingPlants = await storageProvider.getIndividualPlants?.(garden.id) || [];
-        console.log('✅ Piante individuali caricate dal database:', existingPlants.length);
       } catch (error) {
-        console.warn('Database piante individuali non disponibile, usando generazione da filari');
         existingPlants = [];
       }
       
       // 2. Se ci sono piante nel database, usale
       if (existingPlants.length > 0) {
         setPlants(existingPlants);
-        console.log('🌱 Usando piante dal database (trapiantate dal vivaio)');
         return;
       }
       
@@ -157,10 +159,8 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
           fieldRows
         );
         setPlants(generatedPlants);
-        console.log('🌱 Usando piante generate dai filari (demo)');
       } else {
         setPlants([]);
-        console.log('⚠️ Nessuna pianta trovata');
       }
     } catch (error) {
       console.error('Error loading plants:', error);
@@ -178,73 +178,44 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     }
     
     try {
-      console.log('🌱 PLANT MANAGER DEBUG - Loading rows for garden:', garden.id)
-      console.log('🌱 PLANT MANAGER DEBUG - Storage provider:', storageProvider?.constructor?.name)
-      console.log('🌱 PLANT MANAGER DEBUG - getGardenRows available:', typeof storageProvider.getGardenRows)
-      console.log('🌱 PLANT MANAGER DEBUG - getFieldRows available:', typeof storageProvider.getFieldRows)
-      
       // Load available rows (garden rows + field rows) with proper error handling
-      console.log('🌱 PLANT MANAGER DEBUG - Loading garden rows...')
       let gardenRows: any[] = [];
       try {
         if (storageProvider.getGardenRows) {
           gardenRows = await storageProvider.getGardenRows(garden.id);
-          console.log('🌱 PLANT MANAGER DEBUG - Garden rows loaded successfully:', gardenRows?.length || 0)
-        } else {
-          console.log('🌱 PLANT MANAGER DEBUG - getGardenRows method not available')
         }
       } catch (gardenRowsError) {
-        console.error('🌱 PLANT MANAGER ERROR - Failed to load garden rows:', gardenRowsError)
+        console.error('Failed to load garden rows:', gardenRowsError)
         gardenRows = [];
       }
-      
-      console.log('🌱 PLANT MANAGER DEBUG - Loading field rows...')
+
       let fieldRows: any[] = [];
       try {
         if (storageProvider.getFieldRows) {
           fieldRows = await storageProvider.getFieldRows(garden.id);
-          console.log('🌱 PLANT MANAGER DEBUG - Field rows loaded successfully:', fieldRows?.length || 0)
-        } else {
-          console.log('🌱 PLANT MANAGER DEBUG - getFieldRows method not available')
         }
       } catch (fieldRowsError) {
-        console.error('🌱 PLANT MANAGER ERROR - Failed to load field rows:', fieldRowsError)
+        console.error('Failed to load field rows:', fieldRowsError)
         fieldRows = [];
       }
-      
-      console.log('🌱 PLANT MANAGER DEBUG - Garden rows sample:', gardenRows?.[0])
-      console.log('🌱 PLANT MANAGER DEBUG - Field rows sample:', fieldRows?.[0])
 
       const allRows = [
         ...gardenRows.map((r: any) => ({ id: r.id, name: r.name, type: 'garden_row' as const })),
         ...fieldRows.map((r: any) => ({ id: r.id, name: r.name, type: 'field_row' as const }))
       ];
-      
-      console.log('🌱 PLANT MANAGER DEBUG - All rows combined:', allRows.length)
+
       setAvailableRows(allRows);
 
       // Load plant-row mappings
-      console.log('🌱 PLANT MANAGER DEBUG - Loading plant-row mappings...')
       try {
         const mappings = await plantRowSyncService.getPlantRowMappings(garden.id);
-        console.log('🌱 PLANT MANAGER DEBUG - Mappings loaded successfully:', mappings?.length || 0)
         setPlantRowMappings(mappings);
       } catch (mappingsError) {
-        console.error('🌱 PLANT MANAGER ERROR - Failed to load mappings:', mappingsError)
+        console.error('Failed to load plant-row mappings:', mappingsError)
         setPlantRowMappings([]);
       }
-      
-      console.log('🌱 PLANT MANAGER DEBUG - loadRowsAndMappings completed successfully')
     } catch (error: any) {
-      // Enhanced error logging with better error extraction
-      console.error('🌱 PLANT MANAGER ERROR - loadRowsAndMappings failed');
-      console.error('🌱 PLANT MANAGER ERROR - Error message:', error?.message || 'Unknown error');
-      console.error('🌱 PLANT MANAGER ERROR - Error code:', error?.code || 'No code');
-      console.error('🌱 PLANT MANAGER ERROR - Error details:', error?.details || 'No details');
-      console.error('🌱 PLANT MANAGER ERROR - Error hint:', error?.hint || 'No hint');
-      console.error('🌱 PLANT MANAGER ERROR - Garden ID:', garden?.id);
-      console.error('🌱 PLANT MANAGER ERROR - Storage provider:', storageProvider?.constructor?.name);
-      
+      console.error('loadRowsAndMappings failed:', error?.message || error);
       // Set empty arrays to prevent UI issues
       setAvailableRows([]);
       setPlantRowMappings([]);
@@ -332,7 +303,6 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
         // if user entered from a specific row but legacy plants have no mapping,
         // keep showing filtered plants instead of an empty screen.
         if (filtered.length === 0 && fieldRowFilter && rowFilter === fieldRowFilter && beforeRowFilter.length > 0) {
-          console.warn('🌾 SmartPlantManager: no plants mapped to selected row, showing all compatible plants');
           filtered = beforeRowFilter;
         }
       }
