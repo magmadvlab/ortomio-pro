@@ -95,8 +95,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   // Garden Rows (Filari)
   private mapGardenRowFromDB(db: any): GardenRow {
-    console.log('🔍 GARDEN ROW MAPPING DEBUG - Raw DB object keys:', Object.keys(db));
-
     return {
       id: db.id,
       gardenId: db.garden_id,
@@ -138,7 +136,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (row.irrigationLine !== undefined) db.irrigation_line = row.irrigationLine;
     if (row.notes !== undefined) db.notes = row.notes;
 
-    console.log('🔍 GARDEN ROW MAPPING DEBUG - Mapped to DB (new schema):', Object.keys(db));
     return db;
   }
 
@@ -276,11 +273,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
   async getGardenRows(bedId: string): Promise<GardenRow[]> {
     const client = this.ensureClient();
 
-    console.log('🔍 GARDEN ROWS DEBUG - Getting garden rows for bedId:', bedId);
-
     // The database is using the NEW schema (garden_zone_id), so query with that
     try {
-      console.log('🔍 GARDEN ROWS DEBUG - Using garden_zone_id column (new schema)...');
       const { data, error } = await client
         .from('garden_rows')
         .select('*')
@@ -288,16 +282,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
         .order('row_number', { ascending: true });
 
       if (error) {
-        console.error('🔍 GARDEN ROWS ERROR - Query failed:', error);
         throw error;
       }
 
-      console.log('🔍 GARDEN ROWS DEBUG - Query successful, found', data?.length || 0, 'rows');
       return (data || []).map((db) => this.mapGardenRowFromDB(db));
 
     } catch (error: any) {
-      console.error('🔍 GARDEN ROWS ERROR - Exception:', error.message);
-      throw new Error(`Failed to query garden_rows: ${error.message}`);
+      throw this.buildCloudReadError(
+        'GARDEN_ROWS_FETCH_FAILED',
+        `Impossibile caricare i filari: ${error?.message ?? error}`,
+        error
+      );
     }
   }
 
@@ -355,7 +350,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   private getLocalStoredDevices(): SmartDevice[] {
-    const saved = localStorage.getItem('ortoDevices');
+    if (typeof window === 'undefined') return [];
+    const saved = window.localStorage.getItem('ortoDevices');
     if (!saved) return [];
     try {
       return (JSON.parse(saved) as SmartDevice[]).map(device => normalizeSmartDeviceScope(device));
@@ -364,12 +360,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredDevices(devices: SmartDevice[]) {
-    localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
+  private saveLocalStoredDevices(devices: SmartDevice[]): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
   }
 
   private getLocalStoredAutomationLogs(): SmartDeviceAutomationLog[] {
-    const saved = localStorage.getItem('ortoSmartDeviceAutomationLogs');
+    if (typeof window === 'undefined') return [];
+    const saved = window.localStorage.getItem('ortoSmartDeviceAutomationLogs');
     if (!saved) return [];
     try {
       return JSON.parse(saved) as SmartDeviceAutomationLog[];
@@ -378,8 +376,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]) {
-    localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
+  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]): void {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
@@ -1974,21 +1973,24 @@ export class SupabaseStorageProvider implements IStorageProvider {
         )
       }
 
-      if (updates.zones) {
-        await client.from('prescription_zones').delete().eq('prescription_map_id', id)
+      if (updates.zones !== undefined) {
         if (updates.zones.length > 0) {
           const now = new Date().toISOString()
-          const { error: zonesError } = await client
+          const newZoneRows = updates.zones.map((zone, index) => ({
+            ...mapPrescriptionZoneToDb({
+              ...zone,
+              prescriptionMapId: id,
+              zoneNumber: zone.zoneNumber || index + 1,
+              createdAt: zone.createdAt || now,
+              updatedAt: now,
+            }),
+          }))
+
+          // INSERT new zones first — if this fails, old zones are still intact
+          const { data: insertedData, error: zonesError } = await client
             .from('prescription_zones')
-            .insert(updates.zones.map((zone, index) => ({
-              ...mapPrescriptionZoneToDb({
-                ...zone,
-                prescriptionMapId: id,
-                zoneNumber: zone.zoneNumber || index + 1,
-                createdAt: zone.createdAt || now,
-                updatedAt: now,
-              }),
-            })))
+            .insert(newZoneRows)
+            .select('id')
 
           if (zonesError) {
             throw this.buildCloudPersistenceError(
@@ -1997,6 +1999,19 @@ export class SupabaseStorageProvider implements IStorageProvider {
               zonesError
             )
           }
+
+          // DELETE old zones only after INSERT succeeded
+          const newIds = (insertedData ?? []).map((z: { id: string }) => z.id)
+          if (newIds.length > 0) {
+            await client
+              .from('prescription_zones')
+              .delete()
+              .eq('prescription_map_id', id)
+              .not('id', 'in', `(${newIds.join(',')})`)
+          }
+        } else {
+          // zones is explicitly an empty array: remove all zones
+          await client.from('prescription_zones').delete().eq('prescription_map_id', id)
         }
       }
 
