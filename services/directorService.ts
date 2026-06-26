@@ -45,7 +45,8 @@ import type {
   AgronomicSignalKey,
   AgronomicScopeDescriptor,
 } from '@/types/agronomicKernel'
-import type { Garden, GardenTask, SmartDevice } from '@/types'
+import type { Garden, GardenTask, SmartDevice, HealthAlert } from '@/types'
+import type { GardenPlant } from '@/types/individualPlant'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
@@ -217,6 +218,47 @@ export interface DirectorFieldRowInsights {
   seasonalAdvice: string[]
   lunarTiming: string
   weatherAlerts: string[]
+}
+
+// ============================================================================
+// PLANT HEALTH BRIDGE
+// ============================================================================
+
+/**
+ * Maps individual GardenPlant records with unhealthy statuses to HealthAlert objects
+ * suitable for inclusion in the agronomic action queue briefing.
+ *
+ * Plants with status 'harvested' or 'transplanted' are terminal/neutral states
+ * and are excluded. Plants with status 'diseased' or 'dead' generate alerts.
+ * Severity is 'critical' when healthScore <= 20, otherwise 'warning'.
+ */
+export function mapUnhealthyPlantsToAlerts(plants: GardenPlant[]): HealthAlert[] {
+  const now = new Date().toISOString()
+  return plants
+    .filter(p => p.status === 'diseased' || p.status === 'dead')
+    .map(p => {
+      const isCritical = p.healthScore <= 20
+      const severity: HealthAlert['severity'] = isCritical ? 'critical' : 'warning'
+      const name = p.plantName ?? p.variety ?? 'Pianta sconosciuta'
+      return {
+        id: `plant-health-${p.id}`,
+        gardenId: p.gardenId,
+        plantId: p.id,
+        alertType: 'disease' as HealthAlert['alertType'],
+        severity,
+        source: 'ai' as HealthAlert['source'],
+        title: `${name}: stato ${p.status}`,
+        message: `Pianta ${name} (${p.plantCode}) in stato ${p.status} con health score ${p.healthScore}/100. Monitorare e intervenire.`,
+        resolved: false,
+        createdAt: now,
+        updatedAt: now,
+        metadata: {
+          healthScore: p.healthScore,
+          plantCode: p.plantCode,
+          plantStatus: p.status,
+        },
+      } satisfies HealthAlert
+    })
 }
 
 // ============================================================================
@@ -867,15 +909,21 @@ class DirectorService {
     }
 
     const dominantCropName = this.getDominantCropName(tasks)
-    const [healthAlerts, phenologyCandidate] = await Promise.all([
+    const [healthAlerts, phenologyCandidate, individualPlants] = await Promise.all([
       plantHealthMonitoringService
         .analyzeGardenHealth(garden, tasks, { devices, storageProvider })
         .catch(() => []),
       this.buildPhenologyCandidate(storageProvider, garden, dominantCropName),
+      typeof storageProvider.getIndividualPlants === 'function'
+        ? storageProvider.getIndividualPlants(gardenId).catch(() => [])
+        : Promise.resolve([]),
     ])
 
+    const plantHealthAlerts = mapUnhealthyPlantsToAlerts(individualPlants)
+    const mergedHealthAlerts = [...healthAlerts, ...plantHealthAlerts]
+
     return buildAgronomicActionQueue({
-      healthAlerts,
+      healthAlerts: mergedHealthAlerts,
       irrigationReports,
       prescriptionSummary,
       directorActions,
