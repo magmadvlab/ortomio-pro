@@ -45,7 +45,8 @@ import type {
   AgronomicSignalKey,
   AgronomicScopeDescriptor,
 } from '@/types/agronomicKernel'
-import type { Garden, GardenTask, SmartDevice, HealthAlert } from '@/types'
+import type { Garden, GardenTask, SmartDevice } from '@/types'
+import type { HealthAlert } from '@/services/plantHealthMonitoringService'
 import type { GardenPlant } from '@/types/individualPlant'
 import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
@@ -230,7 +231,7 @@ export interface DirectorFieldRowInsights {
  *
  * Plants with status 'harvested' or 'transplanted' are terminal/neutral states
  * and are excluded. Plants with status 'diseased' or 'dead' generate alerts.
- * Severity is 'critical' when healthScore <= 20, otherwise 'warning'.
+ * Severity is 'critical' when healthScore <= 20, otherwise 'high'.
  */
 export function mapUnhealthyPlantsToAlerts(plants: GardenPlant[]): HealthAlert[] {
   const now = new Date().toISOString()
@@ -238,25 +239,26 @@ export function mapUnhealthyPlantsToAlerts(plants: GardenPlant[]): HealthAlert[]
     .filter(p => p.status === 'diseased' || p.status === 'dead')
     .map(p => {
       const isCritical = p.healthScore <= 20
-      const severity: HealthAlert['severity'] = isCritical ? 'critical' : 'warning'
+      const severity: HealthAlert['severity'] = isCritical ? 'critical' : 'high'
       const name = p.plantName ?? p.variety ?? 'Pianta sconosciuta'
+      const triggers: string[] = [`stato: ${p.status}`, `health score: ${p.healthScore}/100`]
+      if (p.plantCode) triggers.push(`codice: ${p.plantCode}`)
       return {
         id: `plant-health-${p.id}`,
-        gardenId: p.gardenId,
-        plantId: p.id,
-        alertType: 'disease' as HealthAlert['alertType'],
+        type: 'stress_symptoms' as const,
         severity,
-        source: 'ai' as HealthAlert['source'],
-        title: `${name}: stato ${p.status}`,
-        message: `Pianta ${name} (${p.plantCode}) in stato ${p.status} con health score ${p.healthScore}/100. Monitorare e intervenire.`,
-        resolved: false,
-        createdAt: now,
-        updatedAt: now,
-        metadata: {
-          healthScore: p.healthScore,
-          plantCode: p.plantCode,
-          plantStatus: p.status,
-        },
+        plantCode: p.plantCode,
+        plantName: name,
+        description: p.status === 'dead'
+          ? `Pianta ${name} in stato terminale: valutare rimozione e sostituzione.`
+          : `Pianta ${name} in stato ${p.status}: monitorare e intervenire.`,
+        detectedAt: now,
+        suggestedActions: [],
+        photoRequired: false,
+        agronomistConsultation: isCritical,
+        urgencyDays: isCritical ? 1 : 3,
+        confidence: isCritical ? 0.9 : 0.7,
+        triggers,
       } satisfies HealthAlert
     })
 }

@@ -36,15 +36,15 @@ test('mapUnhealthyPlantsToAlerts returns alert for diseased plant', () => {
   const alerts = mapUnhealthyPlantsToAlerts(plants)
   assert.equal(alerts.length, 1)
   const alert = alerts[0]
-  assert.equal(alert.plantId, 'plant-sick')
-  assert.equal(alert.gardenId, 'garden-1')
-  assert.equal(alert.alertType, 'disease')
-  assert.equal(alert.severity, 'warning')
-  assert.equal(alert.resolved, false)
-  assert.ok(alert.title.length > 0)
-  assert.ok(alert.message.length > 0)
-  assert.ok(alert.id.length > 0)
-  assert.ok(alert.createdAt.length > 0)
+  assert.ok(alert.id.startsWith('plant-health-'), 'id should start with plant-health-')
+  assert.equal(alert.type, 'stress_symptoms')
+  assert.equal(alert.severity, 'high')
+  assert.equal(alert.plantName, 'Basilico')
+  assert.ok(alert.description.length > 0)
+  assert.ok(alert.detectedAt.length > 0)
+  assert.ok(Array.isArray(alert.triggers))
+  assert.ok(alert.triggers.length > 0)
+  assert.ok(typeof alert.confidence === 'number')
 })
 
 test('mapUnhealthyPlantsToAlerts returns critical alert for plant with very low healthScore', () => {
@@ -54,6 +54,9 @@ test('mapUnhealthyPlantsToAlerts returns critical alert for plant with very low 
   const alerts = mapUnhealthyPlantsToAlerts(plants)
   assert.equal(alerts.length, 1)
   assert.equal(alerts[0].severity, 'critical')
+  assert.equal(alerts[0].urgencyDays, 1)
+  assert.equal(alerts[0].agronomistConsultation, true)
+  assert.equal(alerts[0].confidence, 0.9)
 })
 
 test('mapUnhealthyPlantsToAlerts filters out harvested and transplanted plants', () => {
@@ -64,19 +67,22 @@ test('mapUnhealthyPlantsToAlerts filters out harvested and transplanted plants',
   ]
   const alerts = mapUnhealthyPlantsToAlerts(plants)
   // Only dead plant generates alert; harvested/transplanted are terminal states without disease alert
-  const ids = alerts.map(a => a.plantId)
-  assert.ok(!ids.includes('plant-harvested'), 'harvested should not generate alert')
-  assert.ok(!ids.includes('plant-transplanted'), 'transplanted should not generate alert')
+  const ids = alerts.map(a => a.id)
+  assert.ok(!ids.some(id => id.includes('plant-harvested')), 'harvested should not generate alert')
+  assert.ok(!ids.some(id => id.includes('plant-transplanted')), 'transplanted should not generate alert')
+  assert.ok(ids.some(id => id.includes('plant-dead')), 'dead should generate alert')
 })
 
-test('mapUnhealthyPlantsToAlerts returns warning for dead plant', () => {
+test('mapUnhealthyPlantsToAlerts returns high severity for dead plant with normal healthScore', () => {
   const plants: GardenPlant[] = [
-    makePlant({ id: 'plant-dead', status: 'dead', plantName: 'Peperone', healthScore: 0 }),
+    makePlant({ id: 'plant-dead', status: 'dead', plantName: 'Peperone', healthScore: 30 }),
   ]
   const alerts = mapUnhealthyPlantsToAlerts(plants)
   assert.equal(alerts.length, 1)
-  assert.equal(alerts[0].plantId, 'plant-dead')
-  assert.equal(alerts[0].alertType, 'disease')
+  assert.ok(alerts[0].id.startsWith('plant-health-'))
+  assert.equal(alerts[0].type, 'stress_symptoms')
+  assert.equal(alerts[0].severity, 'high')
+  assert.ok(alerts[0].description.includes('terminale'))
 })
 
 test('mapUnhealthyPlantsToAlerts handles empty array', () => {
