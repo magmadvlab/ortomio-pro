@@ -355,8 +355,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
   }
 
   private getLocalStoredDevices(): SmartDevice[] {
-    if (typeof window === 'undefined') return [];
-    const saved = window.localStorage.getItem('ortoDevices');
+    const saved = localStorage.getItem('ortoDevices');
     if (!saved) return [];
     try {
       return (JSON.parse(saved) as SmartDevice[]).map(device => normalizeSmartDeviceScope(device));
@@ -365,14 +364,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredDevices(devices: SmartDevice[]): void {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
+  private saveLocalStoredDevices(devices: SmartDevice[]) {
+    localStorage.setItem('ortoDevices', JSON.stringify(devices.map(device => normalizeSmartDeviceScope(device))));
   }
 
   private getLocalStoredAutomationLogs(): SmartDeviceAutomationLog[] {
-    if (typeof window === 'undefined') return [];
-    const saved = window.localStorage.getItem('ortoSmartDeviceAutomationLogs');
+    const saved = localStorage.getItem('ortoSmartDeviceAutomationLogs');
     if (!saved) return [];
     try {
       return JSON.parse(saved) as SmartDeviceAutomationLog[];
@@ -381,9 +378,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     }
   }
 
-  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]): void {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
+  private saveLocalStoredAutomationLogs(logs: SmartDeviceAutomationLog[]) {
+    localStorage.setItem('ortoSmartDeviceAutomationLogs', JSON.stringify(logs));
   }
 
   async getUserPreference<T = any>(key: string): Promise<T | null> {
@@ -1978,21 +1974,24 @@ export class SupabaseStorageProvider implements IStorageProvider {
         )
       }
 
-      if (updates.zones) {
-        await client.from('prescription_zones').delete().eq('prescription_map_id', id)
+      if (updates.zones !== undefined) {
         if (updates.zones.length > 0) {
           const now = new Date().toISOString()
-          const { error: zonesError } = await client
+          const newZoneRows = updates.zones.map((zone, index) => ({
+            ...mapPrescriptionZoneToDb({
+              ...zone,
+              prescriptionMapId: id,
+              zoneNumber: zone.zoneNumber || index + 1,
+              createdAt: zone.createdAt || now,
+              updatedAt: now,
+            }),
+          }))
+
+          // INSERT new zones first — if this fails, old zones are still intact
+          const { data: insertedData, error: zonesError } = await client
             .from('prescription_zones')
-            .insert(updates.zones.map((zone, index) => ({
-              ...mapPrescriptionZoneToDb({
-                ...zone,
-                prescriptionMapId: id,
-                zoneNumber: zone.zoneNumber || index + 1,
-                createdAt: zone.createdAt || now,
-                updatedAt: now,
-              }),
-            })))
+            .insert(newZoneRows)
+            .select('id')
 
           if (zonesError) {
             throw this.buildCloudPersistenceError(
@@ -2001,6 +2000,19 @@ export class SupabaseStorageProvider implements IStorageProvider {
               zonesError
             )
           }
+
+          // DELETE old zones only after INSERT succeeded
+          const newIds = (insertedData ?? []).map((z: { id: string }) => z.id)
+          if (newIds.length > 0) {
+            await client
+              .from('prescription_zones')
+              .delete()
+              .eq('prescription_map_id', id)
+              .not('id', 'in', `(${newIds.join(',')})`)
+          }
+        } else {
+          // zones is explicitly an empty array: remove all zones
+          await client.from('prescription_zones').delete().eq('prescription_map_id', id)
         }
       }
 
