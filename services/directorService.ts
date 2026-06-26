@@ -699,10 +699,9 @@ class DirectorService {
       altitudeMeters: suggestion.metadata?.altitudeMeters ?? garden?.altitudeMeters,
       slopePercentage: suggestion.metadata?.slopePercentage,
       dailySunHours: garden?.dailySunHours,
-      photoperiodHours: (() => {
-        const lat = (garden?.coordinates as { latitude?: number } | null | undefined)?.latitude
-        return lat != null ? calculatePhotoperiodHours(lat, new Date()) : undefined
-      })(),
+      photoperiodHours: garden?.coordinates != null
+        ? calculatePhotoperiodHours(garden.coordinates.latitude, new Date())
+        : undefined,
       sunExposure: suggestion.metadata?.sunExposure || garden?.sunExposure,
       aspectDirection: garden?.aspectDirection,
       windProtection: garden?.windProtection,
