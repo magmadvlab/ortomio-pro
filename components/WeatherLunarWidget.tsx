@@ -109,6 +109,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     
     switch (moonPhase.phase) {
       case 'WaxingCrescent':
+      case 'FirstQuarter':
       case 'WaxingGibbous':
         return {
           phase: 'Luna Crescente',
@@ -128,8 +129,9 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           todayAdvice: 'Ottimo momento per seminare pomodori, zucchine e fagioli!'
         };
         
-      case 'WaningCrescent':
       case 'WaningGibbous':
+      case 'LastQuarter':
+      case 'WaningCrescent':
         return {
           phase: 'Luna Calante',
           phaseIcon: '🌘',
