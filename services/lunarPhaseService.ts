@@ -30,7 +30,7 @@ export function getLunarPhase(date: Date): LunarPhase {
   if (pos < 1.85) return 'new_moon'
   if (pos < 7.38) return 'waxing_crescent'
   if (pos < 9.22) return 'first_quarter'
-  if (pos < 14.77) return 'waxing_gibbous'
+  if (pos < 12.91) return 'waxing_gibbous'
   if (pos < 16.61) return 'full_moon'
   if (pos < 22.15) return 'waning_gibbous'
   if (pos < 23.99) return 'last_quarter'
