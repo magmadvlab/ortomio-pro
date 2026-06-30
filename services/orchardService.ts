@@ -91,6 +91,49 @@ class OrchardService {
       return copy
     })
   }
+
+  private cleanDatabasePayload(payload: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined)
+    )
+  }
+
+  private getOrchardDefaultsFallbackKey(orchardId: string): string {
+    return `ortomio:orchard:${orchardId}:irrigationDefaults`
+  }
+
+  private readOrchardDefaultsFallback(orchardId: string): OrchardConfiguration['irrigationDefaults'] | undefined {
+    if (typeof window === 'undefined' || !window.localStorage) return undefined
+
+    try {
+      const raw = window.localStorage.getItem(this.getOrchardDefaultsFallbackKey(orchardId))
+      return raw ? JSON.parse(raw) : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  private writeOrchardDefaultsFallback(
+    orchardId: string,
+    defaults: OrchardConfiguration['irrigationDefaults']
+  ): void {
+    if (typeof window === 'undefined' || !window.localStorage || defaults === undefined) return
+
+    try {
+      window.localStorage.setItem(this.getOrchardDefaultsFallbackKey(orchardId), JSON.stringify(defaults))
+    } catch {
+      // Best-effort compatibility fallback for deployments where the DB migration is pending.
+    }
+  }
+
+  private mapOrchardConfigurationWithFallback(data: any): OrchardConfiguration {
+    const mapped = this.mapOrchardConfigurationFromDatabase(data)
+    return {
+      ...mapped,
+      irrigationDefaults: mapped.irrigationDefaults || this.readOrchardDefaultsFallback(mapped.id)
+    }
+  }
+
   // ============================================================================
   // ORCHARD CONFIGURATION MANAGEMENT
   // ============================================================================
@@ -106,7 +149,7 @@ class OrchardService {
 
       if (error) throw error
 
-      return data?.map(this.mapOrchardConfigurationFromDatabase) || []
+      return data?.map((row) => this.mapOrchardConfigurationWithFallback(row)) || []
     } catch (error) {
       console.error('Error fetching orchard configurations:', error)
       return []
@@ -114,17 +157,46 @@ class OrchardService {
   }
 
   async createOrchardConfiguration(config: Omit<OrchardConfiguration, 'id' | 'createdAt' | 'updatedAt'>): Promise<OrchardConfiguration> {
+    const insertPayload = this.mapOrchardConfigurationToDatabase(config)
+
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase
         .from('orchard_configurations')
-        .insert([this.mapOrchardConfigurationToDatabase(config)])
+        .insert([insertPayload])
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        const missingColumn = this.extractMissingColumn(error)
+        const isIrrigationDefaultsSchemaGap =
+          this.isMissingColumnError(error) &&
+          (missingColumn === 'irrigation_defaults' || 'irrigation_defaults' in insertPayload)
 
-      return this.mapOrchardConfigurationFromDatabase(data)
+        if (!isIrrigationDefaultsSchemaGap || config.irrigationDefaults === undefined) {
+          throw error
+        }
+
+        const retryPayload = { ...insertPayload }
+        delete retryPayload.irrigation_defaults
+
+        const retry = await supabase
+          .from('orchard_configurations')
+          .insert([retryPayload])
+          .select()
+          .single()
+
+        if (retry.error) throw retry.error
+
+        this.writeOrchardDefaultsFallback(retry.data.id, config.irrigationDefaults)
+
+        return {
+          ...this.mapOrchardConfigurationWithFallback(retry.data),
+          irrigationDefaults: config.irrigationDefaults
+        }
+      }
+
+      return this.mapOrchardConfigurationWithFallback(data)
     } catch (error) {
       console.error('Error creating orchard configuration:', error)
       throw error
@@ -134,16 +206,64 @@ class OrchardService {
   async updateOrchardConfiguration(id: string, updates: Partial<OrchardConfiguration>): Promise<OrchardConfiguration> {
     try {
       const supabase = getSupabaseClient()
+      const updatePayload = this.mapOrchardConfigurationToDatabase(updates)
       const { data, error } = await supabase
         .from('orchard_configurations')
-        .update(this.mapOrchardConfigurationToDatabase(updates))
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        const missingColumn = this.extractMissingColumn(error)
+        const isIrrigationDefaultsSchemaGap =
+          this.isMissingColumnError(error) &&
+          (missingColumn === 'irrigation_defaults' || 'irrigation_defaults' in updatePayload)
 
-      return this.mapOrchardConfigurationFromDatabase(data)
+        if (!isIrrigationDefaultsSchemaGap || updates.irrigationDefaults === undefined) {
+          throw error
+        }
+
+        console.warn(
+          'orchard_configurations.irrigation_defaults is missing; using browser fallback until the DB migration is applied.',
+          error
+        )
+
+        this.writeOrchardDefaultsFallback(id, updates.irrigationDefaults)
+
+        const fallbackPayload = { ...updatePayload }
+        delete fallbackPayload.irrigation_defaults
+
+        if (Object.keys(fallbackPayload).length > 0) {
+          const retry = await supabase
+            .from('orchard_configurations')
+            .update(fallbackPayload)
+            .eq('id', id)
+            .select()
+            .single()
+
+          if (retry.error) throw retry.error
+          return {
+            ...this.mapOrchardConfigurationWithFallback(retry.data),
+            irrigationDefaults: updates.irrigationDefaults
+          }
+        }
+
+        const current = await supabase
+          .from('orchard_configurations')
+          .select('*')
+          .eq('id', id)
+          .single()
+
+        if (current.error) throw current.error
+
+        return {
+          ...this.mapOrchardConfigurationWithFallback(current.data),
+          irrigationDefaults: updates.irrigationDefaults
+        }
+      }
+
+      return this.mapOrchardConfigurationWithFallback(data)
     } catch (error) {
       console.error('Error updating orchard configuration:', error)
       throw error
@@ -1149,33 +1269,59 @@ class OrchardService {
   async createOrchardFromWizard(wizardData: OrchardWizardData): Promise<OrchardConfiguration> {
     try {
       const supabase = getSupabaseClient()
+      const irrigationDefaults = wizardData.layout?.irrigationDefaults
+      const orchardPayload = this.cleanDatabasePayload({
+        garden_id: wizardData.basicInfo?.gardenId,
+        name: wizardData.basicInfo?.name || 'New Orchard',
+        description: wizardData.basicInfo?.description,
+        orchard_type: wizardData.basicInfo?.orchardType || 'mixed',
+        established_date: wizardData.basicInfo?.establishedDate,
+        total_area_sqm: wizardData.basicInfo?.totalAreaSqm,
+        row_spacing_m: wizardData.layout?.rowSpacingM,
+        tree_spacing_m: wizardData.layout?.treeSpacingM,
+        training_system: wizardData.layout?.trainingSystem,
+        irrigation_system: wizardData.layout?.irrigationSystem,
+        irrigation_defaults: irrigationDefaults,
+        main_varieties: wizardData.varieties?.mainVarieties || [],
+        rootstock_types: wizardData.varieties?.rootstockTypes || [],
+        organic_certified: wizardData.management?.organicCertified || false,
+        precision_management: wizardData.management?.precisionManagement || false,
+        climate_zone: wizardData.management?.climateZone,
+        soil_type: wizardData.management?.soilType
+      })
 
       // Start transaction
-      const { data: orchard, error: orchardError } = await supabase
+      let { data: orchard, error: orchardError } = await supabase
         .from('orchard_configurations')
-        .insert([{
-          garden_id: wizardData.basicInfo?.gardenId,
-          name: wizardData.basicInfo?.name || 'New Orchard',
-          description: wizardData.basicInfo?.description,
-          orchard_type: wizardData.basicInfo?.orchardType || 'mixed',
-          established_date: wizardData.basicInfo?.establishedDate,
-          total_area_sqm: wizardData.basicInfo?.totalAreaSqm,
-          row_spacing_m: wizardData.layout?.rowSpacingM,
-          tree_spacing_m: wizardData.layout?.treeSpacingM,
-          training_system: wizardData.layout?.trainingSystem,
-          irrigation_system: wizardData.layout?.irrigationSystem,
-          irrigation_defaults: wizardData.layout?.irrigationDefaults,
-          main_varieties: wizardData.varieties?.mainVarieties || [],
-          rootstock_types: wizardData.varieties?.rootstockTypes || [],
-          organic_certified: wizardData.management?.organicCertified || false,
-          precision_management: wizardData.management?.precisionManagement || false,
-          climate_zone: wizardData.management?.climateZone,
-          soil_type: wizardData.management?.soilType
-        }])
+        .insert([orchardPayload])
         .select()
         .single()
 
-      if (orchardError) throw orchardError
+      if (orchardError) {
+        const missingColumn = this.extractMissingColumn(orchardError)
+        const isIrrigationDefaultsSchemaGap =
+          this.isMissingColumnError(orchardError) &&
+          (missingColumn === 'irrigation_defaults' || 'irrigation_defaults' in orchardPayload)
+
+        if (!isIrrigationDefaultsSchemaGap || irrigationDefaults === undefined) {
+          throw orchardError
+        }
+
+        const retryPayload = { ...orchardPayload }
+        delete retryPayload.irrigation_defaults
+
+        const retry = await supabase
+          .from('orchard_configurations')
+          .insert([retryPayload])
+          .select()
+          .single()
+
+        if (retry.error) throw retry.error
+
+        orchard = retry.data
+        orchardError = null
+        this.writeOrchardDefaultsFallback(orchard.id, irrigationDefaults)
+      }
 
       // Create trees if provided
       if (wizardData.trees?.treeData && wizardData.trees.treeData.length > 0) {
@@ -1193,7 +1339,10 @@ class OrchardService {
         await this.bulkCreateTrees(treesToCreate as any)
       }
 
-      return this.mapOrchardConfigurationFromDatabase(orchard)
+      return {
+        ...this.mapOrchardConfigurationWithFallback(orchard),
+        irrigationDefaults: irrigationDefaults || orchard.irrigation_defaults
+      }
     } catch (error) {
       console.error('Error creating orchard from wizard:', error)
       throw error
@@ -1233,7 +1382,7 @@ class OrchardService {
   }
 
   private mapOrchardConfigurationToDatabase(config: Partial<OrchardConfiguration>): any {
-    return {
+    return this.cleanDatabasePayload({
       garden_id: config.gardenId,
       name: config.name,
       description: config.description,
@@ -1253,7 +1402,7 @@ class OrchardService {
       irrigation_defaults: config.irrigationDefaults,
       organic_certified: config.organicCertified,
       precision_management: config.precisionManagement
-    }
+    })
   }
 
   private mapTreeFromDatabase(data: any): OrchardTree {
@@ -1332,10 +1481,7 @@ class OrchardService {
       is_active: tree.isActive
     }
 
-    // Avoid sending undefined fields to Supabase (prevents schema drift 400 errors).
-    return Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined)
-    )
+    return this.cleanDatabasePayload(payload)
   }
 
   // Additional mapping methods would be implemented here for other types
