@@ -18,11 +18,17 @@ export function LunarAdviceWidget({
   const currentMoon = calculateMoonPhase(new Date())
   const nextIdeal = getNextIdealDate(operation, plantCategory, new Date())
 
-  const phaseColor = currentMoon.isWaxing
+  const isFull = currentMoon.phase === 'Full'
+
+  const phaseColor = isFull
+    ? 'from-yellow-400 to-amber-500'
+    : currentMoon.isWaxing
     ? 'from-blue-500 to-cyan-600'
     : 'from-purple-500 to-indigo-600'
 
-  const idealOperations = currentMoon.isWaxing
+  const idealOperations = isFull
+    ? ['Raccolta erbe aromatiche', 'Raccolta per uso immediato', 'Osservazione piante']
+    : currentMoon.isWaxing
     ? ['Semina foglie/frutti', 'Trapianto', 'Innesti']
     : ['Semina radici', 'Potatura', 'Raccolta foglie']
 
@@ -61,7 +67,7 @@ export function LunarAdviceWidget({
             <div className="text-sm opacity-90 mb-1">Fase Lunare Oggi</div>
             <div className="text-xl md:text-2xl font-bold mb-1">{currentMoon.name}</div>
             <div className="text-sm opacity-80">
-              {currentMoon.isWaxing ? 'Luna Crescente' : 'Luna Calante'}
+              {isFull ? 'Luna Piena' : currentMoon.isWaxing ? 'Luna Crescente' : 'Luna Calante'}
               {' • '}
               Giorno {Math.floor(currentMoon.daysInCycle)} del ciclo
             </div>
@@ -115,7 +121,13 @@ export function LunarAdviceWidget({
         {/* Tradizione contadina */}
         <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 leading-relaxed">
           <div className="font-semibold mb-1">💡 Saggezza tradizionale</div>
-          {currentMoon.isWaxing ? (
+          {isFull ? (
+            <p>
+              Durante la Luna Piena la vitalità è al massimo: le piante sono cariche di energia
+              e i sapori più intensi. È il momento ideale per raccogliere erbe aromatiche
+              e frutti destinati all'uso immediato o all'essiccazione.
+            </p>
+          ) : currentMoon.isWaxing ? (
             <p>
               Durante la Luna Crescente, i liquidi risalgono verso la superficie.
               È il momento ideale per seminare e trapiantare piante da foglia e da frutto,

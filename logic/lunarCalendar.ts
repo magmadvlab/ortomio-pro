@@ -22,52 +22,21 @@ export interface MoonPhaseInfo {
   daysInCycle: number; // Giorni nel ciclo (0-29.5)
 }
 
-/**
- * Calcola il Julian Day Number per una data
- */
-const julianDay = (date: Date): number => {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hour = date.getHours() + date.getMinutes() / 60;
-  
-  let a, b;
-  if (month <= 2) {
-    a = year - 1;
-    b = 0;
-  } else {
-    a = year;
-    b = Math.floor(month / 12.6);
-  }
-  
-  const c = Math.floor(365.25 * a);
-  const d = Math.floor(30.6001 * (month + 1));
-  
-  return c + d + day + hour / 24 + 1720994.5;
-};
+// Luna nuova di riferimento verificata: 2000-01-06T18:14:00Z
+const REF_NEW_MOON_MS = new Date('2000-01-06T18:14:00Z').getTime();
+const MS_PER_DAY = 86400000;
 
 /**
  * Calcola la fase lunare per una data specifica
  * Basato su algoritmo di Jean Meeus
  */
 export const calculateMoonPhase = (date: Date): MoonPhaseInfo => {
-  const jd = julianDay(date);
-  
-  // Data di riferimento: Luna Nuova del 6 gennaio 2000 (JD 2451549.5)
-  const knownNewMoonJD = 2451549.5;
-  
   // Ciclo lunare sinodico medio: 29.53058867 giorni
   const synodicMonth = 29.53058867;
-  
-  // Calcola quanti cicli sono passati
-  const daysSinceKnown = jd - knownNewMoonJD;
-  const cyclesSinceKnown = daysSinceKnown / synodicMonth;
-  
-  // Calcola la posizione nel ciclo corrente (0-1)
-  const positionInCycle = cyclesSinceKnown - Math.floor(cyclesSinceKnown);
-  
-  // Converti in giorni (0-29.5)
-  const daysInCycle = positionInCycle * synodicMonth;
+
+  // Giorni trascorsi dalla luna nuova di riferimento (2000-01-06T18:14:00Z)
+  const daysSinceRef = (date.getTime() - REF_NEW_MOON_MS) / MS_PER_DAY;
+  const daysInCycle = ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
   
   // Determina la fase basandosi sui giorni nel ciclo
   let phase: MoonPhase;

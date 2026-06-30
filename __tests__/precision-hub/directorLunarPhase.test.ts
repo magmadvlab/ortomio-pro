@@ -5,8 +5,8 @@ import { getLunarPhase } from '@/services/lunarPhaseService'
 
 // Reference new moon: 2000-01-06T18:14:00Z (pos = 0.0)
 // Cycle: 29.53058867 days
-// Full moon band: pos in [14.77, 16.61)
-// Waxing gibbous band: pos in [9.22, 14.77)
+// Full moon band: pos in [12.91, 16.61)  — symmetric ±1.85d around midpoint 14.76
+// Waxing gibbous band: pos in [9.22, 12.91)
 
 test('reference date 2000-01-06 is new moon', () => {
   const phase = getLunarPhase(new Date('2000-01-06T18:14:00Z'))
@@ -14,7 +14,7 @@ test('reference date 2000-01-06 is new moon', () => {
 })
 
 test('ref + 15.5 days is full_moon', () => {
-  // pos = 15.5 → full_moon band [14.77, 16.61)
+  // pos = 15.5 → full_moon band [12.91, 16.61)
   const refMs = new Date('2000-01-06T18:14:00Z').getTime()
   const fullMoon = new Date(refMs + 15.5 * 86400000)
   const phase = getLunarPhase(fullMoon)
@@ -22,7 +22,7 @@ test('ref + 15.5 days is full_moon', () => {
 })
 
 test('ref + 12 days is waxing_gibbous', () => {
-  // pos = 12.0 → waxing_gibbous band [9.22, 14.77)
+  // pos = 12.0 → waxing_gibbous band [9.22, 12.91)
   const refMs = new Date('2000-01-06T18:14:00Z').getTime()
   const waxGibbous = new Date(refMs + 12 * 86400000)
   const phase = getLunarPhase(waxGibbous)
