@@ -324,7 +324,9 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                         {plant.plantingContext.lunar.phaseEmoji || '🌙'} {plant.plantingContext.lunar.phase || 'N/D'}
                       </div>
                       <div className="text-green-100 text-xs mt-1">
-                        {plant.plantingContext.lunar.isWaxing ? '↑ Crescente' : '↓ Calante'}
+                        {plant.plantingContext.lunar.phase === 'Full' ? '🌕 Luna Piena' :
+                         plant.plantingContext.lunar.phase === 'New' ? '🌑 Luna Nuova' :
+                         plant.plantingContext.lunar.isWaxing ? '↑ Crescente' : '↓ Calante'}
                       </div>
                       {plant.plantingContext.lunar.illumination && (
                         <div className="text-green-100 text-xs">

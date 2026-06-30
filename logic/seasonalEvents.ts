@@ -13,29 +13,6 @@ export interface SeasonalEvent {
   proverbio?: string;
 }
 
-/**
- * Calcola il Julian Day Number per una data
- */
-const julianDay = (date: Date): number => {
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hour = date.getHours() + date.getMinutes() / 60;
-  
-  let a, b;
-  if (month <= 2) {
-    a = year - 1;
-    b = 0;
-  } else {
-    a = year;
-    b = Math.floor(month / 12.6);
-  }
-  
-  const c = Math.floor(365.25 * a);
-  const d = Math.floor(30.6001 * (month + 1));
-  
-  return c + d + day + hour / 24 + 1720994.5;
-};
 
 /**
  * Calcola l'equinozio di primavera (marzo) per un anno
