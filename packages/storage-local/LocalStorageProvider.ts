@@ -2005,6 +2005,10 @@ export class LocalStorageProvider implements IStorageProvider {
 
   // Irrigation Systems
   async getIrrigationSystems(gardenId: string): Promise<IrrigationSystem[]> {
+    if (typeof localStorage === 'undefined') {
+      return [];
+    }
+
     const key = this.STORAGE_KEYS.IRRIGATION_SYSTEMS;
     const systems = JSON.parse(localStorage.getItem(key) || '[]') as IrrigationSystem[];
     return systems.filter(s => s.gardenId === gardenId);

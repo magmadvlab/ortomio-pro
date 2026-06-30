@@ -31,15 +31,17 @@ import {
   Drone,
   Link2,
   Lightbulb,
+  MapPinned,
 } from 'lucide-react'
 import { useTier } from '@/packages/core/hooks/useTier'
 import { UI_LAYERS } from '@/components/shared/uiLayers'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-  { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
-  { icon: Bot, label: '🤖 Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
-  { icon: Target, label: '📅 Planner Classico', path: '/app/planner-classic', tier: 'all' },
+  { icon: MapPinned, label: 'Centro operativo', path: '/app/farm', tier: 'PRO', badge: 'PRO' },
+  { icon: Sprout, label: 'Appezzamenti', path: '/app/garden', tier: 'all' },
+  { icon: Bot, label: 'Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
+  { icon: Target, label: 'Piano colturale', path: '/app/planner-classic', tier: 'all' },
   { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
   { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
   { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
@@ -82,7 +84,7 @@ export function ProfessionalSidebar() {
     {
       title: 'PRINCIPALE',
       items: allMenuItems.filter(item =>
-        ['Dashboard', 'Il Mio Orto', '🤖 Planner AI', '📅 Planner Classico', 'Salute', 'Consigli AI'].includes(item.label)
+        ['Dashboard', 'Centro operativo', 'Appezzamenti', 'Planner AI', 'Piano colturale', 'Salute', 'Consigli AI'].includes(item.label)
       ),
       tier: 'all',
       collapsible: false
@@ -199,7 +201,7 @@ export function ProfessionalSidebar() {
             <img src="/logo.png" alt="OrtoMio" className="w-10 h-10 object-contain" />
             <div>
               <h2 className="text-base sm:text-lg font-bold text-gray-900">OrtoMio</h2>
-              <p className="text-xs text-gray-500">Il tuo assistente smart</p>
+              <p className="text-xs text-gray-500">Gestione agricola</p>
             </div>
           </div>
           {/* Close button - solo mobile */}

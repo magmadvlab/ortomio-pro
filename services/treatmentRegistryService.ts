@@ -5,6 +5,28 @@
 
 import { PhytoProduct } from '../data/phytoproducts';
 
+const isBrowserStorageAvailable = () =>
+  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
+const readStoredTreatments = (gardenId: string): TreatmentRecord[] => {
+  if (!isBrowserStorageAvailable()) return [];
+
+  const stored = window.localStorage.getItem(`treatment_registry_${gardenId}`);
+  if (!stored) return [];
+
+  return JSON.parse(stored).map((record: any) => ({
+    ...record,
+    treatmentDate: new Date(record.treatmentDate),
+    safetyIntervalEndDate: new Date(record.safetyIntervalEndDate),
+    createdAt: new Date(record.createdAt),
+  }));
+};
+
+const writeStoredTreatments = (gardenId: string, records: TreatmentRecord[]) => {
+  if (!isBrowserStorageAvailable()) return;
+  window.localStorage.setItem(`treatment_registry_${gardenId}`, JSON.stringify(records));
+};
+
 export interface TreatmentRecord {
   id: string;
   gardenId: string;
@@ -44,9 +66,7 @@ export async function registerTreatment(
   }
 ): Promise<TreatmentRecord> {
   // TODO: Implementare salvataggio in Supabase
-  const storageKey = `treatment_registry_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  const records: TreatmentRecord[] = stored ? JSON.parse(stored) : [];
+  const records = readStoredTreatments(gardenId);
 
   const safetyIntervalEndDate = new Date(treatmentData.treatmentDate);
   safetyIntervalEndDate.setDate(safetyIntervalEndDate.getDate() + treatmentData.product.safetyInterval);
@@ -69,7 +89,7 @@ export async function registerTreatment(
   };
 
   records.push(newRecord);
-  localStorage.setItem(storageKey, JSON.stringify(records));
+  writeStoredTreatments(gardenId, records);
 
   return newRecord;
 }
@@ -82,16 +102,7 @@ export async function getTreatmentHistory(
   plantName?: string,
   dateRange?: { start: Date; end: Date }
 ): Promise<TreatmentRecord[]> {
-  const storageKey = `treatment_registry_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  if (!stored) return [];
-
-  let records: TreatmentRecord[] = JSON.parse(stored).map((r: any) => ({
-    ...r,
-    treatmentDate: new Date(r.treatmentDate),
-    safetyIntervalEndDate: new Date(r.safetyIntervalEndDate),
-    createdAt: new Date(r.createdAt),
-  }));
+  let records = readStoredTreatments(gardenId);
 
   if (plantName) {
     records = records.filter((r) => r.plantName.toLowerCase().includes(plantName.toLowerCase()));
@@ -159,4 +170,3 @@ export async function exportRegistry(
   // PDF: TODO implementare generazione PDF
   return JSON.stringify(records, null, 2);
 }
-

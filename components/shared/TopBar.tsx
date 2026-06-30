@@ -14,7 +14,7 @@ export default function TopBar() {
     >
       {/* Logo/Brand - Hidden on mobile (hamburger menu shows it) */}
       <div className="hidden lg:flex items-center gap-4">
-        <h1 className="text-xl font-bold text-green-600">OrtoMio PRO</h1>
+        <h1 className="text-xl font-bold text-emerald-700">OrtoMio Agricoltura</h1>
       </div>
       
       {/* Mobile: Spacer to push content right */}

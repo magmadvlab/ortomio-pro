@@ -311,7 +311,11 @@ export class NDVISatelliteService {
 
   private static async fetchSentinelHubData(request: SatelliteImageRequest): Promise<NDVIReading | null> {
     try {
-      const response = await fetch('/api/ndvi/sentinel', {
+      if (typeof window === 'undefined') {
+        return null;
+      }
+
+      const response = await fetch(new URL('/api/ndvi/sentinel', window.location.origin), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

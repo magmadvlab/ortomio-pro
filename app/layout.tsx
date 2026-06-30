@@ -2,8 +2,8 @@ import '../index.css'
 import type { Metadata, Viewport } from 'next'
 
 export const metadata: Metadata = {
-  title: 'OrtoMio AI',
-  description: 'Il tuo assistente intelligente per l\'orto',
+  title: 'OrtoMio Agricoltura',
+  description: 'Centro operativo per gestione agricola, appezzamenti e coltivazioni',
   manifest: '/manifest.json',
   icons: {
     icon: [

@@ -9,6 +9,7 @@ import {
   TreePine,
   Bot,
   Settings,
+  MapPinned,
   type LucideIcon,
 } from 'lucide-react'
 import { UI_LAYERS } from '@/components/shared/uiLayers'
@@ -24,9 +25,10 @@ export function MobileBottomNav() {
 
   const navItems: NavItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/app' },
-    { icon: Sprout, label: 'Orto', path: '/app/garden' },
+    { icon: MapPinned, label: 'Campi', path: '/app/farm' },
+    { icon: Sprout, label: 'Aree', path: '/app/garden' },
     { icon: TreePine, label: 'Frutteto', path: '/app/orchard' },
-    { icon: Bot, label: 'Planner', path: '/app/planner' },
+    { icon: Bot, label: 'Piano', path: '/app/planner' },
     { icon: Settings, label: 'Altro', path: '/app/settings' },
   ]
 

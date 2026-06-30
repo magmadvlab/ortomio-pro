@@ -290,9 +290,9 @@ export class FieldRowPredictiveService {
         operations.push(...(treatments || []).map((t: any) => ({ ...t, type: 'treatment' })))
       }
 
-      // Irrigazioni (se disponibili)
-      if (this.storageProvider.getIrrigationLogs) {
-        const irrigations = await this.storageProvider.getIrrigationLogs(gardenId)
+      // Irrigazioni
+      if (this.storageProvider.getWateringLogs) {
+        const irrigations = await this.storageProvider.getWateringLogs(undefined, gardenId)
         operations.push(...(irrigations || []).map((i: any) => ({ ...i, type: 'irrigation' })))
       }
     } catch (error) {
