@@ -30,7 +30,8 @@ import {
   X,
   AlertCircle,
   Rows3,
-  Droplets
+  Droplets,
+  Lock
 } from 'lucide-react'
 
 type ViewMode = 'dashboard' | 'trees' | 'rows' | 'individual-plants' | 'pruning' | 'harvest' | 'analytics'
@@ -333,6 +334,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null)
   const [irrigationMessage, setIrrigationMessage] = useState<string | null>(null)
   const [selectedRowForIrrigation, setSelectedRowForIrrigation] = useState<FieldRow | null>(null)
+  const [irrigationReplacementMode, setIrrigationReplacementMode] = useState(false)
   const [irrigationSaving, setIrrigationSaving] = useState(false)
   const [orchardDefaultsSaving, setOrchardDefaultsSaving] = useState(false)
   const [applyDefaultsLoading, setApplyDefaultsLoading] = useState(false)
@@ -612,6 +614,9 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
   const realRowsWithoutIrrigation = sortedRows.filter(({ row, isRealFieldRow }) =>
     Boolean(isRealFieldRow && row && !row.irrigationLine)
   )
+  const realRowsWithIrrigation = sortedRows.filter(({ row, isRealFieldRow }) =>
+    Boolean(isRealFieldRow && row?.irrigationLine)
+  )
 
   const rowsNeedingAlignment = sortedRows.filter(({ row, trees: rowTrees }) =>
     !row || rowTrees.some((tree) => !tree.fieldRowId)
@@ -653,6 +658,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
   const handleOpenIrrigationModal = (row: FieldRow) => {
     setIrrigationMessage(null)
     setSelectedRowForIrrigation(row)
+    setIrrigationReplacementMode(false)
     setIrrigationForm({
       lineType: row.irrigationLine?.lineType || orchardRowIrrigationDefaults?.lineType || 'Dripline',
       pipeDiameterMm: String(row.irrigationLine?.pipeDiameterMm || orchardRowIrrigationDefaults?.pipeDiameterMm || 16),
@@ -723,11 +729,17 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
       return
     }
 
+    const existingIrrigationLine = selectedRowForIrrigation.irrigationLine
+    const shouldReplaceIrrigationLine = Boolean(existingIrrigationLine && irrigationReplacementMode)
+    const fixedLineType = existingIrrigationLine && !shouldReplaceIrrigationLine
+      ? existingIrrigationLine.lineType
+      : irrigationForm.lineType
+
     try {
       setIrrigationSaving(true)
       await storageProvider.updateFieldRow(selectedRowForIrrigation.id, {
         irrigationLine: {
-          lineType: irrigationForm.lineType,
+          lineType: fixedLineType,
           pipeDiameterMm: parseFloat(irrigationForm.pipeDiameterMm) || undefined,
           emitterSpacingCm: parseFloat(irrigationForm.emitterSpacingCm) || undefined,
           emitterFlowRateLph: parseFloat(irrigationForm.emitterFlowRateLph) || undefined,
@@ -735,7 +747,12 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
       })
       await loadTrees()
       setSelectedRowForIrrigation(null)
-      setIrrigationMessage(`Impianto irriguo aggiornato per ${selectedRowForIrrigation.name}.`)
+      setIrrigationReplacementMode(false)
+      setIrrigationMessage(
+        shouldReplaceIrrigationLine
+          ? `Nuovo impianto irriguo creato per ${selectedRowForIrrigation.name}.`
+          : `Parametri dell'impianto irriguo aggiornati per ${selectedRowForIrrigation.name}.`
+      )
     } catch (error) {
       console.error('Error updating irrigation config:', error)
       alert('Errore durante il salvataggio della configurazione irrigua')
@@ -1005,9 +1022,9 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
       <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-semibold text-cyan-900">Default irrigui del frutteto</h3>
+            <h3 className="font-semibold text-cyan-900">Profilo standard nuovi impianti</h3>
             <p className="text-sm text-cyan-800 mt-1">
-              Vengono usati per precompilare nuovi filari, riallineamento legacy e configurazione rapida delle file.
+              Viene usato solo per nuovi filari, riallineamento legacy e filari ancora senza impianto. Non modifica i filari gia configurati.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1017,7 +1034,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
               disabled={applyDefaultsLoading || !orchardRowIrrigationDefaults || realRowsWithoutIrrigation.length === 0}
               className="shrink-0 px-4 py-2 bg-white text-cyan-700 border border-cyan-300 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition-colors"
             >
-              {applyDefaultsLoading ? 'Applicazione...' : `Applica a ${realRowsWithoutIrrigation.length} Filari`}
+              {applyDefaultsLoading ? 'Assegnazione...' : `Assegna a ${realRowsWithoutIrrigation.length} senza impianto`}
             </button>
             <button
               type="button"
@@ -1025,7 +1042,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
               disabled={orchardDefaultsSaving}
               className="shrink-0 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 transition-colors"
             >
-              {orchardDefaultsSaving ? 'Salvataggio...' : 'Salva Default'}
+              {orchardDefaultsSaving ? 'Salvataggio...' : 'Salva Profilo'}
             </button>
           </div>
         </div>
@@ -1085,14 +1102,20 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
         </div>
 
         <div className="text-xs text-cyan-900 bg-white/80 border border-cyan-200 rounded-lg px-3 py-2">
-          Profilo attivo: <strong>{getIrrigationTypeLabel(orchardDefaultsForm.lineType)}</strong>
+          Profilo standard: <strong>{getIrrigationTypeLabel(orchardDefaultsForm.lineType)}</strong>
           {orchardDefaultsForm.emitterSpacingCm ? ` • ${orchardDefaultsForm.emitterSpacingCm} cm` : ''}
           {orchardDefaultsForm.emitterFlowRateLph ? ` • ${orchardDefaultsForm.emitterFlowRateLph} L/h` : ''}
           {orchardDefaultsForm.pipeDiameterMm ? ` • ${orchardDefaultsForm.pipeDiameterMm} mm` : ''}
         </div>
 
-        <div className="text-xs text-cyan-900 bg-white/80 border border-cyan-200 rounded-lg px-3 py-2">
-          Filari reali senza irrigazione configurata: <strong>{realRowsWithoutIrrigation.length}</strong>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-cyan-900">
+          <div className="bg-white/80 border border-cyan-200 rounded-lg px-3 py-2">
+            Filari reali senza impianto: <strong>{realRowsWithoutIrrigation.length}</strong>
+          </div>
+          <div className="bg-white/80 border border-cyan-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <Lock size={13} className="text-cyan-700" />
+            <span>Filari con impianto fisso: <strong>{realRowsWithIrrigation.length}</strong></span>
+          </div>
         </div>
       </div>
 
@@ -1312,7 +1335,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
                       onClick={() => handleOpenIrrigationModal(row!)}
                       className="px-3 py-1.5 text-xs font-medium rounded-full border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 transition-colors"
                     >
-                      {row?.irrigationLine ? 'Modifica' : 'Configura'}
+                      {row?.irrigationLine ? 'Parametri' : 'Crea impianto'}
                     </button>
                   )}
                 </div>
@@ -1459,33 +1482,73 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
       {selectedRowForIrrigation && (
         <AppModal
           isOpen
-          onClose={() => setSelectedRowForIrrigation(null)}
+          onClose={() => {
+            setSelectedRowForIrrigation(null)
+            setIrrigationReplacementMode(false)
+          }}
           fullScreenOnMobile
           panelClassName="bg-white shadow-2xl w-full max-w-2xl sm:rounded-2xl"
         >
           <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-4 flex items-center justify-between sm:rounded-t-2xl">
             <div>
-              <h2 className="text-xl font-bold">Configura irrigazione filare</h2>
+              <h2 className="text-xl font-bold">
+                {selectedRowForIrrigation.irrigationLine ? 'Impianto irriguo del filare' : 'Crea impianto irriguo'}
+              </h2>
               <p className="text-blue-100 text-sm">{selectedRowForIrrigation.name}</p>
             </div>
-            <button onClick={() => setSelectedRowForIrrigation(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+            <button
+              onClick={() => {
+                setSelectedRowForIrrigation(null)
+                setIrrigationReplacementMode(false)
+              }}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
               <X size={20} />
             </button>
           </div>
 
           <div className="p-6 space-y-5">
+            {selectedRowForIrrigation.irrigationLine && !irrigationReplacementMode && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                <div className="flex items-start gap-3">
+                  <Lock className="mt-0.5 shrink-0 text-blue-700" size={18} />
+                  <div>
+                    <p className="font-semibold">
+                      Tipo impianto fisso: {getIrrigationTypeLabel(selectedRowForIrrigation.irrigationLine.lineType)}
+                    </p>
+                    <p className="mt-1">
+                      Puoi aggiornare diametro, passo e portata dell'impianto esistente. Per cambiare tipo devi creare un nuovo impianto per questo filare.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedRowForIrrigation.irrigationLine && irrigationReplacementMode && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                Stai creando un nuovo impianto irriguo per il filare. Il tipo precedente verra sostituito solo al salvataggio.
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo impianto</label>
-                <select
-                  value={irrigationForm.lineType}
-                  onChange={(e) => setIrrigationForm((prev) => ({ ...prev, lineType: e.target.value as IrrigationLineType }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Dripline">Goccia a goccia</option>
-                  <option value="PipeWithDrippers">Tubo con gocciolatori</option>
-                  <option value="MicroSprinkler">Micro-sprinkler</option>
-                </select>
+                {selectedRowForIrrigation.irrigationLine && !irrigationReplacementMode ? (
+                  <div className="flex min-h-[42px] items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-900">
+                    <Lock size={15} className="text-gray-500" />
+                    <span>{getIrrigationTypeLabel(selectedRowForIrrigation.irrigationLine.lineType)}</span>
+                  </div>
+                ) : (
+                  <select
+                    value={irrigationForm.lineType}
+                    onChange={(e) => setIrrigationForm((prev) => ({ ...prev, lineType: e.target.value as IrrigationLineType }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Dripline">Goccia a goccia</option>
+                    <option value="PipeWithDrippers">Tubo con gocciolatori</option>
+                    <option value="MicroSprinkler">Micro-sprinkler</option>
+                  </select>
+                )}
               </div>
 
               <div>
@@ -1533,13 +1596,41 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
-              Il salvataggio aggiorna direttamente il `field_row` collegato a questo filare, quindi la card si aggiornera nella vista senza uscire dalla pagina.
+              Il salvataggio aggiorna direttamente il `field_row` collegato a questo filare. I risultati irrigui e le analisi successive useranno questa configurazione stabile.
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              {selectedRowForIrrigation.irrigationLine ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (irrigationReplacementMode) {
+                      setIrrigationReplacementMode(false)
+                      setIrrigationForm((prev) => ({
+                        ...prev,
+                        lineType: selectedRowForIrrigation.irrigationLine!.lineType
+                      }))
+                      return
+                    }
+
+                    setIrrigationReplacementMode(true)
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+                >
+                  <Droplets size={16} />
+                  {irrigationReplacementMode ? 'Mantieni impianto esistente' : 'Crea nuovo impianto'}
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedRowForIrrigation(null)}
+                onClick={() => {
+                  setSelectedRowForIrrigation(null)
+                  setIrrigationReplacementMode(false)
+                }}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Annulla
@@ -1550,8 +1641,13 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
                 disabled={irrigationSaving}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                {irrigationSaving ? 'Salvataggio...' : 'Salva configurazione'}
+                {irrigationSaving
+                  ? 'Salvataggio...'
+                  : irrigationReplacementMode
+                    ? 'Salva nuovo impianto'
+                    : 'Salva parametri'}
               </button>
+              </div>
             </div>
           </div>
         </AppModal>
