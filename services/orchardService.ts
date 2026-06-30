@@ -1233,7 +1233,7 @@ class OrchardService {
   }
 
   private mapOrchardConfigurationToDatabase(config: Partial<OrchardConfiguration>): any {
-    return {
+    const mapped: Record<string, unknown> = {
       garden_id: config.gardenId,
       name: config.name,
       description: config.description,
@@ -1254,6 +1254,8 @@ class OrchardService {
       organic_certified: config.organicCertified,
       precision_management: config.precisionManagement
     }
+    // Remove undefined fields to avoid 400 errors on columns not yet migrated
+    return Object.fromEntries(Object.entries(mapped).filter(([, v]) => v !== undefined))
   }
 
   private mapTreeFromDatabase(data: any): OrchardTree {
