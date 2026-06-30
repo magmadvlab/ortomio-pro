@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Calendar, Sun, Moon, Cloud, Droplets, Thermometer, Wind, Eye } from 'lucide-react'
+import { calculateMoonPhase, getMoonPhaseEmoji } from '@/logic/lunarCalendar'
 
 interface AlmanaccoData {
   date: string
@@ -45,80 +46,6 @@ export const AlmanaccoIntegration: React.FC<AlmanaccoIntegrationProps> = ({
   useEffect(() => {
     loadAlmanaccoData(selectedDate)
   }, [selectedDate])
-
-  const calculateMoonPhase = (date: Date) => {
-    const julianDay = (date: Date): number => {
-      const year = date.getFullYear()
-      const month = date.getMonth() + 1
-      const day = date.getDate()
-      const hour = date.getHours() + date.getMinutes() / 60
-      
-      let a, b
-      if (month <= 2) {
-        a = year - 1
-        b = 0
-      } else {
-        a = year
-        b = Math.floor(month / 12.6)
-      }
-      
-      const c = Math.floor(365.25 * a)
-      const d = Math.floor(30.6001 * (month + 1))
-      
-      return c + d + day + hour / 24 + 1720994.5
-    }
-
-    const jd = julianDay(date)
-    const knownNewMoonJD = 2451549.5
-    const synodicMonth = 29.53058867
-    const daysSinceKnown = jd - knownNewMoonJD
-    const cyclesSinceKnown = daysSinceKnown / synodicMonth
-    const positionInCycle = cyclesSinceKnown - Math.floor(cyclesSinceKnown)
-    const daysInCycle = positionInCycle * synodicMonth
-    
-    let phase: AlmanaccoData['moonPhase']['phase']
-    let name: string
-    let emoji: string
-    
-    if (daysInCycle < 1.84) {
-      phase = 'New'
-      name = 'Luna Nuova'
-      emoji = '🌑'
-    } else if (daysInCycle < 5.53) {
-      phase = 'WaxingCrescent'
-      name = 'Crescente'
-      emoji = '🌒'
-    } else if (daysInCycle < 9.23) {
-      phase = 'FirstQuarter'
-      name = 'Primo Quarto'
-      emoji = '🌓'
-    } else if (daysInCycle < 12.93) {
-      phase = 'WaxingGibbous'
-      name = 'Gibbosa Crescente'
-      emoji = '🌔'
-    } else if (daysInCycle < 16.61) {
-      phase = 'Full'
-      name = 'Luna Piena'
-      emoji = '🌕'
-    } else if (daysInCycle < 20.30) {
-      phase = 'WaningGibbous'
-      name = 'Gibbosa Calante'
-      emoji = '🌖'
-    } else if (daysInCycle < 24.00) {
-      phase = 'LastQuarter'
-      name = 'Ultimo Quarto'
-      emoji = '🌗'
-    } else {
-      phase = 'WaningCrescent'
-      name = 'Calante'
-      emoji = '🌘'
-    }
-    
-    const isWaxing = phase === 'WaxingCrescent' || phase === 'FirstQuarter' || phase === 'WaxingGibbous'
-    const isWaning = phase === 'WaningGibbous' || phase === 'LastQuarter' || phase === 'WaningCrescent'
-    
-    return { phase, name, isWaxing, isWaning, emoji }
-  }
 
   const getLunarAdvice = (moonPhase: AlmanaccoData['moonPhase']) => {
     if (moonPhase.isWaxing) {
@@ -198,7 +125,8 @@ export const AlmanaccoIntegration: React.FC<AlmanaccoIntegrationProps> = ({
       setLoading(true)
       
       // Calculate moon phase
-      const moonPhase = calculateMoonPhase(date)
+      const moonInfo = calculateMoonPhase(date)
+      const moonPhase = { ...moonInfo, emoji: getMoonPhaseEmoji(moonInfo.phase) }
       
       // Calculate sunrise/sunset (simplified)
       const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24))
