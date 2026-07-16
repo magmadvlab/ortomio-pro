@@ -17,9 +17,15 @@ Le fasi P2-P9 restano ordinate nel piano canonico e non vengono duplicate qui.
 - [x] Agronomic Context Refinement: integrato in `main` con merge PR `8e88136`; il vecchio task di apertura PR e superato.
 - [-R] Service Logic Correctness come piano autonomo: implementato in parte (`93041c5`, `f88afb4`, `7d98e7f`, `20bfc57`) e assorbito nelle fasi P3/P5 per i residui verificati.
 
+## Governance documentale obbligatoria
+
+- [ ] P9/PR-16 — classificare e ripulire 540 Markdown e 85 TXT storici tracciati nella root;
+- [ ] mantenere una root su allowlist e un archivio storico minimo indicizzato;
+- [ ] eliminare piani assorbiti, report di sessione, messaggi commit e duplicati dopo la chiusura P1-P8;
+- [ ] aggiungere il gate `docs:hygiene`.
+
 ## Fuori perimetro della release P0-P9
 
-- cleanup massivo dei file Markdown;
 - decomposizione generalizzata dei componenti UI;
 - consolidamento indistinto di tutti i servizi AI.
 

@@ -672,6 +672,33 @@ La fonte servita dall'app e `docs/manual/*`.
 - [ ] `git diff --check`;
 - [ ] approvazione finale prodotto/tecnica.
 
+### 15.7 Bonifica documentale e piani storici
+
+La bonifica avviene dopo l'allineamento di manuale e `MASTERDOC.md`, quando la nuova fonte canonica e verificata. Non deve essere anticipata durante P1-P8: piani e report storici possono ancora contenere evidenze utili per ricostruire migrazioni, decisioni o regressioni.
+
+Baseline P0 del 16 luglio 2026:
+
+- 540 file Markdown tracciati nella root, oltre ai file canonici introdotti localmente;
+- 85 file `.txt` tracciati nella root, inclusi messaggi commit e frammenti SQL/deploy storici;
+- 64 Markdown tracciati sotto `docs/`;
+- piani di aprile/giugno e numerosi report `*_COMPLETE`, `SUCCESS`, `SESSION_SUMMARY`, guide duplicate e riepiloghi non piu canonici.
+
+Attivita obbligatorie:
+
+- [ ] generare un manifest completo di Markdown, TXT, piani, report, guide e riepiloghi;
+- [ ] classificare ogni file come `keep`, `archive` o `delete`, con motivazione e sostituto canonico;
+- [ ] definire una allowlist minima per la root (`README.md`, `MASTERDOC.md`, `TASKS.md` e pochi documenti esplicitamente giustificati);
+- [ ] mantenere `docs/manual`, security baseline, evidenze di release e piano corrente come fonti operative;
+- [ ] archiviare soltanto decisioni storiche ancora necessarie, sotto `docs/archive/` con un indice e stato `historical`;
+- [ ] eliminare report di sessione, file `COMMIT_MESSAGE*`, `PUSH_SUCCESS*`, duplicati `*_COMPLETE`, istruzioni deploy superate e piani integralmente assorbiti;
+- [ ] rimuovere o archiviare i piani aprile/giugno dopo aver verificato che ogni residuo sia chiuso, rimosso o trasferito nel backlog canonico;
+- [ ] verificare che nessun file candidato sia letto dall'app, dagli script, dalla build, dalla pagina Help o da workflow CI;
+- [ ] correggere link e riferimenti prima delle eliminazioni;
+- [ ] non spostare backup SQL o credenziali nell'archivio documentale: devono restare esclusi dal repository;
+- [ ] aggiungere un controllo `docs:hygiene` che fallisca su nuovi file fuori allowlist, copie manuale divergenti e piani senza stato;
+- [ ] produrre un report finale con file mantenuti, archiviati ed eliminati e relativi commit;
+- [ ] eseguire la bonifica in una PR separata dalle modifiche applicative e dall'aggiornamento contenuti P9.
+
 ### Criterio di uscita P9
 
 - il manuale descrive soltanto il comportamento rilasciato;
@@ -679,6 +706,10 @@ La fonte servita dall'app e `docs/manual/*`.
 - manuale sorgente e copia pubblica coincidono;
 - pagina Help non contiene link morti;
 - nessuna funzione simulata e presentata come reale;
+- la root contiene soltanto i documenti ammessi dall'allowlist;
+- nessun piano storico e presentato come coda attiva o fonte canonica;
+- report di sessione, messaggi commit e documenti duplicati non restano dispersi nel repository;
+- il controllo `docs:hygiene` e verde;
 - questo piano contiene evidenze di chiusura per ogni fase.
 
 ## 16. Ordine delle pull request
@@ -697,7 +728,8 @@ La fonte servita dall'app e `docs/manual/*`.
 12. `PR-12` — isolamento drone/blockchain demo;
 13. `PR-13` — certificazioni, export e Admin;
 14. `PR-14` — rollout/observability hardening;
-15. `PR-15` — manuale, Help, README e `MASTERDOC.md` finali.
+15. `PR-15` — manuale, Help, README e `MASTERDOC.md` finali;
+16. `PR-16` — bonifica documentale, archivio storico minimo e gate `docs:hygiene`.
 
 ## 17. Gate obbligatorio per ogni PR
 
@@ -743,6 +775,7 @@ Il piano e completato soltanto quando:
 9. pagina Help non contiene link morti;
 10. `MASTERDOC.md` e aggiornato alla release completata;
 11. limiti residui sono espliciti e trasformati in backlog;
-12. il registro evidenze e completo.
+12. il registro evidenze e completo;
+13. documenti e piani superati sono archiviati o eliminati e la root rispetta l'allowlist.
 
 La chiusura tecnica senza P9 non e completamento: e soltanto implementazione non ancora documentata.
