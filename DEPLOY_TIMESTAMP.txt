@@ -1,3 +1,0 @@
-Deploy timestamp: 2026-01-09 18:15:00
-Last update: Updated user manual with row traceability and multi-garden management
-Status: Ready for deployment
