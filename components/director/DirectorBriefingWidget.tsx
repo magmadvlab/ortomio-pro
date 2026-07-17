@@ -269,6 +269,12 @@ export default function DirectorBriefingWidget({
                       <ul className="mt-2 pl-5 list-disc space-y-1 text-xs text-red-700">
                         {alert.steps.map((step) => <li key={step}>{step}</li>)}
                       </ul>
+                      {alert.evidence.length > 0 && (
+                        <p className="mt-2 text-xs text-red-700"><strong>Segnali:</strong> {alert.evidence.join(' · ')}</p>
+                      )}
+                      {alert.safetyNotice && (
+                        <p className="mt-1 text-xs font-medium text-red-800">{alert.safetyNotice}</p>
+                      )}
                     </div>
                   ))}
                 </div>

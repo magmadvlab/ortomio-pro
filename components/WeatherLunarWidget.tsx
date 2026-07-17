@@ -562,6 +562,16 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
                       <li key={step}>{step}</li>
                     ))}
                   </ol>
+                  {alert.evidence.length > 0 && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      <strong>Perché:</strong> {alert.evidence.join(' · ')}
+                    </p>
+                  )}
+                  {alert.safetyNotice && (
+                    <p className="mt-2 text-xs font-medium text-red-800">
+                      {alert.safetyNotice}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
