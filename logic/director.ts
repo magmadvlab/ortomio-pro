@@ -100,6 +100,7 @@ import { suggestTillageWork, calculateTemperaTiming } from './tillageEngine';
 import { getSoilState } from '../services/soilStateService';
 import { suggestPhytoProduct, checkTreatmentTiming } from './phytoEngine';
 import { getActiveSafetyIntervals } from '../services/treatmentRegistryService';
+import { assessPlantingWeatherWindow } from './plantingWeatherDecisionEngine'
 
 const normalizeWeatherForecastEntry = (entry: any): WeatherForecast => ({
   date:
@@ -127,6 +128,11 @@ const normalizeWeatherForecastEntry = (entry: any): WeatherForecast => ({
   wind_speed: Number(entry?.wind_speed ?? entry?.windSpeed ?? entry?.wind ?? 0),
   humidity: Number(entry?.humidity ?? 0),
   snowfall: entry?.snowfall !== undefined ? Number(entry.snowfall) : undefined,
+  max_hourly_precipitation: Number(entry?.max_hourly_precipitation ?? 0),
+  max_hourly_showers: Number(entry?.max_hourly_showers ?? 0),
+  wind_gusts: Number(entry?.wind_gusts ?? entry?.wind_speed ?? entry?.windSpeed ?? 0),
+  cape_max: Number(entry?.cape_max ?? 0),
+  hourly_weather_codes: Array.isArray(entry?.hourly_weather_codes) ? entry.hourly_weather_codes : [],
   snowForecastMm:
     entry?.snowForecastMm !== undefined
       ? Number(entry.snowForecastMm)
@@ -577,6 +583,47 @@ export const getDailyGardenPlan = async (
     .slice(0, 2)
     .reduce((sum, f) => sum + (f.rainForecastMm || 0), 0);
   const isSoilWorkRiskyNow = next48hRainMm >= 8;
+
+  // Rivaluta ogni giorno le semine e i trapianti programmati quando entrano
+  // nell'orizzonte meteo utile. La data non e' considerata definitiva finche'
+  // anche i due giorni successivi non risultano compatibili con l'attecchimento.
+  if (forecast7Days.length > 0) {
+    const scheduledPlantings = tasks.filter((task) =>
+      task.gardenId === garden.id &&
+      !task.completed &&
+      (task.taskType === 'Sowing' || task.taskType === 'Transplant') &&
+      (task.schedulingType === 'Scheduled' || !!task.scheduledDate) &&
+      !!(task.scheduledDate || task.date)
+    )
+
+    for (const task of scheduledPlantings) {
+      const scheduledDate = String(task.scheduledDate || task.date).slice(0, 10)
+      const master = getMasterSheetSync(task.plantName)
+      const operation = task.taskType === 'Transplant' ? 'transplant' : 'direct_sowing'
+      const assessment = assessPlantingWeatherWindow({
+        operation,
+        requestedDate: scheduledDate,
+        forecast: forecast7Days,
+        cropMinTemperature: operation === 'transplant'
+          ? master?.transplanting?.minTemp
+          : master?.germination?.minTemp,
+        cropMaxTemperature: master?.germination?.maxTemp,
+      })
+
+      if (assessment.status === 'POSTPONE') {
+        lifecycleTasks.push({
+          taskId: `weather-reschedule-${task.id}-${scheduledDate}`,
+          plantName: task.plantName,
+          phase: task.taskType === 'Transplant' ? 'Transplanting' : 'Sowing',
+          message: `⚠️ ${task.taskType === 'Transplant' ? 'Trapianto' : 'Semina'} del ${new Date(`${scheduledDate}T12:00:00`).toLocaleDateString('it-IT')} da rimandare. ${assessment.headline}. ${assessment.reasons.join(' ')}`,
+          priority: 'Critical',
+          action: assessment.recommendedDate
+            ? `Sposta l’evento al ${new Date(`${assessment.recommendedDate}T12:00:00`).toLocaleDateString('it-IT')} e ricontrolla il meteo il giorno precedente.`
+            : 'Non mettere in campo: mantieni protette le piantine o conserva i semi e attendi una nuova finestra meteo.',
+        })
+      }
+    }
+  }
 
   // Nota: baseline iniziale solo per orto/misto (non legnose)
   if (!isWoodyCrop) {
