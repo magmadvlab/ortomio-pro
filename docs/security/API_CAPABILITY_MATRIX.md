@@ -14,15 +14,19 @@ La colonna `Classe` descrive il contratto richiesto, non certifica che il contro
 | Route | Metodi | Classe | Risorsa e ownership richiesta | Service role | Rate limit | Stato rilevato e test minimo |
 |---|---|---|---|---|---|---|
 | /api/admin/auth-users | GET, POST | admin | utenti Auth; ruolo admin dalla sessione | si | richiesto | Guardia admin presente; test non-admin 403 e resend auditato |
+| /api/admin/overview | GET | admin | statistiche utenti/garden, salute provider e audit log | si | richiesto | `requireAdmin`; test non-admin 403 e nessun secret esposto |
+| /api/admin/release-readiness | GET | admin | metriche di readiness rollout e gate esterni | si | richiesto | `requireAdmin`; test non-admin 403 e coerenza `deployReady` |
 | /api/advice/free | POST | public | catalogo consigli statico; nessuna ownership | no | richiesto | Pubblica senza limite; test payload invalido e abuso |
 | /api/ai/chat | POST | authenticated | profilo e crediti dell'utente di sessione | si | richiesto | `verifyTier`; test 401, tier e consumo crediti |
 | /api/ai/diagnose | POST | authenticated | profilo e crediti dell'utente di sessione | si | richiesto | `verifyTier`; test 401 e nessun cross-user |
 | /api/ai/predictions | POST, GET | authenticated | garden appartenente all'utente/organizzazione | indiretto | richiesto | Nessuna guardia; test garden altrui 403/404 |
+| /api/ai/predictions/[id]/outcome | POST | authenticated | previsione e garden dell'utente autorizzato | si | richiesto | `requireUser`+`requireGardenAccess`; idempotency key; test cross-user e duplicati |
 | /api/ai/recipe | POST | authenticated | profilo e crediti dell'utente di sessione | si | richiesto | `verifyTier`; test 401 e consumo atomico |
 | /api/ai/suggestions | GET, POST | authenticated | `user_id` dalla sessione e garden autorizzato | si | richiesto | Accetta `user_id` client; test spoofing GET/POST |
 | /api/analytics/professional | GET | authenticated | statistiche dell'utente di sessione | si | richiesto | `verifyTier` e filtro user; test 401/cross-user |
 | /api/api-configurations/[serviceType] | GET | authenticated | configurazione provider dell'utente | si | richiesto | `verifyTier`; test secret redatti e cross-user |
 | /api/api-configurations | GET, POST | authenticated | configurazioni provider dell'utente | si | richiesto | `verifyTier`; test ownership e cifratura/redazione |
+| /api/auth/capabilities | GET | authenticated | ruolo, tier, feature flag e schema dell'utente di sessione | si | richiesto | `requireUser`; test 401 e nessun leak cross-user |
 | /api/auth/register | POST | public | nuova identita; nessuna risorsa preesistente | anon | presente provider | Supabase signup; test rate/captcha/errori neutrali |
 | /api/blockchain/consumer | GET, POST | authenticated | record demo legati a garden/prodotto autorizzato | no, memoria | richiesto | Nessuna guardia; test accesso anonimo e dati demo isolati |
 | /api/blockchain/nft | POST | authenticated | garden/prodotto autorizzato | no, memoria | richiesto | Nessuna guardia; test garden altrui e flag simulazione |
@@ -37,6 +41,7 @@ La colonna `Classe` descrive il contratto richiesto, non certifica che il contro
 | /api/cron/daily-diary | GET, POST | cron | job diario globale; secret cron e anti-replay | si | richiesto | GET verifica secret, POST da consolidare; test entrambi i metodi |
 | /api/cron/germination-check | GET | cron | task globali; secret cron e anti-replay | si | richiesto | Bearer `CRON_SECRET`; test 401 |
 | /api/cron/health-check | GET, POST | cron | controlli salute globali; secret cron | si | richiesto | Verifica secret presente; test GET/POST e replay |
+| /api/cron/iot-command-retry | POST | cron | comandi device globali; secret cron | si | richiesto | `requireCron`; retry/dead-letter idempotenti; test secret assente e dead-letter |
 | /api/cron/reset-credits | GET | cron | profili globali; secret cron | si | richiesto | Bearer `CRON_SECRET`; test 401 e idempotenza |
 | /api/cron/task-reminders | GET | cron | task globali; secret cron | si | richiesto | Verifica secret; test 401 e deduplica notifiche |
 | /api/cron/weather-alerts | GET | cron | garden globali; secret cron | si | richiesto | Bearer `CRON_SECRET`; test 401 e deduplica |
@@ -69,8 +74,8 @@ La colonna `Classe` descrive il contratto richiesto, non certifica che il contro
 
 ## Riepilogo P0
 
-- 53 file route classificati, pari al 100% dei file rilevati.
-- 69 handler HTTP dichiarati.
+- 58 file route classificati, pari al 100% dei file rilevati.
+- 74 handler HTTP dichiarati.
 - Le lacune indicate non vengono corrette in P0: sono input vincolante per P1.
 - Le route con service role non possono affidarsi alla sola RLS; devono verificare ownership prima di ogni query o write.
 - I rate limit applicativi risultano espliciti soltanto su `/api/sensors/readings`; i limiti provider di Supabase Auth non coprono AI, supporto, export, NDVI, cron o device.
