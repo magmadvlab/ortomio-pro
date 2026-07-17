@@ -10,6 +10,8 @@ import GlobalAIChat from '@/components/ai/GlobalAIChat'
 import TopBar from '@/components/shared/TopBar'
 import { MobileBottomNav } from '@/components/shared/MobileBottomNav'
 import AuthGuard from '@/components/auth/AuthGuard'
+import { CapabilityProvider } from '@/components/capabilities/CapabilityProvider'
+import { CapabilityPageBadge } from '@/components/capabilities/CapabilityVisuals'
 
 export default function AppLayout({
   children,
@@ -19,13 +21,15 @@ export default function AppLayout({
   return (
     <AuthProvider>
       <AuthGuard>
-        <StorageProvider>
-          <TierProvider defaultTier={AppTier.PRO}>
+        <CapabilityProvider>
+          <StorageProvider>
+            <TierProvider defaultTier={AppTier.PRO}>
             <div className="flex min-h-screen bg-gray-50">
               <ProfessionalSidebar />
               <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar />
                 <main className="flex-1 overflow-auto pb-20 lg:pb-0">
+                  <CapabilityPageBadge />
                   {children}
                 </main>
                 <MobileBottomNav />
@@ -42,8 +46,9 @@ export default function AppLayout({
               {/* Chat AI Globale */}
               <GlobalAIChat />
             </div>
-          </TierProvider>
-        </StorageProvider>
+            </TierProvider>
+          </StorageProvider>
+        </CapabilityProvider>
       </AuthGuard>
     </AuthProvider>
   )
