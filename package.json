@@ -28,6 +28,7 @@
     "test:health-check": "tsx scripts/test-health-check.ts",
     "test:precision-hub": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/precision-hub/**/*.test.ts",
     "test:security": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/security/**/*.test.ts",
+    "test:capabilities": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/capabilities/**/*.test.ts",
     "audit:p0": "node scripts/audit-p0-baseline.mjs"
   },
   "dependencies": {

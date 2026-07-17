@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0 completata; P1 implementata e verificata in locale il 17 luglio 2026, gate remoto in attesa di staging/backup
+- **Stato esecuzione:** P0 completata; P1 implementata e verificata in locale con gate remoto in attesa di staging/backup; P2 completata e verificata il 17 luglio 2026
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -254,18 +254,18 @@ Mostrare soltanto funzioni disponibili per ruolo, tier, schema, provider e matur
 
 ### Attivita
 
-- [ ] creare un descriptor unico di navigazione/capability;
-- [ ] includere route, label, gruppo, ruolo, tier, provider, maturity badge e target mobile/desktop;
-- [ ] usare il descriptor in `ProfessionalSidebar`;
-- [ ] riallineare o rimuovere `MobileMenu` e `FreeSidebar`;
-- [ ] usare lo stesso descriptor nella ricerca globale e nella pagina Help;
-- [ ] nascondere Admin ai non-admin;
-- [ ] rendere satellite-config admin-only;
-- [ ] consolidare `/app/diary` e `/app/journal` nel percorso deciso da P3;
-- [ ] rimuovere o reindirizzare `/app/smart-simple`;
-- [ ] classificare `compare`, `reports`, `zones` e `pianifica` come route contestuali o tecniche;
-- [ ] eliminare link Help verso capitoli inesistenti di gamification/social/badge oppure ripristinare consapevolmente i capitoli;
-- [ ] aggiungere badge persistenti `Beta` e `Simulazione` dove richiesto.
+- [x] creare un descriptor unico di navigazione/capability;
+- [x] includere route, label, gruppo, ruolo, tier, provider, maturity badge e target mobile/desktop;
+- [x] usare il descriptor in `ProfessionalSidebar`;
+- [x] riallineare o rimuovere `MobileMenu` e `FreeSidebar`;
+- [x] usare lo stesso descriptor nella ricerca globale e nella pagina Help;
+- [x] nascondere Admin ai non-admin;
+- [x] rendere satellite-config admin-only;
+- [x] consolidare `/app/diary` e `/app/journal` nel percorso deciso da P3;
+- [x] rimuovere o reindirizzare `/app/smart-simple`;
+- [x] classificare `compare`, `reports`, `zones` e `pianifica` come route contestuali o tecniche;
+- [x] eliminare link Help verso capitoli inesistenti di gamification/social/badge oppure ripristinare consapevolmente i capitoli;
+- [x] aggiungere badge persistenti `Beta` e `Simulazione` dove richiesto.
 
 ### File principali
 
@@ -279,11 +279,11 @@ Mostrare soltanto funzioni disponibili per ruolo, tier, schema, provider e matur
 
 ### Test obbligatori
 
-- [ ] ogni link visibile risolve una pagina esistente;
-- [ ] desktop e mobile espongono le stesse capability;
-- [ ] Admin non compare a un PRO non-admin;
-- [ ] pagine beta/simulate mostrano il badge;
-- [ ] nessun link Help restituisce 404.
+- [x] ogni link visibile risolve una pagina esistente;
+- [x] desktop e mobile espongono le stesse capability;
+- [x] Admin non compare a un PRO non-admin;
+- [x] pagine beta/simulate mostrano il badge;
+- [x] nessun link Help restituisce 404.
 
 ### Criterio di uscita
 
@@ -751,7 +751,7 @@ Compilare durante l'esecuzione.
 |---|---|---|---|---|---|---|
 | P0 | completato | `codex/ortomio-p0-baseline` | inventario 113 file; confronto Neon/Supabase, nessuna migrazione applicata | audit P0 verde; type-check; 228/228 test; build 140/140; diff-check | Neon letto; Security Advisor Supabase esportato | 53 route/69 metodi, 41 pagine; 6 errori/70 warning/2 info assegnati a P1; backend ibrido e drift espliciti |
 | P1 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p1-security` | `20260717000000_p1_security_hardening.sql`; fixture e test RLS transazionale | type-check; security 10/10; precision 228/228; build 140/140; diff-check | Supabase `main` e Production su piano Free; nessun branch/backup; migrazione non applicata | restano staging, password leak protection, Security Advisor post-fix e rollout produzione |
-| P2 | non iniziato | — | — | — | — | — |
+| P2 | completato e verificato localmente | `codex/ortomio-p2-capabilities` | nessuna | capabilities 7/7; type-check; security 10/10; precision 228/228; build 141/141; diff-check | nessuna modifica remota richiesta | descriptor unico; Admin/satellite role-based; Help e ricerca senza route morte; alias consolidati; evidenza `docs/reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md` |
 | P3 | non iniziato | — | — | — | — | — |
 | P4 | non iniziato | — | — | — | — | — |
 | P5 | non iniziato | — | — | — | — | — |

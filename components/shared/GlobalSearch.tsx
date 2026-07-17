@@ -10,9 +10,13 @@ import { useRouter } from 'next/navigation';
 import { Search, Loader2, X, Calendar, Package, Sprout, Home, Wrench, Droplet } from 'lucide-react';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { searchAll, SearchResult } from '../../services/globalSearchService';
+import { getEnabledFeatures } from '@/config/features';
+import { getSearchResultRoute, getVisibleCapabilities } from '@/config/capabilities';
+import { useCapabilities } from '@/components/capabilities/CapabilityProvider';
 
 const GlobalSearch: React.FC = () => {
   const { storageProvider } = useStorage();
+  const { access } = useCapabilities();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -69,35 +73,14 @@ const GlobalSearch: React.FC = () => {
     setShowResults(false);
     setQuery('');
     
-    // Navigate based on result type
-    switch (result.type) {
-      case 'task':
-        router.push(`/app/journal`);
-        break;
-      case 'harvest':
-        router.push(`/app/progress?tab=harvests`);
-        break;
-      case 'seed':
-        router.push(`/app/seeds`);
-        break;
-      case 'garden':
-        router.push(`/app/gardens`);
-        break;
-      case 'treatment':
-        router.push(`/app/health`);
-        break;
-      case 'mechanical':
-        router.push(`/app/mechanical-work`);
-        break;
-      default:
-        router.push(`/app/search?q=${encodeURIComponent(query)}`);
-    }
+    router.push(getSearchResultRoute(result.type));
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/app/search?q=${encodeURIComponent(query)}`);
+      const destination = navigationMatches[0]?.route ?? (results[0] ? getSearchResultRoute(results[0].type) : '/app/help');
+      router.push(destination);
       setShowResults(false);
     }
   };
@@ -148,6 +131,11 @@ const GlobalSearch: React.FC = () => {
     return acc;
   }, {} as Record<string, SearchResult[]>);
 
+  const normalizedQuery = query.trim().toLocaleLowerCase('it-IT');
+  const navigationMatches = normalizedQuery.length < 2 ? [] : getVisibleCapabilities(access, 'search', new Set(getEnabledFeatures()))
+    .filter(capability => capability.route && `${capability.label} ${capability.description}`.toLocaleLowerCase('it-IT').includes(normalizedQuery))
+    .slice(0, 5);
+
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
       <form onSubmit={handleSearchSubmit} className="relative">
@@ -188,8 +176,15 @@ const GlobalSearch: React.FC = () => {
             <div className="p-8 flex items-center justify-center">
               <Loader2 size={24} className="animate-spin text-green-600" />
             </div>
-          ) : results.length > 0 ? (
+          ) : results.length > 0 || navigationMatches.length > 0 ? (
             <div className="p-3">
+              {navigationMatches.length > 0 && <div className="mb-4">
+                <h4 className="px-4 py-3 text-xs font-bold uppercase text-gray-500">Navigazione</h4>
+                {navigationMatches.map(capability => <button key={capability.id} onClick={() => { router.push(capability.route!); setShowResults(false); setQuery('') }} className="w-full rounded-lg px-4 py-3 text-left hover:bg-green-50">
+                  <p className="text-sm font-semibold text-gray-900">{capability.label}</p>
+                  <p className="mt-0.5 truncate text-xs text-gray-600">{capability.description}</p>
+                </button>)}
+              </div>}
               {Object.entries(groupedResults).map(([type, typeResults]) => (
                 <div key={type} className="mb-4">
                   <h4 className="px-4 py-3 text-base text-xs font-bold text-gray-500 uppercase">
@@ -244,7 +239,6 @@ const GlobalSearch: React.FC = () => {
 };
 
 export default GlobalSearch;
-
 
 
 

@@ -1,314 +1,67 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Settings,
-  BarChart3,
-  FlaskConical,
-  Database,
-  Tractor,
-  Wifi,
-  BookOpen,
-  Crown,
-  TreePine,
-  CircleDot,
-  Grape,
-  ChevronDown,
-  ChevronRight,
-  Sprout,
-  Heart,
-  Droplets,
-  Leaf,
-  Shield,
-  Bot,
-  Satellite,
-  Map,
-  Target,
-  Brain,
-  Drone,
-  Link2,
-  Lightbulb,
-  MapPinned,
-} from 'lucide-react'
-import { useTier } from '@/packages/core/hooks/useTier'
+import { ChevronRight } from 'lucide-react'
+import { getEnabledFeatures } from '@/config/features'
+import { getVisibleCapabilities, type CapabilityDescriptor } from '@/config/capabilities'
+import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
+import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/CapabilityVisuals'
 import { UI_LAYERS } from '@/components/shared/uiLayers'
-
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
-  { icon: MapPinned, label: 'Centro operativo', path: '/app/farm', tier: 'PRO', badge: 'PRO' },
-  { icon: Sprout, label: 'Appezzamenti', path: '/app/garden', tier: 'all' },
-  { icon: Bot, label: 'Planner AI', path: '/app/planner', tier: 'all', badge: 'NEW' },
-  { icon: Target, label: 'Piano colturale', path: '/app/planner-classic', tier: 'all' },
-  { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
-  { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
-  { icon: TreePine, label: 'Frutteto', path: '/app/orchard', tier: 'PRO', badge: 'PRO' },
-  { icon: CircleDot, label: 'Oliveto', path: '/app/olives', tier: 'PRO', badge: 'PRO' },
-  { icon: Grape, label: 'Vigneto', path: '/app/vineyard', tier: 'PRO', badge: 'PRO' },
-  { icon: Droplets, label: 'Irrigazione', path: '/app/irrigation', tier: 'PRO', badge: 'PRO' },
-  { icon: FlaskConical, label: 'Nutrizione & Trattamenti', path: '/app/nutrition', tier: 'PRO', badge: 'PRO' },
-  { icon: Tractor, label: 'Lavorazioni', path: '/app/mechanical-work', tier: 'PRO', badge: 'PRO' },
-  { icon: Shield, label: 'Certificazioni', path: '/app/certifications', tier: 'PRO', badge: 'PRO' },
-  { icon: Satellite, label: 'NDVI Satellitare', path: '/app/ndvi', tier: 'PRO', badge: 'NEW' },
-  { icon: Map, label: 'Prescription Maps', path: '/app/prescription-maps', tier: 'PRO', badge: 'NEW' },
-  { icon: BarChart3, label: 'Analytics', path: '/app/analytics', tier: 'PRO', badge: 'PRO' },
-  { icon: Wifi, label: 'Smart Hub', path: '/app/smart', tier: 'all', badge: 'NEW' },
-  { icon: Database, label: 'Export', path: '/app/export', tier: 'PRO', badge: 'PRO' },
-  { icon: BookOpen, label: 'Manuale Utente', path: '/app/help', tier: 'all' },
-  { icon: Settings, label: 'Impostazioni', path: '/app/settings', tier: 'all' },
-]
-
-interface MenuGroup {
-  title: string
-  items: typeof menuItems
-  tier?: 'all' | 'PRO'
-  collapsible?: boolean
-}
 
 export function ProfessionalSidebar() {
   const pathname = usePathname()
-  const { tier, isPro } = useTier()
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
-  // Add admin menu item if user is PRO (always available for PRO)
-  const allMenuItems = [
-    ...menuItems,
-    { icon: Crown, label: 'Admin', path: '/app/admin', tier: 'PRO' as const }
-  ]
-  
-  // Raggruppamento menu per categorie - Ottimizzato FINALE
-  const menuGroups: MenuGroup[] = [
-    {
-      title: 'PRINCIPALE',
-      items: allMenuItems.filter(item =>
-        ['Dashboard', 'Centro operativo', 'Appezzamenti', 'Planner AI', 'Piano colturale', 'Salute', 'Consigli AI'].includes(item.label)
-      ),
-      tier: 'all',
-      collapsible: false
-    },
-    {
-      title: 'COLTURE SPECIALIZZATE',
-      tier: 'PRO',
-      collapsible: true,
-      items: allMenuItems.filter(item =>
-        ['Frutteto', 'Oliveto', 'Vigneto'].includes(item.label)
-      )
-    },
-    {
-      title: 'GESTIONE PROFESSIONALE',
-      tier: 'PRO',
-      collapsible: true,
-      items: allMenuItems.filter(item =>
-        ['Irrigazione', 'Nutrizione & Trattamenti', 'Lavorazioni', 'Certificazioni'].includes(item.label)
-      )
-    },
-    {
-      title: 'ANALYTICS & SMART',
-      tier: 'PRO',
-      collapsible: true,
-      items: allMenuItems.filter(item =>
-        ['Predizioni AI', '🤝 AI Collaborativo', 'NDVI Satellitare', 'Prescription Maps', 'Analytics', 'Smart Hub', 'Export'].includes(item.label)
-      )
-    },
-    {
-      title: 'SUPPORTO',
-      items: allMenuItems.filter(item =>
-        ['Impostazioni', 'Manuale Utente', 'Admin'].includes(item.label)
-      ),
-      tier: 'all',
-      collapsible: false
-    }
-  ]
-  
-  // Carica preferenze collassamento da localStorage al mount
-  useEffect(() => {
-    const saved = localStorage.getItem('ortomio_sidebar_collapsed')
-    if (saved) {
-      try {
-        const savedGroups = JSON.parse(saved)
-        setCollapsedGroups(new Set(savedGroups))
-      } catch (e) {
-        // Ignora errori di parsing
-      }
-    }
-  }, [])
-  
-  const toggleGroup = (title: string) => {
-    setCollapsedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(title)) {
-        next.delete(title)
-      } else {
-        next.add(title)
-      }
-      // Salva preferenze immediatamente
-      localStorage.setItem('ortomio_sidebar_collapsed', JSON.stringify(Array.from(next)))
-      return next
-    })
-  }
-  
-  return (
-    <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-3 left-3 p-2.5 bg-white rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation safe-area-inset-top safe-area-inset-left"
-        style={{ zIndex: UI_LAYERS.sidebarToggle }}
-        aria-label="Toggle menu"
-      >
-        <svg
-          className="w-6 h-6 text-gray-700"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          {isMobileMenuOpen ? (
-            <path d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          )}
-        </svg>
-      </button>
-
-      {/* Overlay for mobile */}
-      {isMobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50"
-          style={{ zIndex: UI_LAYERS.sidebarOverlay }}
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0
-        w-[280px] sm:w-[300px] lg:w-64 bg-white border-r border-gray-200 min-h-screen
-        transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        overflow-y-auto overflow-x-hidden
-        safe-area-inset-left
-      `}
-      style={{ zIndex: UI_LAYERS.sidebar }}>
-        {/* Header con logo e close button su mobile */}
-        <div className="mb-4 sm:mb-6 flex items-center justify-between p-4 sticky top-0 bg-white border-b border-gray-100 z-10 safe-area-inset-top">
-          <div className="min-w-0 flex-1 pr-2 flex items-center gap-3">
-            <img src="/logo.png" alt="OrtoMio" className="w-10 h-10 object-contain" />
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-gray-900">OrtoMio</h2>
-              <p className="text-xs text-gray-500">Gestione agricola</p>
-            </div>
-          </div>
-          {/* Close button - solo mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 ml-2 touch-manipulation"
-            aria-label="Chiudi menu"
-          >
-            <svg
-              className="w-5 h-5 text-gray-600"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        <nav className="space-y-4 sm:space-y-6 px-4 pb-4 safe-area-inset-bottom flex-1">
-          {menuGroups.map((group) => {
-            const tierStr = (tier || 'FREE') as string
-            const isGroupAvailable = group.tier === 'all' || 
-                                     (group.tier === 'PRO' && (tierStr === 'PRO' || tierStr === 'PRO_PROFESSIONAL' || isPro))
-            
-            if (!isGroupAvailable) return null
-            
-            const availableItems = group.items.filter((item) => {
-              const isAvailable = item.tier === 'all' || 
-                                 (item.tier === 'PRO' && (tierStr === 'PRO' || tierStr === 'PRO_PROFESSIONAL' || isPro))
-              return isAvailable
-            })
-            
-            if (availableItems.length === 0) return null
-            
-            const isCollapsed = collapsedGroups.has(group.title)
-            
-            return (
-              <div key={group.title} className="space-y-2">
-                {group.collapsible ? (
-                  <button
-                    onClick={() => toggleGroup(group.title)}
-                    className="w-full flex items-center justify-between px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 transition-all duration-200 touch-manipulation"
-                  >
-                    <span className="truncate pr-2">{group.title}</span>
-                    <ChevronRight 
-                      size={16} 
-                      className={`transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '' : 'rotate-90'}`}
-                    />
-                  </button>
-                ) : (
-                  <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">
-                    {group.title}
-                  </h3>
-                )}
-                {(!group.collapsible || !isCollapsed) && (
-                  <div className={`space-y-1 transition-all duration-200 ${
-                    group.collapsible ? 'animate-in slide-in-from-top-2' : ''
-                  }`}>
-                    {availableItems.map((item) => {
-                      const Icon = item.icon
-                      const isActive = pathname === item.path
-                      
-                      return (
-                        <Link
-                          key={item.path}
-                          href={item.path}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-colors min-h-[44px] touch-manipulation ${
-                            isActive
-                              ? 'bg-gray-100 text-gray-900 font-semibold'
-                              : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          <Icon size={18} className="flex-shrink-0" />
-                          <span className="text-sm sm:text-base flex-1 min-w-0 pr-2 leading-tight">
-                            {item.label || ''}
-                          </span>
-                          {item.badge && typeof item.badge === 'string' && (
-                            <span className={`text-xs px-2 py-0.5 rounded flex-shrink-0 whitespace-nowrap ${
-                              item.badge === 'NEW' 
-                                ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white animate-pulse' 
-                                : 'bg-gray-600 text-white'
-                            }`}>
-                              {item.badge}
-                            </span>
-                          )}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </nav>
-
-        {/* Author Credits */}
-        <div className="px-4 py-3 border-t border-gray-200 mt-auto">
-          <p className="text-xs text-gray-400 text-center">
-            by <span className="font-medium text-gray-500">Roberto Lalinga</span>
-          </p>
-        </div>
-      </aside>
-    </>
+  const { access } = useCapabilities()
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [open, setOpen] = useState(false)
+  const capabilities = useMemo(
+    () => getVisibleCapabilities(access, 'desktop', new Set(getEnabledFeatures())).filter(item => item.route),
+    [access],
   )
+  const groups = useMemo(() => capabilities.reduce<Record<string, CapabilityDescriptor[]>>((result, item) => {
+    ;(result[item.group] ??= []).push(item)
+    return result
+  }, {}), [capabilities])
+
+  useEffect(() => {
+    try { setCollapsed(new Set(JSON.parse(localStorage.getItem('ortomio_sidebar_collapsed') ?? '[]'))) } catch {}
+  }, [])
+
+  const toggle = (group: string) => setCollapsed(previous => {
+    const next = new Set(previous)
+    next.has(group) ? next.delete(group) : next.add(group)
+    localStorage.setItem('ortomio_sidebar_collapsed', JSON.stringify([...next]))
+    return next
+  })
+
+  return <>
+    <button onClick={() => setOpen(!open)} className="fixed left-3 top-3 rounded-lg border bg-white p-2.5 shadow-md lg:hidden" style={{ zIndex: UI_LAYERS.sidebarToggle }} aria-label="Apri menu">
+      <span className="block text-xl leading-none">{open ? '×' : '☰'}</span>
+    </button>
+    {open && <button className="fixed inset-0 bg-black/50 lg:hidden" style={{ zIndex: UI_LAYERS.sidebarOverlay }} onClick={() => setOpen(false)} aria-label="Chiudi menu" />}
+    <aside className={`fixed inset-y-0 left-0 min-h-screen w-[280px] overflow-y-auto border-r bg-white transition-transform lg:static lg:w-64 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} style={{ zIndex: UI_LAYERS.sidebar }}>
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-white p-4">
+        <img src="/logo.png" alt="OrtoMio" className="h-10 w-10 object-contain" />
+        <div><h2 className="font-bold">OrtoMio</h2><p className="text-xs text-gray-500">Gestione agricola</p></div>
+      </div>
+      <nav className="space-y-5 p-4">
+        {Object.entries(groups).map(([group, items]) => {
+          const collapsible = !['PRINCIPALE', 'SUPPORTO'].includes(group)
+          const hidden = collapsible && collapsed.has(group)
+          return <section key={group}>
+            <button disabled={!collapsible} onClick={() => toggle(group)} className="mb-2 flex w-full items-center justify-between px-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 disabled:cursor-default">
+              {group}<ChevronRight size={15} className={`${hidden ? '' : 'rotate-90'} ${collapsible ? '' : 'invisible'}`} />
+            </button>
+            {!hidden && <div className="space-y-1">{items.map(item => {
+              const active = pathname === item.route || (item.route !== '/app' && pathname.startsWith(`${item.route}/`))
+              return <Link key={item.id} href={item.route!} onClick={() => setOpen(false)} className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${active ? 'bg-gray-100 font-semibold text-gray-900' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <CapabilityIconView icon={item.icon} /><span className="min-w-0 flex-1">{item.label}</span><CapabilityBadge capability={item} />
+              </Link>
+            })}</div>}
+          </section>
+        })}
+      </nav>
+    </aside>
+  </>
 }
