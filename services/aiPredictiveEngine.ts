@@ -97,7 +97,7 @@ interface OptimizationSchedule {
 }
 
 // Weather Integration
-interface WeatherData {
+export interface WeatherData {
   temperature: {
     current: number
     min: number
@@ -116,7 +116,7 @@ interface WeatherData {
 }
 
 // Soil Data Integration
-interface SoilData {
+export interface SoilData {
   ph: number
   ec: number // electrical conductivity
   moisture: number
@@ -132,8 +132,10 @@ interface SoilData {
 }
 
 // Plant Health Data
-interface PlantHealthData {
+export interface PlantHealthData {
   plantId: string
+  plantName: string
+  variety?: string
   healthScore: number // 0-100
   growthStage: string
   stressIndicators: string[]
@@ -159,7 +161,8 @@ class AIPredictiveEngine {
     weatherData: WeatherData,
     soilData: SoilData,
     plantHealthData: PlantHealthData[],
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date = new Date()
   ): Promise<DiseasePredicition[]> {
     const predictions: DiseasePredicition[] = []
     
@@ -169,7 +172,8 @@ class AIPredictiveEngine {
         plant,
         weatherData,
         soilData,
-        tasks
+        tasks,
+        referenceDate
       )
       predictions.push(...plantPredictions)
     }
@@ -185,7 +189,8 @@ class AIPredictiveEngine {
     plant: PlantHealthData,
     weather: WeatherData,
     soil: SoilData,
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date
   ): Promise<DiseasePredicition[]> {
     const predictions: DiseasePredicition[] = []
     
@@ -197,8 +202,8 @@ class AIPredictiveEngine {
       
       if (probability > 0.3) { // Only show significant risks
         predictions.push({
-          id: `${plant.plantId}_${rule.disease}_${Date.now()}`,
-          plantName: this.getPlantName(plant.plantId),
+          id: `${plant.plantId}_${rule.disease}_${referenceDate.toISOString().slice(0, 10)}`,
+          plantName: plant.plantName,
           disease: rule.disease,
           probability,
           severity: this.calculateSeverity(probability, rule.impact),
@@ -223,7 +228,8 @@ class AIPredictiveEngine {
     weatherData: WeatherData,
     soilData: SoilData,
     plantHealthData: PlantHealthData[],
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date = new Date()
   ): Promise<YieldPrediction[]> {
     const predictions: YieldPrediction[] = []
     const qualityAdjustment = await this.loadQualityBenchmark(gardenId)
@@ -238,7 +244,8 @@ class AIPredictiveEngine {
         weatherData,
         soilData,
         tasks,
-        qualityAdjustment
+        qualityAdjustment,
+        referenceDate
       )
       
       if (yieldPrediction) {
@@ -255,7 +262,8 @@ class AIPredictiveEngine {
     weather: WeatherData,
     soil: SoilData,
     tasks: GardenTask[],
-    qualityAdjustment: ReturnType<typeof buildAgronomicQualityLearningAdjustment>
+    qualityAdjustment: ReturnType<typeof buildAgronomicQualityLearningAdjustment>,
+    referenceDate: Date
   ): Promise<YieldPrediction | null> {
     // Base yield for plant type
     const baseYield = this.getBaseYield(plantType)
@@ -276,14 +284,14 @@ class AIPredictiveEngine {
     }
     
     // Calculate harvest window
-    const harvestWindow = this.calculateHarvestWindow(plantType, weather, plants)
+    const harvestWindow = this.calculateHarvestWindow(plantType, weather, plants, referenceDate)
     
     // Quality score based on conditions
     const qualityScore = this.calculateQualityScore(plants, weather, soil, factors)
     const qualityBenchmark = this.buildQualityBenchmark(qualityScore, qualityAdjustment)
     
     return {
-      id: `yield_${plantType}_${Date.now()}`,
+      id: `yield_${plantType}_${referenceDate.toISOString().slice(0, 10)}`,
       plantName: plantType,
       variety: this.getVariety(plants[0]),
       expectedYield: Math.round(adjustedYield * 100) / 100,
@@ -307,16 +315,17 @@ class AIPredictiveEngine {
     weatherData: WeatherData,
     soilData: SoilData,
     plantHealthData: PlantHealthData[],
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date = new Date()
   ): Promise<ResourceOptimization[]> {
     const optimizations: ResourceOptimization[] = []
     
     // Water optimization
-    const waterOpt = await this.optimizeWaterUsage(weatherData, soilData, plantHealthData, tasks)
+    const waterOpt = await this.optimizeWaterUsage(weatherData, soilData, plantHealthData, tasks, referenceDate)
     if (waterOpt) optimizations.push(waterOpt)
     
     // Fertilizer optimization
-    const fertilizerOpt = await this.optimizeFertilizerUsage(soilData, plantHealthData, tasks)
+    const fertilizerOpt = await this.optimizeFertilizerUsage(soilData, plantHealthData, tasks, referenceDate)
     if (fertilizerOpt) optimizations.push(fertilizerOpt)
     
     // Labor optimization
@@ -334,7 +343,8 @@ class AIPredictiveEngine {
     weather: WeatherData,
     soil: SoilData,
     plants: PlantHealthData[],
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date
   ): Promise<ResourceOptimization | null> {
     // Calculate current water usage
     const currentUsage = this.calculateCurrentWaterUsage(tasks)
@@ -359,7 +369,7 @@ class AIPredictiveEngine {
       const costSavings = savings * 0.002 // €0.002 per liter
       
       return {
-        id: `water_opt_${Date.now()}`,
+        id: `water_opt_${referenceDate.toISOString().slice(0, 10)}`,
         type: 'WATER',
         currentUsage,
         optimizedUsage: optimalUsage,
@@ -368,7 +378,7 @@ class AIPredictiveEngine {
           percentage: (savings / currentUsage) * 100,
           cost: costSavings
         },
-        schedule: this.generateWaterSchedule(optimalUsage, weather, plants),
+        schedule: this.generateWaterSchedule(optimalUsage, weather, plants, referenceDate),
         recommendations: [
           'Riduci irrigazione nei giorni di pioggia prevista',
           'Concentra irrigazione nelle ore mattutine (6-8 AM)',
@@ -479,7 +489,7 @@ class AIPredictiveEngine {
     const groups = new Map<string, PlantHealthData[]>()
     
     for (const plant of plants) {
-      const plantType = this.getPlantName(plant.plantId)
+      const plantType = plant.plantName
       if (!groups.has(plantType)) {
         groups.set(plantType, [])
       }
@@ -544,9 +554,9 @@ class AIPredictiveEngine {
     return factors
   }
   
-  private calculateHarvestWindow(plantType: string, weather: WeatherData, plants: PlantHealthData[]) {
+  private calculateHarvestWindow(plantType: string, weather: WeatherData, plants: PlantHealthData[], referenceDate: Date) {
     // Simplified harvest window calculation
-    const now = new Date()
+    const now = referenceDate
     const harvestDays = this.getHarvestDays(plantType)
     
     const start = new Date(now.getTime() + (harvestDays - 7) * 24 * 60 * 60 * 1000)
@@ -672,13 +682,8 @@ class AIPredictiveEngine {
   }
   
   // Helper methods
-  private getPlantName(plantId: string): string {
-    // In production, this would query the database
-    return 'Pomodoro' // Simplified
-  }
-  
   private getVariety(plant: PlantHealthData): string {
-    return 'San Marzano' // Simplified
+    return plant.variety || 'Non specificata'
   }
   
   private calculateSoilQuality(soil: SoilData): number {
@@ -738,8 +743,9 @@ class AIPredictiveEngine {
   }
   
   private calculateCurrentWaterUsage(tasks: GardenTask[]): number {
-    // Calculate from irrigation tasks - simplified
-    return 100 // liters per day
+    return tasks
+      .filter(task => ['Watering', 'Irrigation', 'Irrigazione'].includes(task.taskType))
+      .reduce((sum, task) => sum + (typeof task.quantity === 'number' ? task.quantity : 0), 0)
   }
   
   private calculateEvapotranspiration(weather: WeatherData): number {
@@ -757,12 +763,12 @@ class AIPredictiveEngine {
     return 100 - soil.moisture
   }
   
-  private generateWaterSchedule(optimalUsage: number, weather: WeatherData, plants: PlantHealthData[]): OptimizationSchedule[] {
+  private generateWaterSchedule(optimalUsage: number, weather: WeatherData, plants: PlantHealthData[], referenceDate: Date): OptimizationSchedule[] {
     const schedule: OptimizationSchedule[] = []
     const dailyAmount = optimalUsage / 7 // Weekly distribution
     
     for (let i = 0; i < 7; i++) {
-      const date = new Date()
+      const date = new Date(referenceDate)
       date.setDate(date.getDate() + i)
       
       // Skip days with significant precipitation
@@ -784,15 +790,17 @@ class AIPredictiveEngine {
   private async optimizeFertilizerUsage(
     soil: SoilData,
     plants: PlantHealthData[],
-    tasks: GardenTask[]
+    tasks: GardenTask[],
+    referenceDate: Date
   ): Promise<ResourceOptimization | null> {
-    // Simplified fertilizer optimization
-    const currentUsage = 50 // kg/month
+    const currentUsage = tasks
+      .filter(task => task.taskType === 'Fertilize')
+      .reduce((sum, task) => sum + (typeof task.quantity === 'number' ? task.quantity : 0), 0)
     const optimalUsage = this.calculateOptimalFertilizer(soil, plants)
     
     if (optimalUsage < currentUsage) {
       return {
-        id: `fertilizer_opt_${Date.now()}`,
+        id: `fertilizer_opt_${referenceDate.toISOString().slice(0, 10)}`,
         type: 'FERTILIZER',
         currentUsage,
         optimizedUsage: optimalUsage,

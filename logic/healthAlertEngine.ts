@@ -19,10 +19,27 @@ export interface HealthAlert {
   action?: string
   urgency?: 'immediate' | 'soon' | 'monitor'
   confidence?: number // 0-100, quanto siamo sicuri del rischio
+  evidence?: {
+    ruleId: string
+    ruleVersion: string
+    sourceKind: 'observed' | 'predicted'
+    freshnessHours?: number
+    contraindications: string[]
+  }
 }
 
 export interface HealthRiskAnalysisOptions {
   devices?: SmartDevice[]
+  environmentalHistorySummary?: {
+    entries: number
+    highDiseasePressureDays: number
+    highSoilWaterStressDays: number
+    deficitWaterBalanceDays: number
+  } | null
+  productAvailability?: 'available' | 'unavailable' | 'unknown'
+  windSpeedKmh?: number
+  rainfallMm?: number
+  nextHarvestDate?: string
 }
 
 function getHealthRelevantTasks(garden: Garden, tasks: GardenTask[]): GardenTask[] {
@@ -183,7 +200,7 @@ export async function analyzeHealthRisks(
   alerts.push(...weatherAlerts)
   
   // 4. Analisi rischi da pattern storici
-  const patternAlerts = analyzeHistoricalPatterns()
+  const patternAlerts = analyzeHistoricalPatterns(options)
   alerts.push(...patternAlerts)
   
   // 5. Analisi rischi da stress
@@ -484,14 +501,30 @@ async function analyzeWeatherRisks(
 }
 
 /**
- * Analizza pattern storici (placeholder - da integrare con gardenMemoryService)
+ * Analizza pattern storici dalla memoria ambientale canonica.
  */
-function analyzeHistoricalPatterns(): HealthAlert[] {
+function analyzeHistoricalPatterns(options: HealthRiskAnalysisOptions): HealthAlert[] {
+  const summary = options.environmentalHistorySummary
+  if (!summary || summary.entries === 0) return []
+  const contraindications = [
+    (options.windSpeedKmh || 0) > 15 ? 'vento_elevato_no_fogliare' : null,
+    (options.rainfallMm || 0) > 5 ? 'pioggia_dilavante' : null,
+    options.productAvailability === 'unavailable' ? 'prodotto_non_disponibile' : null,
+    options.nextHarvestDate ? 'verificare_carenza' : null,
+  ].filter((value): value is string => Boolean(value))
   const alerts: HealthAlert[] = []
-  
-  // TODO: Integrare con gardenMemoryService per analizzare pattern storici
-  // Es: "Negli ultimi 2 anni, questa zona ha avuto problemi con afidi a maggio"
-  
+  if (summary.highDiseasePressureDays >= 2) alerts.push({
+    type: 'disease', severity: 'high',
+    message: `Pressione fungina persistente in ${summary.highDiseasePressureDays} giornate del ledger ambientale.`,
+    action: 'Conferma i sintomi sul campo prima di passare da rischio a diagnosi e proposta.', urgency: 'soon', confidence: 82,
+    evidence: { ruleId: 'history:fungal-pressure', ruleVersion: 'health-rules-2026-07-17', sourceKind: 'predicted', contraindications },
+  })
+  if (summary.highSoilWaterStressDays >= 2 || summary.deficitWaterBalanceDays >= 3) alerts.push({
+    type: 'stress', severity: 'high',
+    message: 'Stress idrico ricorrente rilevato dalla memoria ambientale canonica.',
+    action: 'Conferma con misura locale e confronta fabbisogno, piano ed erogazione.', urgency: 'soon', confidence: 80,
+    evidence: { ruleId: 'history:water-stress', ruleVersion: 'health-rules-2026-07-17', sourceKind: 'predicted', contraindications },
+  })
   return alerts
 }
 

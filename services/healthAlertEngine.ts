@@ -9,6 +9,7 @@
 
 import { AlertCheckContext, HealthAlert, AlertType, AlertSeverity } from '@/types/healthAlert'
 import { GardenTask } from '@/types'
+import { confidenceForMonitoringSource } from '@/services/healthMonitoringPolicyService'
 
 /**
  * Controlla e genera tutti gli alert di salute per un giardino
@@ -32,6 +33,79 @@ export async function checkHealthAlerts(context: AlertCheckContext): Promise<Omi
     alerts.push(...checkSensorAlerts(context))
   }
 
+  alerts.push(...checkHistoricalEnvironmentalRisk(context))
+
+  const checkedAt = new Date(context.checkedAt || new Date().toISOString())
+  const contraindications = [
+    (context.weather?.windSpeed || 0) > 15 ? 'vento_elevato_no_applicazione_fogliare' : null,
+    (context.weather?.rainMm || 0) > 5 ? 'pioggia_dilavante' : null,
+    context.productAvailability === 'unavailable' ? 'prodotto_non_disponibile' : null,
+    context.nextHarvestDate ? 'verificare_intervallo_carenza_prima_del_raccolto' : null,
+  ].filter((value): value is string => Boolean(value))
+  const enriched = alerts.map((alert) => {
+    const sourceKind = alert.source === 'sensor' ? 'observed' : 'predicted'
+    const sourceAt = alert.source === 'sensor'
+      ? String(alert.metadata?.timestamp || checkedAt.toISOString())
+      : String(context.weather?.recordedAt || checkedAt.toISOString())
+    const freshnessHours = Math.max(0, (checkedAt.getTime() - new Date(sourceAt).getTime()) / 3_600_000)
+    const proposedConfidence = alert.source === 'sensor' ? 0.95 : alert.source === 'seasonal' ? 0.6 : context.environmentalHistorySummary?.entries ? 0.82 : 0.72
+    const confidence = confidenceForMonitoringSource(sourceKind, proposedConfidence)
+    return {
+      ...alert,
+      metadata: {
+        ...(alert.metadata || {}),
+        fingerprint: buildHealthAlertFingerprint(alert),
+        sourceKind,
+        workflowStage: 'risk',
+        diagnosisConfirmed: false,
+        executionConfirmed: false,
+        ruleId: `${alert.alertType}:${alert.source}`,
+        ruleVersion: 'health-rules-2026-07-17',
+        confidence,
+        checkedAt: checkedAt.toISOString(),
+        sourceRecordedAt: sourceAt,
+        freshnessHours,
+        contraindications,
+        inputSnapshot: {
+          weather: context.weather || null,
+          environmentalHistorySummary: context.environmentalHistorySummary || null,
+          productAvailability: context.productAvailability || 'unknown',
+          nextHarvestDate: context.nextHarvestDate || null,
+        },
+      },
+    }
+  })
+  return Array.from(new Map(enriched.map(alert => [String(alert.metadata?.fingerprint), alert])).values())
+}
+
+export const buildHealthAlertFingerprint = (
+  alert: Pick<HealthAlert, 'gardenId' | 'plantId' | 'alertType' | 'source' | 'title'>
+) => [alert.gardenId, alert.plantId || 'garden', alert.alertType, alert.source, alert.title]
+  .map(value => String(value).trim().toLocaleLowerCase('it-IT').replace(/\s+/g, '-'))
+  .join(':')
+
+function checkHistoricalEnvironmentalRisk(context: AlertCheckContext): Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>[] {
+  const summary = context.environmentalHistorySummary
+  if (!summary || summary.entries === 0) return []
+  const alerts: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>[] = []
+  if (summary.highDiseasePressureDays >= 2) {
+    alerts.push({
+      gardenId: context.garden.id, alertType: 'disease', severity: 'warning', source: 'ai',
+      title: 'Pressione fungina persistente',
+      message: `${summary.highDiseasePressureDays} giornate recenti mostrano pressione fungina elevata nei dati ambientali persistiti.`,
+      recommendation: 'Esegui un controllo visivo prima di formulare diagnosi o trattamento.', resolved: false,
+      metadata: { historicalPattern: true, days: summary.highDiseasePressureDays },
+    })
+  }
+  if (summary.highSoilWaterStressDays >= 2 || summary.deficitWaterBalanceDays >= 3) {
+    alerts.push({
+      gardenId: context.garden.id, alertType: 'water', severity: 'warning', source: 'ai',
+      title: 'Stress idrico persistente',
+      message: 'Il ledger ambientale mostra stress idrico ricorrente, non un singolo valore isolato.',
+      recommendation: 'Conferma con sensore o misura manuale e confronta volume pianificato ed erogato.', resolved: false,
+      metadata: { historicalPattern: true, highStressDays: summary.highSoilWaterStressDays, deficitDays: summary.deficitWaterBalanceDays },
+    })
+  }
   return alerts
 }
 
@@ -64,7 +138,7 @@ function checkWeatherDiseaseRisk(context: AlertCheckContext): Omit<HealthAlert, 
         source: 'weather_api',
         title: 'Rischio Peronospora',
         message: `Condizioni favorevoli per peronospora su ${vulnerablePlants.length} piante: pioggia prevista domani, umidità ${weather.humidity}%, temperatura ${weather.temp}°C`,
-        recommendation: 'Tratta preventivamente con prodotti rameici (ossicloruro di rame o poltiglia bordolese) oggi prima della pioggia. Evita irrigazione fogliare.',
+        recommendation: 'Valuta una proposta preventiva solo dopo controllo visivo, etichetta prodotto, disponibilita, vento, pioggia e intervallo di carenza. Evita irrigazione fogliare.',
         resolved: false,
         metadata: {
           temp: weather.temp,
@@ -94,7 +168,7 @@ function checkWeatherDiseaseRisk(context: AlertCheckContext): Omit<HealthAlert, 
         source: 'weather_api',
         title: 'Rischio Oidio (Mal Bianco)',
         message: `Condizioni favorevoli per oidio: umidità ${weather.humidity}%, temperatura ${weather.temp}°C. ${vulnerablePlants.length} piante sensibili.`,
-        recommendation: 'Monitora le foglie per macchie bianche polverose. In caso di sintomi, tratta con zolfo bagnabile o bicarbonato di potassio.',
+        recommendation: 'Monitora le foglie per macchie bianche polverose. In caso di sintomi, conferma la diagnosi e valuta un prodotto autorizzato con i controlli operativi richiesti.',
         resolved: false,
         metadata: {
           temp: weather.temp,
@@ -146,18 +220,19 @@ function checkWaterDeficit(context: AlertCheckContext): Omit<HealthAlert, 'id' |
   const alerts: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>[] = []
 
   // Trova task irrigazione non completati da >3 giorni
+  const now = new Date(context.checkedAt || new Date().toISOString())
   const overdueIrrigation = tasks.filter(t => {
     if (t.taskType !== 'Watering' && t.taskType !== 'Irrigazione') return false
     if (t.completed) return false
 
     const taskDate = new Date(t.date || t.nextDueDate || '')
-    const daysSince = Math.floor((new Date().getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24))
+    const daysSince = Math.floor((now.getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24))
     return daysSince > 3
   })
 
   overdueIrrigation.forEach(task => {
     const taskDate = new Date(task.date || task.nextDueDate || '')
-    const daysSince = Math.floor((new Date().getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24))
+    const daysSince = Math.floor((now.getTime() - taskDate.getTime()) / (1000 * 60 * 60 * 24))
 
     alerts.push({
       gardenId: garden.id,
@@ -189,7 +264,7 @@ function checkSeasonalPests(context: AlertCheckContext): Omit<HealthAlert, 'id' 
   const { tasks, garden } = context
   const alerts: Omit<HealthAlert, 'id' | 'createdAt' | 'updatedAt'>[] = []
 
-  const currentMonth = new Date().getMonth() + 1 // 1-12
+  const currentMonth = new Date(context.checkedAt || new Date().toISOString()).getMonth() + 1 // 1-12
   const activePlants = tasks.filter(t =>
     !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')
   )
@@ -270,7 +345,7 @@ function checkSensorAlerts(context: AlertCheckContext): Omit<HealthAlert, 'id' |
         source: 'sensor',
         title: 'Umidità Suolo Bassa',
         message: `Umidità suolo: ${sensor.value}% ${sensor.zoneId ? `(Zona ${sensor.zoneId})` : ''}. Terreno troppo secco.`,
-        recommendation: 'Irriga abbondantemente. Considera pacciamatura per trattenere umidità.',
+        recommendation: 'Conferma la lettura e valuta una proposta irrigua misurata; considera pacciamatura per trattenere umidità.',
         resolved: false,
         metadata: {
           sensorType: 'soil_moisture',

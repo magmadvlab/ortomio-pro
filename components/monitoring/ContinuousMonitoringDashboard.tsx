@@ -130,8 +130,7 @@ export default function ContinuousMonitoringDashboard({
 
   const handleStartMonitoring = () => {
     if (monitoringService) {
-      monitoringService.start()
-      setIsMonitoring(true)
+      setIsMonitoring(monitoringService.start())
     }
   }
 
@@ -212,24 +211,9 @@ export default function ContinuousMonitoringDashboard({
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Controlli monitoraggio */}
-            {isMonitoring ? (
-              <button
-                onClick={handleStopMonitoring}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <Pause size={16} />
-                Ferma
-              </button>
-            ) : (
-              <button
-                onClick={handleStartMonitoring}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Play size={16} />
-                Avvia
-              </button>
-            )}
+            <span className="px-4 py-2 bg-green-50 text-green-800 border border-green-200 rounded-lg text-sm font-medium">
+              Gestito dal server
+            </span>
             
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -248,7 +232,7 @@ export default function ContinuousMonitoringDashboard({
           }`}>
             <div className={`w-2 h-2 rounded-full ${isMonitoring ? 'bg-green-500' : 'bg-gray-400'}`} />
             <span className="text-sm font-medium">
-              {isMonitoring ? 'Monitoraggio Attivo' : 'Monitoraggio Fermo'}
+              {isMonitoring ? 'Monitoraggio locale attivo' : 'Cron persistente configurato'}
             </span>
           </div>
           

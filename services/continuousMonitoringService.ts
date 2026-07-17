@@ -142,22 +142,12 @@ export class ContinuousMonitoringService {
   /**
    * Avvia il monitoraggio continuo
    */
-  start(): void {
-    if (this.isRunning) {
-      console.warn('Monitoring already running')
-      return
-    }
-
-    this.isRunning = true
-    console.log(`🔍 Starting continuous monitoring for garden ${this.config.gardenId}`)
-    
-    // Primo controllo immediato
-    this.performMonitoringCheck()
-    
-    // Programma controlli periodici
-    this.intervalId = setInterval(() => {
-      this.performMonitoringCheck()
-    }, this.config.checkIntervalMinutes * 60 * 1000)
+  start(): boolean {
+    // P5: un timer nel browser non e un monitoraggio durevole e poteva creare
+    // alert/task duplicati. L'esecuzione autorevole avviene nel cron persistente.
+    this.isRunning = false
+    console.warn(`Monitoraggio locale disabilitato per ${this.config.gardenId}: usa /api/cron/health-check`)
+    return false
   }
 
   /**
@@ -832,8 +822,7 @@ export class MonitoringManager {
     }
     
     const service = createMonitoringService(gardenId, config)
-    this.services.set(gardenId, service)
-    service.start()
+    if (service.start()) this.services.set(gardenId, service)
   }
   
   /**

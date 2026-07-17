@@ -61,6 +61,13 @@ interface HealthAlert {
   zone?: string
   rowId?: string
   zoneId?: string
+  recommendation?: string
+  ruleId?: string
+  ruleVersion?: string
+  sourceKind?: 'observed' | 'predicted' | 'simulated'
+  freshnessHours?: number
+  contraindications?: string[]
+  workflowStage?: 'risk' | 'diagnosis' | 'proposal' | 'execution'
 }
 
 interface HealthAction {
@@ -88,7 +95,7 @@ interface DiagnosisResult {
   recommendations: string[]
   severity: 'low' | 'medium' | 'high'
   treatmentUrgency: number
-  estimatedCost: number
+  estimatedCost: number | null
   organicTreatments: string[]
   category: 'Fungal' | 'Bacterial' | 'Viral' | 'Pest' | 'Deficiency' | 'Environmental'
   matchedSymptoms: string[]
@@ -519,12 +526,7 @@ export default function PlantHealthPage() {
       })
     } catch (error) {
       console.error('Weather fetch failed:', error)
-      // Fallback weather data
-      setWeather({
-        temp: 18,
-        rainMm: 0,
-        condition: 'Sereno'
-      })
+      setWeather(null)
     }
   }, [activeGarden])
 
@@ -595,15 +597,48 @@ export default function PlantHealthPage() {
       const tasks = await storageProvider.getTasks(activeGarden.id)
       const devices = await storageProvider.getDevices(activeGarden.id).catch(() => [])
       const normalizedTasks = tasks || []
-      const [healthAlerts, microclimateSnapshot, topScopeInsights] = await Promise.all([
+      const [computedHealthAlerts, persistedHealthAlerts, microclimateSnapshot, topScopeInsights] = await Promise.all([
         plantHealthMonitoringService.analyzeGardenHealth(activeGarden, normalizedTasks, {
           devices,
           storageProvider,
         }),
+        storageProvider.getHealthAlerts(activeGarden.id).catch(() => []),
         getScopedHealthMicroclimateSnapshot(activeGarden, { devices }).catch(() => null),
         getHealthScopeInsights(activeGarden, normalizedTasks, storageProvider).catch(() => []),
       ])
-      setAlerts(healthAlerts as HealthAlert[])
+      const durableAlerts: HealthAlert[] = persistedHealthAlerts
+        .filter(alert => !alert.resolved)
+        .map(alert => {
+          const metadata = alert.metadata || {}
+          const severity = alert.severity === 'info' ? 'low' : alert.severity === 'warning' ? 'medium' : 'critical'
+          const type = alert.alertType === 'disease' ? 'disease_risk'
+            : alert.alertType === 'pest' ? 'pest_alert'
+            : alert.alertType === 'nutrient' ? 'nutrient_deficiency'
+            : alert.alertType === 'weather' || alert.alertType === 'water' ? 'weather_stress'
+            : 'stress_symptoms'
+          return {
+            id: alert.id,
+            type,
+            severity,
+            plantName: alert.plantId || activeGarden.name,
+            description: alert.message,
+            detectedAt: String(metadata.checkedAt || alert.updatedAt || alert.createdAt),
+            suggestedActions: [],
+            photoRequired: alert.alertType === 'disease' || alert.alertType === 'pest',
+            agronomistConsultation: severity === 'critical',
+            urgencyDays: severity === 'critical' ? 1 : severity === 'medium' ? 3 : 7,
+            confidence: Number(metadata.confidence ?? 0),
+            triggers: [String(metadata.ruleId || alert.source), metadata.sourceKind ? `source:${metadata.sourceKind}` : ''].filter(Boolean),
+            recommendation: alert.recommendation,
+            ruleId: metadata.ruleId,
+            ruleVersion: metadata.ruleVersion,
+            sourceKind: metadata.sourceKind,
+            freshnessHours: Number.isFinite(Number(metadata.freshnessHours)) ? Number(metadata.freshnessHours) : undefined,
+            contraindications: Array.isArray(metadata.contraindications) ? metadata.contraindications : [],
+            workflowStage: metadata.workflowStage || 'risk',
+          } as HealthAlert
+        })
+      setAlerts(durableAlerts.length > 0 ? durableAlerts : computedHealthAlerts as HealthAlert[])
       setMicroclimate(microclimateSnapshot)
       setScopeInsights(topScopeInsights)
     } catch (error) {
@@ -904,12 +939,12 @@ export default function PlantHealthPage() {
         console.warn('AI health diagnosis unavailable, using grounded fallback:', aiError)
       }
 
-      const mockDiagnoses = getDiagnosisTemplates(healthContext, weather || undefined, microclimate)
-      const selectedDiagnosis = mockDiagnoses[0]
+      const candidateDiagnoses = getDiagnosisTemplates(healthContext, weather || undefined, microclimate)
+      const selectedDiagnosis = candidateDiagnoses[0]
       
       const result: DiagnosisResult = {
-        confidence: selectedDiagnosis.confidence,
-        diagnosis: selectedDiagnosis.diagnosis,
+        confidence: aiNarrative ? selectedDiagnosis.confidence : Math.min(0.55, selectedDiagnosis.confidence),
+        diagnosis: `Ipotesi da confermare: ${selectedDiagnosis.diagnosis}`,
         recommendations: [
           `Trattamento con ${selectedDiagnosis.treatments[0]} ogni 7-10 giorni`,
           'Migliorare aerazione tra le piante',
@@ -919,7 +954,7 @@ export default function PlantHealthPage() {
         ],
         severity: selectedDiagnosis.severity,
         treatmentUrgency: selectedDiagnosis.urgency,
-        estimatedCost: Math.floor(Math.random() * 40) + 15, // €15-55
+        estimatedCost: null,
         organicTreatments: selectedDiagnosis.treatments,
         category: selectedDiagnosis.category,
         matchedSymptoms: selectedDiagnosis.symptoms,
@@ -933,49 +968,6 @@ export default function PlantHealthPage() {
 
       setDiagnosisResult(result)
 
-      // Crea task automatico con dettagli completi
-      const newTask = {
-        id: `task-${Date.now()}`,
-        gardenId: 'garden-1',
-        rowId: photoModal.alert?.rowId || getPrimaryHealthScope().rowId,
-        zoneId: photoModal.alert?.zoneId || getPrimaryHealthScope().zoneId,
-        plantName: photoModal.alert.plantName,
-        taskType: 'Treatment',
-        date: new Date().toISOString().split('T')[0],
-        notes: `🤖 DIAGNOSI AI: ${result.diagnosis}
-        
-📊 Analisi Dettagliata:
-• Confidenza: ${Math.round(result.confidence * 100)}%
-• Categoria: ${result.category}
-• Severità: ${result.severity.toUpperCase()}
-• Urgenza trattamento: ${result.treatmentUrgency} giorni
-
-🔍 Sintomi Identificati:
-${result.matchedSymptoms.map(s => `• ${s}`).join('\n')}
-
-🌿 Trattamenti Biologici Consigliati:
-${result.organicTreatments.map(t => `• ${t}`).join('\n')}
-
-📋 Piano di Intervento:
-${result.recommendations.map(r => `• ${r}`).join('\n')}
-
-💰 Costo stimato: €${result.estimatedCost}
-📸 Foto analizzate: ${hasPhoto ? (capturedImage ? '1 (fotocamera)' : selectedFiles.length) : '0'}
-📝 Note aggiuntive: ${notes || 'Nessuna'}
-📍 Posizione: ${location || 'Non specificata'}
-
-🌦️ Condizioni Meteo:
-• Temperatura: ${weather?.temp || 'N/A'}°C
-• Pioggia: ${weather?.rainMm || 0}mm
-• Condizioni: ${weather?.condition || 'N/A'}`,
-        completed: false,
-        priority: result.severity,
-        estimatedDuration: result.severity === 'high' ? '45-90 minuti' : '30-60 minuti',
-        category: 'ai_health_analysis'
-      }
-
-      console.log('Task AI creato automaticamente:', newTask)
-      
       // Reset form
       setPhotoModal({ isOpen: false })
       setSelectedFiles([])
@@ -1430,11 +1422,27 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                           </div>
                         </div>
                       )}
+                      {(alert.ruleId || alert.sourceKind || alert.freshnessHours !== undefined || alert.contraindications?.length) && (
+                        <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900">
+                          <p className="font-semibold uppercase tracking-wide">Evidenza persistita</p>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                            {alert.ruleId && <span>Regola: {alert.ruleId}{alert.ruleVersion ? ` · ${alert.ruleVersion}` : ''}</span>}
+                            {alert.sourceKind && <span>Fonte: {alert.sourceKind}</span>}
+                            {alert.workflowStage && <span>Stadio: {alert.workflowStage}</span>}
+                            {alert.freshnessHours !== undefined && <span>Freschezza: {alert.freshnessHours.toFixed(1)} h</span>}
+                          </div>
+                          {alert.contraindications && alert.contraindications.length > 0 && (
+                            <p className="mt-2 text-red-700">Controindicazioni: {alert.contraindications.join(', ')}</p>
+                          )}
+                          {alert.recommendation && <p className="mt-2">Proposta: {alert.recommendation}</p>}
+                          <p className="mt-2 font-medium">Un alert rappresenta un rischio: non conferma diagnosi o avvenuta esecuzione.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Suggested Actions */}
-                  <div className="space-y-3">
+                  {alert.suggestedActions.length > 0 && <div className="space-y-3">
                     <h4 className="font-medium text-gray-900">Azioni Consigliate:</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {alert.suggestedActions.map((action, index) => {
@@ -1518,7 +1526,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                         )
                       })}
                     </div>
-                  </div>
+                  </div>}
                 </div>
               </div>
             </div>
@@ -1734,14 +1742,14 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <h5 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
                   <Shield size={16} />
-                  Diagnosi AI Professionale
+                  Analisi AI di supporto
                 </h5>
                 <ul className="text-sm text-purple-800 space-y-1">
                   <li>• Analisi automatica di malattie, parassiti e carenze</li>
                   <li>• Identificazione categoria (funghi, batteri, virus, carenze)</li>
                   <li>• Piano di trattamento biologico personalizzato</li>
-                  <li>• Stima costi e tempistiche di intervento</li>
-                  <li>• Creazione automatica task nel planner</li>
+                  <li>• Evidenze e ipotesi con confidenza dichiarata</li>
+                  <li>• Creazione task solo dopo conferma esplicita</li>
                   <li>• Possibilità consulto agronomo per casi complessi</li>
                 </ul>
               </div>
@@ -1752,7 +1760,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
                   <div className="flex items-center justify-between">
                     <h5 className="font-bold text-blue-900 flex items-center gap-2">
                       <FlaskConical size={16} />
-                      Risultati Analisi AI
+                      Ipotesi di analisi AI
                     </h5>
                     <span className={`px-2 py-1 rounded text-xs font-bold ${
                       diagnosisResult.severity === 'high' ? 'bg-red-600 text-white' :
@@ -1765,7 +1773,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
 
                   <div className="space-y-3">
                     <div>
-                      <h6 className="font-semibold text-gray-800 mb-1">🔍 Diagnosi:</h6>
+                      <h6 className="font-semibold text-gray-800 mb-1">🔍 Ipotesi (non diagnosi confermata):</h6>
                       <p className="text-gray-700">{diagnosisResult.diagnosis}</p>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                         <span>Confidenza: {Math.round(diagnosisResult.confidence * 100)}%</span>
@@ -1807,7 +1815,7 @@ ${result.recommendations.map(r => `• ${r}`).join('\n')}
 
                     <div className="bg-white p-3 rounded border">
                       <div className="flex justify-between items-center text-sm">
-                        <span>💰 Costo stimato: €{diagnosisResult.estimatedCost}</span>
+                        <span>💰 Costo: da calcolare su prodotto e quantita confermati</span>
                         <span>⏱️ Durata: {diagnosisResult.severity === 'high' ? '45-90 min' : '30-60 min'}</span>
                       </div>
                     </div>

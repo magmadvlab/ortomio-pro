@@ -10,6 +10,14 @@ import type { DiseasePredicition, YieldPrediction, ResourceOptimization } from '
 import type { AIGroundingContext } from '@/services/aiGroundingService'
 
 interface PredictionsData {
+  status: 'generated' | 'insufficient_data'
+  missingSignals: string[]
+  modelVersion: string
+  ruleVersion: string
+  sourceQuality: 'measured' | 'mixed' | 'estimated' | 'insufficient'
+  confidence: number | null
+  horizonDays: number
+  validUntil: string
   diseasePredicitions: DiseasePredicition[]
   yieldPredictions: YieldPrediction[]
   resourceOptimizations: ResourceOptimization[]
@@ -137,8 +145,21 @@ export default function AIPredictionsDashboard() {
           </div>
 
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-            Le predizioni aggregano servizi con maturità diverse. I risultati vanno verificati con il contesto operativo e non sostituiscono una validazione agronomica.
+            Modello {predictions?.modelVersion || 'non disponibile'} · regole {predictions?.ruleVersion || 'non disponibili'} ·
+            orizzonte {predictions?.horizonDays || 0} giorni · qualita fonte {predictions?.sourceQuality || 'insufficiente'}.
+            I risultati sono rischi/previsioni, non diagnosi o conferme di esecuzione.
           </div>
+          {predictions?.status === 'insufficient_data' && (
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              Dati insufficienti per una previsione riproducibile. Mancano: {predictions.missingSignals.join(', ')}.
+              Registra misure meteo, analisi suolo/umidita e salute osservata delle piante.
+            </div>
+          )}
+          {predictions?.status === 'generated' && (
+            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              Confidenza calibrabile: {Math.round((predictions.confidence || 0) * 100)}% · valida fino al {new Date(predictions.validUntil).toLocaleString('it-IT')}.
+            </div>
+          )}
           {predictions?.grounding && (
             <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
               Grounding: {predictions.grounding.siteContext.isControlledEnvironment ? 'ambiente controllato' : 'open field'} ·
