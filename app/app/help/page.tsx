@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BookOpen, ChevronRight, Search } from 'lucide-react'
-import { getEnabledFeatures } from '@/config/features'
+import { getEnabledFeaturesForAccess } from '@/config/capabilities'
 import { getVisibleCapabilities, type CapabilityDescriptor } from '@/config/capabilities'
 import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
 import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/CapabilityVisuals'
@@ -11,7 +11,7 @@ import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/C
 export default function HelpPage() {
   const [query, setQuery] = useState('')
   const { access } = useCapabilities()
-  const sections = useMemo(() => getVisibleCapabilities(access, 'help', new Set(getEnabledFeatures()))
+  const sections = useMemo(() => getVisibleCapabilities(access, 'help', getEnabledFeaturesForAccess(access))
     .filter(item => item.helpHref)
     .filter(item => `${item.label} ${item.description} ${item.group}`.toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT')))
     .reduce<Record<string, CapabilityDescriptor[]>>((result, item) => {

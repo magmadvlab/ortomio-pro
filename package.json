@@ -34,6 +34,10 @@
     "test:health-predictions-monitoring": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/health-predictions-monitoring/**/*.test.ts",
     "test:remote-data-isolation": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/remote-data-isolation/**/*.test.ts",
     "test:regulatory-exports-admin": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/regulatory-exports-admin/**/*.test.ts",
+    "test:rollout-observability": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/rollout-observability/**/*.test.ts",
+    "test:release": "npm run test:security && npm run test:capabilities && npm run test:persistence && npm run test:physical-operations && npm run test:health-predictions-monitoring && npm run test:remote-data-isolation && npm run test:regulatory-exports-admin && npm run test:rollout-observability && npm run test:precision-hub",
+    "release:check": "node scripts/check-release-readiness.mjs",
+    "release:check:remote": "node scripts/check-release-readiness.mjs --require-remote",
     "audit:p0": "node scripts/audit-p0-baseline.mjs"
   },
   "dependencies": {

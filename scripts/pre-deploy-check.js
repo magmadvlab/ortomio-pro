@@ -5,9 +5,9 @@
  * ============================================================================
  * Questo script verifica:
  * 1. Errori TypeScript
- * 2. Errori Linter
+ * 2. Suite release
  * 3. Build Next.js
- * 4. Schema database (opzionale)
+ * 4. Gate readiness locale
  * 
  * Uso: node scripts/pre-deploy-check.js [--skip-build]
  * ============================================================================
@@ -89,14 +89,12 @@ if (typeCheckResult.success) {
 console.log('');
 
 // ============================================================================
-// 2. Verifica Linter (Opzionale)
+// 2. Suite release
 // ============================================================================
-print('[2/4] Verifica Linter...', 'blue');
-// Next.js lint potrebbe non essere configurato correttamente
-// Per ora lo saltiamo come warning invece di errore
-printWarning('Linter: Verifica saltata (ESLint richiede configurazione aggiuntiva)');
-printInfo("Per abilitare: installa eslint e configura .eslintrc.json");
-// Non blocca il deploy se il linter non è configurato
+print('[2/4] Suite release...', 'blue');
+const testResult = runCommand('npm run test:release', 'Test release');
+if (testResult.success) printSuccess(testResult.message);
+else { printError(testResult.message); errorCount++; }
 console.log('');
 
 // ============================================================================
@@ -120,36 +118,12 @@ if (!skipBuild) {
 console.log('');
 
 // ============================================================================
-// 4. Verifica Schema Database (opzionale)
+// 4. Gate readiness locale
 // ============================================================================
-print('[4/4] Verifica Schema Database...', 'blue');
-
-const schemaFile = path.join(process.cwd(), 'database_schema_online_reference.sql');
-if (fs.existsSync(schemaFile)) {
-  printSuccess('File schema di riferimento trovato');
-  
-  const schemaContent = fs.readFileSync(schemaFile, 'utf8');
-  
-  // Verifica che non ci siano extensions.uuid_generate_v4()
-  if (schemaContent.includes('extensions.uuid_generate_v4()')) {
-    printError("Schema: Trovato 'extensions.uuid_generate_v4()' nel file di riferimento!");
-    printInfo("Dovrebbe essere 'gen_random_uuid()' per Supabase");
-    errorCount++;
-  } else {
-    printSuccess('Schema: Usa gen_random_uuid() correttamente');
-  }
-  
-  // Verifica che ci siano le RLS policies per INSERT
-  if (schemaContent.includes('Users can insert their own profile') && 
-      schemaContent.includes('Users can insert their gardens')) {
-    printSuccess('Schema: RLS policies per INSERT presenti');
-  } else {
-    printWarning('Schema: RLS policies per INSERT potrebbero mancare');
-    printInfo('Verifica che profiles e gardens abbiano policy INSERT esplicite');
-  }
-} else {
-  printWarning('Schema: File di riferimento non trovato (opzionale)');
-}
+print('[4/4] Gate readiness locale...', 'blue');
+const readinessResult = runCommand('npm run release:check', 'Release readiness');
+if (readinessResult.success) printSuccess(readinessResult.message);
+else { printError(readinessResult.message); errorCount++; }
 console.log('');
 
 // ============================================================================
@@ -172,4 +146,3 @@ if (errorCount === 0) {
   console.log('  npm run build:next    # Verifica Build');
   process.exit(1);
 }
-

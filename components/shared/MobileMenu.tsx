@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { X } from 'lucide-react'
-import { getEnabledFeatures } from '@/config/features'
+import { getEnabledFeaturesForAccess } from '@/config/capabilities'
 import { getVisibleCapabilities } from '@/config/capabilities'
 import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
 import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/CapabilityVisuals'
@@ -12,7 +12,7 @@ import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/C
 export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname()
   const { access } = useCapabilities()
-  const items = useMemo(() => getVisibleCapabilities(access, 'mobile', new Set(getEnabledFeatures())).filter(item => item.route), [access])
+  const items = useMemo(() => getVisibleCapabilities(access, 'mobile', getEnabledFeaturesForAccess(access)).filter(item => item.route), [access])
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }

@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0-P7 implementate e verificate in locale; i gate provider, storage, staging e produzione restano raccolti in P8
+- **Stato esecuzione:** P0-P8 implementate e verificate per la baseline locale; rollout remoto P8 bloccato e non incluso nella release finche non esistono staging, snapshot e gate esterni verificati
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -542,18 +542,18 @@ Documenti, export e funzioni amministrative sono autorizzati, tracciabili e coer
 
 ### Attivita
 
-- [ ] applicare tutte le migrazioni su staging da snapshot;
-- [ ] eseguire test RLS e smoke test API;
-- [ ] eseguire test con provider staging;
-- [ ] attivare shadow mode per decisioni/predizioni;
-- [ ] confrontare output nuovo e corrente;
-- [ ] eseguire pilot su una organizzazione/garden;
-- [ ] monitorare write failures, retry, latenza e outcome mancanti;
-- [ ] attivare capability una per volta;
-- [ ] definire soglie di rollback;
-- [ ] verificare backup e restore;
-- [ ] applicare in produzione;
-- [ ] rieseguire test post-deploy e Security Advisor.
+- [!] applicare tutte le migrazioni su staging da snapshot — nessun progetto staging/snapshot disponibile;
+- [!] eseguire test RLS e smoke test API — fixture locali verdi, smoke remoto bloccato dallo staging assente;
+- [!] eseguire test con provider staging — credenziali/provider staging non identificati;
+- [x] implementare shadow/pilot/production/rollback come stati server-side auditati; attivazione shadow remota bloccata;
+- [!] confrontare output nuovo e corrente — richiede traffico shadow remoto;
+- [!] eseguire pilot su una organizzazione/garden — pilot id e garden staging assenti;
+- [x] monitorare write failures, retry, latenza, dead letter e outcome mancanti nella readiness Admin;
+- [x] consentire attivazione capability una per volta con override globale/utente e rollback immediato;
+- [x] definire soglie di rollback codificate e testate;
+- [x] verificare backup e restore su database usa-e-getta con client/server PostgreSQL 18 allineati; restore remoto ancora bloccato;
+- [!] applicare in produzione — vietato finche `release:check:remote` non restituisce `deployReady=true`;
+- [!] rieseguire test post-deploy e Security Advisor — nessun deploy eseguito.
 
 ### Rollout
 
@@ -757,7 +757,7 @@ Compilare durante l'esecuzione.
 | P5 | implementazione locale completata; gate staging bloccato | `codex/ortomio-p5-health-predictions-monitoring` | `20260717030000_p5_health_prediction_monitoring.sql`; replay doppio e test RLS/vincoli su PostgreSQL 16 | health/predictions/monitoring 7/7; security 10/10; capabilities 7/7; persistence 9/9; physical 6/6; precision 228/228; type-check; build 142/142; diff-check | migrazione e cron non applicati; menu predizioni spento | alert e forecast persistenti e riproducibili; outcome/calibrazione; evidenza `docs/reports/P5_HEALTH_PREDICTIONS_MONITORING_EVIDENCE_2026-07-17.md` |
 | P6 | implementazione locale completata; gate provider/staging bloccato | `codex/ortomio-p6-remote-data-demo-isolation` | `20260717040000_p6_remote_data_provenance.sql`; replay doppio, RLS cross-garden e RPC atomica su PostgreSQL 16 | remote-data-isolation 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 142/142; diff-check | migrazione e chiamata provider non applicate; nessuna attuazione drone/blockchain | Sentinel Statistical reale senza fallback casuale; mappe fail-closed e provenance; demo isolate; evidenza `docs/reports/P6_REMOTE_DATA_DEMO_ISOLATION_EVIDENCE_2026-07-17.md` |
 | P7 | implementazione locale completata; gate storage/staging bloccato | `codex/ortomio-p7-certifications-export-admin` | `20260717050000_p7_regulatory_exports_admin.sql`; replay doppio, RLS cross-garden, vincolo demo e append-only su PostgreSQL 16 | regulatory/exports/admin 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 143/143; diff-check | migrazione non applicata; bucket documenti non verificato | dossier senza demo; CSV/PDF server-side auditati; Admin server-only; evidenza `docs/reports/P7_CERTIFICATIONS_EXPORT_ADMIN_EVIDENCE_2026-07-17.md` |
-| P8 | non iniziato | — | — | — | — | — |
+| P8 | hardening locale completato; rollout remoto bloccato e fuori release | `codex/ortomio-p8-rollout-observability` | `20260717060000_p8_rollout_observability.sql`; replay doppio, RPC rollout/audit e non-admin su PostgreSQL 16 | rollout/observability 7/7; release manifest; type-check; build; backup/restore drill PostgreSQL 18 | nessuna migrazione/deploy remoto; `deployReady=false` senza gate esterni | capability server-side, readiness e soglie rollback; evidenza `docs/reports/P8_ROLLOUT_OBSERVABILITY_EVIDENCE_2026-07-17.md` |
 | P9 | non iniziato | — | — | — | — | — |
 
 ## 19. Definizione di completamento del piano

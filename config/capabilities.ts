@@ -1,4 +1,4 @@
-import type { FeatureFlag } from '@/config/features'
+import { getEnabledFeatures, type FeatureFlag } from '@/config/features'
 
 export type CapabilityRole = 'user' | 'admin'
 export type CapabilityTier = 'FREE' | 'PLUS' | 'PRO'
@@ -61,6 +61,7 @@ export interface CapabilityAccess {
   tier: CapabilityTier
   providers: Record<CapabilityProvider, boolean>
   schema: Record<string, boolean>
+  enabledFeatures: FeatureFlag[]
 }
 
 const ALL_ROLES: CapabilityRole[] = ['user', 'admin']
@@ -155,4 +156,9 @@ export const DEFAULT_CAPABILITY_ACCESS: CapabilityAccess = {
   tier: 'PRO',
   providers: { supabase: false, sentinel: false, thingsboard: false },
   schema: {},
+  enabledFeatures: getEnabledFeatures(),
+}
+
+export function getEnabledFeaturesForAccess(access: CapabilityAccess): Set<FeatureFlag> {
+  return new Set(access.enabledFeatures)
 }
