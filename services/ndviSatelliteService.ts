@@ -4,6 +4,7 @@
  * Supporta EOSDA Land Viewer e Sentinel Hub
  */
 
+import { getSupabaseClient } from '../config/supabase';
 import { Garden } from '../types';
 
 export interface NDVIReading {
@@ -14,9 +15,15 @@ export interface NDVIReading {
   ndvi_value: number; // -1 to 1
   evi_value?: number; // Enhanced Vegetation Index
   savi_value?: number; // Soil Adjusted Vegetation Index
-  cloud_coverage: number; // 0-100%
+  cloud_coverage: number | null; // null quando la Statistical API non separa nuvole da altri pixel mascherati
   resolution_meters: number;
   satellite_source: 'sentinel-2' | 'landsat-8' | 'modis';
+  source_kind: 'real' | 'estimated' | 'simulated' | 'fallback';
+  provider: string;
+  algorithm_version: string;
+  quality_status: 'accepted' | 'warning' | 'rejected';
+  valid_pixel_percent: number;
+  statistics?: { min: number; max: number; mean: number; stDev: number; sampleCount: number; noDataCount: number };
   image_url?: string;
   analysis: {
     vegetation_health: 'excellent' | 'good' | 'moderate' | 'poor' | 'critical';
@@ -66,9 +73,6 @@ export interface SatelliteImageRequest {
 }
 
 export class NDVISatelliteService {
-  private static readonly EOSDA_API_URL = 'https://api.eosda.com/v1';
-  private static readonly SENTINEL_HUB_URL = 'https://services.sentinel-hub.com/api/v1';
-  
   /**
    * Recupera ultima immagine NDVI per garden
    */
@@ -93,42 +97,32 @@ export class NDVISatelliteService {
       // Prova Sentinel Hub per dati reali
       let ndviData = await this.fetchSentinelHubData(request);
       
-      // Se non disponibile, usa simulazione avanzata
-      if (!ndviData) {
-        console.log('API satellitari non disponibili, usando simulazione avanzata');
-        ndviData = this.generateSimulatedNDVI(garden);
-      }
-
       return ndviData;
     } catch (error) {
       console.error('Errore recupero NDVI:', error);
-      return this.generateSimulatedNDVI(garden);
+      return null;
     }
   }
 
   /**
    * Analizza NDVI per zone specifiche del garden
    */
-  static async analyzeGardenZones(garden: Garden): Promise<NDVIZoneAnalysis[]> {
+  static async analyzeGardenZones(garden: Garden, reading?: NDVIReading | null): Promise<NDVIZoneAnalysis[]> {
     try {
-      const ndviReading = await this.getLatestNDVI(garden);
+      const ndviReading = reading === undefined ? await this.getLatestNDVI(garden) : reading;
       if (!ndviReading) return [];
 
-      // Se il garden ha zone definite, analizza separatamente
-      if (garden.points && garden.points.length > 0) {
-        return garden.points.map(point => this.analyzePointNDVI(point, ndviReading));
-      }
-
-      // Altrimenti tratta tutto il garden come una zona
+      // La Statistical API produce una statistica sull'intero bbox. Non inventiamo
+      // differenze tra zone finche non esiste un raster georiferito persistito.
       return [{
         zone_id: 'main',
         zone_name: 'Area Principale',
         avg_ndvi: ndviReading.ndvi_value,
-        min_ndvi: ndviReading.ndvi_value - 0.1,
-        max_ndvi: ndviReading.ndvi_value + 0.1,
+        min_ndvi: ndviReading.statistics?.min ?? ndviReading.ndvi_value,
+        max_ndvi: ndviReading.statistics?.max ?? ndviReading.ndvi_value,
         area_hectares: garden.sizeSqMeters / 10000,
         health_distribution: this.calculateHealthDistribution(ndviReading.ndvi_value),
-        problem_areas: this.identifyProblemAreas(ndviReading)
+        problem_areas: []
       }];
     } catch (error) {
       console.error('Errore analisi zone NDVI:', error);
@@ -144,32 +138,36 @@ export class NDVISatelliteService {
     days: number = 90
   ): Promise<Array<{ date: string; ndvi: number; health: string }>> {
     try {
-      // In demo, genera trend simulato
-      if (process.env.NODE_ENV === 'development') {
-        return this.generateSimulatedTrend(days);
+      const supabase = getSupabaseClient();
+      if (!supabase) return [];
+
+      const from = new Date();
+      from.setUTCDate(from.getUTCDate() - Math.max(1, days));
+      const { data, error } = await supabase
+        .from('ndvi_data_cache')
+        .select('data_date, ndvi_value, quality_status, source_kind')
+        .eq('garden_id', garden.id)
+        .eq('source_kind', 'real')
+        .in('quality_status', ['accepted', 'warning'])
+        .gte('data_date', from.toISOString().slice(0, 10))
+        .order('data_date', { ascending: true });
+
+      if (error) throw error;
+
+      // La cache puo contenere piu punti dello stesso rilievo: il trend usa la
+      // media reale giornaliera, senza interpolazioni o campioni sintetici.
+      const daily = new Map<string, number[]>();
+      for (const row of data || []) {
+        const date = String(row.data_date);
+        const value = Number(row.ndvi_value);
+        if (!Number.isFinite(value)) continue;
+        daily.set(date, [...(daily.get(date) || []), value]);
       }
 
-      // TODO: Implementare recupero storico da API
-      const trend = [];
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
-
-      for (let i = 0; i < days; i += 5) { // Ogni 5 giorni (frequenza Sentinel-2)
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
-        
-        // Simula variazione stagionale
-        const seasonalFactor = Math.sin((date.getMonth() / 12) * Math.PI * 2) * 0.2;
-        const baseNDVI = 0.6 + seasonalFactor + (Math.random() - 0.5) * 0.1;
-        
-        trend.push({
-          date: date.toISOString().split('T')[0],
-          ndvi: Math.max(0, Math.min(1, baseNDVI)),
-          health: this.classifyVegetationHealth(baseNDVI)
-        });
-      }
-
-      return trend.sort((a, b) => a.date.localeCompare(b.date));
+      return [...daily.entries()].map(([date, values]) => {
+        const ndvi = values.reduce((sum, value) => sum + value, 0) / values.length;
+        return { date, ndvi, health: this.classifyVegetationHealth(ndvi) };
+      });
     } catch (error) {
       console.error('Errore trend NDVI:', error);
       return [];
@@ -179,7 +177,7 @@ export class NDVISatelliteService {
   /**
    * Identifica aree con stress colturale
    */
-  static async detectStressAreas(garden: Garden): Promise<Array<{
+  static async detectStressAreas(garden: Garden, reading?: NDVIReading | null): Promise<Array<{
     coordinates: [number, number][];
     stress_type: 'water' | 'nutrient' | 'disease' | 'pest';
     severity: 'low' | 'medium' | 'high';
@@ -187,43 +185,12 @@ export class NDVISatelliteService {
     recommendations: string[];
   }>> {
     try {
-      const ndviReading = await this.getLatestNDVI(garden);
+      const ndviReading = reading === undefined ? await this.getLatestNDVI(garden) : reading;
       if (!ndviReading) return [];
 
-      const stressAreas = [];
-
-      // Analizza stress idrico (NDVI < 0.4)
-      if (ndviReading.ndvi_value < 0.4) {
-        const severity: 'high' | 'medium' = ndviReading.ndvi_value < 0.2 ? 'high' : 'medium';
-        stressAreas.push({
-          coordinates: this.generateRandomPolygon(garden),
-          stress_type: 'water' as const,
-          severity,
-          affected_area_m2: garden.sizeSqMeters * 0.3, // 30% dell'area
-          recommendations: [
-            'Aumentare frequenza irrigazione',
-            'Verificare sistema irrigazione',
-            'Considerare pacciamatura per ridurre evaporazione'
-          ]
-        });
-      }
-
-      // Analizza carenze nutrizionali (NDVI 0.4-0.6 con pattern irregolari)
-      if (ndviReading.ndvi_value >= 0.4 && ndviReading.ndvi_value < 0.6) {
-        stressAreas.push({
-          coordinates: this.generateRandomPolygon(garden),
-          stress_type: 'nutrient' as const,
-          severity: 'medium' as const,
-          affected_area_m2: garden.sizeSqMeters * 0.2,
-          recommendations: [
-            'Analisi del suolo per NPK',
-            'Fertilizzazione fogliare di emergenza',
-            'Regolare pH del suolo se necessario'
-          ]
-        });
-      }
-
-      return stressAreas;
+      // Una media sul bbox non localizza poligoni di stress. Le aree restano vuote
+      // finche non viene processato e conservato un raster georiferito.
+      return [];
     } catch (error) {
       console.error('Errore rilevamento stress:', error);
       return [];
@@ -286,27 +253,7 @@ export class NDVISatelliteService {
       };
     }
     
-    // Fallback: area generica Italia centrale
-    return {
-      north: 42.0,
-      south: 41.9,
-      east: 12.6,
-      west: 12.5
-    };
-  }
-
-  private static async fetchEOSDAData(request: SatelliteImageRequest): Promise<NDVIReading | null> {
-    try {
-      // TODO: Implementare chiamata reale EOSDA API
-      // const response = await fetch(`${this.EOSDA_API_URL}/satellite-imagery`, {
-      //   headers: { 'Authorization': `Bearer ${process.env.EOSDA_API_KEY}` }
-      // });
-      
-      return null; // Per ora ritorna null, forza fallback a simulazione
-    } catch (error) {
-      console.error('Errore EOSDA API:', error);
-      return null;
-    }
+    throw new Error('Coordinate garden richieste per NDVI reale');
   }
 
   private static async fetchSentinelHubData(request: SatelliteImageRequest): Promise<NDVIReading | null> {
@@ -335,7 +282,7 @@ export class NDVISatelliteService {
 
       const data = await response.json();
       
-      if (data.error && !data.simulated) {
+      if (data.status !== 'available' || data.sourceKind !== 'real') {
         throw new Error(data.error);
       }
 
@@ -345,11 +292,17 @@ export class NDVISatelliteService {
         garden_id: request.garden_id,
         date: data.date,
         ndvi_value: data.ndvi,
-        evi_value: data.ndvi * 0.8, // Stima EVI da NDVI
-        savi_value: data.ndvi * 0.9, // Stima SAVI da NDVI
-        cloud_coverage: data.cloudCoverage || 0,
-        resolution_meters: 10,
+        evi_value: undefined,
+        savi_value: undefined,
+        cloud_coverage: typeof data.cloudCoverage === 'number' ? data.cloudCoverage : null,
+        resolution_meters: data.resolutionMeters,
         satellite_source: 'sentinel-2',
+        source_kind: data.sourceKind,
+        provider: data.provider,
+        algorithm_version: data.algorithmVersion,
+        quality_status: data.qualityStatus,
+        valid_pixel_percent: data.validPixelPercent,
+        statistics: data.stats,
         image_url: data.imageUrl,
         analysis: {
           vegetation_health: this.classifyVegetationHealth(data.ndvi),
@@ -367,41 +320,6 @@ export class NDVISatelliteService {
     }
   }
 
-  private static generateSimulatedNDVI(garden: Garden): NDVIReading {
-    // Simula NDVI realistico basato su stagione
-    const month = new Date().getMonth() + 1;
-    let baseNDVI = 0.5;
-    
-    // Variazione stagionale
-    if (month >= 4 && month <= 6) baseNDVI = 0.7; // Primavera
-    else if (month >= 7 && month <= 9) baseNDVI = 0.6; // Estate
-    else if (month >= 10 && month <= 11) baseNDVI = 0.4; // Autunno
-    else baseNDVI = 0.2; // Inverno
-
-    // Aggiungi variazione casuale
-    const ndviValue = Math.max(0, Math.min(1, baseNDVI + (Math.random() - 0.5) * 0.2));
-
-    return {
-      id: crypto.randomUUID(),
-      garden_id: garden.id,
-      date: new Date().toISOString(),
-      ndvi_value: ndviValue,
-      evi_value: ndviValue * 0.8,
-      savi_value: ndviValue * 0.9,
-      cloud_coverage: Math.random() * 15, // 0-15% nuvole
-      resolution_meters: 10,
-      satellite_source: 'sentinel-2',
-      analysis: {
-        vegetation_health: this.classifyVegetationHealth(ndviValue),
-        stress_indicators: {
-          water_stress: ndviValue < 0.4,
-          nutrient_deficiency: ndviValue < 0.5 && ndviValue >= 0.3,
-          disease_risk: ndviValue < 0.3
-        },
-        recommendations: this.generateNDVIRecommendations(ndviValue)
-      }
-    };
-  }
 
   private static classifyVegetationHealth(ndvi: number): 'excellent' | 'good' | 'moderate' | 'poor' | 'critical' {
     if (ndvi >= 0.8) return 'excellent';
@@ -433,88 +351,21 @@ export class NDVISatelliteService {
     return recommendations;
   }
 
-  private static analyzePointNDVI(point: any, ndviReading: NDVIReading): NDVIZoneAnalysis {
-    // Simula variazione NDVI per punto
-    const pointVariation = (Math.random() - 0.5) * 0.2;
-    const pointNDVI = Math.max(0, Math.min(1, ndviReading.ndvi_value + pointVariation));
-
-    return {
-      zone_id: point.id,
-      zone_name: point.name,
-      avg_ndvi: pointNDVI,
-      min_ndvi: Math.max(0, pointNDVI - 0.1),
-      max_ndvi: Math.min(1, pointNDVI + 0.1),
-      area_hectares: 0.1, // Assume 1000m² per punto
-      health_distribution: this.calculateHealthDistribution(pointNDVI),
-      problem_areas: []
-    };
-  }
 
   private static calculateHealthDistribution(ndvi: number) {
-    // Simula distribuzione salute basata su NDVI medio
-    if (ndvi >= 0.7) {
-      return { excellent: 70, good: 25, moderate: 5, poor: 0, critical: 0 };
-    } else if (ndvi >= 0.5) {
-      return { excellent: 20, good: 50, moderate: 25, poor: 5, critical: 0 };
-    } else if (ndvi >= 0.3) {
-      return { excellent: 0, good: 20, moderate: 40, poor: 30, critical: 10 };
-    } else {
-      return { excellent: 0, good: 0, moderate: 10, poor: 40, critical: 50 };
-    }
+    const distribution = { excellent: 0, good: 0, moderate: 0, poor: 0, critical: 0 };
+    distribution[this.classifyVegetationHealth(ndvi)] = 100;
+    return distribution;
   }
 
-  private static identifyProblemAreas(ndviReading: NDVIReading): Array<{
-    coordinates: [number, number][];
-    issue_type: string;
-    severity: 'low' | 'medium' | 'high';
-    recommended_action: string;
-  }> {
-    const problemAreas: Array<{
-      coordinates: [number, number][];
-      issue_type: string;
-      severity: 'low' | 'medium' | 'high';
-      recommended_action: string;
-    }> = [];
-    
-    if (ndviReading.analysis.stress_indicators.water_stress) {
-      problemAreas.push({
-        coordinates: [[0, 0], [0, 1], [1, 1], [1, 0]] as [number, number][], // Placeholder
-        issue_type: 'Stress idrico',
-        severity: 'high' as const,
-        recommended_action: 'Aumentare irrigazione'
-      });
-    }
-
-    return problemAreas;
-  }
-
-  private static generateSimulatedTrend(days: number) {
-    const trend = [];
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    for (let i = 0; i < days; i += 5) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
-      
-      const seasonalFactor = Math.sin((date.getMonth() / 12) * Math.PI * 2) * 0.2;
-      const baseNDVI = 0.6 + seasonalFactor + (Math.random() - 0.5) * 0.1;
-      
-      trend.push({
-        date: date.toISOString().split('T')[0],
-        ndvi: Math.max(0, Math.min(1, baseNDVI)),
-        health: this.classifyVegetationHealth(baseNDVI)
-      });
-    }
-
-    return trend;
-  }
 
   private static calculateTrendDirection(trend: any[]): 'improving' | 'stable' | 'declining' {
     if (trend.length < 2) return 'stable';
     
-    const recent = trend.slice(-5).reduce((sum, t) => sum + t.ndvi, 0) / 5;
-    const older = trend.slice(0, 5).reduce((sum, t) => sum + t.ndvi, 0) / 5;
+    const recentWindow = trend.slice(-5);
+    const olderWindow = trend.slice(0, Math.min(5, trend.length));
+    const recent = recentWindow.reduce((sum, t) => sum + t.ndvi, 0) / recentWindow.length;
+    const older = olderWindow.reduce((sum, t) => sum + t.ndvi, 0) / olderWindow.length;
     
     const change = recent - older;
     
@@ -546,17 +397,4 @@ export class NDVISatelliteService {
     return nextDate.toISOString().split('T')[0];
   }
 
-  private static generateRandomPolygon(garden: Garden): [number, number][] {
-    // Genera poligono casuale per demo
-    const centerLat = garden.coordinates?.latitude || 42.0;
-    const centerLng = garden.coordinates?.longitude || 12.5;
-    const radius = 0.001; // ~100m
-
-    return [
-      [centerLat + radius, centerLng - radius],
-      [centerLat + radius, centerLng + radius],
-      [centerLat - radius, centerLng + radius],
-      [centerLat - radius, centerLng - radius]
-    ];
-  }
 }

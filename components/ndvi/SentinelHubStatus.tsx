@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Satellite, CheckCircle, AlertCircle, Loader2, Wifi } from 'lucide-react';
+import type { Garden } from '@/types';
 
 interface SentinelHubStatusProps {
+  garden: Garden;
   onStatusChange?: (connected: boolean) => void;
 }
 
-const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange }) => {
+const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ garden, onStatusChange }) => {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -17,17 +19,24 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
   const checkConnection = async () => {
     setStatus('checking');
     try {
+      if (!garden.coordinates) {
+        setStatus('error');
+        setErrorMessage('Coordinate del garden mancanti: impossibile richiedere un dato satellitare reale.');
+        onStatusChange?.(false);
+        return;
+      }
       const response = await fetch('/api/ndvi/sentinel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          gardenId: garden.id,
           bbox: {
-            north: 42.0,
-            south: 41.9,
-            east: 12.6,
-            west: 12.5
+            north: garden.coordinates.latitude + 0.001,
+            south: garden.coordinates.latitude - 0.001,
+            east: garden.coordinates.longitude + 0.001,
+            west: garden.coordinates.longitude - 0.001
           },
           dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           dateTo: new Date().toISOString().split('T')[0],
@@ -37,11 +46,11 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ onStatusChange })
 
       const data = await response.json();
       
-      if (data.simulated) {
+      if (data.sourceKind !== 'real') {
         setStatus('error');
         setErrorMessage('Credenziali Sentinel Hub non configurate. Contatta l\'amministratore per abilitare i dati satellitari reali.');
         onStatusChange?.(false);
-      } else if (data.success) {
+      } else if (data.status === 'available') {
         setStatus('connected');
         setErrorMessage('');
         onStatusChange?.(true);

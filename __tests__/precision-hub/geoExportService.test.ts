@@ -61,6 +61,13 @@ const prescriptionMap: PrescriptionMap = {
   status: 'completed',
   versionNumber: 2,
   versionLabel: 'v2',
+  algorithmMetadata: {
+    algorithmVersion: 'prescription-fusion-kmeans-v2',
+    inputHash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    sourceQuality: 'measured',
+    generatedFrom: ['ndvi'],
+  },
+  contentChecksum: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   validationStatus: 'valid',
   qualityScore: 87,
   dataCompleteness: 89,
@@ -108,5 +115,6 @@ test('GeoExportService logs tracked export records and returns exportRecordId', 
   assert.equal(savedExport?.prescriptionMapId, 'map-geo-1')
   assert.equal(savedExport?.format, 'geojson')
   assert.equal(savedExport?.machineryBrand, 'John Deere')
+  assert.equal(savedExport?.metadata?.contentChecksum, prescriptionMap.contentChecksum)
   assert.equal(updatedMapId, 'map-geo-1')
 })

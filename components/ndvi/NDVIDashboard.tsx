@@ -8,7 +8,6 @@ import InterventionWizard, { InterventionData } from '../actions/InterventionWiz
 import MobileTabNavigation from '../shared/MobileTabNavigation';
 import { interventionService } from '../../services/interventionService';
 import { Satellite, TrendingUp, TrendingDown, Minus, AlertTriangle, Leaf, Droplets, Activity, RefreshCw, Calendar, MapPin, Settings } from 'lucide-react';
-import Link from 'next/link';
 
 interface NDVIDashboardProps {
   garden: Garden;
@@ -35,11 +34,11 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
   const loadNDVIData = async () => {
     setLoading(true);
     try {
-      const [ndvi, zonesData, trendData, stressData] = await Promise.all([
-        NDVISatelliteService.getLatestNDVI(garden),
-        NDVISatelliteService.analyzeGardenZones(garden),
+      const ndvi = await NDVISatelliteService.getLatestNDVI(garden);
+      const [zonesData, trendData, stressData] = await Promise.all([
+        NDVISatelliteService.analyzeGardenZones(garden, ndvi),
         NDVISatelliteService.getNDVITrend(garden, 60),
-        NDVISatelliteService.detectStressAreas(garden)
+        NDVISatelliteService.detectStressAreas(garden, ndvi)
       ]);
 
       setNdviData(ndvi);
@@ -136,7 +135,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
   return (
     <div className="space-y-6">
       {/* Sentinel Hub Status */}
-      <SentinelHubStatus onStatusChange={setApiConnected} />
+      <SentinelHubStatus garden={garden} onStatusChange={setApiConnected} />
       
       {/* Configuration Link */}
       {!apiConnected && (
@@ -149,12 +148,9 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                 <p className="text-sm text-yellow-700">Configura le credenziali per dati satellitari reali</p>
               </div>
             </div>
-            <Link 
-              href="/app/satellite-config"
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
-            >
-              Configura Ora
-            </Link>
+            <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium">
+              Configurazione riservata agli amministratori
+            </span>
           </div>
         </div>
       )}
@@ -233,6 +229,18 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                 {ndviData.satellite_source.toUpperCase()} - {ndviData.resolution_meters}m
               </div>
             </div>
+          </div>
+        )}
+        {ndviData && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+            Fonte {ndviData.source_kind} · provider {ndviData.provider} · algoritmo {ndviData.algorithm_version} ·
+            qualita {ndviData.quality_status} · pixel validi {ndviData.valid_pixel_percent.toFixed(1)}%.
+            La statistica sul bbox non localizza automaticamente zone o diagnosi.
+          </div>
+        )}
+        {!ndviData && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Nessun dato NDVI reale disponibile. OrtoMio non genera valori sostitutivi o trend simulati.
           </div>
         )}
       </div>

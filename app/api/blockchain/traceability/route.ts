@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        simulated: true,
+        certificationEligible: false,
         data: chain
       })
     }
@@ -37,6 +39,8 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json({
         success: true,
+        simulated: true,
+        certificationEligible: false,
         data: chains
       })
     }

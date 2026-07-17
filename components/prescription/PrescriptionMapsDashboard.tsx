@@ -394,6 +394,13 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                           {map.validationStatus}
                         </span>
                       </div>
+                      {map.algorithmMetadata && map.contentChecksum ? (
+                        <p className="mt-2 text-xs text-emerald-700">
+                          {map.algorithmMetadata.algorithmVersion} · fonte {map.algorithmMetadata.sourceQuality} · checksum {map.contentChecksum.slice(0, 12)}… · prescrizione separata dall’esecuzione
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-xs text-amber-700">Mappa legacy senza provenance/checksum: export operativo bloccato fino a nuova revisione.</p>
+                      )}
                     </div>
                   </div>
 
