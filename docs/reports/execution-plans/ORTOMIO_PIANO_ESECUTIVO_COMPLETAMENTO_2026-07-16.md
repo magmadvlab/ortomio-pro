@@ -591,7 +591,7 @@ P9 non puo iniziare con task applicativi P0-P8 ancora aperti, salvo la sola prep
 
 ### 15.1 Raccolta delle evidenze finali
 
-- [x] registrare commit e release candidate locale: contenuti `fdb0aa9`, bonifica `babbe93`;
+- [x] registrare commit e release candidate locale: contenuti `fdb0aa9` (PR #26), bonifica `babbe93` e chiusura `7da7b57` (PR #27);
 - [!] registrare migrazioni applicate — replay locale P1-P8 registrato; target remoto non modificato;
 - [!] salvare risultati type-check, test, build, RLS e Security Advisor — gate locali verdi; Advisor remoto fermo alla baseline pre-fix;
 - [x] esportare la capability matrix finale;
