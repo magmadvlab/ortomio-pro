@@ -7,6 +7,7 @@ import { ArrowLeft, Sprout, Package, TreePine } from 'lucide-react'
 import SeedInventory from '@/components/seedbank/SeedInventory'
 import SeedlingDashboard from '@/components/seedling/SeedlingDashboard'
 import SaplingDashboard from '@/components/seedbank/SaplingDashboard'
+import PlantingScheduler from '@/components/seedling/PlantingScheduler'
 
 function SemenzaioPageContent() {
   const router = useRouter()
@@ -132,6 +133,13 @@ function SemenzaioPageContent() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-6">
+          <PlantingScheduler
+            garden={currentGarden}
+            initialPlantName={plantName ? decodeURIComponent(plantName) : undefined}
+            initialVariety={variety ? decodeURIComponent(variety) : undefined}
+          />
+        </div>
         {/* Integration Alert */}
         {shouldCreate && plantName && (
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
