@@ -37,15 +37,18 @@ import {
   humanizeAgronomicSignal,
   stripAgronomicQueueTaskMetadata,
 } from '@/services/agronomicQueueTaskService'
+import type { WeatherAlert } from '@/services/weatherService'
 
 interface DirectorBriefingWidgetProps {
   compact?: boolean
   maxActions?: number
+  weatherAlerts?: WeatherAlert[]
 }
 
 export default function DirectorBriefingWidget({ 
   compact = false,
-  maxActions = 5 
+  maxActions = 5,
+  weatherAlerts = [],
 }: DirectorBriefingWidgetProps) {
   const { user } = useAuth()
   const { activeGarden } = useGarden()
@@ -186,6 +189,12 @@ export default function DirectorBriefingWidget({
     return (value.economicSummary as AgronomicEconomicPrioritySummary | null | undefined) || null
   }
 
+  const weatherCriticalCount = weatherAlerts.filter((alert) => alert.severity === 'HIGH').length
+  const weatherHighCount = weatherAlerts.length - weatherCriticalCount
+  const summary = weatherAlerts.length > 0
+    ? `${weatherAlerts.length} ${weatherAlerts.length === 1 ? 'allerta operativa richiede' : 'allerte operative richiedono'} attenzione immediata`
+    : briefing.summary
+
   return (
     <Card className="border-l-4 border-l-primary">
       <CardHeader>
@@ -214,26 +223,26 @@ export default function DirectorBriefingWidget({
       <CardContent className="space-y-4">
         {/* Summary */}
         <div className="p-3 bg-muted rounded-lg">
-          <p className="text-sm font-medium">{briefing.summary}</p>
+          <p className="text-sm font-medium">{summary}</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center p-2 bg-background rounded border">
             <div className="text-2xl font-bold text-destructive">
-              {briefing.stats.criticalCount}
+              {briefing.stats.criticalCount + weatherCriticalCount}
             </div>
             <div className="text-xs text-muted-foreground">Critiche</div>
           </div>
           <div className="text-center p-2 bg-background rounded border">
             <div className="text-2xl font-bold text-orange-500">
-              {briefing.stats.highCount}
+              {briefing.stats.highCount + weatherHighCount}
             </div>
             <div className="text-xs text-muted-foreground">Prioritarie</div>
           </div>
           <div className="text-center p-2 bg-background rounded border">
             <div className="text-2xl font-bold text-primary">
-              {briefing.stats.totalSuggestions}
+              {briefing.stats.totalSuggestions + weatherAlerts.length}
             </div>
             <div className="text-xs text-muted-foreground">Totali</div>
           </div>
@@ -241,6 +250,31 @@ export default function DirectorBriefingWidget({
 
         {expanded && (
           <>
+            {weatherAlerts.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2 text-red-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  Allerte operative da gestire
+                </h4>
+                <div className="space-y-2">
+                  {weatherAlerts.map((alert, index) => (
+                    <div key={`${alert.type}-${index}`} className="p-3 rounded-lg border border-red-200 bg-red-50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={alert.severity === 'HIGH' ? 'error' : 'warning'}>
+                          {alert.severity === 'HIGH' ? 'CRITICA' : 'PRIORITARIA'}
+                        </Badge>
+                        <span className="text-sm font-medium text-red-900">{alert.message}</span>
+                      </div>
+                      <p className="text-sm text-red-800"><strong>Azione:</strong> {alert.action}</p>
+                      <ul className="mt-2 pl-5 list-disc space-y-1 text-xs text-red-700">
+                        {alert.steps.map((step) => <li key={step}>{step}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Weather Summary */}
             {briefing.weatherSummary && (
               <div className="space-y-2">
