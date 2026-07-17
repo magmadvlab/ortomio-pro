@@ -19,7 +19,9 @@ export const FEATURES = {
    * Servizio: aiPredictiveEngine.ts
    * Route: /app/ai-predictions
    */
-  AI_PREDICTIONS: true, // ✅ IMPLEMENTATO
+  // P5: il motore e persistente, ma il menu resta chiuso finche la migrazione
+  // e il percorso E2E non sono verificati in staging.
+  AI_PREDICTIONS: false,
   
   /**
    * Diario Operativo - Timeline attività

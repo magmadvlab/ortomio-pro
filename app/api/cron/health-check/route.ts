@@ -1,246 +1,164 @@
-/**
- * Cron Job: Health Check
- *
- * Genera automaticamente alert di salute per tutti i giardini attivi
- * basandosi su:
- * - Condizioni meteo (rischio malattie)
- * - Task in ritardo (irrigazione, fertilizzazione)
- * - Alert stagionali (parassiti)
- * - Dati sensori (se disponibili)
- *
- * Frequenza consigliata: 2x al giorno (mattina/sera)
- * Vercel Cron: "0 8,20 * * *" (8:00 e 20:00)
- */
-
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { requireCron } from '@/lib/auth.server'
+import { requireSupabase } from '@/lib/supabase-server'
 import { checkHealthAlerts } from '@/services/healthAlertEngine'
-import { Garden, GardenTask } from '@/types'
-import { HealthAlert } from '@/types/healthAlert'
+import { extractGardenEnvironmentalHistory, summarizeGardenEnvironmentalHistory } from '@/services/environmentalMonitoringService'
+import type { Garden, GardenTask } from '@/types'
+import { monitoringRunKey, monitoringTaskSourceKey } from '@/services/healthMonitoringPolicyService'
 
-// Inizializza Supabase client con service role (per bypassare RLS)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const finite = (...values: unknown[]) => {
+  for (const value of values) {
+    const number = typeof value === 'string' ? Number(value) : value
+    if (typeof number === 'number' && Number.isFinite(number)) return number
+  }
+  return undefined
+}
 
 export async function GET(request: NextRequest) {
-  // Check Supabase credentials
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json(
-      { error: 'Missing Supabase credentials' },
-      { status: 500 }
-    )
-  }
-
-  // Verifica authorization (Vercel Cron Secret)
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET || 'dev-secret'
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    )
-  }
-
-  const startTime = Date.now()
-  const results = {
-    success: true,
-    gardensChecked: 0,
-    alertsCreated: 0,
-    alertsSkipped: 0,
-    errors: [] as string[],
-    duration: 0
-  }
-
+  const start = Date.now()
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    requireCron(request)
+    const supabase = requireSupabase()
+    const checkedAt = new Date()
+    const { data: gardens, error } = await supabase.from('gardens').select('*').order('created_at')
+    if (error) throw new Error(error.message)
+    const result = { gardensChecked: 0, gardensSkipped: 0, alertsCreated: 0, alertsRefreshed: 0, tasksCreated: 0, errorsQueued: 0 }
 
-    // 1. Carica tutti i giardini attivi
-    const { data: gardens, error: gardensError } = await supabase
-      .from('gardens')
-      .select('*')
-      .order('created_at', { ascending: false })
+    for (const gardenRow of gardens ?? []) {
+      const key = monitoringRunKey(gardenRow.id, checkedAt)
+      const { data: existingRun } = await supabase.from('monitoring_runs').select('id').eq('garden_id', gardenRow.id).eq('idempotency_key', key).maybeSingle()
+      if (existingRun) { result.gardensSkipped += 1; continue }
+      const { data: run, error: runError } = await supabase.from('monitoring_runs').insert({
+        garden_id: gardenRow.id, user_id: gardenRow.user_id, idempotency_key: key,
+        status: 'running', checked_at: checkedAt.toISOString(),
+      }).select('id').single()
+      if (runError || !run) { result.errorsQueued += 1; continue }
 
-    if (gardensError) throw gardensError
-    if (!gardens || gardens.length === 0) {
-      return NextResponse.json({
-        ...results,
-        message: 'No gardens found',
-        duration: Date.now() - startTime
-      })
-    }
-
-    console.log(`[Health Check] Checking ${gardens.length} gardens...`)
-
-    // 2. Per ogni giardino, genera alert
-    for (const gardenDb of gardens) {
       try {
-        results.gardensChecked++
-
-        // Map garden da DB format
+        result.gardensChecked += 1
+        const since = new Date(checkedAt.getTime() - 30 * 86_400_000).toISOString().slice(0, 10)
+        const [tasksRes, weatherRes, sensorsRes, inventoryRes, prefsRes] = await Promise.all([
+          supabase.from('garden_tasks').select('*').eq('garden_id', gardenRow.id).order('date'),
+          supabase.from('daily_weather_log').select('*').eq('garden_id', gardenRow.id).gte('log_date', since).order('log_date', { ascending: false }),
+          supabase.from('sensor_readings').select('*').eq('garden_id', gardenRow.id).gte('recorded_at', new Date(checkedAt.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }),
+          supabase.from('phyto_inventory').select('id, quantity').eq('garden_id', gardenRow.id).gt('quantity', 0).limit(1),
+          supabase.from('notification_preferences').select('*').eq('user_id', gardenRow.user_id).maybeSingle(),
+        ])
+        if (tasksRes.error) throw new Error(tasksRes.error.message)
+        const tasks = (tasksRes.data ?? []).map((row: any) => ({
+          id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
+          taskType: row.task_type, date: row.date, nextDueDate: row.next_due_date,
+          completed: Boolean(row.completed), quantity: finite(row.quantity), notes: row.notes,
+        })) as GardenTask[]
         const garden: Garden = {
-          id: gardenDb.id,
-          name: gardenDb.name,
-          sizeSqMeters: gardenDb.size_sq_meters || 100,
-          coordinates: gardenDb.coordinates,
-          soilType: gardenDb.soil_type,
-          dimensions: gardenDb.dimensions,
-          createdAt: gardenDb.created_at
+          id: gardenRow.id, name: gardenRow.name, sizeSqMeters: finite(gardenRow.size_sq_meters) ?? 0,
+          coordinates: gardenRow.coordinates, soilType: gardenRow.soil_type,
+          dimensions: gardenRow.dimensions, createdAt: gardenRow.created_at,
         }
-
-        // Carica task del giardino
-        const { data: tasksDb, error: tasksError } = await supabase
-          .from('garden_tasks')
-          .select('*')
-          .eq('garden_id', garden.id)
-          .order('date', { ascending: true })
-
-        if (tasksError) {
-          results.errors.push(`Garden ${garden.id}: ${tasksError.message}`)
-          continue
-        }
-
-        // Map tasks da DB format
-        const tasks: GardenTask[] = (tasksDb || []).map((t: any) => ({
-          id: t.id,
-          gardenId: t.garden_id,
-          plantName: t.plant_name,
-          variety: t.variety,
-          taskType: t.task_type,
-          date: t.date,
-          completed: t.completed,
-          notes: t.notes,
-          quantity: t.quantity,
-          bedId: t.bed_id,
-          daysToMaturity: t.days_to_maturity,
-          harvestLogId: t.harvest_log_id,
-          createdAt: t.created_at
-        }))
-
-        // Carica meteo (se disponibili coordinate)
-        let weather: any = null
-        if (garden.coordinates) {
-          try {
-            const weatherResponse = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${garden.coordinates.latitude}&longitude=${garden.coordinates.longitude}&current_weather=true&daily=precipitation_sum,precipitation_probability_max&timezone=auto&forecast_days=3`,
-              { next: { revalidate: 900 } } // Cache 15 minuti
-            )
-
-            if (weatherResponse.ok) {
-              const weatherData = await weatherResponse.json()
-              const current = weatherData.current_weather
-              const daily = weatherData.daily
-
-              weather = {
-                temp: current.temperature,
-                humidity: 70, // Default (Open-Meteo free non ha humidity)
-                rainMm: daily.precipitation_sum[0] || 0,
-                rainTomorrow: daily.precipitation_probability_max[1] > 50,
-                condition: current.weathercode
-              }
-            }
-          } catch (weatherError) {
-            console.warn(`Weather fetch failed for garden ${garden.id}:`, weatherError)
-          }
-        }
-
-        // Genera alert
-        const newAlerts = await checkHealthAlerts({
-          garden,
-          tasks,
-          weather,
-          sensorData: [] // TODO: integrare sensori se disponibili
+        const weatherRows = weatherRes.data ?? []
+        const latest: any = weatherRows[0]
+        const sensors = sensorsRes.data ?? []
+        const findSensor = (type: string) => sensors.find((row: any) => row.sensor_type === type)
+        const humiditySensor: any = findSensor('humidity')
+        const windSensor: any = findSensor('wind_speed')
+        const temp = latest ? finite(latest.temperature_max, latest.temperature_min) : undefined
+        const humidity = finite(humiditySensor?.value, latest?.raw_data?.humidity, latest?.raw_data?.snapshot?.weather?.humidityPercentage)
+        const weather = temp !== undefined && humidity !== undefined ? {
+          temp, humidity, rainMm: finite(latest?.precipitation_mm) ?? 0,
+          rainTomorrow: finite(weatherRows[1]?.precipitation_mm) ? Number(weatherRows[1].precipitation_mm) > 0 : false,
+          windSpeed: finite(windSensor?.value, latest?.raw_data?.snapshot?.weather?.windSpeedKmh) ?? 0,
+          recordedAt: latest?.log_date ? `${latest.log_date}T12:00:00.000Z` : checkedAt.toISOString(),
+          source: 'persisted_daily_weather_log',
+        } : undefined
+        const environmentalSummary = summarizeGardenEnvironmentalHistory(extractGardenEnvironmentalHistory(
+          weatherRows.map((row: any) => ({ log_date: row.log_date, raw_data: row.raw_data || {} })),
+          { gardenId: gardenRow.id }
+        ))
+        const sensorData = sensors.flatMap((row: any) => {
+          const type = row.sensor_type === 'soil_moisture' ? 'soil_moisture' : row.sensor_type === 'temperature' ? 'temperature' : row.sensor_type === 'humidity' ? 'humidity' : null
+          return type ? [{ type, value: Number(row.value), timestamp: row.recorded_at, zoneId: row.sensor_location }] : []
+        }) as any
+        const nextHarvest = tasks.filter(task => !task.completed && task.taskType === 'Harvest').sort((a, b) => a.date.localeCompare(b.date))[0]?.date
+        const alerts = await checkHealthAlerts({
+          garden, tasks, weather, sensorData, checkedAt: checkedAt.toISOString(),
+          environmentalHistorySummary: environmentalSummary,
+          productAvailability: inventoryRes.error ? 'unknown' : inventoryRes.data?.length ? 'available' : 'unavailable',
+          nextHarvestDate: nextHarvest,
         })
 
-        console.log(`[Health Check] Garden ${garden.name}: ${newAlerts.length} potential alerts`)
-
-        // Salva nuovi alert (con controllo duplicati)
-        for (const alert of newAlerts) {
-          try {
-            // Check se alert simile già esiste (stesso tipo + titolo + giardino + non risolto)
-            const { data: existingAlerts } = await supabase
-              .from('health_alerts')
-              .select('id')
-              .eq('garden_id', garden.id)
-              .eq('alert_type', alert.alertType)
-              .eq('title', alert.title)
-              .eq('resolved', false)
-              .limit(1)
-
-            if (existingAlerts && existingAlerts.length > 0) {
-              results.alertsSkipped++
-              console.log(`[Health Check] Skipping duplicate alert: ${alert.title}`)
-              continue
-            }
-
-            // Crea nuovo alert
-            const { error: insertError } = await supabase
-              .from('health_alerts')
-              .insert({
-                garden_id: alert.gardenId,
-                plant_id: alert.plantId || null,
-                alert_type: alert.alertType,
-                severity: alert.severity,
-                source: alert.source,
-                title: alert.title,
-                message: alert.message,
-                recommendation: alert.recommendation || null,
-                resolved: false,
-                metadata: alert.metadata || null
-              })
-
-            if (insertError) {
-              results.errors.push(`Alert insert failed: ${insertError.message}`)
-            } else {
-              results.alertsCreated++
-            }
-          } catch (alertError: any) {
-            results.errors.push(`Alert processing error: ${alertError.message}`)
+        for (const alert of alerts) {
+          const metadata = alert.metadata || {}
+          const fingerprint = String(metadata.fingerprint)
+          const { data: existing } = await supabase.from('health_alerts').select('id, occurrence_count')
+            .eq('garden_id', gardenRow.id).eq('fingerprint', fingerprint).eq('resolved', false).maybeSingle()
+          let alertId: string
+          if (existing) {
+            await supabase.from('health_alerts').update({
+              severity: alert.severity, message: alert.message, recommendation: alert.recommendation,
+              metadata, last_seen_at: checkedAt.toISOString(), occurrence_count: (existing.occurrence_count || 1) + 1,
+              confidence: metadata.confidence, freshness_hours: metadata.freshnessHours,
+              contraindications: metadata.contraindications || [], input_snapshot: metadata.inputSnapshot || {},
+            }).eq('id', existing.id)
+            alertId = existing.id
+            result.alertsRefreshed += 1
+          } else {
+            const { data: inserted, error: insertError } = await supabase.from('health_alerts').insert({
+              garden_id: gardenRow.id, plant_id: alert.plantId || null, alert_type: alert.alertType,
+              severity: alert.severity, source: alert.source, title: alert.title, message: alert.message,
+              recommendation: alert.recommendation || null, resolved: false, metadata,
+              fingerprint, source_kind: metadata.sourceKind, rule_id: metadata.ruleId, rule_version: metadata.ruleVersion,
+              confidence: metadata.confidence, input_snapshot: metadata.inputSnapshot || {},
+              freshness_hours: metadata.freshnessHours, contraindications: metadata.contraindications || [],
+              first_seen_at: checkedAt.toISOString(), last_seen_at: checkedAt.toISOString(),
+            }).select('id').single()
+            if (insertError || !inserted) throw new Error(insertError?.message ?? 'health_alert_insert_failed')
+            alertId = inserted.id
+            result.alertsCreated += 1
           }
+
+          if (alert.severity === 'critical') {
+            const sourceKey = monitoringTaskSourceKey(fingerprint)
+            const { data: existingTask } = await supabase.from('garden_tasks').select('id')
+              .eq('garden_id', gardenRow.id).eq('monitoring_source_key', sourceKey).eq('completed', false).maybeSingle()
+            if (!existingTask) {
+              const { error: taskError } = await supabase.from('garden_tasks').insert({
+                garden_id: gardenRow.id, plant_name: alert.plantId || 'Monitoraggio garden',
+                task_type: 'Treatment', date: checkedAt.toISOString().slice(0, 10), completed: false,
+                notes: ['PROPOSTA DA CONFERMARE - non e una diagnosi o esecuzione', alert.title, alert.message, alert.recommendation].filter(Boolean).join('\n'),
+                is_suggested: true, suggested_by: 'health-monitoring-cron', monitoring_source_key: sourceKey,
+              })
+              if (!taskError) result.tasksCreated += 1
+            }
+          }
+
+          const emailAllowed = Boolean(prefsRes.data?.email_enabled && prefsRes.data?.weather_alerts)
+          await supabase.from('monitoring_notification_queue').upsert({
+            alert_id: alertId, garden_id: gardenRow.id, user_id: gardenRow.user_id, channel: 'email',
+            status: emailAllowed ? 'queued' : 'suppressed', suppression_reason: emailAllowed ? null : 'notification_preferences',
+            payload: { title: alert.title, message: alert.message, severity: alert.severity },
+          }, { onConflict: 'alert_id,channel', ignoreDuplicates: true })
         }
-      } catch (gardenError: any) {
-        results.errors.push(`Garden ${gardenDb.id} failed: ${gardenError.message}`)
-        results.success = false
+        await supabase.from('monitoring_runs').update({
+          status: 'completed', completed_at: new Date().toISOString(),
+          input_snapshot: { weatherRows: weatherRows.length, sensors: sensors.length, tasks: tasks.length, environmentalSummary },
+          result_summary: { alerts: alerts.length },
+        }).eq('id', run.id)
+      } catch (gardenError) {
+        const message = gardenError instanceof Error ? gardenError.message : 'monitoring_garden_failed'
+        await supabase.from('monitoring_runs').update({ status: 'failed', completed_at: new Date().toISOString(), last_error: message }).eq('id', run.id)
+        await supabase.from('monitoring_error_queue').insert({
+          run_id: run.id, garden_id: gardenRow.id, stage: 'garden_check', error_code: 'monitoring_garden_failed',
+          error_message: message, payload: { idempotencyKey: key }, attempts: 0, status: 'pending',
+          next_retry_at: new Date(Date.now() + 30 * 60_000).toISOString(),
+        })
+        result.errorsQueued += 1
       }
     }
-
-    results.duration = Date.now() - startTime
-
-    console.log(`[Health Check] Completed in ${results.duration}ms:`, {
-      gardensChecked: results.gardensChecked,
-      alertsCreated: results.alertsCreated,
-      alertsSkipped: results.alertsSkipped,
-      errors: results.errors.length
-    })
-
-    return NextResponse.json(results)
-  } catch (error: any) {
-    results.success = false
-    results.duration = Date.now() - startTime
-    results.errors.push(error.message)
-
-    console.error('[Health Check] Fatal error:', error)
-
-    return NextResponse.json(
-      { ...results, error: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, ...result, durationMs: Date.now() - start })
+  } catch (error) {
+    const status = error instanceof Error && error.message.includes('cron') ? 401 : 500
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'health_monitoring_failed' }, { status })
   }
 }
 
-// Per sviluppo locale (non richiede auth)
-export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json(
-      { error: 'POST only allowed in development' },
-      { status: 403 }
-    )
-  }
-
-  return GET(request)
-}
+export const POST = GET

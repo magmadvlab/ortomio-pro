@@ -29,12 +29,25 @@ export interface AlertCheckContext {
   tasks: any[] // GardenTask[]
   weather?: WeatherData
   sensorData?: SensorReading[]
+  checkedAt?: string
+  environmentalHistorySummary?: {
+    entries: number
+    highDiseasePressureDays: number
+    highSoilWaterStressDays: number
+    deficitWaterBalanceDays: number
+  } | null
+  productAvailability?: 'available' | 'unavailable' | 'unknown'
+  nextHarvestDate?: string
 }
 
 export interface WeatherData {
   temp: number
   humidity: number
   rainTomorrow: boolean
+  rainMm?: number
+  windSpeed?: number
+  recordedAt?: string
+  source?: string
   forecast?: {
     date: string
     temp: number

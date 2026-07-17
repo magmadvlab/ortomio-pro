@@ -411,42 +411,42 @@ Ogni azione fisica ha stato, provenienza, conferma e outcome; nessuna simulazion
 
 ### 11.1 Salute
 
-- [ ] collegare gli engine legacy alla memoria ambientale canonica;
-- [ ] rimuovere placeholder di pattern storici;
-- [ ] deduplicare alert e task;
-- [ ] applicare vento, pioggia, temperatura, carenza e disponibilita prodotto;
-- [ ] mostrare input, regola, confidence, freshness e controindicazioni;
-- [ ] separare rischio, diagnosi, proposta ed esecuzione.
+- [x] collegare gli engine legacy alla memoria ambientale canonica;
+- [x] rimuovere placeholder di pattern storici;
+- [x] deduplicare alert e task;
+- [x] applicare vento, pioggia, temperatura, carenza e disponibilita prodotto;
+- [x] mostrare input, regola, confidence, freshness e controindicazioni;
+- [x] separare rischio, diagnosi, proposta ed esecuzione.
 
 ### 11.2 Predizioni AI
 
-- [ ] rimuovere/disabilitare GET mock;
-- [ ] caricare input server-side dal garden autorizzato;
-- [ ] non fidarsi di weather/soil/health inviati dal client;
-- [ ] versionare regola/modello;
-- [ ] dichiarare orizzonte e data di validita;
-- [ ] mostrare `dati insufficienti` quando necessario;
-- [ ] persistere forecast e outcome;
-- [ ] calcolare errore e calibrazione delle confidence;
-- [ ] esporre la pagina nel menu soltanto dopo il gate E2E.
+- [x] rimuovere/disabilitare GET mock;
+- [x] caricare input server-side dal garden autorizzato;
+- [x] non fidarsi di weather/soil/health inviati dal client;
+- [x] versionare regola/modello;
+- [x] dichiarare orizzonte e data di validita;
+- [x] mostrare `dati insufficienti` quando necessario;
+- [x] persistere forecast e outcome;
+- [x] calcolare errore e calibrazione delle confidence;
+- [x] esporre la pagina nel menu soltanto dopo il gate E2E (flag mantenuto spento fino a P8).
 
 ### 11.3 Continuous monitoring
 
-- [ ] persistere alert e ultimo controllo;
-- [ ] spostare l'esecuzione su job/cron durevole;
-- [ ] rendere idempotente la creazione task;
-- [ ] applicare preferenze/consenso notifiche;
-- [ ] implementare error queue;
-- [ ] distinguere alert osservato, previsto e simulato.
+- [x] persistere alert e ultimo controllo;
+- [x] spostare l'esecuzione su job/cron durevole;
+- [x] rendere idempotente la creazione task;
+- [x] applicare preferenze/consenso notifiche;
+- [x] implementare error queue;
+- [x] distinguere alert osservato, previsto e simulato.
 
 ### Test obbligatori
 
-- [ ] previsione riproducibile dagli input registrati;
-- [ ] garden non autorizzato rifiutato;
-- [ ] input mancanti → stato insufficiente;
-- [ ] task monitoraggio non duplicato;
-- [ ] restart non perde alert;
-- [ ] dato simulato non aumenta confidence reale.
+- [x] previsione riproducibile dagli input registrati;
+- [x] garden non autorizzato rifiutato;
+- [x] input mancanti → stato insufficiente;
+- [x] task monitoraggio non duplicato;
+- [x] restart non perde alert;
+- [x] dato simulato non aumenta confidence reale.
 
 ### Criterio di uscita
 
@@ -754,7 +754,7 @@ Compilare durante l'esecuzione.
 | P2 | completato e verificato localmente | `codex/ortomio-p2-capabilities` | nessuna | capabilities 7/7; type-check; security 10/10; precision 228/228; build 141/141; diff-check | nessuna modifica remota richiesta | descriptor unico; Admin/satellite role-based; Help e ricerca senza route morte; alias consolidati; evidenza `docs/reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md` |
 | P3 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p3-persistence` | `20260717010000_p3_core_persistence.sql`; replay doppio e test RLS su PostgreSQL 16 | persistence 9/9; type-check; security 10/10; precision 228/228; build 141/141; diff-check | migrazione non applicata | writer DB-first e fail-closed; restano snapshot/backup e test allegato cross-user remoto; evidenza `docs/reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md` |
 | P4 | implementazione locale completata; gate provider/remoto bloccato | `codex/ortomio-p4-physical-operations` | `20260717020000_p4_physical_operation_lifecycle.sql`; replay doppio e test RLS/constraint/transazione su PostgreSQL 16 | physical-operations 6/6; type-check; security 10/10; precision 228/228; build 142/142; diff-check | migrazione non applicata; nessuna attuazione ThingsBoard inviata | flag avanzati spenti fino a P8; manca device staging classificato; evidenza `docs/reports/P4_PHYSICAL_OPERATIONS_EVIDENCE_2026-07-17.md` |
-| P5 | non iniziato | — | — | — | — | — |
+| P5 | implementazione locale completata; gate staging bloccato | `codex/ortomio-p5-health-predictions-monitoring` | `20260717030000_p5_health_prediction_monitoring.sql`; replay doppio e test RLS/vincoli su PostgreSQL 16 | health/predictions/monitoring 7/7; security 10/10; capabilities 7/7; persistence 9/9; physical 6/6; precision 228/228; type-check; build 142/142; diff-check | migrazione e cron non applicati; menu predizioni spento | alert e forecast persistenti e riproducibili; outcome/calibrazione; evidenza `docs/reports/P5_HEALTH_PREDICTIONS_MONITORING_EVIDENCE_2026-07-17.md` |
 | P6 | non iniziato | — | — | — | — | — |
 | P7 | non iniziato | — | — | — | — | — |
 | P8 | non iniziato | — | — | — | — | — |
