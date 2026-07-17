@@ -603,63 +603,63 @@ P9 non puo iniziare con task applicativi P0-P8 ancora aperti, salvo la sola prep
 
 La fonte servita dall'app e `docs/manual/*`.
 
-- [ ] aggiornare `docs/manual/README.md` con data, versione e matrice reale;
-- [ ] aggiornare `01-ai-predictions.md`;
-- [ ] aggiornare `02-drone-operations.md`;
-- [ ] aggiornare `03-traceability.md`;
-- [ ] aggiornare `04-certifications.md` e `04b-bio-certification-guide.md`;
-- [ ] aggiornare `05-ndvi-satellite.md`;
-- [ ] aggiornare `06-prescription-maps.md`;
-- [ ] aggiornare `07-ai-overview.md`;
-- [ ] aggiornare `14-smart-hub.md`;
-- [ ] aggiornare `15-irrigation-system.md`;
-- [ ] aggiornare `16-nutrition-treatments.md`;
-- [ ] aggiornare `21-individual-plants.md`;
-- [ ] aggiornare `23-export-system.md`;
-- [ ] aggiornare `26-integration-api.md`;
-- [ ] aggiornare `27-quick-start.md`;
-- [ ] aggiornare `29-interface-navigation.md`;
-- [ ] aggiornare `32-roadmap.md`;
-- [ ] aggiornare `34-director-orchestrator.md`;
-- [ ] aggiornare `35-automated-diary.md`;
-- [ ] rivedere gli altri capitoli contro la capability matrix;
-- [ ] rimuovere claim garantiti, provider non attivi e risultati non verificati;
-- [ ] distinguere sempre reale, stimato, beta e simulato.
+- [x] aggiornare `docs/manual/README.md` con data, versione e matrice reale;
+- [x] aggiornare `01-ai-predictions.md`;
+- [x] aggiornare `02-drone-operations.md`;
+- [x] aggiornare `03-traceability.md`;
+- [x] aggiornare `04-certifications.md` e `04b-bio-certification-guide.md`;
+- [x] aggiornare `05-ndvi-satellite.md`;
+- [x] aggiornare `06-prescription-maps.md`;
+- [x] aggiornare `07-ai-overview.md`;
+- [x] aggiornare `14-smart-hub.md`;
+- [x] aggiornare `15-irrigation-system.md`;
+- [x] aggiornare `16-nutrition-treatments.md`;
+- [x] aggiornare `21-individual-plants.md`;
+- [x] aggiornare `23-export-system.md`;
+- [x] aggiornare `26-integration-api.md`;
+- [x] aggiornare `27-quick-start.md`;
+- [x] aggiornare `29-interface-navigation.md`;
+- [x] aggiornare `32-roadmap.md`;
+- [x] aggiornare `34-director-orchestrator.md`;
+- [x] aggiornare `35-automated-diary.md`;
+- [x] rivedere gli altri capitoli contro la capability matrix;
+- [x] rimuovere claim garantiti, provider non attivi e risultati non verificati;
+- [x] distinguere sempre reale, stimato, beta e simulato.
 
 ### 15.3 Sincronizzazione manuale pubblico
 
-- [ ] rendere `docs/manual` la fonte unica;
-- [ ] aggiungere `scripts/sync-manual-docs.mjs` o equivalente;
-- [ ] sincronizzare `public/docs/manual/*` dalla fonte;
-- [ ] aggiungere controllo che fallisca se le copie divergono;
-- [ ] verificare che ogni slug servito esista;
-- [ ] verificare che la pagina Help non punti a file mancanti;
+- [x] rendere `docs/manual` la fonte unica;
+- [x] aggiungere `scripts/sync-manual-docs.mjs` o equivalente;
+- [x] sincronizzare `public/docs/manual/*` dalla fonte;
+- [x] aggiungere controllo che fallisca se le copie divergono;
+- [x] verificare che ogni slug servito esista;
+- [x] verificare che la pagina Help non punti a file mancanti;
 - [ ] verificare rendering di titoli, liste, link e tabelle.
 
 ### 15.4 Aggiornamento pagina Help e README
 
-- [ ] aggiornare `app/app/help/page.tsx` con navigazione reale;
-- [ ] rimuovere link a gamification/social/badge se i capitoli non esistono;
-- [ ] filtrare sezioni admin-only tramite capability reale;
-- [ ] aggiornare `README.md` eliminando claim economici non verificati;
-- [ ] collegare il manuale canonico e il masterdoc senza creare duplicati.
+- [x] aggiornare `app/app/help/page.tsx` con navigazione reale;
+- [x] rimuovere link fittizi e riferimenti a contenuti inesistenti;
+- [x] filtrare sezioni admin-only tramite capability reale;
+- [x] aggiornare `README.md` eliminando claim economici non verificati;
+- [x] collegare il manuale canonico e il masterdoc senza creare duplicati.
 
 ### 15.5 Aggiornamento `MASTERDOC.md`
 
-- [ ] aggiornare versione, data, commit e release verificata;
-- [ ] aggiornare la matrice di maturita della sezione 51;
-- [ ] aggiornare navigazione e capability della sezione 52;
-- [ ] chiudere o mantenere i gap di sicurezza della sezione 53;
-- [ ] aggiornare la convergenza dati della sezione 54;
-- [ ] aggiornare lo stato delle simulazioni della sezione 55;
-- [ ] marcare P0-P8 come completati, rimossi o residui nella sezione 56;
-- [ ] sostituire l'ordine PR con la cronologia effettiva;
-- [ ] aggiornare test e gate con risultati finali;
-- [ ] registrare rollout e rollback realmente eseguiti;
-- [ ] aggiornare KPI con misure reali;
+- [x] aggiornare versione, data, commit e release verificata;
+- [x] aggiornare la matrice di maturita della sezione 51;
+- [x] aggiornare navigazione e capability della sezione 52;
+- [x] chiudere o mantenere i gap di sicurezza della sezione 53;
+- [x] aggiornare la convergenza dati della sezione 54;
+- [x] aggiornare lo stato delle simulazioni della sezione 55;
+- [x] marcare P0-P8 come completati, rimossi o residui nella sezione 56;
+- [x] sostituire l'ordine PR con la cronologia effettiva;
+- [x] aggiornare test e gate con risultati finali;
+- [x] registrare rollout e rollback realmente eseguiti;
+- [x] aggiornare KPI con misure reali;
 - [ ] riscrivere la Definition of Done soltanto se il contratto e cambiato;
-- [ ] aggiungere una sezione release finale con limiti residui;
-- [ ] verificare che nessun documento generale concorrente venga presentato come canonico.
+- [x] aggiungere una sezione release finale con limiti residui;
+- [x] verificare che nessun documento generale concorrente venga presentato come canonico.
 
 ### 15.6 Verifica documentale finale
 
