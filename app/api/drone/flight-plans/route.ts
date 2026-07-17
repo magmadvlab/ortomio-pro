@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { droneIntegrationService } from '@/services/droneIntegrationService'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     const flightPlans = await droneIntegrationService.getFlightPlans(gardenId)
 
@@ -25,6 +27,8 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error fetching flight plans:', error)
     return NextResponse.json(
       { error: 'Failed to fetch flight plans' },
@@ -44,6 +48,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     const flightPlan = await droneIntegrationService.createFlightPlan(gardenId, type, options || {})
 
@@ -53,6 +58,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error creating flight plan:', error)
     return NextResponse.json(
       { error: 'Failed to create flight plan' },

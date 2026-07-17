@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAccessError, requireAdmin } from '@/lib/auth.server';
 
 export async function GET(request: NextRequest) {
   try {
+    await requireAdmin(request);
     // Check environment variables for Sentinel Hub credentials
     const clientId = process.env.SH_CLIENT_ID;
     const clientSecret = process.env.SH_CLIENT_SECRET;
@@ -22,6 +24,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(config);
   } catch (error: any) {
+    if (isAccessError(error)) {
+      return NextResponse.json({ error: error.code }, { status: error.status });
+    }
     console.error('Error checking NDVI config status:', error);
     return NextResponse.json(
       { error: 'Failed to check configuration status' },

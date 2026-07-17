@@ -423,8 +423,7 @@ export async function getRotationSuggestions(
   try {
     const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase.rpc('get_rotation_suggestions', {
-      row_id: rowId,
-      zone_id: zoneId || null
+      row_id: rowId
     });
     
     if (error) throw error;

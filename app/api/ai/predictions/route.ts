@@ -7,6 +7,7 @@ import { aiPredictiveEngine } from '@/services/aiPredictiveEngine'
 import { buildAIGroundingContext } from '@/services/aiGroundingService'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     const storageProvider = getDefaultStorageProvider()
     const resolvedContext = await resolveGardenContext(storageProvider, gardenId).catch(() => null)
@@ -77,6 +79,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error generating AI predictions:', error)
     return NextResponse.json(
       { error: 'Failed to generate AI predictions' },
@@ -96,6 +100,7 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     // Mock data for demonstration
     const mockWeatherData = {
@@ -154,6 +159,8 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error fetching AI predictions:', error)
     return NextResponse.json(
       { error: 'Failed to fetch AI predictions' },

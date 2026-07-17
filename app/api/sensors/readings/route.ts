@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyTier } from '@/lib/auth.server';
-import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server';
+import { accessErrorResponse, getSupabaseClient, isAccessError, isSupabaseAvailable, requireGardenAccess, requireUser } from '@/lib/auth.server';
+import { isBypassActive } from '@/lib/auth-bypass';
 import {
   saveSensorReading,
   SensorType,
@@ -34,27 +34,7 @@ function checkRateLimit(gardenId: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    // In locale senza Supabase, simula successo
-    if (!isSupabaseAvailable()) {
-      const body = await request.json();
-      return NextResponse.json({
-        reading: {
-          id: crypto.randomUUID(),
-          ...body,
-          reading_date: body.reading_date || new Date().toISOString(),
-          is_simulated: body.is_simulated ?? false,
-        },
-      });
-    }
-
-    // Verifica autenticazione (tier PRO non richiesto, anche FREE può avere sensori)
-    const result = await verifyTier(request, ['FREE', 'PRO']);
-
-    if ('error' in result) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
-    }
-
-    const { user } = result;
+    await requireUser(request);
     const body = await request.json();
 
     const {
@@ -81,6 +61,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await requireGardenAccess(request, garden_id);
 
     // Validazione sensor_type
     if (!SUPPORTED_SENSOR_TYPES.includes(sensor_type as SensorType)) {
@@ -134,30 +116,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verifica che garden appartenga all'utente
+    if (!isSupabaseAvailable()) {
+      if (!isBypassActive()) {
+        return NextResponse.json({ error: 'supabase_unavailable' }, { status: 503 });
+      }
+
+      return NextResponse.json({
+        reading: {
+          id: crypto.randomUUID(),
+          ...body,
+          reading_date: body.reading_date || new Date().toISOString(),
+          is_simulated: body.is_simulated ?? false,
+        },
+      }, { status: 201 });
+    }
+
     const supabase = getSupabaseClient();
     if (!supabase) {
       return NextResponse.json({ error: 'supabase_unavailable' }, { status: 500 });
-    }
-
-    const { data: garden, error: gardenError } = await supabase
-      .from('gardens')
-      .select('id, user_id')
-      .eq('id', garden_id)
-      .single();
-
-    if (gardenError || !garden) {
-      return NextResponse.json(
-        { error: 'garden_not_found', message: `Garden ${garden_id} non trovato` },
-        { status: 404 }
-      );
-    }
-
-    if (garden.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'unauthorized', message: 'Garden non appartiene all\'utente' },
-        { status: 403 }
-      );
     }
 
     // Verifica zone_id se fornito
@@ -213,6 +189,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ reading }, { status: 201 });
   } catch (error: unknown) {
+    if (isAccessError(error)) return accessErrorResponse(error);
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Sensor readings POST error:', error);
     return NextResponse.json(

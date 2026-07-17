@@ -5,12 +5,47 @@
  */
 
 import 'server-only'
-import { NextRequest } from 'next/server'
+import { createHash, timingSafeEqual } from 'node:crypto'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isBypassActive, getMockUser } from './auth-bypass'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+export type AccessErrorCode =
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not_found'
+  | 'invalid_cron_request'
+  | 'replayed_cron_request'
+  | 'unauthorized_device'
+
+export class AccessError extends Error {
+  constructor(
+    public readonly code: AccessErrorCode,
+    public readonly status: 401 | 403 | 404 | 409,
+  ) {
+    super(code)
+    this.name = 'AccessError'
+  }
+}
+
+const safeEqual = (actual: string | undefined, expected: string | undefined): boolean => {
+  if (!actual || !expected) return false
+  const actualBuffer = Buffer.from(actual)
+  const expectedBuffer = Buffer.from(expected)
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
+}
+
+const cronReplayCache = new Map<string, number>()
+const CRON_REPLAY_WINDOW_MS = 10 * 60 * 1000
+
+const pruneCronReplayCache = (now: number) => {
+  for (const [key, expiresAt] of cronReplayCache.entries()) {
+    if (expiresAt <= now) cronReplayCache.delete(key)
+  }
+}
 
 /**
  * Check if Supabase is available (server-side)
@@ -137,6 +172,126 @@ export async function getUserFromRequest(request: NextRequest) {
   return user
 }
 
+type AuthorizationDependencies = {
+  getUserFromRequestFn?: typeof getUserFromRequest
+  getSupabaseClientFn?: typeof getSupabaseClient
+  getUserProfileFn?: (userId: string) => Promise<any>
+}
+
+export async function requireUser(request: NextRequest, dependencies: AuthorizationDependencies = {}) {
+  const user = await (dependencies.getUserFromRequestFn ?? getUserFromRequest)(request)
+  if (!user) throw new AccessError('unauthorized', 401)
+  return user
+}
+
+export async function requireAdmin(request: NextRequest, dependencies: AuthorizationDependencies = {}) {
+  const user = await requireUser(request, dependencies)
+  const profile = await (dependencies.getUserProfileFn ?? getUserProfile)(user.id)
+  if (!profile || (profile.role !== 'admin' && !profile.is_superadmin)) {
+    throw new AccessError('forbidden', 403)
+  }
+  return { user, profile }
+}
+
+export async function requireGardenAccess(request: NextRequest, gardenId: string, dependencies: AuthorizationDependencies = {}) {
+  const user = await requireUser(request, dependencies)
+  if (!gardenId) throw new AccessError('not_found', 404)
+
+  if (isBypassActive()) {
+    return { user, garden: { id: gardenId, user_id: user.id } }
+  }
+
+  const supabase = (dependencies.getSupabaseClientFn ?? getSupabaseClient)()
+  const { data: garden, error } = await supabase
+    .from('gardens')
+    .select('*')
+    .eq('id', gardenId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (error || !garden) throw new AccessError('not_found', 404)
+  return { user, garden }
+}
+
+export async function requireOrganizationAccess(request: NextRequest, organizationId: string, dependencies: AuthorizationDependencies = {}) {
+  const user = await requireUser(request, dependencies)
+  if (!organizationId) throw new AccessError('not_found', 404)
+
+  if (isBypassActive()) {
+    return { user, membership: { organization_id: organizationId, user_id: user.id, status: 'Active' } }
+  }
+
+  const supabase = (dependencies.getSupabaseClientFn ?? getSupabaseClient)()
+  const { data: membership, error } = await supabase
+    .from('organization_members')
+    .select('id, organization_id, user_id, role_id, status')
+    .eq('organization_id', organizationId)
+    .eq('user_id', user.id)
+    .eq('status', 'Active')
+    .maybeSingle()
+
+  if (error || !membership) throw new AccessError('not_found', 404)
+  return { user, membership }
+}
+
+export function requireCron(request: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  const authorization = request.headers.get('authorization')
+  if (!safeEqual(authorization ?? undefined, secret ? `Bearer ${secret}` : undefined)) {
+    throw new AccessError('invalid_cron_request', 401)
+  }
+
+  const now = Date.now()
+  const timestampHeader = request.headers.get('x-cron-timestamp')
+  if (timestampHeader) {
+    const timestamp = Number(timestampHeader)
+    if (!Number.isFinite(timestamp) || Math.abs(now - timestamp) > CRON_REPLAY_WINDOW_MS) {
+      throw new AccessError('invalid_cron_request', 401)
+    }
+  }
+
+  pruneCronReplayCache(now)
+  const requestId = request.headers.get('x-vercel-id') || request.headers.get('x-cron-request-id')
+  const fallbackWindow = Math.floor(now / 60_000)
+  const replayMaterial = `${request.method}:${request.nextUrl.pathname}:${requestId || fallbackWindow}`
+  const replayKey = createHash('sha256').update(replayMaterial).digest('hex')
+  if (cronReplayCache.has(replayKey)) throw new AccessError('replayed_cron_request', 409)
+  cronReplayCache.set(replayKey, now + CRON_REPLAY_WINDOW_MS)
+
+  return { requestId: requestId || null }
+}
+
+export function requireDeviceSource(request: NextRequest, deviceId: string) {
+  const token = request.headers.get('x-device-token') || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+  let deviceTokens: Record<string, string> = {}
+
+  try {
+    deviceTokens = JSON.parse(process.env.IOT_DEVICE_TOKENS_JSON || '{}')
+  } catch {
+    throw new AccessError('unauthorized_device', 401)
+  }
+
+  const expectedToken = deviceTokens[deviceId]
+  const developmentFallback = process.env.NODE_ENV === 'development'
+    ? process.env.IOT_WEBHOOK_SECRET
+    : undefined
+
+  if (!safeEqual(token ?? undefined, expectedToken || developmentFallback)) {
+    throw new AccessError('unauthorized_device', 401)
+  }
+
+  return { deviceId }
+}
+
+export function isAccessError(error: unknown): error is AccessError {
+  return error instanceof AccessError
+}
+
+export function accessErrorResponse(error: unknown) {
+  if (!isAccessError(error)) return null
+  return NextResponse.json({ error: error.code }, { status: error.status })
+}
+
 /**
  * Get user profile with tier
  */
@@ -246,5 +401,3 @@ export async function requireTier(
     profile: result.profile,
   }
 }
-
-

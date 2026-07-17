@@ -5,31 +5,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
+import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server';
 
 // GET /api/calendar/tasks?start_date=&end_date=
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     
-    // TODO: Get user from auth
-    // const user = await getCurrentUser(request);
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-    
-    // Per ora, usa user_id da query (temporaneo)
-    const userId = searchParams.get('user_id');
-    if (!userId) {
-      return NextResponse.json({ error: 'user_id required' }, { status: 400 });
-    }
-    
     let query = supabase
       .from('calendar_tasks')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('start_date', { ascending: true });
     
     if (startDate) {
@@ -52,6 +42,8 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ tasks: expandedTasks });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in GET /api/calendar/tasks:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -63,21 +55,23 @@ export async function GET(request: NextRequest) {
 // POST /api/calendar/tasks
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const body = await request.json();
-    const { user_id, title, type, start_date, recurring, recurring_pattern, garden_id, plant_name, notes } = body;
+    const { title, type, start_date, recurring, recurring_pattern, garden_id, plant_name, notes } = body;
     
-    if (!user_id || !title || !type || !start_date) {
+    if (!title || !type || !start_date) {
       return NextResponse.json(
-        { error: 'Missing required fields: user_id, title, type, start_date' },
+        { error: 'Missing required fields: title, type, start_date' },
         { status: 400 }
       );
     }
+    if (garden_id) await requireGardenAccess(request, garden_id);
     
     const { data, error } = await supabase
       .from('calendar_tasks')
       .insert({
-        user_id,
+        user_id: user.id,
         title,
         type,
         start_date,
@@ -99,6 +93,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ task: data }, { status: 201 });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in POST /api/calendar/tasks:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -110,6 +106,7 @@ export async function POST(request: NextRequest) {
 // PATCH /api/calendar/tasks/[id]
 export async function PATCH(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get('id');
@@ -125,13 +122,22 @@ export async function PATCH(request: NextRequest) {
       .from('calendar_tasks')
       .select('challenge_id, challenge_action_index, user_id, completed')
       .eq('id', taskId)
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!existingTask) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    }
     
     // Aggiorna il task
-    const updateData: any = {
-      ...body,
+    const allowedFields = ['title', 'type', 'start_date', 'end_date', 'recurring', 'recurring_pattern', 'garden_id', 'plant_name', 'notes', 'completed'] as const;
+    const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString()
     };
+    for (const field of allowedFields) {
+      if (field in body) updateData[field] = body[field];
+    }
+    if (typeof updateData.garden_id === 'string') await requireGardenAccess(request, updateData.garden_id);
     
     // Se viene marcato come completato, aggiungi completed_at
     if (body.completed === true && !body.completed_at) {
@@ -147,6 +153,7 @@ export async function PATCH(request: NextRequest) {
       .from('calendar_tasks')
       .update(updateData)
       .eq('id', taskId)
+      .eq('user_id', user.id)
       .select()
       .single();
     
@@ -187,6 +194,8 @@ export async function PATCH(request: NextRequest) {
     
     return NextResponse.json({ task: data });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in PATCH /api/calendar/tasks:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -198,6 +207,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/calendar/tasks/[id]
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get('id');
@@ -209,7 +219,8 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase
       .from('calendar_tasks')
       .delete()
-      .eq('id', taskId);
+      .eq('id', taskId)
+      .eq('user_id', user.id);
     
     if (error) {
       console.error('Error deleting calendar task:', error);
@@ -218,6 +229,8 @@ export async function DELETE(request: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in DELETE /api/calendar/tasks:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

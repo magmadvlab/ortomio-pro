@@ -142,7 +142,7 @@ export const getMockUser = () => {
   }
   
   return {
-    id: 'local-dev-user-' + Date.now(),
+    id: '00000000-0000-4000-8000-000000000001',
     email: 'dev@localhost',
     email_confirmed_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
@@ -187,4 +187,3 @@ export const validateProductionSecurity = (): SecurityValidation => {
 // Export del controller per uso avanzato
 export { SecurityBypassController };
 export type { SecurityConfig, SecurityValidation };
-

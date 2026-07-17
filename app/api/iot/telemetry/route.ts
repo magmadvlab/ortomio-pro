@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { thingsboardService } from '@/services/thingsboardService'
+import { accessErrorResponse, isAccessError, requireDeviceSource } from '@/lib/auth.server'
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
         const { deviceId, telemetry } = body
 
-        if (!telemetry || typeof telemetry !== 'object') {
+        if (!deviceId || !telemetry || typeof telemetry !== 'object') {
             return NextResponse.json(
                 { error: 'Invalid telemetry data' },
                 { status: 400 }
             )
         }
+
+        requireDeviceSource(req, deviceId)
 
         // In a real scenario, we might want to look up the access token based on deviceId
         // For now, we use the single configured token environment variable
@@ -21,6 +24,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Telemetry sent to ThingsBoard' })
     } catch (error) {
+        if (isAccessError(error)) return accessErrorResponse(error)
         console.error('API Error sending telemetry:', error)
         return NextResponse.json(
             { error: 'Failed to process telemetry' },

@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainTraceabilityService } from '@/services/blockchainTraceabilityService'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     const nftCertificate = await blockchainTraceabilityService.generateNFTCertificate(productId, gardenId, certificateData)
 
@@ -25,6 +27,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error generating NFT certificate:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate NFT certificate' },

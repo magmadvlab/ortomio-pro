@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { droneIntegrationService } from '@/services/droneIntegrationService'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     const flightPlan = await droneIntegrationService.generateAutomaticFlightPlan(gardenId)
 
@@ -25,6 +27,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error generating automatic flight plan:', error)
     return NextResponse.json(
       { error: 'Failed to generate automatic flight plan' },

@@ -4,9 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainTraceabilityService } from '@/services/blockchainTraceabilityService'
+import { accessErrorResponse, requireUser } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
+    await requireUser(request)
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
@@ -25,6 +27,8 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error fetching consumer traceability:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch traceability data' },
@@ -35,6 +39,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await requireUser(request)
     const body = await request.json()
     const { productId } = body
 
@@ -53,6 +58,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error generating consumer QR:', error)
     return NextResponse.json(
       { error: 'Failed to generate consumer QR' },

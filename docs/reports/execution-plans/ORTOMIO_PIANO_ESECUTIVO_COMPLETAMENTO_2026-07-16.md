@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0 completata e verificata il 16 luglio 2026; P1 pronta
+- **Stato esecuzione:** P0 completata; P1 implementata e verificata in locale il 17 luglio 2026, gate remoto in attesa di staging/backup
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -192,55 +192,55 @@ Impedire accessi anonimi, cross-user e cross-organization ai dati operativi.
 
 ### 7.1 Sessione e autorizzazione canoniche
 
-- [ ] consolidare gli helper server-only in `lib/auth.server.ts` o modulo dedicato;
-- [ ] implementare `requireUser`;
-- [ ] implementare `requireAdmin`;
-- [ ] implementare `requireGardenAccess`;
-- [ ] implementare `requireOrganizationAccess`;
-- [ ] implementare `requireCron` con protezione replay minima;
-- [ ] implementare `requireDeviceSource` con credenziale specifica per device;
-- [ ] restituire errori 401/403/404 coerenti senza rivelare risorse altrui;
-- [ ] mantenere il bypass soltanto su localhost development.
+- [x] consolidare gli helper server-only in `lib/auth.server.ts` o modulo dedicato;
+- [x] implementare `requireUser`;
+- [x] implementare `requireAdmin`;
+- [x] implementare `requireGardenAccess`;
+- [x] implementare `requireOrganizationAccess`;
+- [x] implementare `requireCron` con protezione replay minima;
+- [x] implementare `requireDeviceSource` con credenziale specifica per device;
+- [x] restituire errori 401/403/404 coerenti senza rivelare risorse altrui;
+- [x] mantenere il bypass soltanto su localhost development.
 
 ### 7.2 Protezione pagine
 
-- [ ] aggiungere `proxy.ts` o il meccanismo Next 16 equivalente per `/app/*`;
-- [ ] mantenere `AuthGuard` come UX, non come unica barriera;
-- [ ] verificare sessione/ruolo prima del payload Admin;
-- [ ] testare anonimo, utente, PRO non-admin e admin.
+- [x] aggiungere `proxy.ts` o il meccanismo Next 16 equivalente per `/app/*`;
+- [x] mantenere `AuthGuard` come UX, non come unica barriera;
+- [x] verificare sessione/ruolo prima del payload Admin;
+- [x] testare anonimo, utente, PRO non-admin e admin.
 
 ### 7.3 Chiusura API P0
 
-- [ ] disabilitare `/api/test` e `/test` in produzione;
-- [ ] rendere admin-only `/api/ndvi/config-status`;
-- [ ] eliminare il write runtime di `.env.local` da `/api/ndvi/save-credentials`;
-- [ ] eliminare l'esecuzione script da `/api/ndvi/setup-credentials`;
-- [ ] derivare `user_id` dalla sessione in `/api/ai/suggestions`;
-- [ ] derivare `user_id` dalla sessione nelle API calendario/challenge;
-- [ ] verificare ownership garden in `/api/ai/predictions`;
-- [ ] proteggere le write blockchain e drone;
-- [ ] autenticare `/api/iot/telemetry`;
-- [ ] applicare rate limit a AI, supporto e provider esterni.
+- [x] disabilitare `/api/test` e `/test` in produzione;
+- [x] rendere admin-only `/api/ndvi/config-status`;
+- [x] eliminare il write runtime di `.env.local` da `/api/ndvi/save-credentials`;
+- [x] eliminare l'esecuzione script da `/api/ndvi/setup-credentials`;
+- [x] derivare `user_id` dalla sessione in `/api/ai/suggestions`;
+- [x] derivare `user_id` dalla sessione nelle API calendario/challenge;
+- [x] verificare ownership garden in `/api/ai/predictions`;
+- [x] proteggere le write blockchain e drone;
+- [x] autenticare `/api/iot/telemetry`;
+- [x] applicare rate limit a AI, supporto e provider esterni.
 
 ### 7.4 RLS
 
-- [ ] scrivere migrazioni additive per policy mancanti;
-- [ ] coprire SELECT/INSERT/UPDATE/DELETE;
-- [ ] testare accesso cross-user e cross-organization;
-- [ ] verificare che le route service-role applichino gli stessi vincoli;
+- [x] scrivere migrazioni additive per policy mancanti;
+- [x] coprire SELECT/INSERT/UPDATE/DELETE;
+- [x] testare accesso cross-user e cross-organization;
+- [x] verificare che le route service-role applichino gli stessi vincoli;
 - [ ] applicare le migrazioni in staging;
 - [ ] rieseguire Security Advisor;
-- [ ] preparare query di rollback/verifica.
+- [x] preparare query di verifica e strategia di rollback sicura; il rollback post-commit richiede staging/snapshot.
 
 ### Test obbligatori
 
-- [ ] route authenticated senza sessione → 401;
-- [ ] garden di altro utente → 403/404;
-- [ ] PRO non-admin → 403 Admin;
-- [ ] cron senza secret → 401;
-- [ ] device senza credenziale → 401;
-- [ ] route setup/test in produzione → 404/disabled;
-- [ ] test RLS con due utenti e due organizzazioni.
+- [x] route authenticated senza sessione → 401;
+- [x] garden di altro utente → 403/404;
+- [x] PRO non-admin → 403 Admin;
+- [x] cron senza secret → 401;
+- [x] device senza credenziale → 401;
+- [x] route setup/test in produzione → 404/disabled;
+- [x] test RLS con due utenti e due organizzazioni.
 
 ### Criterio di uscita
 
@@ -750,7 +750,7 @@ Compilare durante l'esecuzione.
 | Fase | Stato | Branch/PR | Migrazioni | Test | Produzione | Note/limiti |
 |---|---|---|---|---|---|---|
 | P0 | completato | `codex/ortomio-p0-baseline` | inventario 113 file; confronto Neon/Supabase, nessuna migrazione applicata | audit P0 verde; type-check; 228/228 test; build 140/140; diff-check | Neon letto; Security Advisor Supabase esportato | 53 route/69 metodi, 41 pagine; 6 errori/70 warning/2 info assegnati a P1; backend ibrido e drift espliciti |
-| P1 | non iniziato | — | — | — | — | — |
+| P1 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p1-security` | `20260717000000_p1_security_hardening.sql`; fixture e test RLS transazionale | type-check; security 10/10; precision 228/228; build 140/140; diff-check | Supabase `main` e Production su piano Free; nessun branch/backup; migrazione non applicata | restano staging, password leak protection, Security Advisor post-fix e rollout produzione |
 | P2 | non iniziato | — | — | — | — | — |
 | P3 | non iniziato | — | — | — | — | — |
 | P4 | non iniziato | — | — | — | — | — |

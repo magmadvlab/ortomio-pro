@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { accessErrorResponse, isAccessError, requireAdmin, requireGardenAccess } from '@/lib/auth.server';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bbox, dateFrom, dateTo, cloudCoverage = 20 } = body;
+    const { bbox, dateFrom, dateTo, cloudCoverage = 20, gardenId } = body;
+
+    if (gardenId) {
+      await requireGardenAccess(request, gardenId);
+    } else {
+      await requireAdmin(request);
+    }
 
     // Validazione parametri
     if (!bbox || !bbox.north || !bbox.south || !bbox.east || !bbox.west) {
@@ -16,10 +23,6 @@ export async function POST(request: NextRequest) {
     // Credenziali Sentinel Hub
     const clientId = process.env.SH_CLIENT_ID;
     const clientSecret = process.env.SH_CLIENT_SECRET;
-
-    // Debug log (rimuovere in produzione)
-    console.log('[Sentinel Hub] Client ID presente:', clientId ? 'SI' : 'NO');
-    console.log('[Sentinel Hub] Client Secret presente:', clientSecret ? 'SI' : 'NO');
 
     if (!clientId || !clientSecret) {
       console.warn('Credenziali Sentinel Hub non configurate, usando dati simulati');
@@ -149,6 +152,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
+    if (isAccessError(error)) return accessErrorResponse(error);
     console.error('Errore API NDVI:', error);
     
     // Fallback graceful a dati simulati

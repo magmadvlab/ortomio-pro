@@ -3,20 +3,18 @@ import { requireSupabase } from '@/lib/supabase-server'
 import { mapSmartDeviceFromDb, mapSmartDeviceToDb } from '@/utils/smartDeviceDb'
 import { mapSmartDeviceAutomationLogToDb } from '@/utils/smartDeviceAutomationLogDb'
 import { SmartDevice } from '@/types'
+import { requireDeviceSource } from '@/lib/auth.server'
 
 type CommandStatus = NonNullable<SmartDevice['lastCommandStatus']>
 type IrrigationOutcome = NonNullable<SmartDevice['lastIrrigationOutcome']>
 
-const TELEMETRY_SECRET = process.env.IOT_WEBHOOK_SECRET
-
-const isAuthorized = (request: NextRequest) => {
-  if (!TELEMETRY_SECRET) {
-    return process.env.NODE_ENV === 'development'
+const isAuthorized = (request: NextRequest, deviceId: string) => {
+  try {
+    requireDeviceSource(request, deviceId)
+    return true
+  } catch {
+    return false
   }
-
-  const bearerToken = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  const headerToken = request.headers.get('x-iot-secret')
-  return bearerToken === TELEMETRY_SECRET || headerToken === TELEMETRY_SECRET
 }
 
 const normalizeOutcome = (value: unknown): IrrigationOutcome | undefined => {
@@ -29,7 +27,7 @@ const normalizeOutcome = (value: unknown): IrrigationOutcome | undefined => {
 
 type TelemetryRouteDependencies = {
   requireSupabaseFn?: typeof requireSupabase
-  isAuthorizedFn?: (request: NextRequest) => boolean
+  isAuthorizedFn?: (request: NextRequest, deviceId: string) => boolean
 }
 
 const AUDIT_METADATA_KEYS = [
@@ -129,10 +127,6 @@ export const createTelemetryPostHandler = (
   const isAuthorizedFn = dependencies.isAuthorizedFn ?? isAuthorized
 
   try {
-    if (!isAuthorizedFn(request)) {
-      return NextResponse.json({ error: 'unauthorized_webhook' }, { status: 401 })
-    }
-
     const body = await request.json()
     const { deviceId, externalDeviceId, telemetry } = body ?? {}
 
@@ -141,6 +135,10 @@ export const createTelemetryPostHandler = (
         { error: 'missing_required_fields', message: 'Servono deviceId o externalDeviceId e un payload telemetry valido' },
         { status: 400 }
       )
+    }
+
+    if (!isAuthorizedFn(request, deviceId || externalDeviceId)) {
+      return NextResponse.json({ error: 'unauthorized_webhook' }, { status: 401 })
     }
 
     const supabase = requireSupabaseFn()
