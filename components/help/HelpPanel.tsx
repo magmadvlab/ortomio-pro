@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HelpCircle, X, Book, Video, MessageCircle, ExternalLink, Search } from 'lucide-react';
+import { HelpCircle, X, Book, MessageCircle, ExternalLink, Search } from 'lucide-react';
 
 interface HelpResource {
   id: string;
@@ -28,23 +28,15 @@ export default function HelpPanel({ contextId, resources = [] }: HelpPanelProps)
       title: 'Guida Rapida',
       description: 'Inizia in 5 minuti con OrtoMio',
       type: 'manual',
-      link: '/docs/manual/27-quick-start.md',
+      link: '/docs/manual/27-quick-start',
       category: 'Primi Passi'
-    },
-    {
-      id: 'video-intro',
-      title: 'Video Introduttivo',
-      description: 'Tour completo delle funzionalità',
-      type: 'video',
-      link: 'https://youtube.com/watch?v=example',
-      category: 'Video Tutorial'
     },
     {
       id: 'support',
       title: 'Contatta il Supporto',
       description: 'Assistenza diretta dal team',
       type: 'guide',
-      link: '/docs/manual/33-support-contacts.md',
+      link: '/docs/manual/33-support-contacts',
       category: 'Supporto'
     }
   ];
@@ -60,8 +52,6 @@ export default function HelpPanel({ contextId, resources = [] }: HelpPanelProps)
     switch (type) {
       case 'manual':
         return <Book className="w-5 h-5" />;
-      case 'video':
-        return <Video className="w-5 h-5" />;
       case 'guide':
         return <MessageCircle className="w-5 h-5" />;
       default:
