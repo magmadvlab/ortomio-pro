@@ -91,16 +91,20 @@ test('telemetry handler returns 202 when device update succeeds but audit log in
   const handler = createTelemetryPostHandler({
     requireSupabaseFn: () => supabase as never,
     isAuthorizedFn: () => true,
+    acknowledgeCommandFn: async () => true,
+    nowFn: () => new Date('2026-03-20T10:00:00.000Z'),
   })
 
   const response = await handler(
     createRequest({
       deviceId: 'device-1',
       telemetry: {
+        source: 'thingsboard',
         recordedAt: '2026-03-20T10:00:00.000Z',
         isValveOpen: true,
         flowRateActualLpm: 11.5,
         linePressureBar: 1.7,
+        units: { flowRateActualLpm: 'L/min', linePressureBar: 'bar' },
       },
     }) as never
   )
@@ -181,17 +185,21 @@ test('telemetry handler returns 200, logs audit, and clears previous audit incom
   const handler = createTelemetryPostHandler({
     requireSupabaseFn: () => supabase as never,
     isAuthorizedFn: () => true,
+    acknowledgeCommandFn: async () => true,
+    nowFn: () => new Date('2026-03-20T10:00:00.000Z'),
   })
 
   const response = await handler(
     createRequest({
       externalDeviceId: 'tb-device-1',
       telemetry: {
+        source: 'thingsboard',
         recorded_at: '2026-03-20T10:00:00.000Z',
         lastConfirmedValveState: false,
         lastIrrigationOutcome: 'nominal',
         session_liters: 19.5,
         irrigation_delta_moisture: 4.2,
+        units: { sessionLiters: 'L', irrigationDeltaMoisture: 'percentage_points' },
       },
     }) as never
   )

@@ -28,7 +28,101 @@ const normalizeOutcome = (value: unknown): IrrigationOutcome | undefined => {
 type TelemetryRouteDependencies = {
   requireSupabaseFn?: typeof requireSupabase
   isAuthorizedFn?: (request: NextRequest, deviceId: string) => boolean
+  acknowledgeCommandFn?: (input: {
+    supabase: ReturnType<typeof requireSupabase>
+    deviceId: string
+    commandId?: string
+    observedValveState: boolean
+    recordedAt: string
+  }) => Promise<boolean>
+  nowFn?: () => Date
 }
+
+const TELEMETRY_RANGES: Record<string, [number, number]> = {
+  flowRateActualLpm: [0, 10_000],
+  linePressureBar: [0, 50],
+  sessionLiters: [0, 10_000_000],
+  moisture: [0, 100],
+  irrigationDeltaMoisture: [-100, 100],
+}
+
+const EXPECTED_UNITS: Record<string, string> = {
+  flowRateActualLpm: 'L/min',
+  linePressureBar: 'bar',
+  sessionLiters: 'L',
+  moisture: '%',
+  irrigationDeltaMoisture: 'percentage_points',
+}
+
+export const validateTelemetryEnvelope = (
+  telemetry: Record<string, unknown>,
+  now = new Date()
+): { valid: true; recordedAt: string } | { valid: false; error: string } => {
+  const source = telemetry.source
+  if (typeof source !== 'string' || !['device', 'thingsboard', 'sensor_gateway'].includes(source)) {
+    return { valid: false, error: 'invalid_telemetry_source' }
+  }
+
+  const rawRecordedAt = telemetry.recordedAt ?? telemetry.recorded_at
+  if (typeof rawRecordedAt !== 'string') return { valid: false, error: 'missing_telemetry_timestamp' }
+  const timestamp = new Date(rawRecordedAt).getTime()
+  if (!Number.isFinite(timestamp)) return { valid: false, error: 'invalid_telemetry_timestamp' }
+  if (timestamp > now.getTime() + 5 * 60_000) return { valid: false, error: 'future_telemetry_timestamp' }
+  if (timestamp < now.getTime() - 24 * 60 * 60_000) return { valid: false, error: 'stale_telemetry_timestamp' }
+
+  const aliases: Record<string, string[]> = {
+    flowRateActualLpm: ['flowRateActualLpm', 'flow_rate_actual_lpm'],
+    linePressureBar: ['linePressureBar', 'line_pressure_bar'],
+    sessionLiters: ['sessionLiters', 'session_liters'],
+    moisture: ['moisture', 'soilMoisture'],
+    irrigationDeltaMoisture: ['irrigationDeltaMoisture', 'irrigation_delta_moisture'],
+  }
+  const units = telemetry.units
+  if (units !== undefined && (typeof units !== 'object' || units === null)) {
+    return { valid: false, error: 'invalid_telemetry_units' }
+  }
+
+  for (const [canonical, keys] of Object.entries(aliases)) {
+    const key = keys.find(candidate => telemetry[candidate] !== undefined)
+    if (!key) continue
+    const value = telemetry[key]
+    const [min, max] = TELEMETRY_RANGES[canonical]
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+      return { valid: false, error: `out_of_range_${canonical}` }
+    }
+    if (!units || (units as Record<string, unknown>)[canonical] !== EXPECTED_UNITS[canonical]) {
+      return { valid: false, error: `invalid_unit_${canonical}` }
+    }
+  }
+
+  return { valid: true, recordedAt: new Date(timestamp).toISOString() }
+}
+
+const acknowledgePersistedCommand: NonNullable<TelemetryRouteDependencies['acknowledgeCommandFn']> =
+  async ({ supabase, deviceId, commandId, observedValveState, recordedAt }) => {
+    if (!commandId) return false
+    const { data: command } = await supabase
+      .from('smart_device_commands')
+      .select('id, desired_valve_state, requested_at')
+      .eq('id', commandId)
+      .eq('device_id', deviceId)
+      .in('status', ['requested', 'sent'])
+      .maybeSingle()
+    if (
+      !command ||
+      command.desired_valve_state !== observedValveState ||
+      new Date(recordedAt).getTime() < new Date(command.requested_at).getTime()
+    ) return false
+
+    const { error } = await supabase.from('smart_device_commands').update({
+      status: 'acknowledged',
+      observed_valve_state: observedValveState,
+      acknowledged_at: recordedAt,
+      last_error: null,
+    }).eq('id', command.id)
+    if (error) throw new Error(error.message)
+    return true
+  }
 
 const AUDIT_METADATA_KEYS = [
   'auditStatus',
@@ -141,6 +235,14 @@ export const createTelemetryPostHandler = (
       return NextResponse.json({ error: 'unauthorized_webhook' }, { status: 401 })
     }
 
+    const validation = validateTelemetryEnvelope(
+      telemetry as Record<string, unknown>,
+      dependencies.nowFn?.() ?? new Date()
+    )
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 422 })
+    }
+
     const supabase = requireSupabaseFn()
     let query = supabase.from('smart_devices').select('*')
     query = deviceId ? query.eq('id', deviceId) : query.eq('external_device_id', externalDeviceId)
@@ -151,11 +253,7 @@ export const createTelemetryPostHandler = (
     }
 
     const currentDevice = mapSmartDeviceFromDb(currentDeviceRow)
-    const recordedAt = typeof telemetry.recordedAt === 'string'
-      ? telemetry.recordedAt
-      : typeof telemetry.recorded_at === 'string'
-      ? telemetry.recorded_at
-      : new Date().toISOString()
+    const recordedAt = validation.recordedAt
 
     const confirmedValveState =
       typeof telemetry.lastConfirmedValveState === 'boolean'
@@ -218,12 +316,24 @@ export const createTelemetryPostHandler = (
       metadata: clearAuditMetadata(currentDevice.metadata),
     }
 
+    const commandAcknowledged = confirmedValveState === undefined
+      ? false
+      : await (dependencies.acknowledgeCommandFn ?? acknowledgePersistedCommand)({
+          supabase,
+          deviceId: currentDevice.id,
+          commandId: typeof telemetry.commandId === 'string' ? telemetry.commandId : undefined,
+          observedValveState: confirmedValveState,
+          recordedAt,
+        })
+
     if (confirmedValveState !== undefined) {
       updates.isValveOpen = confirmedValveState
       updates.lastConfirmedValveState = confirmedValveState
       updates.lastConfirmedValveAt = recordedAt
-      updates.lastCommandStatus = 'confirmed' as CommandStatus
-      updates.lastCommandError = undefined
+      if (commandAcknowledged) {
+        updates.lastCommandStatus = 'confirmed' as CommandStatus
+        updates.lastCommandError = undefined
+      }
 
       if (currentDevice.lastCommandAt) {
         updates.lastCommandLatencyMs = Math.max(
@@ -268,7 +378,7 @@ export const createTelemetryPostHandler = (
         reason: confirmedValveState !== undefined
           ? 'Conferma telemetrica ricevuta dal dispositivo.'
           : 'Telemetria aggiornata da integrazione IoT.',
-        commandStatus: confirmedValveState !== undefined ? 'confirmed' : currentDevice.lastCommandStatus,
+        commandStatus: commandAcknowledged ? 'confirmed' : currentDevice.lastCommandStatus,
         commandedValveState: currentDevice.lastCommandedValveState,
         confirmedValveState,
         targetLiters: currentDevice.targetLiters,
@@ -326,6 +436,7 @@ export const createTelemetryPostHandler = (
     return NextResponse.json({
       success: true,
       auditLogged: true,
+      commandAcknowledged,
       device: mapSmartDeviceFromDb(updatedDeviceRow),
     })
   } catch (error) {

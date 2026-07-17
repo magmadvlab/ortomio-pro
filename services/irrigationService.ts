@@ -6,7 +6,7 @@
 import { IrrigationZone, IrrigationComponent, IrrigationSchedule, WateringLog } from '../types/irrigation';
 import { Garden, GardenTask } from '../types';
 import { calculateWaterNeeds } from '../logic/waterRequirementEngine';
-import { adjustIrrigationForRain, TaskAdjustment } from '../logic/rainManager';
+import { adjustIrrigationNeedForRain, TaskAdjustment } from '../logic/rainManager';
 import { WeatherForecast } from '../services/weatherService';
 import { getMasterSheet } from './plantMasterService';
 
@@ -87,7 +87,8 @@ export async function calculateZoneIrrigationSchedule(
   plantTaskIds: string[],
   tasks: GardenTask[],
   garden: Garden,
-  weather: WeatherForecast | null
+  weather: WeatherForecast | null,
+  evidence?: { sensorReadingAt?: string; soilProfileId?: string }
 ): Promise<IrrigationSchedule> {
   // Somma fabbisogno di tutte le piante nella zona
   let totalLiters = 0;
@@ -112,6 +113,10 @@ export async function calculateZoneIrrigationSchedule(
       zoneId: zone.id,
       zoneName: zone.name,
       litersNeeded: 0,
+      plannedVolumeLiters: 0,
+      requirementSource: evidence?.sensorReadingAt ? 'task_weather_soil_sensor' : 'estimated_no_sensor',
+      measurementSource: 'estimated_no_sensor',
+      sensorFallbackReason: evidence?.sensorReadingAt ? undefined : 'Nessun sensore valido: stima da coltura, suolo e meteo.',
       suggestedDurationMinutes: 0,
       priority: 'Low',
       nextWatering: new Date().toISOString().split('T')[0],
@@ -128,6 +133,10 @@ export async function calculateZoneIrrigationSchedule(
       zoneId: zone.id,
       zoneName: zone.name,
       litersNeeded: totalLiters,
+      plannedVolumeLiters: totalLiters,
+      requirementSource: evidence?.sensorReadingAt ? 'task_weather_soil_sensor' : 'estimated_no_sensor',
+      measurementSource: 'estimated_no_sensor',
+      sensorFallbackReason: evidence?.sensorReadingAt ? undefined : 'Nessun sensore valido: stima da coltura, suolo e meteo.',
       suggestedDurationMinutes: 0,
       priority: totalLiters > 100 ? 'High' : totalLiters > 50 ? 'Medium' : 'Low',
       nextWatering: new Date().toISOString().split('T')[0],
@@ -142,16 +151,12 @@ export async function calculateZoneIrrigationSchedule(
   // Aggiusta per pioggia
   let weatherAdjustment;
   if (weather && zone.valveId) {
-    const mockTask: GardenTask = {
-      id: zone.id,
-      taskType: 'Treatment', // Using 'Treatment' as generic type for irrigation mock task
-      date: new Date().toISOString(),
-      plantName: zone.name,
+    const adjustment = adjustIrrigationNeedForRain(
       durationMinutes,
-      gardenId: garden.id,
-      completed: false,
-    };
-    const adjustment = adjustIrrigationForRain(mockTask, [weather], garden);
+      new Date().toISOString(),
+      [weather],
+      garden
+    );
     
     // Map 'SKIP' to 'CANCEL' for IrrigationSchedule type compatibility
     const mappedAction = adjustment.action === 'SKIP' ? 'CANCEL' : adjustment.action;
@@ -179,6 +184,10 @@ export async function calculateZoneIrrigationSchedule(
       zoneId: zone.id,
       zoneName: zone.name,
       litersNeeded: totalLiters,
+      plannedVolumeLiters: 0,
+      requirementSource: evidence?.sensorReadingAt ? 'task_weather_soil_sensor' : 'estimated_no_sensor',
+      measurementSource: 'estimated_no_sensor',
+      sensorFallbackReason: evidence?.sensorReadingAt ? undefined : 'Nessun sensore valido: stima da coltura, suolo e meteo.',
       suggestedDurationMinutes: 0,
       priority,
       nextWatering: new Date().toISOString().split('T')[0],
@@ -188,11 +197,16 @@ export async function calculateZoneIrrigationSchedule(
   
   // Applica durata aggiustata se presente
   const finalDuration = weatherAdjustment?.adjustedDuration ?? durationMinutes;
+  const plannedVolumeLiters = calculateLitersApplied(finalDuration, flowRateLph);
   
   return {
     zoneId: zone.id,
     zoneName: zone.name,
     litersNeeded: totalLiters,
+    plannedVolumeLiters,
+    requirementSource: evidence?.sensorReadingAt ? 'task_weather_soil_sensor' : 'estimated_no_sensor',
+    measurementSource: 'estimated_no_sensor',
+    sensorFallbackReason: evidence?.sensorReadingAt ? undefined : 'Nessun sensore valido: stima da coltura, suolo e meteo.',
     suggestedDurationMinutes: finalDuration,
     priority,
     nextWatering: new Date().toISOString().split('T')[0],

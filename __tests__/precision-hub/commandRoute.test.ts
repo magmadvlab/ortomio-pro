@@ -1,185 +1,93 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createCommandPostHandler, type PersistedSmartCommand, type SmartCommandStore } from '@/app/api/iot/devices/command/commandHandler'
 
-import { createCommandPostHandler } from '@/app/api/iot/devices/command/commandHandler'
+const createRequest = (body: unknown, key = 'command-key-0001') => new Request(
+  'http://localhost/api/iot/devices/command',
+  { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': key }, body: JSON.stringify(body) }
+)
 
-const createRequest = (body: unknown) =>
-  new Request('http://localhost/api/iot/devices/command', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-const createSupabaseForCommand = (options?: {
-  deviceRow?: {
-    id: string
-    provider?: string
-    external_device_id?: string | null
-    garden_id: string
-  } | null
-  ownsGarden?: boolean
-}) => ({
-  from: (table: string) => {
-    if (table === 'smart_devices') {
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({
-              data: options?.deviceRow ?? {
-                id: 'device-1',
-                provider: 'thingsboard',
-                external_device_id: 'tb-1',
-                garden_id: 'garden-1',
-              },
-              error: options?.deviceRow === null ? { message: 'not found' } : null,
-            }),
-          }),
-        }),
+const createStore = (options?: { provider?: string; owned?: boolean }) => {
+  const commands = new Map<string, PersistedSmartCommand>()
+  const store: SmartCommandStore = {
+    async findOwnedDevice(deviceId) {
+      return options?.owned === false ? null : {
+        id: deviceId, provider: options?.provider ?? 'thingsboard', externalDeviceId: 'tb-1', gardenId: 'garden-1', zoneId: 'zone-1',
       }
-    }
-
-    if (table === 'gardens') {
-      return {
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              maybeSingle: async () => ({
-                data: options?.ownsGarden === false ? null : { id: 'garden-1' },
-                error: null,
-              }),
-            }),
-          }),
-        }),
+    },
+    async findByIdempotency(deviceId, key) { return commands.get(`${deviceId}:${key}`) ?? null },
+    async createRequested(input) {
+      const command: PersistedSmartCommand = {
+        id: `cmd-${commands.size + 1}`, status: 'requested', desiredValveState: input.desiredValveState, idempotencyKey: input.idempotencyKey,
       }
-    }
-
-    throw new Error(`Unexpected table ${table}`)
-  },
-})
-
-test('command handler rejects missing required fields', async () => {
-  const handler = createCommandPostHandler({
-    isSupabaseAvailableFn: () => true,
-  })
-
-  const response = await handler(createRequest({ deviceId: 'device-1' }) as never)
-
-  assert.equal(response.status, 400)
-  const payload = await response.json()
-  assert.equal(payload.error, 'missing_required_fields')
-})
-
-test('command handler returns simulated response when Supabase is unavailable', async () => {
-  const handler = createCommandPostHandler({
-    isSupabaseAvailableFn: () => false,
-  })
-
-  const response = await handler(
-    createRequest({
-      deviceId: 'device-1',
-      desiredValveState: true,
-    }) as never
-  )
-
-  assert.equal(response.status, 200)
-  const payload = await response.json()
-  assert.equal(payload.success, true)
-  assert.equal(payload.simulated, true)
-})
-
-test('command handler dispatches ThingsBoard attributes for supported cloud devices', async () => {
-  const sentAttributes: Array<Record<string, unknown>> = []
-  const handler = createCommandPostHandler({
-    isSupabaseAvailableFn: () => true,
-    verifyTierFn: async () => ({
-      user: { id: 'user-1' },
-      profile: { id: 'profile-1' },
-      tier: 'PRO',
-    }) as never,
-    getSupabaseClientFn: () => createSupabaseForCommand() as never,
-    sendThingsboardAttributesFn: async (payload) => {
-      sentAttributes.push(payload)
+      commands.set(`${input.device.id}:${input.idempotencyKey}`, command)
+      return command
     },
-  })
+    async markSent(id) { for (const command of commands.values()) if (command.id === id) command.status = 'sent' },
+    async markFailed(id) { for (const command of commands.values()) if (command.id === id) command.status = 'failed' },
+  }
+  return { store, commands }
+}
 
-  const response = await handler(
-    createRequest({
-      deviceId: 'device-1',
-      desiredValveState: true,
-    }) as never
-  )
-
-  assert.equal(response.status, 200)
-  const payload = await response.json()
-  assert.equal(payload.success, true)
-  assert.equal(payload.provider, 'thingsboard')
-  assert.equal(payload.queued, true)
-  assert.equal(sentAttributes.length, 1)
-  assert.equal(sentAttributes[0]?.commandType, 'valve_toggle')
-  assert.equal(sentAttributes[0]?.targetDeviceId, 'tb-1')
-  assert.equal(sentAttributes[0]?.desiredValveState, true)
+const dependencies = (store: SmartCommandStore, dispatch: (payload: Record<string, unknown>) => Promise<void> = async () => {}) => ({
+  isSupabaseAvailableFn: () => true,
+  verifyTierFn: async () => ({ user: { id: 'user-1' } }) as const,
+  commandStore: store,
+  sendThingsboardAttributesFn: dispatch,
+  nowFn: () => new Date('2026-07-17T10:00:00.000Z'),
 })
 
-test('command handler returns 501 for Tuya devices without attempting dispatch', async () => {
-  let dispatchAttempts = 0
-  const handler = createCommandPostHandler({
-    isSupabaseAvailableFn: () => true,
-    verifyTierFn: async () => ({
-      user: { id: 'user-1' },
-      profile: { id: 'profile-1' },
-      tier: 'PRO',
-    }) as never,
-    getSupabaseClientFn: () =>
-      createSupabaseForCommand({
-        deviceRow: {
-          id: 'device-tuya',
-          provider: 'tuya',
-          external_device_id: 'tuya-1',
-          garden_id: 'garden-1',
-        },
-      }) as never,
-    sendThingsboardAttributesFn: async () => {
-      dispatchAttempts += 1
-    },
-  })
-
-  const response = await handler(
-    createRequest({
-      deviceId: 'device-tuya',
-      desiredValveState: false,
-    }) as never
-  )
-
-  assert.equal(response.status, 501)
-  const payload = await response.json()
-  assert.equal(payload.error, 'provider_not_supported')
-  assert.equal(dispatchAttempts, 0)
+test('command handler rejects missing fields and invalid idempotency keys', async () => {
+  const { store } = createStore()
+  const handler = createCommandPostHandler(dependencies(store))
+  assert.equal((await handler(createRequest({ deviceId: 'device-1' }) as never)).status, 400)
+  assert.equal((await handler(createRequest({ deviceId: 'device-1', desiredValveState: true }, 'short') as never)).status, 400)
 })
 
-test('command handler forbids devices outside the user garden', async () => {
-  const handler = createCommandPostHandler({
-    isSupabaseAvailableFn: () => true,
-    verifyTierFn: async () => ({
-      user: { id: 'user-1' },
-      profile: { id: 'profile-1' },
-      tier: 'FREE',
-    }) as never,
-    getSupabaseClientFn: () =>
-      createSupabaseForCommand({
-        ownsGarden: false,
-      }) as never,
-  })
+test('command handler never simulates success without cloud persistence', async () => {
+  const { store } = createStore()
+  const handler = createCommandPostHandler({ ...dependencies(store), isSupabaseAvailableFn: () => false })
+  const response = await handler(createRequest({ deviceId: 'device-1', desiredValveState: true }) as never)
+  assert.equal(response.status, 503)
+  assert.equal((await response.json()).error, 'cloud_persistence_unavailable')
+})
 
-  const response = await handler(
-    createRequest({
-      deviceId: 'device-1',
-      desiredValveState: true,
-    }) as never
-  )
-
-  assert.equal(response.status, 403)
+test('ThingsBoard dispatch is persisted, accepted, but not acknowledged', async () => {
+  const sent: Array<Record<string, unknown>> = []
+  const { store } = createStore()
+  const handler = createCommandPostHandler(dependencies(store, async payload => { sent.push(payload) }))
+  const response = await handler(createRequest({ deviceId: 'device-1', desiredValveState: true }) as never)
   const payload = await response.json()
-  assert.equal(payload.error, 'forbidden')
+  assert.equal(response.status, 202)
+  assert.equal(payload.status, 'sent')
+  assert.equal(payload.acknowledged, false)
+  assert.equal(sent.length, 1)
+  assert.equal(sent[0]?.commandId, 'cmd-1')
+})
+
+test('duplicate idempotency key does not actuate twice', async () => {
+  let dispatches = 0
+  const { store } = createStore()
+  const handler = createCommandPostHandler(dependencies(store, async () => { dispatches += 1 }))
+  const body = { deviceId: 'device-1', desiredValveState: true }
+  const first = await handler(createRequest(body, 'same-command-001') as never)
+  const second = await handler(createRequest(body, 'same-command-001') as never)
+  assert.equal(first.status, 202)
+  assert.equal(second.status, 202)
+  assert.equal((await second.json()).duplicate, true)
+  assert.equal(dispatches, 1)
+})
+
+test('unsupported providers and foreign gardens are rejected before dispatch', async () => {
+  let dispatches = 0
+  const tuya = createStore({ provider: 'tuya' })
+  const foreign = createStore({ owned: false })
+  const dispatch = async () => { dispatches += 1 }
+  assert.equal((await createCommandPostHandler(dependencies(tuya.store, dispatch))(
+    createRequest({ deviceId: 'device-tuya', desiredValveState: false }) as never
+  )).status, 501)
+  assert.equal((await createCommandPostHandler(dependencies(foreign.store, dispatch))(
+    createRequest({ deviceId: 'device-foreign', desiredValveState: true }) as never
+  )).status, 404)
+  assert.equal(dispatches, 0)
 })

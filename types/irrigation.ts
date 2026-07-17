@@ -356,6 +356,11 @@ export interface IrrigationSchedule {
 
   // Legacy irrigation planner output
   litersNeeded?: number
+  plannedVolumeLiters?: number
+  measuredVolumeLiters?: number
+  requirementSource?: 'task_weather_soil_sensor' | 'estimated_no_sensor'
+  measurementSource?: 'sensor' | 'meter' | 'operator' | 'estimated_no_sensor'
+  sensorFallbackReason?: string
   suggestedDurationMinutes?: number
   priority?: 'Critical' | 'High' | 'Medium' | 'Low'
   nextWatering?: string
@@ -612,6 +617,8 @@ export interface SystemConfiguration {
 export interface ActualIrrigationData {
   actualDurationMinutes: number
   actualVolumeLiters: number
+  measurementSource: 'sensor' | 'meter' | 'operator'
+  measurementRecordedAt: string
   pressureReadings: number[]
   environmentalConditions: EnvironmentalData
   issues?: string[]

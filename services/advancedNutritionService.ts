@@ -46,6 +46,17 @@ const average = (values: number[]): number =>
     ? roundMetric(values.reduce((sum, value) => sum + value, 0) / values.length)
     : 0
 
+export const validateNutritionDose = (dosage: number, unit: string) => {
+  if (!Number.isFinite(dosage) || dosage <= 0) throw new Error('nutrition_dosage_must_be_positive')
+  if (!unit?.trim() || unit.length > 40) throw new Error('invalid_nutrition_dosage_unit')
+}
+
+export const validateProductConcentration = (concentration: number, unit: string) => {
+  if (!Number.isFinite(concentration) || concentration <= 0) throw new Error('product_concentration_must_be_positive')
+  if (!['percentage', 'g_per_liter', 'mg_per_liter'].includes(unit)) throw new Error('invalid_product_concentration_unit')
+  if (unit === 'percentage' && concentration > 100) throw new Error('product_percentage_out_of_range')
+}
+
 const requireNutritionSupabaseClient = () => {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -172,6 +183,7 @@ class AdvancedNutritionService {
 
   async createTreatmentProduct(product: Omit<TreatmentProduct, 'id' | 'createdAt' | 'updatedAt'>): Promise<TreatmentProduct> {
     try {
+      validateProductConcentration(product.concentration, product.concentrationUnit)
       const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('treatment_products')
@@ -190,6 +202,12 @@ class AdvancedNutritionService {
 
   async updateTreatmentProduct(id: string, updates: Partial<TreatmentProduct>): Promise<TreatmentProduct> {
     try {
+      if (updates.concentration !== undefined || updates.concentrationUnit !== undefined) {
+        if (updates.concentration === undefined || updates.concentrationUnit === undefined) {
+          throw new Error('product_concentration_and_unit_must_change_together')
+        }
+        validateProductConcentration(updates.concentration, updates.concentrationUnit)
+      }
       const supabase = requireNutritionSupabaseClient()
       const { data, error } = await supabase
         .from('treatment_products')
@@ -270,13 +288,16 @@ class AdvancedNutritionService {
 
   async createNutritionTreatment(treatment: Omit<NutritionTreatment, 'id' | 'createdAt' | 'updatedAt'>): Promise<NutritionTreatment> {
     try {
+      validateNutritionDose(treatment.dosage, treatment.dosageUnit)
       const supabase = requireNutritionSupabaseClient()
       
       // Get current user ID
       const { data: { user } } = await supabase.auth.getUser()
       
+      const shouldComplete = treatment.status === 'completed'
       const treatmentData = {
         ...this.mapTreatmentToDatabase(treatment),
+        status: shouldComplete ? 'planned' : treatment.status,
         operator_id: user?.id
       }
 
@@ -288,9 +309,9 @@ class AdvancedNutritionService {
 
       if (error) throw error
 
-      // Update inventory if product is used
-      if (treatment.status === 'completed' && treatment.productId) {
-        await this.updateInventoryAfterTreatment(treatment.productId, treatment.dosage, treatment.gardenId)
+      if (shouldComplete) {
+        await this.completeTreatmentAndConsumeStock(data.id, treatment.dosage, treatment.dosageUnit)
+        data.status = 'completed'
       }
 
       return this.mapTreatmentFromDatabase(data)
@@ -302,6 +323,12 @@ class AdvancedNutritionService {
 
   async updateNutritionTreatment(id: string, updates: Partial<NutritionTreatment>): Promise<NutritionTreatment> {
     try {
+      if (updates.dosage !== undefined || updates.dosageUnit !== undefined) {
+        if (updates.dosage === undefined || updates.dosageUnit === undefined) {
+          throw new Error('nutrition_dosage_and_unit_must_change_together')
+        }
+        validateNutritionDose(updates.dosage, updates.dosageUnit)
+      }
       const supabase = requireNutritionSupabaseClient()
       
       // Get original treatment for inventory management
@@ -311,18 +338,25 @@ class AdvancedNutritionService {
         .eq('id', id)
         .single()
 
+      const shouldComplete = updates.status === 'completed' && originalTreatment?.status !== 'completed'
+      const updatePayload = this.mapTreatmentToDatabase(updates)
+      if (shouldComplete) delete updatePayload.status
       const { data, error } = await supabase
         .from('nutrition_treatments')
-        .update(this.mapTreatmentToDatabase(updates))
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single()
 
       if (error) throw error
 
-      // Update inventory if treatment is completed
-      if (updates.status === 'completed' && originalTreatment?.status !== 'completed' && updates.productId) {
-        await this.updateInventoryAfterTreatment(updates.productId, updates.dosage || 0, originalTreatment.garden_id)
+      if (shouldComplete) {
+        await this.completeTreatmentAndConsumeStock(
+          id,
+          updates.dosage ?? originalTreatment.dosage,
+          updates.dosageUnit ?? originalTreatment.dosage_unit
+        )
+        data.status = 'completed'
       }
 
       return this.mapTreatmentFromDatabase(data)
@@ -345,6 +379,26 @@ class AdvancedNutritionService {
       console.error('Error deleting treatment:', error)
       throw error
     }
+  }
+
+  async checkProductCompatibility(productIds: string[]): Promise<ProductCompatibility[]> {
+    const uniqueIds = Array.from(new Set(productIds.filter(Boolean)))
+    if (uniqueIds.length < 2) return []
+    const { data, error } = await requireNutritionSupabaseClient()
+      .from('product_compatibility')
+      .select('*')
+      .in('product1_id', uniqueIds)
+      .in('product2_id', uniqueIds)
+    if (error) throw error
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      product1Id: row.product1_id,
+      product2Id: row.product2_id,
+      compatibilityType: row.compatibility_type,
+      notes: row.notes,
+      testResults: row.test_results,
+      createdAt: row.created_at,
+    }))
   }
 
   // ============================================================================
@@ -539,14 +593,16 @@ class AdvancedNutritionService {
     }
   }
 
-  private async updateInventoryAfterTreatment(productId: string, dosageUsed: number, gardenId: string): Promise<void> {
-    try {
-      // Convert dosage to stock units and update inventory
-      await this.updateProductStock(productId, dosageUsed, 'usage', 'Used in treatment')
-    } catch (error) {
-      console.error('Error updating inventory after treatment:', error)
-      // Don't throw error to avoid breaking treatment creation
+  private async completeTreatmentAndConsumeStock(treatmentId: string, dosageUsed: number, unit: string): Promise<void> {
+    if (!Number.isFinite(dosageUsed) || dosageUsed <= 0 || !unit?.trim()) {
+      throw new Error('Invalid nutrition execution dosage or unit')
     }
+    const { error } = await requireNutritionSupabaseClient().rpc('complete_nutrition_treatment', {
+      p_treatment_id: treatmentId,
+      p_quantity: dosageUsed,
+      p_unit: unit,
+    })
+    if (error) throw new Error(error.message)
   }
 
   // ============================================================================

@@ -27,6 +27,44 @@ export interface TaskAdjustment {
   nextScheduledDate?: Date; // Nuova data (se CANCEL/SKIP)
 }
 
+/** Meteo applicato direttamente a una necessità irrigua, senza task fittizi. */
+export const adjustIrrigationNeedForRain = (
+  plannedDurationMinutes: number,
+  plannedDate: string,
+  weatherHistory: WeatherForecast[],
+  garden: Garden
+): TaskAdjustment => {
+  const recentRain: RainEvent[] = weatherHistory
+    .slice(0, 3)
+    .filter((forecast) => (forecast.rainForecastMm ?? forecast.rainMm ?? 0) > 0)
+    .map((forecast) => ({
+      date: forecast.date || plannedDate,
+      precipitationMM: forecast.rainForecastMm ?? forecast.rainMm ?? 0,
+      duration: 60,
+      intensity: (forecast.rainForecastMm ?? forecast.rainMm ?? 0) > 10
+        ? 'heavy'
+        : (forecast.rainForecastMm ?? forecast.rainMm ?? 0) > 5
+        ? 'moderate'
+        : 'light',
+    }))
+  if (recentRain.length === 0) return { action: 'PROCEED', message: 'Nessuna pioggia recente. Irrigazione normale.' }
+
+  const rainResult = calculateEffectiveRain(recentRain, garden.soilType)
+  if (rainResult.effectiveWater > 20) {
+    const nextDate = new Date(plannedDate)
+    nextDate.setDate(nextDate.getDate() + rainResult.irrigationSkipDays)
+    return { action: 'CANCEL', message: rainResult.message, nextScheduledDate: nextDate }
+  }
+  if (rainResult.effectiveWater > 10) {
+    return {
+      action: 'REDUCE',
+      message: rainResult.message,
+      adjustedDuration: Math.round(plannedDurationMinutes * 0.5),
+    }
+  }
+  return { action: 'PROCEED', message: rainResult.message }
+}
+
 /**
  * Calcola l'acqua piovana effettivamente assorbita dal terreno
  * Considera il tipo di terreno e la capacità di assorbimento
@@ -83,70 +121,12 @@ export const adjustIrrigationForRain = (
   weatherHistory: WeatherForecast[],
   garden: Garden
 ): TaskAdjustment => {
-  // Filtra ultimi 3 giorni con precipitazioni
-  const recentRain: RainEvent[] = weatherHistory
-    .slice(0, 3)
-    .filter((f) => (f.rainForecastMm ?? f.rainMm ?? 0) > 0)
-    .map(f => ({
-      date: f.date || new Date().toISOString().split('T')[0],
-      precipitationMM: f.rainForecastMm ?? f.rainMm ?? 0,
-      duration: 60, // Stima: 1 ora per default
-      intensity: ((f.rainForecastMm ?? f.rainMm ?? 0) > 10
-        ? 'heavy'
-        : (f.rainForecastMm ?? f.rainMm ?? 0) > 5
-          ? 'moderate'
-          : 'light') as 'light' | 'moderate' | 'heavy',
-    }));
-
-  if (recentRain.length === 0) {
-    return {
-      action: 'PROCEED',
-      message: 'Nessuna pioggia recente. Irrigazione normale.',
-    };
-  }
-
-  const rainResult = calculateEffectiveRain(recentRain, garden.soilType);
-
-  // Decisione basata su acqua effettiva
-  if (rainResult.effectiveWater > 20) {
-    // Pioggia abbondante: cancella irrigazione
-    const skipDays = rainResult.irrigationSkipDays;
-    const nextDate = new Date(scheduledTask.date);
-    nextDate.setDate(nextDate.getDate() + skipDays);
-
-    return {
-      action: 'CANCEL',
-      message: rainResult.message,
-      nextScheduledDate: nextDate,
-    };
-  }
-
-  if (rainResult.effectiveWater > 10) {
-    // Pioggia moderata: riduci dose
-    const adjustedDuration = scheduledTask.durationMinutes 
-      ? scheduledTask.durationMinutes * 0.5 
-      : 15; // Default 15 minuti se non specificato
-
-    return {
-      action: 'REDUCE',
-      message: rainResult.message,
-      adjustedDuration: Math.round(adjustedDuration),
-    };
-  }
-
-  if (rainResult.effectiveWater > 5) {
-    // Pioggia leggera: procedi ma con nota
-    return {
-      action: 'PROCEED',
-      message: rainResult.message,
-    };
-  }
-
-  // Pioggia minima: procedi normalmente
-  return {
-    action: 'PROCEED',
-    message: 'Irrigazione normale.',
-  };
+  return adjustIrrigationNeedForRain(
+    scheduledTask.durationMinutes ?? 0,
+    scheduledTask.date,
+    weatherHistory,
+    garden
+  )
 };
 
 /**
