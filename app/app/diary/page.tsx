@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { BookOpen, Calendar, Filter, Download, Plus, Search, Clock, MapPin, Zap } from 'lucide-react'
+import { BookOpen, Clock, MapPin, Zap } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import OperationalDiary from '@/components/diary/OperationalDiary'
 import UnifiedTimelineDiary from '@/components/diary/UnifiedTimelineDiary'
 import AutomatedDiaryViewer from '@/components/diary/AutomatedDiaryViewer'
 
@@ -12,7 +11,7 @@ export default function DiaryPage() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
-  const [activeView, setActiveView] = useState<'timeline' | 'operational' | 'calendar' | 'automated'>('timeline')
+  const [activeView, setActiveView] = useState<'timeline' | 'automated'>('timeline')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -87,9 +86,7 @@ export default function DiaryPage() {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'timeline', label: 'Timeline', icon: Clock },
-              { id: 'operational', label: 'Diario Operativo', icon: BookOpen },
               { id: 'automated', label: 'Diario Automatico', icon: Zap },
-              { id: 'calendar', label: 'Vista Calendario', icon: Calendar }
             ].map((tab) => {
               const Icon = tab.icon
               return (
@@ -126,10 +123,6 @@ export default function DiaryPage() {
             <UnifiedTimelineDiary gardenId={activeGarden.id} garden={activeGarden} />
           )}
           
-          {activeView === 'operational' && (
-            <OperationalDiary gardenId={activeGarden.id} />
-          )}
-          
           {activeView === 'automated' && (
             <AutomatedDiaryViewer 
               gardenId={activeGarden.id} 
@@ -137,56 +130,9 @@ export default function DiaryPage() {
             />
           )}
           
-          {activeView === 'calendar' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div className="text-center">
-                <Calendar className="mx-auto h-12 w-12 text-blue-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Vista Calendario</h3>
-                <p className="text-gray-600 mb-6">
-                  Visualizza le attività del diario in formato calendario
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>In sviluppo:</strong> La vista calendario sarà disponibile nella prossima versione
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </>
       )}
 
-      {/* Quick Actions */}
-      {activeGarden && (
-        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left">
-              <Plus className="text-blue-600" size={20} />
-              <div>
-                <p className="font-medium text-blue-900">Nuova Attività</p>
-                <p className="text-sm text-blue-700">Registra una nuova operazione</p>
-              </div>
-            </button>
-            
-            <button className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left">
-              <Search className="text-green-600" size={20} />
-              <div>
-                <p className="font-medium text-green-900">Cerca Attività</p>
-                <p className="text-sm text-green-700">Filtra per data o tipo</p>
-              </div>
-            </button>
-            
-            <button className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left">
-              <Download className="text-purple-600" size={20} />
-              <div>
-                <p className="font-medium text-purple-900">Esporta Diario</p>
-                <p className="text-sm text-purple-700">Scarica report PDF</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -2283,7 +2283,10 @@ export const getDailyGardenPlan = async (
 
   // Verifica trattamenti in periodo carenza
   try {
-    const activeIntervals = await getActiveSafetyIntervals(garden.id);
+    const { getSupabaseStorageProvider } = await import('../packages/core/storage/factory');
+    const treatmentStorage = getSupabaseStorageProvider();
+    if (!treatmentStorage) throw new Error('Cloud treatment registry unavailable');
+    const activeIntervals = await getActiveSafetyIntervals(treatmentStorage, garden.id);
     if (activeIntervals.length > 0) {
       urgentAlerts.push({
         type: 'Safety',

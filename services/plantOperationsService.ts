@@ -10,18 +10,28 @@ import {
   BulkRowOperation,
   BulkOperationResult 
 } from '../types/individualPlant';
+import type { IStorageProvider } from '@/packages/core/storage/interface';
+
+type PlantOperationsStorage = Pick<IStorageProvider, 'getIndividualPlant' | 'getIndividualPlants' | 'getPlantOperations' | 'createPlantOperation' | 'updateIndividualPlant' | 'uploadPhoto'>;
+
+const requireStorageMethod = <K extends keyof PlantOperationsStorage>(storage: Partial<PlantOperationsStorage>, method: K): NonNullable<PlantOperationsStorage[K]> => {
+  if ((storage as IStorageProvider).persistenceKind === 'local') throw new Error('Plant operations require durable cloud storage');
+  const implementation = storage[method];
+  if (!implementation) throw new Error(`Cloud plant persistence capability unavailable: ${method}`);
+  return implementation.bind(storage) as NonNullable<PlantOperationsStorage[K]>;
+};
 
 /**
  * OPERAZIONI SINGOLE PIANTE
  */
 export const createPlantOperation = async (
+  storageProvider: Partial<PlantOperationsStorage>,
   plantId: string,
   gardenId: string,
-  operation: Partial<PlantOperation>
+  operation: Partial<PlantOperation> & { idempotencyKey?: string }
 ): Promise<PlantOperation> => {
-  // TODO: Implementare con storage provider
-  const newOperation: PlantOperation = {
-    id: crypto.randomUUID(),
+  const create = requireStorageMethod(storageProvider, 'createPlantOperation');
+  const candidate: Omit<PlantOperation, 'id' | 'createdAt' | 'updatedAt'> & { idempotencyKey: string } = {
     plantId,
     gardenId,
     operationType: operation.operationType!,
@@ -38,20 +48,24 @@ export const createPlantOperation = async (
     weatherConditions: operation.weatherConditions,
     photos: operation.photos || [],
     notes: operation.notes,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    idempotencyKey: (operation as any).idempotencyKey || crypto.randomUUID(),
+    sourceType: operation.sourceType || 'manual',
+    actorType: operation.actorType || 'manual',
+    recordedBy: operation.recordedBy || 'user',
   };
-
-  // Simula salvataggio
-  console.log('Creating plant operation:', newOperation);
-  
-  return newOperation;
+  const saved = await create(candidate);
+  const read = requireStorageMethod(storageProvider, 'getPlantOperations');
+  const persisted = (await read(plantId)).find((item: PlantOperation) => item.id === saved.id);
+  if (!persisted) throw new Error('Plant operation write could not be verified after persistence');
+  return persisted;
 };
 
 /**
  * OPERAZIONI DI MASSA
  */
 export const createBulkOperation = async (
+  storageProvider: Partial<PlantOperationsStorage>,
+  gardenId: string,
   operation: BulkRowOperation,
   photos?: File[]
 ): Promise<BulkOperationResult> => {
@@ -62,19 +76,20 @@ export const createBulkOperation = async (
     // Upload foto se presenti
     let photoUrls: string[] = [];
     if (photos && photos.length > 0) {
-      photoUrls = await uploadPhotos(photos);
+      photoUrls = await uploadPhotos(storageProvider, gardenId, photos);
     }
 
     // Crea operazioni per ogni pianta
     for (const plantId of plantIds) {
-      const plantOperation = await createPlantOperation(plantId, '', {
+      const plantOperation = await createPlantOperation(storageProvider, plantId, gardenId, {
         operationType: operation.operationType,
         operationDate: operation.operationDate,
         quantity: operation.quantityPerPlant,
         unit: operation.unit,
         productName: operation.productName,
         notes: operation.notes,
-        photos: photoUrls
+        photos: photoUrls,
+        idempotencyKey: `${operation.operationDate}:${operation.operationType}:${plantId}:${operation.rowId || operation.fieldRowId || 'selection'}`,
       });
       
       operationsCreated.push(plantOperation.id);
@@ -82,7 +97,7 @@ export const createBulkOperation = async (
 
     // Aggiorna salute piante se necessario
     if (operation.operationType === 'treatment') {
-      await updatePlantsHealthAfterTreatment(plantIds);
+      // Lo stato salute cambia solo dopo un outcome osservato, non al semplice write.
     }
 
     return {
@@ -108,6 +123,7 @@ export const createBulkOperation = async (
  * AGGIORNAMENTO SALUTE PIANTE
  */
 export const updatePlantHealth = async (
+  storageProvider: Partial<PlantOperationsStorage>,
   plantId: string,
   healthData: {
     healthScore?: number;
@@ -116,14 +132,15 @@ export const updatePlantHealth = async (
     photos?: string[];
   }
 ): Promise<void> => {
-  // TODO: Implementare con storage provider
-  console.log('Updating plant health:', plantId, healthData);
-  
-  // Simula aggiornamento
-  await new Promise(resolve => setTimeout(resolve, 500));
+  const getPlant = requireStorageMethod(storageProvider, 'getIndividualPlant');
+  const update = requireStorageMethod(storageProvider, 'updateIndividualPlant');
+  const plant = await getPlant(plantId);
+  if (!plant) throw new Error('Plant not found');
+  await update(plantId, { ...healthData, photos: healthData.photos || plant.photos });
 };
 
 export const updateBulkPlantHealth = async (
+  storageProvider: Partial<PlantOperationsStorage>,
   plantIds: string[],
   healthData: {
     healthScore?: number;
@@ -133,7 +150,7 @@ export const updateBulkPlantHealth = async (
   }
 ): Promise<void> => {
   for (const plantId of plantIds) {
-    await updatePlantHealth(plantId, healthData);
+    await updatePlantHealth(storageProvider, plantId, healthData);
   }
 };
 
@@ -166,33 +183,16 @@ export const calculateHealthImpact = (
   return Math.round(newHealth);
 };
 
-export const updatePlantsHealthAfterTreatment = async (plantIds: string[]): Promise<void> => {
-  // TODO: Implementare logica per aggiornare salute dopo trattamenti
-  console.log('Updating health for plants after treatment:', plantIds.length);
-  
-  // Simula miglioramento salute per piante malate
-  for (const plantId of plantIds) {
-    // In un'implementazione reale, caricheresti la pianta dal database
-    // e aggiorneresti la salute basandoti sul tipo di trattamento
-    await updatePlantHealth(plantId, {
-      healthScore: 85, // Miglioramento dopo trattamento
-      notes: 'Salute migliorata dopo trattamento'
-    });
-  }
+export const updatePlantsHealthAfterTreatment = async (): Promise<void> => {
+  throw new Error('Treatment alone cannot mutate plant health; record a measured observation outcome')
 };
 
 /**
  * GESTIONE FOTO
  */
-export const uploadPhotos = async (photos: File[]): Promise<string[]> => {
-  // TODO: Implementare upload reale
-  console.log('Uploading photos:', photos.length);
-  
-  // Simula upload
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Restituisce URLs fake
-  return photos.map((_, index) => `https://example.com/photo-${Date.now()}-${index}.jpg`);
+export const uploadPhotos = async (storageProvider: Partial<PlantOperationsStorage>, gardenId: string, photos: File[]): Promise<string[]> => {
+  const upload = requireStorageMethod(storageProvider, 'uploadPhoto');
+  return Promise.all(photos.map(file => upload(file, `plant-operation-${crypto.randomUUID()}`, gardenId)));
 };
 
 export const compressPhoto = (file: File, maxWidth: number = 800): Promise<File> => {
@@ -289,6 +289,7 @@ const getOperationCategory = (
  * STATISTICHE E ANALYTICS
  */
 export const getPlantOperationStats = async (
+  storageProvider: Partial<PlantOperationsStorage>,
   plantId: string,
   dateFrom?: string,
   dateTo?: string
@@ -298,23 +299,20 @@ export const getPlantOperationStats = async (
   lastOperation?: PlantOperation;
   healthTrend: 'improving' | 'stable' | 'declining';
 }> => {
-  // TODO: Implementare con storage provider
-  console.log('Getting operation stats for plant:', plantId);
-  
-  // Simula statistiche
+  const operations = (await requireStorageMethod(storageProvider, 'getPlantOperations')(plantId)) as PlantOperation[];
+  const filtered = operations.filter(item => { const date = item.operationDate || item.date; return (!dateFrom || date >= dateFrom) && (!dateTo || date <= dateTo) });
+  const scores = filtered.flatMap(item => item.effectivenessScore === undefined ? [] : [item.effectivenessScore]);
   return {
-    totalOperations: 15,
-    operationsByType: {
-      watering: 8,
-      fertilizing: 4,
-      treatment: 2,
-      pruning: 1
-    },
-    healthTrend: 'improving'
+    totalOperations: filtered.length,
+    operationsByType: filtered.reduce<Record<string, number>>((result, item) => ({ ...result, [item.operationType]: (result[item.operationType] || 0) + 1 }), {}),
+    lastOperation: filtered[0],
+    healthTrend: scores.length < 2 ? 'stable' : scores[0] > scores[scores.length - 1] ? 'improving' : scores[0] < scores[scores.length - 1] ? 'declining' : 'stable'
   };
 };
 
 export const getRowOperationStats = async (
+  storageProvider: Partial<PlantOperationsStorage>,
+  gardenId: string,
   rowId: string,
   fieldRowId?: string
 ): Promise<{
@@ -324,21 +322,21 @@ export const getRowOperationStats = async (
   lastOperationDate?: string;
   healthDistribution: Record<string, number>;
 }> => {
-  // TODO: Implementare con storage provider
-  console.log('Getting row operation stats:', rowId, fieldRowId);
-  
-  // Simula statistiche
+  const plants = await requireStorageMethod(storageProvider, 'getIndividualPlants')(gardenId);
+  const scoped = plants.filter(plant => plant.gardenRowId === rowId || plant.fieldRowId === fieldRowId);
+  const histories = await Promise.all(scoped.map(plant => requireStorageMethod(storageProvider, 'getPlantOperations')(plant.id)));
+  const healthDistribution = scoped.reduce<Record<string, number>>((result, plant) => {
+    const key = plant.healthScore >= 90 ? 'excellent' : plant.healthScore >= 70 ? 'good' : plant.healthScore >= 50 ? 'fair' : 'poor';
+    result[key] = (result[key] || 0) + 1;
+    return result;
+  }, {});
+  const dates = histories.flat().map(item => item.operationDate || item.date).filter(Boolean).sort().reverse();
   return {
-    totalPlants: 101,
-    plantsWithOperations: 95,
-    avgOperationsPerPlant: 12.5,
-    lastOperationDate: new Date().toISOString().split('T')[0],
-    healthDistribution: {
-      excellent: 45,
-      good: 35,
-      fair: 15,
-      poor: 6
-    }
+    totalPlants: scoped.length,
+    plantsWithOperations: histories.filter(items => items.length > 0).length,
+    avgOperationsPerPlant: scoped.length ? histories.reduce((sum, items) => sum + items.length, 0) / scoped.length : 0,
+    lastOperationDate: dates[0],
+    healthDistribution,
   };
 };
 

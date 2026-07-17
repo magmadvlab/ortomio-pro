@@ -8,14 +8,17 @@ import {
 } from '@/services/unifiedAgronomicMemoryService'
 
 const createMemoryStorage = () => {
-  const preferences = new Map<string, unknown>()
+  const memoryEvents: any[] = []
 
   return {
-    async getUserPreference<T>(key: string): Promise<T | null> {
-      return (preferences.get(key) as T | undefined) || null
+    async getAgronomicMemoryEvents() {
+      return memoryEvents
     },
-    async setUserPreference<T>(key: string, value: T): Promise<void> {
-      preferences.set(key, value)
+    async createAgronomicMemoryEvent(event: any) {
+      const index = memoryEvents.findIndex(item => item.id === event.id)
+      if (index >= 0) memoryEvents[index] = event
+      else memoryEvents.unshift(event)
+      return event
     },
     async getGarden(id: string) {
       return id === 'garden-1'

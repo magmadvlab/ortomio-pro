@@ -35,6 +35,7 @@ import {
 import type { FieldAlert } from '@/types/fieldAlerts';
 
 export class LocalStorageProvider implements IStorageProvider {
+  readonly persistenceKind = 'local' as const;
   private readonly STORAGE_KEYS = {
     GARDENS: 'ortoGardens',
     TASKS: 'ortoTasks',

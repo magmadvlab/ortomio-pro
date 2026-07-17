@@ -375,7 +375,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
 
   const handleBulkOperation = async (operation: BulkRowOperation, photos?: File[]) => {
     try {
-      const result = await createBulkOperation(operation, photos);
+      const result = await createBulkOperation(storageProvider, garden.id, operation, photos);
       
       if (result.success) {
         alert(`✅ Operazione completata!\n${result.operationsCreated} operazioni create su ${result.plantsAffected} piante`);

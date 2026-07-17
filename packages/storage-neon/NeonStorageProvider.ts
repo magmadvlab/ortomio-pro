@@ -45,6 +45,7 @@ import type { AgronomicQueueOutcomeRecord } from '@/services/agronomicQueueOutco
 import type { FieldAlert } from '@/types/fieldAlerts';
 
 export class NeonStorageProvider implements IStorageProvider {
+  readonly persistenceKind = 'server' as const;
   private sql: NeonQueryFunction<false, false>;
 
   constructor(connectionString?: string) {
