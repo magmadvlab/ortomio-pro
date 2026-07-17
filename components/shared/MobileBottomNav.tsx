@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
-import { getEnabledFeatures } from '@/config/features'
+import { getEnabledFeaturesForAccess } from '@/config/capabilities'
 import { getVisibleCapabilities } from '@/config/capabilities'
 import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
 import { CapabilityIconView } from '@/components/capabilities/CapabilityVisuals'
@@ -12,7 +12,7 @@ import { UI_LAYERS } from '@/components/shared/uiLayers'
 export function MobileBottomNav() {
   const pathname = usePathname()
   const { access } = useCapabilities()
-  const items = useMemo(() => getVisibleCapabilities(access, 'bottom', new Set(getEnabledFeatures()))
+  const items = useMemo(() => getVisibleCapabilities(access, 'bottom', getEnabledFeaturesForAccess(access))
     .filter(item => item.route)
     .sort((a, b) => (a.bottomOrder ?? 50) - (b.bottomOrder ?? 50))
     .slice(0, 5), [access])

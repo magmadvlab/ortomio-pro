@@ -1,0 +1,13 @@
+CREATE SCHEMA auth;
+CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE anon NOLOGIN;
+CREATE TABLE auth.users (id uuid PRIMARY KEY);
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+CREATE TABLE profiles (id uuid PRIMARY KEY REFERENCES auth.users(id), role text, is_superadmin boolean DEFAULT false);
+CREATE TABLE gardens (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES auth.users(id));
+INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000002');
+INSERT INTO profiles VALUES ('00000000-0000-0000-0000-000000000001','admin',true), ('00000000-0000-0000-0000-000000000002','user',false);
+INSERT INTO gardens VALUES ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001');
+GRANT USAGE ON SCHEMA public, auth TO authenticated;
+GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
+GRANT SELECT ON profiles, gardens TO authenticated;

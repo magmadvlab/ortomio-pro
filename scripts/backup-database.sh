@@ -1,55 +1,24 @@
-#!/bin/bash
-# Script di Backup Automatico Database OrtoMio
-# Crea backup giornalieri del database PostgreSQL
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "DATABASE_URL e obbligatoria; nessun host/password di default e ammesso." >&2
+  exit 2
+fi
 
-# Configurazione
-BACKUP_DIR="$HOME/ortomio-backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-DB_HOST="127.0.0.1"
-DB_PORT="54324"
-DB_NAME="postgres"
-DB_USER="postgres"
-DB_PASSWORD="postgres"
-RETENTION_DAYS=30
-
-# Crea directory backup se non esiste
+BACKUP_DIR="${BACKUP_DIR:-$HOME/ortomio-backups}"
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_RESTORE_BIN="${PG_RESTORE_BIN:-pg_restore}"
+PSQL_BIN="${PSQL_BIN:-psql}"
+SERVER_MAJOR="$($PSQL_BIN "$DATABASE_URL" -Atc 'show server_version_num' | awk '{print int($1/10000)}')"
+DUMP_MAJOR="$($PG_DUMP_BIN --version | awk '{print $3}' | cut -d. -f1)"
+if [[ "$SERVER_MAJOR" != "$DUMP_MAJOR" ]]; then
+  echo "Versione client/server non allineata: pg_dump $DUMP_MAJOR, server $SERVER_MAJOR." >&2
+  exit 3
+fi
 mkdir -p "$BACKUP_DIR"
-
-# Nome file backup
-BACKUP_FILE="$BACKUP_DIR/ortomio_backup_$DATE.sql"
-BACKUP_FILE_GZ="$BACKUP_FILE.gz"
-
-echo "🔄 Inizio backup database OrtoMio..."
-echo "📅 Data: $(date)"
-
-# Esegui backup
-PGPASSWORD=$DB_PASSWORD pg_dump \
-  -h $DB_HOST \
-  -p $DB_PORT \
-  -U $DB_USER \
-  -d $DB_NAME \
-  --clean \
-  --if-exists \
-  --no-owner \
-  --no-acl \
-  -f "$BACKUP_FILE"
-
-# Comprimi backup
-gzip "$BACKUP_FILE"
-
-echo "✅ Backup completato: $BACKUP_FILE_GZ"
-echo "📊 Dimensione: $(du -h "$BACKUP_FILE_GZ" | cut -f1)"
-
-# Rimuovi backup vecchi (oltre retention_days)
-echo "🧹 Pulizia backup vecchi (oltre $RETENTION_DAYS giorni)..."
-find "$BACKUP_DIR" -name "ortomio_backup_*.sql.gz" -type f -mtime +$RETENTION_DAYS -delete
-
-# Lista backup esistenti
-echo ""
-echo "📁 Backup disponibili:"
-ls -lh "$BACKUP_DIR"/ortomio_backup_*.sql.gz 2>/dev/null | tail -5 || echo "Nessun backup trovato"
-
-echo ""
-echo "✨ Backup completato con successo!"
+BACKUP_FILE="${1:-$BACKUP_DIR/ortomio_$(date -u +%Y%m%dT%H%M%SZ).dump}"
+$PG_DUMP_BIN "$DATABASE_URL" --format=custom --no-owner --no-acl --file="$BACKUP_FILE"
+$PG_RESTORE_BIN --list "$BACKUP_FILE" >/dev/null
+chmod 600 "$BACKUP_FILE"
+echo "$BACKUP_FILE"

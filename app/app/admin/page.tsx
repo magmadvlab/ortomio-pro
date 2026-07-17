@@ -10,6 +10,7 @@ type AdminOverview = {
   recentAudits: Array<{ id: string; action: string; target_type: string; target_id: string | null; outcome: string; created_at: string }>
 }
 type AuthUser = { id: string; email: string | null; created_at: string; last_sign_in_at: string | null; is_verified: boolean }
+type ReleaseReadiness = { deployReady: boolean; schemaReady: boolean; externalReady: boolean; rollbackRequired: boolean; violations: string[]; queryErrors: string[]; metrics: Record<string, number> }
 
 export default function AdminDashboard() {
   const [overview, setOverview] = useState<AdminOverview | null>(null)
@@ -17,19 +18,22 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [resendEmail, setResendEmail] = useState<string | null>(null)
+  const [readiness, setReadiness] = useState<ReleaseReadiness | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [overviewResponse, usersResponse] = await Promise.all([
+      const [overviewResponse, usersResponse, readinessResponse] = await Promise.all([
         fetch('/api/admin/overview', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/admin/auth-users?per_page=100', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/admin/release-readiness', { credentials: 'include', cache: 'no-store' }),
       ])
       if (overviewResponse.status === 401 || overviewResponse.status === 403) { window.location.assign('/app'); return }
       if (!overviewResponse.ok || !usersResponse.ok) throw new Error('Dati amministrativi non disponibili')
       setOverview(await overviewResponse.json())
       const userPayload = await usersResponse.json()
       setUsers(Array.isArray(userPayload.users) ? userPayload.users : [])
+      setReadiness(readinessResponse.ok ? await readinessResponse.json() : null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Errore amministrativo')
     } finally { setLoading(false) }
@@ -69,6 +73,14 @@ export default function AdminDashboard() {
     <section className="bg-white p-6 rounded-lg shadow"><div className="flex items-center gap-2 mb-4"><Settings className="text-green-600" /><h2 className="text-lg font-semibold">Provider health</h2></div>
       <p className="text-sm text-gray-600 mb-4">Mostra soltanto disponibilità/configurazione; nessun secret viene restituito al browser.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{healthEntries.map(([name, status]) => <div key={name} className="border rounded-lg p-3"><div className="text-sm font-medium">{name}</div><div className={`text-sm mt-1 ${status === 'healthy' || status === 'configured' ? 'text-green-700' : 'text-amber-700'}`}>{status}</div></div>)}</div>
+    </section>
+
+    <section className="bg-white p-6 rounded-lg shadow"><div className="flex items-center gap-2 mb-4"><Activity className="text-purple-600" /><h2 className="text-lg font-semibold">Release readiness</h2></div>
+      {!readiness ? <p className="text-sm text-gray-500">Gate P8 non disponibile: rollout bloccato.</p> : <div className="space-y-3 text-sm">
+        <div className={`rounded-lg p-3 font-medium ${readiness.deployReady ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>{readiness.deployReady ? 'Deploy autorizzabile' : 'Deploy bloccato dai gate'}</div>
+        <div className="grid grid-cols-3 gap-3"><div>Schema: {readiness.schemaReady ? 'OK' : 'NO'}</div><div>Gate esterni: {readiness.externalReady ? 'OK' : 'NO'}</div><div>Rollback: {readiness.rollbackRequired ? 'RICHIESTO' : 'no'}</div></div>
+        {(readiness.violations.length > 0 || readiness.queryErrors.length > 0) && <p className="text-red-700">{[...readiness.violations, ...readiness.queryErrors].join(' · ')}</p>}
+      </div>}
     </section>
 
     <section className="bg-white p-6 rounded-lg shadow"><div className="flex items-center gap-2 mb-4"><Mail className="text-blue-600" /><h2 className="text-lg font-semibold">Utenti Auth</h2></div>

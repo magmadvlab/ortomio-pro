@@ -1,5 +1,8 @@
+'use client'
+
 import { type ReactNode } from 'react'
-import { isFeatureEnabled, type FeatureFlag } from '@/config/features'
+import { type FeatureFlag } from '@/config/features'
+import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
 
 interface FeatureGateProps {
   /**
@@ -39,7 +42,8 @@ interface FeatureGateProps {
  * ```
  */
 export function FeatureGate({ feature, children, fallback = null }: FeatureGateProps) {
-  if (!isFeatureEnabled(feature)) {
+  const { access } = useCapabilities()
+  if (!access.enabledFeatures.includes(feature)) {
     return <>{fallback}</>
   }
   
@@ -93,9 +97,10 @@ export function MultiFeatureGate({
   children, 
   fallback = null 
 }: MultiFeatureGateProps) {
+  const { access } = useCapabilities()
   const isEnabled = mode === 'all'
-    ? features.every((feature) => isFeatureEnabled(feature))
-    : features.some((feature) => isFeatureEnabled(feature))
+    ? features.every((feature) => access.enabledFeatures.includes(feature))
+    : features.some((feature) => access.enabledFeatures.includes(feature))
   
   if (!isEnabled) {
     return <>{fallback}</>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
-import { getEnabledFeatures } from '@/config/features'
+import { getEnabledFeaturesForAccess } from '@/config/capabilities'
 import { getVisibleCapabilities, type CapabilityDescriptor } from '@/config/capabilities'
 import { useCapabilities } from '@/components/capabilities/CapabilityProvider'
 import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/CapabilityVisuals'
@@ -16,7 +16,7 @@ export function ProfessionalSidebar() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [open, setOpen] = useState(false)
   const capabilities = useMemo(
-    () => getVisibleCapabilities(access, 'desktop', new Set(getEnabledFeatures())).filter(item => item.route),
+    () => getVisibleCapabilities(access, 'desktop', getEnabledFeaturesForAccess(access)).filter(item => item.route),
     [access],
   )
   const groups = useMemo(() => capabilities.reduce<Record<string, CapabilityDescriptor[]>>((result, item) => {

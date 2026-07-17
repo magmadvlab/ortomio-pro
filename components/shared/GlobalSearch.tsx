@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Loader2, X, Calendar, Package, Sprout, Home, Wrench, Droplet } from 'lucide-react';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { searchAll, SearchResult } from '../../services/globalSearchService';
-import { getEnabledFeatures } from '@/config/features';
+import { getEnabledFeaturesForAccess } from '@/config/capabilities';
 import { getSearchResultRoute, getVisibleCapabilities } from '@/config/capabilities';
 import { useCapabilities } from '@/components/capabilities/CapabilityProvider';
 
@@ -132,7 +132,7 @@ const GlobalSearch: React.FC = () => {
   }, {} as Record<string, SearchResult[]>);
 
   const normalizedQuery = query.trim().toLocaleLowerCase('it-IT');
-  const navigationMatches = normalizedQuery.length < 2 ? [] : getVisibleCapabilities(access, 'search', new Set(getEnabledFeatures()))
+  const navigationMatches = normalizedQuery.length < 2 ? [] : getVisibleCapabilities(access, 'search', getEnabledFeaturesForAccess(access))
     .filter(capability => capability.route && `${capability.label} ${capability.description}`.toLocaleLowerCase('it-IT').includes(normalizedQuery))
     .slice(0, 5);
 
@@ -239,7 +239,6 @@ const GlobalSearch: React.FC = () => {
 };
 
 export default GlobalSearch;
-
 
 
 
