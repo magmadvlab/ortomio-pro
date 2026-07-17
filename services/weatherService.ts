@@ -7,6 +7,11 @@ import type { Garden } from '@/types';
 import type { WeatherSnapshot } from '@/types/environmental'
 import type { HealthAlert as AgronomicHealthAlert } from '@/logic/healthAlertEngine';
 import {
+  evaluateWeatherRisks,
+  type WeatherDecision,
+  type WeatherHazard,
+} from '@/logic/weatherDecisionEngine'
+import {
   buildWeatherSnapshotFromPersistedLog,
   resolvePersistedWeatherLogForDate,
   type PersistedDailyWeatherLike,
@@ -48,15 +53,19 @@ export interface WeatherForecast {
   humidity: number
   snowfall?: number
   snowForecastMm?: number
+  precipitation_probability?: number
+  showers?: number
+  max_hourly_precipitation?: number
+  max_hourly_showers?: number
+  wind_gusts?: number
+  cape_max?: number
+  hourly_weather_codes?: number[]
 }
 
-export interface WeatherAlert {
-  severity: 'LOW' | 'MEDIUM' | 'HIGH'
-  message: string
+export interface WeatherAlert extends WeatherDecision {
   type: 'temperature' | 'rain' | 'wind' | 'humidity'
-  action: string
-  steps: string[]
-  estimatedMinutes: number
+  forecastDate?: string
+  dayOffset?: number
 }
 
 interface GardenLocation {
@@ -79,10 +88,21 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       'temperature_2m_min',
       'precipitation_sum',
       'precipitation_probability_max',
-      'weathercode',
+      'weather_code',
       'wind_speed_10m_max',
+      'wind_gusts_10m_max',
+      'showers_sum',
+      'precipitation_hours',
       'uv_index_max',
       'snowfall_sum'
+    ].join(','));
+    url.searchParams.append('hourly', [
+      'precipitation',
+      'showers',
+      'weather_code',
+      'wind_gusts_10m',
+      'cape',
+      'precipitation_probability'
     ].join(','));
     url.searchParams.append('forecast_days', days.toString());
     url.searchParams.append('timezone', 'Europe/Rome');
@@ -110,18 +130,48 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       throw new Error('Invalid weather API response');
     }
     
-    return data.daily.time.map((dateStr: string, idx: number) => ({
-      date: new Date(dateStr),
-      temp_max: Math.round(data.daily.temperature_2m_max[idx]),
-      temp_min: Math.round(data.daily.temperature_2m_min[idx]),
-      precipitation: data.daily.precipitation_sum[idx] || 0,
-      precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
-      condition: getConditionFromCode(data.daily.weathercode[idx]),
-      weathercode: data.daily.weathercode[idx] || 0,
-      wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
-      uv_index: data.daily.uv_index_max[idx] || 0,
-      snowfall: data.daily.snowfall_sum?.[idx] || 0
-    }));
+    const hourlyTimes: string[] = data.hourly?.time || []
+    const hourlyIndexesByDay = new Map<string, number[]>()
+    hourlyTimes.forEach((time, index) => {
+      const day = String(time).slice(0, 10)
+      hourlyIndexesByDay.set(day, [...(hourlyIndexesByDay.get(day) || []), index])
+    })
+    const maxAtIndexes = (values: unknown[] | undefined, indexes: number[]): number =>
+      indexes.reduce((maximum, index) => {
+        const value = Number(values?.[index])
+        return Number.isFinite(value) ? Math.max(maximum, value) : maximum
+      }, 0)
+
+    return data.daily.time.map((dateStr: string, idx: number) => {
+      const hourlyIndexes = hourlyIndexesByDay.get(dateStr) || []
+      const weatherCode = Number(data.daily.weather_code?.[idx] ?? data.daily.weathercode?.[idx] ?? 0)
+      const hourlyWeatherCodes = hourlyIndexes
+        .map((index) => Number(data.hourly?.weather_code?.[index] ?? data.hourly?.weathercode?.[index]))
+        .filter(Number.isFinite)
+
+      return {
+        date: new Date(dateStr),
+        temp_max: Math.round(data.daily.temperature_2m_max[idx]),
+        temp_min: Math.round(data.daily.temperature_2m_min[idx]),
+        precipitation: data.daily.precipitation_sum[idx] || 0,
+        precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
+        precipitation_hours: data.daily.precipitation_hours?.[idx] || 0,
+        showers: data.daily.showers_sum?.[idx] || 0,
+        max_hourly_precipitation: maxAtIndexes(data.hourly?.precipitation, hourlyIndexes),
+        max_hourly_showers: maxAtIndexes(data.hourly?.showers, hourlyIndexes),
+        condition: getConditionFromCode(weatherCode),
+        weathercode: weatherCode,
+        hourly_weather_codes: hourlyWeatherCodes,
+        wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
+        wind_gusts: Math.max(
+          Number(data.daily.wind_gusts_10m_max?.[idx] || 0),
+          maxAtIndexes(data.hourly?.wind_gusts_10m, hourlyIndexes)
+        ),
+        cape_max: maxAtIndexes(data.hourly?.cape, hourlyIndexes),
+        uv_index: data.daily.uv_index_max[idx] || 0,
+        snowfall: data.daily.snowfall_sum?.[idx] || 0
+      }
+    });
   } catch (error) {
     console.error('Error fetching weather:', error);
     return [];
@@ -136,121 +186,78 @@ export function generateWeatherAlerts(
   forecast: any[], 
   activePlants: Array<{ plantName: string; minTemp?: number }> = []
 ): WeatherAlert[] {
-  const alerts: WeatherAlert[] = [];
-  
-  if (!forecast || forecast.length === 0) return alerts;
-  
-  const today = forecast[0];
-  
-  // Temperature alerts
-  if (today.temp_max > 35) {
-    alerts.push({
-      severity: 'HIGH',
-      message: `Caldo estremo previsto (${Math.round(today.temp_max)}°C)`,
-      type: 'temperature',
-      action: 'Proteggi oggi le colture sensibili con ombreggiante 30–50%, irrigazione lenta al suolo nelle ore fresche e pacciamatura.',
-      steps: [
-        'Irriga tra le 05:00 e le 08:00, lentamente e alla base; prima controlla che i primi 5 cm di terreno siano asciutti.',
-        'Ombreggia dalle 11:00 alle 17:00 soprattutto piantine, ortaggi a foglia e frutti esposti; non usare plastica chiusa.',
-        'Stendi 5–8 cm di pacciamatura senza appoggiarla ai fusti e rimanda trapianti, potature e trattamenti fogliari.'
-      ],
-      estimatedMinutes: 25
-    });
-  } else if (today.temp_max > 30) {
-    alerts.push({
-      severity: 'MEDIUM', 
-      message: `Temperature elevate previste (${Math.round(today.temp_max)}°C)`,
-      type: 'temperature',
-      action: 'Controlla l’umidità del suolo e anticipa l’irrigazione al mattino; prepara ombreggiatura per le colture più sensibili.',
-      steps: [
-        'Controlla il terreno a 5 cm di profondità prima di irrigare.',
-        'Se asciutto, irriga lentamente alla base entro le 09:00.',
-        'Evita lavorazioni, trapianti e concimazioni nelle ore più calde.'
-      ],
-      estimatedMinutes: 15
-    });
+  if (!forecast || forecast.length === 0) return []
+
+  const hazardType: Record<WeatherHazard, WeatherAlert['type']> = {
+    heat: 'temperature',
+    frost: 'temperature',
+    heavy_rain: 'rain',
+    flash_flood: 'rain',
+    strong_wind: 'wind',
+    violent_wind: 'wind',
+    severe_thunderstorm: 'wind',
+    hail: 'rain',
+    snow: 'temperature',
   }
-  
-  if (today.temp_min < 0) {
-    alerts.push({
-      severity: 'HIGH',
-      message: `Rischio gelo (minima ${Math.round(today.temp_min)}°C)`,
-      type: 'temperature',
-      action: 'Copri le colture sensibili con tessuto non tessuto prima del tramonto e proteggi le radici con pacciamatura asciutta.',
-      steps: [
-        'Installa il telo senza farlo aderire alle foglie e fissalo contro il vento.',
-        'Pacciama la zona radicale e sposta in riparo i vasi trasportabili.',
-        'Rimuovi o arieggia la copertura quando la temperatura risale al mattino.'
-      ],
-      estimatedMinutes: 20
-    });
-  } else if (today.temp_min < 5) {
-    alerts.push({
-      severity: 'MEDIUM',
-      message: `Temperature basse (minima ${Math.round(today.temp_min)}°C)`,
-      type: 'temperature',
-      action: 'Prepara tessuto non tessuto e ripara piantine e colture termofile prima della sera.',
-      steps: [
-        'Individua piantine giovani, solanacee e colture in vaso più esposte.',
-        'Copri prima del tramonto lasciando circolare aria.',
-        'Controlla la minima effettiva al mattino seguente.'
-      ],
-      estimatedMinutes: 15
-    });
-  }
-  
-  // Rain alerts
-  if (today.precipitation > 20) {
-    alerts.push({
-      severity: 'HIGH',
-      message: `Pioggia intensa prevista (${Math.round(today.precipitation)} mm)`,
-      type: 'rain',
-      action: 'Sospendi l’irrigazione, libera gli scarichi e metti in sicurezza terreno nudo e colture soggette a ristagno.',
-      steps: [
-        'Disattiva i cicli irrigui programmati.',
-        'Controlla canalette, drenaggi e sottovasi.',
-        'Rimanda trattamenti fogliari e lavorazioni del terreno.'
-      ],
-      estimatedMinutes: 15
-    });
-  } else if (today.precipitation > 5) {
-    alerts.push({
-      severity: 'MEDIUM',
-      message: `Pioggia prevista (${Math.round(today.precipitation)} mm)`,
-      type: 'rain',
-      action: 'Riduci o rimanda l’irrigazione e verifica domani l’umidità reale prima di riattivarla.',
-      steps: [
-        'Riduci il ciclo irriguo previsto per oggi.',
-        'Evita trattamenti che richiedono una finestra asciutta.',
-        'Ricontrolla il terreno dopo la pioggia.'
-      ],
-      estimatedMinutes: 10
-    });
-  }
-  
-  // Wind alerts
-  if (today.wind_speed > 50) {
-    alerts.push({
-      severity: 'HIGH',
-      message: `Vento forte previsto (${Math.round(today.wind_speed)} km/h)`,
-      type: 'wind',
-      action: 'Fissa tutori, serre leggere e teli; raccogli o abbassa gli elementi che possono danneggiare le colture.',
-      steps: [
-        'Controlla legature e tutori senza stringere i fusti.',
-        'Chiudi e ancora tunnel, ombreggianti e coperture.',
-        'Rimanda irrorazioni e trattamenti fogliari.'
-      ],
-      estimatedMinutes: 20
-    });
-  }
-  
-  return alerts;
+
+  const horizonAlerts = forecast.slice(0, 3).flatMap((day, dayOffset) => {
+    const weatherCodes = [
+      day.weathercode,
+      day.code,
+      ...(Array.isArray(day.hourly_weather_codes) ? day.hourly_weather_codes : []),
+    ].map(Number).filter(Number.isFinite)
+    const dayLabel = dayOffset === 0 ? '' : dayOffset === 1 ? 'Domani: ' : `Tra ${dayOffset} giorni: `
+
+    return evaluateWeatherRisks({
+      tempMax: day.temp_max ?? day.tempMax ?? day.temp,
+      tempMin: day.temp_min ?? day.tempMin ?? day.temp,
+      precipitationTotalMm: day.precipitation ?? day.rainMm ?? day.rainForecastMm,
+      precipitationProbabilityMax: day.precipitation_probability,
+      maxHourlyPrecipitationMm: day.max_hourly_precipitation,
+      showersTotalMm: day.showers,
+      maxHourlyShowersMm: day.max_hourly_showers,
+      windSpeedMaxKmh: day.wind_speed ?? day.windSpeed ?? day.wind,
+      windGustMaxKmh: day.wind_gusts,
+      capeMaxJkg: day.cape_max,
+      snowfallCm: day.snowfall,
+      weatherCodes,
+    }).map((decision) => ({
+      ...decision,
+      message: `${dayLabel}${decision.message}`,
+      type: hazardType[decision.hazard],
+      forecastDate: day.date instanceof Date ? day.date.toISOString() : day.date,
+      dayOffset,
+    }))
+  })
+
+  const severityRank = { HIGH: 3, MEDIUM: 2, LOW: 1 }
+  const urgencyRank = { immediate: 3, today: 2, monitor: 1 }
+  const bestByHazard = new Map<WeatherHazard, WeatherAlert>()
+  horizonAlerts.forEach((alert) => {
+    const previous = bestByHazard.get(alert.hazard)
+    const alertRank = severityRank[alert.severity] * 10 + urgencyRank[alert.urgency]
+    const previousRank = previous
+      ? severityRank[previous.severity] * 10 + urgencyRank[previous.urgency]
+      : -1
+    if (!previous || alertRank > previousRank || (alertRank === previousRank && (alert.dayOffset || 0) < (previous.dayOffset || 0))) {
+      bestByHazard.set(alert.hazard, alert)
+    }
+  })
+
+  return [...bestByHazard.values()].sort((left, right) =>
+    severityRank[right.severity] - severityRank[left.severity] ||
+    urgencyRank[right.urgency] - urgencyRank[left.urgency] ||
+    (left.dayOffset || 0) - (right.dayOffset || 0)
+  )
 }
 
 export interface CriticalWeatherAlert {
-  type: 'frost' | 'heat' | 'rain'
+  type: WeatherHazard
   severity: 'LOW' | 'MEDIUM' | 'HIGH'
   message: string
+  action: string
+  steps: string[]
+  forecastDate?: string
 }
 
 /**
@@ -258,40 +265,16 @@ export interface CriticalWeatherAlert {
  * Usa il primo giorno disponibile del forecast (oggi).
  */
 export function checkCriticalWeatherAlerts(forecast: any[]): CriticalWeatherAlert[] {
-  if (!Array.isArray(forecast) || forecast.length === 0) return []
-
-  const today = forecast[0] || {}
-  const tempMin = Number(today.temp_min ?? today.tempMin ?? today.temp ?? 0)
-  const tempMax = Number(today.temp_max ?? today.tempMax ?? today.temp ?? 0)
-  const rainMm = Number(today.precipitation ?? today.rainMm ?? today.rainForecastMm ?? 0)
-
-  const alerts: CriticalWeatherAlert[] = []
-
-  if (tempMin <= 0) {
-    alerts.push({
-      type: 'frost',
-      severity: tempMin <= -2 ? 'HIGH' : 'MEDIUM',
-      message: `Rischio gelata oggi: minima prevista ${tempMin.toFixed(1)}°C. Proteggi le colture sensibili.`
-    })
-  }
-
-  if (tempMax >= 35) {
-    alerts.push({
-      type: 'heat',
-      severity: tempMax >= 38 ? 'HIGH' : 'MEDIUM',
-      message: `Caldo critico oggi: massima prevista ${tempMax.toFixed(1)}°C. Aumenta monitoraggio e irrigazione.`
-    })
-  }
-
-  if (rainMm >= 20) {
-    alerts.push({
-      type: 'rain',
-      severity: rainMm >= 35 ? 'HIGH' : 'MEDIUM',
-      message: `Pioggia intensa prevista: ${rainMm.toFixed(1)} mm. Valuta drenaggio e sospendi irrigazioni.`
-    })
-  }
-
-  return alerts
+  return generateWeatherAlerts(forecast)
+    .filter((alert) => alert.severity === 'HIGH')
+    .map((alert) => ({
+      type: alert.hazard,
+      severity: alert.severity,
+      message: `${alert.message}. ${alert.action}`,
+      action: alert.action,
+      steps: alert.steps,
+      forecastDate: alert.forecastDate,
+    }))
 }
 
 /**
@@ -321,12 +304,7 @@ export async function checkWeatherHealthRisks(garden: Garden): Promise<Agronomic
             ? 'medium'
             : 'low',
       message: alert.message,
-      action:
-        alert.type === 'rain'
-          ? 'Riduci o sospendi l’irrigazione e verifica il drenaggio.'
-          : alert.type === 'wind'
-            ? 'Proteggi le piante più esposte e controlla i tutori.'
-            : 'Monitora le colture sensibili e adegua irrigazione o protezioni.',
+      action: alert.action,
       urgency:
         alert.severity === 'HIGH'
           ? 'immediate'
@@ -929,77 +907,36 @@ class WeatherService {
     message: string
     icon: string
   }> {
-    const alerts = []
-
-    // Alert pioggia
-    if (weather.rainMm > 10) {
-      alerts.push({
-        type: 'warning' as const,
-        title: 'Pioggia intensa prevista',
-        message: `${weather.rainMm}mm di pioggia. Evita irrigazione, controlla drenaggio`,
-        icon: '🌧️'
-      })
-    } else if (weather.rainMm > 2) {
-      alerts.push({
-        type: 'info' as const,
-        title: 'Pioggia leggera',
-        message: 'Riduci o sospendi l\'irrigazione oggi',
-        icon: '🌦️'
-      })
+    const iconByHazard: Record<WeatherHazard, string> = {
+      heat: '🔥',
+      frost: '❄️',
+      heavy_rain: '🌧️',
+      flash_flood: '🌊',
+      strong_wind: '💨',
+      violent_wind: '🌪️',
+      severe_thunderstorm: '⛈️',
+      hail: '🧊',
+      snow: '🌨️',
     }
+    const forecast = weather.forecast?.length > 0
+      ? weather.forecast
+      : [{
+          temp_max: weather.temp,
+          temp_min: weather.temp,
+          precipitation: weather.rainMm,
+          wind_speed: weather.windSpeed,
+        }]
 
-    // Alert temperatura
-    if (weather.temp > 35) {
-      alerts.push({
-        type: 'danger' as const,
-        title: 'Caldo estremo',
-        message: 'Proteggi le piante, aumenta irrigazione mattutina',
-        icon: '🔥'
-      })
-    } else if (weather.temp > 30) {
-      alerts.push({
-        type: 'warning' as const,
-        title: 'Temperature elevate',
-        message: 'Aumenta frequenza irrigazione, ombreggia piantine',
-        icon: '🌡️'
-      })
-    } else if (weather.temp < 0) {
-      alerts.push({
-        type: 'danger' as const,
-        title: 'Rischio gelo',
-        message: 'Proteggi piante sensibili, copri con teli',
-        icon: '❄️'
-      })
-    } else if (weather.temp < 5) {
-      alerts.push({
-        type: 'warning' as const,
-        title: 'Temperature basse',
-        message: 'Monitora piante sensibili al freddo',
-        icon: '🥶'
-      })
-    }
-
-    // Alert vento
-    if (weather.windSpeed > 50) {
-      alerts.push({
-        type: 'danger' as const,
-        title: 'Vento forte',
-        message: 'Proteggi piante alte, controlla tutori',
-        icon: '💨'
-      })
-    }
-
-    // Alert umidità
-    if (weather.humidity > 85 && weather.temp > 20) {
-      alerts.push({
-        type: 'warning' as const,
-        title: 'Alta umidità',
-        message: 'Rischio malattie fungine, migliora aerazione',
-        icon: '💧'
-      })
-    }
-
-    return alerts
+    return generateWeatherAlerts(forecast).map((alert) => ({
+      type: alert.severity === 'HIGH'
+        ? 'danger' as const
+        : alert.severity === 'MEDIUM'
+          ? 'warning' as const
+          : 'info' as const,
+      title: alert.message,
+      message: alert.action,
+      icon: iconByHazard[alert.hazard],
+    }))
   }
 }
 

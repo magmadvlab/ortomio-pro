@@ -80,12 +80,20 @@ export async function GET(request: NextRequest) {
               garden.user_id,
               authUser.user.email,
               {
-                type: alert.type === 'frost' ? 'Gelata' : 
-                      alert.type === 'heat' ? 'Ondata di Calore' : 
-                      'Pioggia Intensa',
+                type: ({
+                  frost: 'Gelata',
+                  heat: 'Ondata di calore',
+                  heavy_rain: 'Pioggia abbondante',
+                  flash_flood: 'Rischio allagamenti',
+                  strong_wind: 'Vento forte',
+                  violent_wind: 'Vento violento',
+                  severe_thunderstorm: 'Temporale severo',
+                  hail: 'Grandine',
+                  snow: 'Nevicata intensa',
+                })[alert.type],
                 severity: alert.severity.toLowerCase(),
                 message: alert.message,
-                date: today,
+                date: alert.forecastDate?.slice(0, 10) || today,
               }
             )
           );
@@ -127,5 +135,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 
