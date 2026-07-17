@@ -22,9 +22,14 @@ export async function getFieldAlerts(
   }
 
   try {
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
     const res = await fetch(`${supabaseFunctionsUrl}/compute-field-alerts`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
       body: JSON.stringify({ gardenId }),
     });
 
