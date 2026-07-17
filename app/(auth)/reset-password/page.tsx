@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Lock, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { getSupabaseClient } from '@/config/supabase'
@@ -10,7 +10,6 @@ import { registrationValidator } from '@/services/registrationValidator'
 
 function ResetPasswordForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,30 +20,18 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false)
   const [validToken, setValidToken] = useState(false)
 
-  // Verifica token al mount
+  // La callback PKCE crea la sessione recovery nel browser prima di arrivare qui.
   useEffect(() => {
-    const checkToken = async () => {
-      const accessToken = searchParams.get('access_token')
-      const refreshToken = searchParams.get('refresh_token')
-      
-      if (!accessToken || !refreshToken) {
-        setError('Link di reset non valido o scaduto')
-        return
-      }
-
+    const checkRecoverySession = async () => {
       try {
         const supabase = getSupabaseClient()
         if (!supabase) {
           throw new Error('Servizio di autenticazione non disponibile')
         }
 
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-
-        if (sessionError) {
-          throw sessionError
+        const { data, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError || !data.session) {
+          throw sessionError || new Error('Sessione recovery non disponibile')
         }
 
         setValidToken(true)
@@ -54,8 +41,8 @@ function ResetPasswordForm() {
       }
     }
 
-    checkToken()
-  }, [searchParams])
+    void checkRecoverySession()
+  }, [])
 
   // Calcolo forza password
   const calculatePasswordStrength = (password: string): number => {
@@ -107,6 +94,7 @@ function ResetPasswordForm() {
         throw new Error(handledError.message)
       }
 
+      await supabase.auth.signOut({ scope: 'local' })
       setSuccess(true)
       setTimeout(() => {
         router.push('/login')
