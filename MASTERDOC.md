@@ -3,7 +3,7 @@
 - **Versione:** 3.0 release candidate P0-P8
 - **Ultimo aggiornamento:** 2026-07-17
 - **Repository canonico:** `/Volumes/990P/ortomio-main`
-- **Baseline verificata:** catena di branch P0-P8, ultimo commit locale `6b7c406`
+- **Baseline verificata:** catena di branch P0-P9; contenuti `fdb0aa9`, bonifica `babbe93`
 - **Documento sorgente confrontato:** `/Users/magma/Desktop/MASTERDOC_16Luglio-2026.md`
 - **SHA-256 del sorgente:** `4e03edb1134179be16ebb2a5393bbbdba27632ba06a600d49e685bc7a5bd18d0`
 - **Stato:** documento unico canonico di prodotto, architettura e maturita; rollout remoto differito

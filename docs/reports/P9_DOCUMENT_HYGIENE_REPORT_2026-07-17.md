@@ -4,6 +4,7 @@
 - **Branch:** `codex/ortomio-p9-doc-hygiene`
 - **Manifest:** `P9_DOCUMENT_HYGIENE_MANIFEST_2026-07-17.csv`
 - **Stato:** bonifica locale completata; rollout remoto ancora differito
+- **Commit bonifica:** `babbe93`
 
 ## Risultato
 
