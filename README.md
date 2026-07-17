@@ -13,7 +13,7 @@ Le capability non validate restano disattivate. Drone e blockchain sono laborato
 - [MASTERDOC.md](./MASTERDOC.md): prodotto, architettura, maturità e limiti.
 - [Manuale utente](./docs/manual/README.md): comportamento visibile e uso operativo.
 - [Piano esecutivo](./docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md): fasi, evidenze, gate e residui.
-- [Baseline sicurezza](./docs/security/P0_SECURITY_AUTHORIZATION_BASELINE_2026-07-16.md): contratto di autenticazione e ownership.
+- [Baseline sicurezza](./docs/security/P1_SECURITY_REMEDIATION_2026-07-17.md): contratto di autenticazione, ownership e residui remoti.
 
 Nessun altro documento generale nella root è una fonte canonica.
 

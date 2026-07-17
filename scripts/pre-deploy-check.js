@@ -8,6 +8,7 @@
  * 2. Suite release
  * 3. Build Next.js
  * 4. Gate readiness locale
+ * 5. Igiene documentale
  * 
  * Uso: node scripts/pre-deploy-check.js [--skip-build]
  * ============================================================================
@@ -77,7 +78,7 @@ console.log('');
 // ============================================================================
 // 1. Verifica TypeScript
 // ============================================================================
-print('[1/4] Verifica TypeScript...', 'blue');
+print('[1/5] Verifica TypeScript...', 'blue');
 const typeCheckResult = runCommand('npm run type-check', 'TypeScript');
 if (typeCheckResult.success) {
   printSuccess(typeCheckResult.message);
@@ -91,7 +92,7 @@ console.log('');
 // ============================================================================
 // 2. Suite release
 // ============================================================================
-print('[2/4] Suite release...', 'blue');
+print('[2/5] Suite release...', 'blue');
 const testResult = runCommand('npm run test:release', 'Test release');
 if (testResult.success) printSuccess(testResult.message);
 else { printError(testResult.message); errorCount++; }
@@ -101,7 +102,7 @@ console.log('');
 // 3. Verifica Build Next.js
 // ============================================================================
 if (!skipBuild) {
-  print('[3/4] Verifica Build Next.js...', 'blue');
+  print('[3/5] Verifica Build Next.js...', 'blue');
   printInfo('Questo potrebbe richiedere alcuni minuti...');
   
   const buildResult = runCommand('npm run build:next', 'Build');
@@ -113,17 +114,26 @@ if (!skipBuild) {
     errorCount++;
   }
 } else {
-  printWarning('[3/4] Build Next.js: SKIPPATO (usa --skip-build per saltare)');
+  printWarning('[3/5] Build Next.js: SKIPPATO (usa --skip-build per saltare)');
 }
 console.log('');
 
 // ============================================================================
 // 4. Gate readiness locale
 // ============================================================================
-print('[4/4] Gate readiness locale...', 'blue');
+print('[4/5] Gate readiness locale...', 'blue');
 const readinessResult = runCommand('npm run release:check', 'Release readiness');
 if (readinessResult.success) printSuccess(readinessResult.message);
 else { printError(readinessResult.message); errorCount++; }
+console.log('');
+
+// ============================================================================
+// 5. Igiene documentale
+// ============================================================================
+print('[5/5] Igiene documentale...', 'blue');
+const docsResult = runCommand('npm run docs:hygiene', 'Documentazione');
+if (docsResult.success) printSuccess(docsResult.message);
+else { printError(docsResult.message); errorCount++; }
 console.log('');
 
 // ============================================================================
@@ -133,7 +143,7 @@ print('========================================', 'blue');
 if (errorCount === 0) {
   printSuccess('Tutti i controlli superati! ✅');
   console.log('');
-  print('Pronto per commit e deploy!', 'green');
+  print('Baseline locale pronta; il deploy richiede anche i gate remoti.', 'green');
   process.exit(0);
 } else {
   printError(`Trovati ${errorCount} errore/i! ❌`);

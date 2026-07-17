@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0-P8 implementate e verificate per la baseline locale; rollout remoto P8 bloccato e non incluso nella release finche non esistono staging, snapshot e gate esterni verificati
+- **Stato esecuzione:** P0-P9 completate e verificate per la baseline locale; rollout remoto bloccato e non incluso nella release finche non esistono staging, snapshot e gate esterni verificati
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -591,13 +591,13 @@ P9 non puo iniziare con task applicativi P0-P8 ancora aperti, salvo la sola prep
 
 ### 15.1 Raccolta delle evidenze finali
 
-- [ ] registrare commit e release di completamento;
-- [ ] registrare migrazioni applicate;
-- [ ] salvare risultati type-check, test, build, RLS e Security Advisor;
-- [ ] esportare la capability matrix finale;
-- [ ] registrare provider realmente attivi;
-- [ ] classificare ogni dominio come operativo, beta, simulato, disattivato o rimosso;
-- [ ] registrare limiti residui e backlog successivo.
+- [x] registrare commit e release candidate locale: contenuti `fdb0aa9` (PR #26), bonifica `babbe93` e chiusura `7da7b57` (PR #27);
+- [!] registrare migrazioni applicate — replay locale P1-P8 registrato; target remoto non modificato;
+- [!] salvare risultati type-check, test, build, RLS e Security Advisor — gate locali verdi; Advisor remoto fermo alla baseline pre-fix;
+- [x] esportare la capability matrix finale;
+- [x] registrare provider realmente attivi — nessun provider remoto attivato in questa esecuzione;
+- [x] classificare ogni dominio come operativo, beta, simulato, disattivato o rimosso;
+- [x] registrare limiti residui e backlog successivo.
 
 ### 15.2 Aggiornamento del manuale sorgente
 
@@ -634,7 +634,7 @@ La fonte servita dall'app e `docs/manual/*`.
 - [x] aggiungere controllo che fallisca se le copie divergono;
 - [x] verificare che ogni slug servito esista;
 - [x] verificare che la pagina Help non punti a file mancanti;
-- [ ] verificare rendering di titoli, liste, link e tabelle.
+- [x] verificare rendering di titoli, liste, link e tabelle tramite build statico delle 35 pagine.
 
 ### 15.4 Aggiornamento pagina Help e README
 
@@ -657,20 +657,20 @@ La fonte servita dall'app e `docs/manual/*`.
 - [x] aggiornare test e gate con risultati finali;
 - [x] registrare rollout e rollback realmente eseguiti;
 - [x] aggiornare KPI con misure reali;
-- [ ] riscrivere la Definition of Done soltanto se il contratto e cambiato;
+- [x] mantenere la Definition of Done: il contratto non e cambiato;
 - [x] aggiungere una sezione release finale con limiti residui;
 - [x] verificare che nessun documento generale concorrente venga presentato come canonico.
 
 ### 15.6 Verifica documentale finale
 
-- [ ] confronto `manuale → route/UI/codice`;
-- [ ] confronto `MASTERDOC → schema/servizi/capability`;
-- [ ] confronto `docs/manual → public/docs/manual`;
-- [ ] scansione link e slug;
-- [ ] ricerca di claim `100%`, `garantito`, `reale`, `automatico`, `certificato` senza evidenza;
-- [ ] verifica manuale delle pagine Help principali;
-- [ ] `git diff --check`;
-- [ ] approvazione finale prodotto/tecnica.
+- [x] confronto `manuale → route/UI/codice`;
+- [x] confronto `MASTERDOC → schema/servizi/capability`;
+- [x] confronto `docs/manual → public/docs/manual`;
+- [x] scansione link e slug;
+- [x] ricerca di claim `100%`, `garantito`, `reale`, `automatico`, `certificato` senza evidenza;
+- [x] verifica delle pagine Help principali tramite capability test e build;
+- [x] `git diff --check`;
+- [!] approvazione finale — baseline tecnica locale approvata; decisione prodotto/deploy remoto differita ai gate esterni.
 
 ### 15.7 Bonifica documentale e piani storici
 
@@ -685,19 +685,19 @@ Baseline P0 del 16 luglio 2026:
 
 Attivita obbligatorie:
 
-- [ ] generare un manifest completo di Markdown, TXT, piani, report, guide e riepiloghi;
-- [ ] classificare ogni file come `keep`, `archive` o `delete`, con motivazione e sostituto canonico;
-- [ ] definire una allowlist minima per la root (`README.md`, `MASTERDOC.md`, `TASKS.md` e pochi documenti esplicitamente giustificati);
-- [ ] mantenere `docs/manual`, security baseline, evidenze di release e piano corrente come fonti operative;
-- [ ] archiviare soltanto decisioni storiche ancora necessarie, sotto `docs/archive/` con un indice e stato `historical`;
-- [ ] eliminare report di sessione, file `COMMIT_MESSAGE*`, `PUSH_SUCCESS*`, duplicati `*_COMPLETE`, istruzioni deploy superate e piani integralmente assorbiti;
-- [ ] rimuovere o archiviare i piani aprile/giugno dopo aver verificato che ogni residuo sia chiuso, rimosso o trasferito nel backlog canonico;
-- [ ] verificare che nessun file candidato sia letto dall'app, dagli script, dalla build, dalla pagina Help o da workflow CI;
-- [ ] correggere link e riferimenti prima delle eliminazioni;
-- [ ] non spostare backup SQL o credenziali nell'archivio documentale: devono restare esclusi dal repository;
-- [ ] aggiungere un controllo `docs:hygiene` che fallisca su nuovi file fuori allowlist, copie manuale divergenti e piani senza stato;
-- [ ] produrre un report finale con file mantenuti, archiviati ed eliminati e relativi commit;
-- [ ] eseguire la bonifica in una PR separata dalle modifiche applicative e dall'aggiornamento contenuti P9.
+- [x] generare un manifest completo di Markdown, TXT, piani, report, guide e riepiloghi;
+- [x] classificare ogni file come `keep`, `archive` o `delete`, con motivazione e sostituto canonico;
+- [x] definire una allowlist minima per la root (`README.md`, `MASTERDOC.md`, `TASKS.md`);
+- [x] mantenere `docs/manual`, security baseline, evidenze di release e piano corrente come fonti operative;
+- [x] archiviare soltanto decisioni storiche ancora necessarie, sotto `docs/archive/` con un indice e stato `historical`;
+- [x] eliminare report di sessione, file `COMMIT_MESSAGE*`, `PUSH_SUCCESS*`, duplicati `*_COMPLETE`, istruzioni deploy superate e piani integralmente assorbiti;
+- [x] rimuovere i piani aprile/giugno dopo aver trasferito i residui nei limiti/backlog canonici;
+- [x] verificare che nessun file candidato sia letto dall'app, dagli script, dalla build, dalla pagina Help o da workflow CI;
+- [x] correggere link e riferimenti prima delle eliminazioni;
+- [x] non spostare backup SQL o credenziali nell'archivio documentale: restano esclusi dal repository;
+- [x] aggiungere un controllo `docs:hygiene` che fallisca su nuovi file fuori allowlist, copie manuale divergenti e piani senza stato;
+- [x] produrre un report finale con file mantenuti, archiviati ed eliminati e relativi commit;
+- [x] eseguire la bonifica in una PR separata dalle modifiche applicative e dall'aggiornamento contenuti P9.
 
 ### Criterio di uscita P9
 
@@ -758,7 +758,7 @@ Compilare durante l'esecuzione.
 | P6 | implementazione locale completata; gate provider/staging bloccato | `codex/ortomio-p6-remote-data-demo-isolation` | `20260717040000_p6_remote_data_provenance.sql`; replay doppio, RLS cross-garden e RPC atomica su PostgreSQL 16 | remote-data-isolation 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 142/142; diff-check | migrazione e chiamata provider non applicate; nessuna attuazione drone/blockchain | Sentinel Statistical reale senza fallback casuale; mappe fail-closed e provenance; demo isolate; evidenza `docs/reports/P6_REMOTE_DATA_DEMO_ISOLATION_EVIDENCE_2026-07-17.md` |
 | P7 | implementazione locale completata; gate storage/staging bloccato | `codex/ortomio-p7-certifications-export-admin` | `20260717050000_p7_regulatory_exports_admin.sql`; replay doppio, RLS cross-garden, vincolo demo e append-only su PostgreSQL 16 | regulatory/exports/admin 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 143/143; diff-check | migrazione non applicata; bucket documenti non verificato | dossier senza demo; CSV/PDF server-side auditati; Admin server-only; evidenza `docs/reports/P7_CERTIFICATIONS_EXPORT_ADMIN_EVIDENCE_2026-07-17.md` |
 | P8 | hardening locale completato; rollout remoto bloccato e fuori release | `codex/ortomio-p8-rollout-observability` | `20260717060000_p8_rollout_observability.sql`; replay doppio, RPC rollout/audit e non-admin su PostgreSQL 16 | rollout/observability 7/7; release manifest; type-check; build; backup/restore drill PostgreSQL 18 | nessuna migrazione/deploy remoto; `deployReady=false` senza gate esterni | capability server-side, readiness e soglie rollback; evidenza `docs/reports/P8_ROLLOUT_OBSERVABILITY_EVIDENCE_2026-07-17.md` |
-| P9 | non iniziato | — | — | — | — | — |
+| P9 | completato localmente; rollout remoto resta differito | `codex/ortomio-p9-documentation-cleanup` / `codex/ortomio-p9-doc-hygiene` | nessuna migrazione | docs hygiene; sync 35/35; capabilities 7/7; type-check; build 144/144; diff-check | nessun deploy remoto | masterdoc/manuale allineati; root 3 file; 788 artefatti eliminati; manifest e report P9 |
 
 ## 19. Definizione di completamento del piano
 

@@ -40,6 +40,7 @@
     "release:check:remote": "node scripts/check-release-readiness.mjs --require-remote",
     "docs:sync": "node scripts/sync-manual-docs.mjs",
     "docs:sync:check": "node scripts/sync-manual-docs.mjs --check",
+    "docs:hygiene": "node scripts/check-docs-hygiene.mjs && npm run docs:sync:check",
     "audit:p0": "node scripts/audit-p0-baseline.mjs"
   },
   "dependencies": {
