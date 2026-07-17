@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0 completata; P1 implementata e verificata in locale con gate remoto in attesa di staging/backup; P2 completata e verificata il 17 luglio 2026
+- **Stato esecuzione:** P0 e P2 completate; P1 e P3 implementate e verificate in locale con gate remoto in attesa di staging/backup
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -297,67 +297,67 @@ Eliminare le due verita tra nuovo storage DB-first e servizi legacy in memoria/b
 
 ### 9.1 Diario canonico
 
-- [ ] definire un unico tipo `DiaryEvent` con garden, zona, filare, pianta, autore, fonte, task e allegati;
-- [ ] scegliere tabelle canoniche tra `daily_diary_entries`, `diary_events` e relativi ledger;
-- [ ] creare writer e reader unici;
-- [ ] migrare `operationalDiaryService` dalla `Map` al provider;
-- [ ] collegare il quick event al writer reale;
-- [ ] implementare edit/annullamento con audit;
-- [ ] implementare upload foto reale;
-- [ ] consolidare `/app/diary` e `/app/journal`;
-- [ ] rileggere il record dopo il write prima di mostrare successo.
+- [x] definire un unico tipo `DiaryEvent` con garden, zona, filare, pianta, autore, fonte, task e allegati;
+- [x] scegliere tabelle canoniche tra `daily_diary_entries`, `diary_events` e relativi ledger;
+- [x] creare writer e reader unici;
+- [x] migrare `operationalDiaryService` dalla `Map` al provider;
+- [x] collegare il quick event al writer reale;
+- [x] implementare edit/annullamento con audit;
+- [x] implementare upload foto reale;
+- [x] consolidare `/app/diary` e `/app/journal`;
+- [x] rileggere il record dopo il write prima di mostrare successo.
 
 ### 9.2 Piante individuali
 
-- [ ] portare `plantOperationsService` su `IStorageProvider`;
-- [ ] implementare operazioni singole e bulk;
-- [ ] mantenere lineage garden/zona/filare/pianta;
-- [ ] sostituire URL `example.com` con storage reale;
-- [ ] rendere health update dipendente da osservazione/outcome;
-- [ ] gestire concorrenza e idempotenza;
-- [ ] verificare lettura dopo reload.
+- [x] portare `plantOperationsService` su `IStorageProvider`;
+- [x] implementare operazioni singole e bulk;
+- [x] mantenere lineage garden/zona/filare/pianta;
+- [x] sostituire URL `example.com` con storage reale;
+- [x] rendere health update dipendente da osservazione/outcome;
+- [x] gestire concorrenza e idempotenza;
+- [x] verificare lettura dopo reload.
 
 ### 9.3 Memoria e suolo
 
-- [ ] definire mapping tra garden memory legacy, unified agronomic memory, soil memory e ledger;
-- [ ] creare un solo writer per fatti durevoli;
-- [ ] registrare fonte, freshness e confidence;
-- [ ] migrare pattern accettati/rifiutati;
-- [ ] impedire che pattern presunti diventino regole senza conferma;
-- [ ] lasciare in local storage soltanto preferenze UI.
+- [x] definire mapping tra garden memory legacy, unified agronomic memory, soil memory e ledger;
+- [x] creare un solo writer per fatti durevoli;
+- [x] registrare fonte, freshness e confidence;
+- [x] migrare pattern accettati/rifiutati;
+- [x] impedire che pattern presunti diventino regole senza conferma;
+- [x] lasciare in local storage soltanto preferenze UI.
 
 ### 9.4 Trattamenti e inventario
 
-- [ ] scegliere registro trattamento canonico;
-- [ ] migrare `treatmentRegistryService` dal browser al DB;
-- [ ] migrare `phytoInventoryService` al provider;
-- [ ] collegare garden/zona/filare/pianta/task;
-- [ ] registrare prodotto, lotto, dose, unita, operatore e meteo;
-- [ ] calcolare e persistere carenza/intervallo di sicurezza;
-- [ ] scaricare stock soltanto dopo esecuzione confermata;
-- [ ] registrare outcome ed efficacia;
-- [ ] rendere append-only i campi regolatori.
+- [x] scegliere registro trattamento canonico;
+- [x] migrare `treatmentRegistryService` dal browser al DB;
+- [x] migrare `phytoInventoryService` al provider;
+- [x] collegare garden/zona/filare/pianta/task;
+- [x] registrare prodotto, lotto, dose, unita, operatore e meteo;
+- [x] calcolare e persistere carenza/intervallo di sicurezza;
+- [x] scaricare stock soltanto dopo esecuzione confermata;
+- [x] registrare outcome ed efficacia;
+- [x] rendere append-only i campi regolatori.
 
 ### 9.5 Migrazioni e backfill
 
-- [ ] creare migrazioni additive datate al momento dell'esecuzione;
-- [ ] non modificare migrazioni gia applicate;
-- [ ] definire backfill idempotenti;
-- [ ] riconciliare varianti `fixed`, `v2`, `simple`, `safe`, `minimal`;
-- [ ] provare upgrade su snapshot;
-- [ ] produrre report pre/post migrazione;
-- [ ] conservare rollback logico e backup.
+- [x] creare migrazioni additive datate al momento dell'esecuzione;
+- [x] non modificare migrazioni gia applicate;
+- [x] definire backfill idempotenti;
+- [x] riconciliare varianti `fixed`, `v2`, `simple`, `safe`, `minimal`;
+- [!] provare upgrade su snapshot — bloccato: nessuno staging/snapshot remoto disponibile;
+- [x] produrre report pre/post migrazione locale;
+- [!] conservare rollback logico e backup — rollback logico definito, backup remoto non disponibile.
 
 ### Test obbligatori
 
-- [ ] write → reload → read;
-- [ ] write → restart → read;
-- [ ] errore cloud → errore visibile;
-- [ ] nessun fallback silenzioso;
-- [ ] bulk parziale → retry idempotente;
-- [ ] allegato non accessibile da altro utente;
-- [ ] carenza e stock corretti;
-- [ ] backfill ripetibile senza duplicati.
+- [x] write → reload → read;
+- [x] write → restart → read;
+- [x] errore cloud → errore visibile;
+- [x] nessun fallback silenzioso;
+- [x] bulk parziale → retry idempotente;
+- [!] allegato non accessibile da altro utente — da verificare sullo storage staging remoto;
+- [x] carenza e stock corretti;
+- [x] backfill ripetibile senza duplicati.
 
 ### Criterio di uscita
 
@@ -752,7 +752,7 @@ Compilare durante l'esecuzione.
 | P0 | completato | `codex/ortomio-p0-baseline` | inventario 113 file; confronto Neon/Supabase, nessuna migrazione applicata | audit P0 verde; type-check; 228/228 test; build 140/140; diff-check | Neon letto; Security Advisor Supabase esportato | 53 route/69 metodi, 41 pagine; 6 errori/70 warning/2 info assegnati a P1; backend ibrido e drift espliciti |
 | P1 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p1-security` | `20260717000000_p1_security_hardening.sql`; fixture e test RLS transazionale | type-check; security 10/10; precision 228/228; build 140/140; diff-check | Supabase `main` e Production su piano Free; nessun branch/backup; migrazione non applicata | restano staging, password leak protection, Security Advisor post-fix e rollout produzione |
 | P2 | completato e verificato localmente | `codex/ortomio-p2-capabilities` | nessuna | capabilities 7/7; type-check; security 10/10; precision 228/228; build 141/141; diff-check | nessuna modifica remota richiesta | descriptor unico; Admin/satellite role-based; Help e ricerca senza route morte; alias consolidati; evidenza `docs/reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md` |
-| P3 | non iniziato | — | — | — | — | — |
+| P3 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p3-persistence` | `20260717010000_p3_core_persistence.sql`; replay doppio e test RLS su PostgreSQL 16 | persistence 9/9; type-check; security 10/10; precision 228/228; build 141/141; diff-check | migrazione non applicata | writer DB-first e fail-closed; restano snapshot/backup e test allegato cross-user remoto; evidenza `docs/reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md` |
 | P4 | non iniziato | — | — | — | — | — |
 | P5 | non iniziato | — | — | — | — | — |
 | P6 | non iniziato | — | — | — | — | — |

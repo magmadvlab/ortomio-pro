@@ -12,6 +12,7 @@ import {
 } from '../../services/treatmentRegistryService';
 import { TreatmentRecord } from '../../services/treatmentRegistryService';
 import { Calendar, Download, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useStorage } from '@/packages/core/hooks/useStorage';
 
 interface TreatmentRegistryProps {
   garden: Garden;
@@ -19,6 +20,7 @@ interface TreatmentRegistryProps {
 }
 
 const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier }) => {
+  const { storageProvider } = useStorage();
   const [records, setRecords] = useState<TreatmentRecord[]>([]);
   const [activeIntervals, setActiveIntervals] = useState<TreatmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +32,13 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
 
   useEffect(() => {
     loadRegistry();
-  }, [garden.id, filterPlant, dateRange]);
+  }, [garden.id, filterPlant, dateRange, storageProvider]);
 
   const loadRegistry = async () => {
     setLoading(true);
     try {
       const history = await getTreatmentHistory(
+        storageProvider,
         garden.id,
         filterPlant || undefined,
         dateRange.start && dateRange.end
@@ -44,7 +47,7 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
       );
       setRecords(history);
 
-      const intervals = await getActiveSafetyIntervals(garden.id);
+      const intervals = await getActiveSafetyIntervals(storageProvider, garden.id);
       setActiveIntervals(intervals);
     } catch (error) {
       console.error('Error loading treatment registry:', error);
@@ -55,7 +58,7 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
 
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
-      const data = await exportRegistry(garden.id, format);
+      const data = await exportRegistry(storageProvider, garden.id, format);
       const blob = new Blob([data], { type: format === 'csv' ? 'text/csv' : 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -219,4 +222,3 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
 };
 
 export default TreatmentRegistry;
-

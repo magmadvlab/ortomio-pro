@@ -26,8 +26,20 @@ import type {
   OperationalLedgerProjectionFilters,
 } from '../../../types/operationalLedger';
 import type { FieldAlert } from '../../../types/fieldAlerts';
+import type { DiaryEvent, DiaryEventCreate } from '../../../types/diary';
+import type { UnifiedAgronomicMemoryEvent } from '../../../types/unifiedAgronomicMemory';
 
 export interface IStorageProvider {
+  readonly persistenceKind?: 'local' | 'cloud' | 'server';
+  // Canonical durable diary and agronomic memory. Optional for legacy providers;
+  // critical writers must fail closed when these capabilities are unavailable.
+  getDiaryEvents?(gardenId: string, filters?: { dateFrom?: string; dateTo?: string; type?: DiaryEvent['type']; category?: DiaryEvent['category']; includeVoided?: boolean }): Promise<DiaryEvent[]>;
+  createDiaryEvent?(event: DiaryEventCreate): Promise<DiaryEvent>;
+  updateDiaryEvent?(id: string, updates: Partial<DiaryEvent>): Promise<DiaryEvent>;
+  voidDiaryEvent?(id: string, reason: string): Promise<DiaryEvent>;
+  getAgronomicMemoryEvents?(gardenId: string): Promise<UnifiedAgronomicMemoryEvent[]>;
+  createAgronomicMemoryEvent?(event: UnifiedAgronomicMemoryEvent): Promise<UnifiedAgronomicMemoryEvent>;
+
   // Gardens
   getGardens(): Promise<Garden[]>;
   getGarden(id: string): Promise<Garden | null>;

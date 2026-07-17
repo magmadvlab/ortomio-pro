@@ -69,8 +69,11 @@ import type {
 } from '@/types/operationalLedger';
 import { StoragePersistenceError, StorageReadError } from '../core/storage/errors';
 import type { FieldAlert } from '@/types/fieldAlerts';
+import type { DiaryEvent, DiaryEventCreate } from '@/types/diary';
+import type { UnifiedAgronomicMemoryEvent } from '@/types/unifiedAgronomicMemory';
 
 export class SupabaseStorageProvider implements IStorageProvider {
+  readonly persistenceKind = 'cloud' as const;
   private client: SupabaseClient | null;
 
   constructor() {
@@ -347,6 +350,71 @@ export class SupabaseStorageProvider implements IStorageProvider {
       throw new Error('Supabase client not available. Check configuration.');
     }
     return this.client;
+  }
+
+  async getDiaryEvents(gardenId: string, filters: { dateFrom?: string; dateTo?: string; type?: DiaryEvent['type']; category?: DiaryEvent['category']; includeVoided?: boolean } = {}): Promise<DiaryEvent[]> {
+    const client = this.ensureClient();
+    let query = client.from('diary_events').select('*').eq('garden_id', gardenId).order('event_date', { ascending: false }).order('event_time', { ascending: false });
+    if (!filters.includeVoided) query = query.eq('status', 'active');
+    if (filters.dateFrom) query = query.gte('event_date', filters.dateFrom);
+    if (filters.dateTo) query = query.lte('event_date', filters.dateTo);
+    if (filters.type) query = query.eq('event_type', filters.type);
+    if (filters.category) query = query.eq('category', filters.category);
+    const { data, error } = await query;
+    if (error) throw this.buildCloudReadError('getDiaryEvents', 'Impossibile leggere il diario operativo.', error);
+    return (data || []).map(row => this.mapDiaryEventFromDb(row));
+  }
+
+  async createDiaryEvent(event: DiaryEventCreate): Promise<DiaryEvent> {
+    const client = this.ensureClient();
+    const { data, error } = await client.from('diary_events').insert(this.mapDiaryEventToDb(event)).select().single();
+    if (error) throw this.buildCloudPersistenceError('createDiaryEvent', 'Il nuovo evento non è stato salvato.', error);
+    return this.mapDiaryEventFromDb(data);
+  }
+
+  async updateDiaryEvent(id: string, updates: Partial<DiaryEvent>): Promise<DiaryEvent> {
+    const client = this.ensureClient();
+    const existing = await client.from('diary_events').select('*').eq('id', id).single();
+    if (existing.error) throw this.buildCloudReadError('updateDiaryEvent.read', 'Evento diario non disponibile.', existing.error);
+    const merged = { ...this.mapDiaryEventFromDb(existing.data), ...updates, id } as DiaryEvent;
+    const db = this.mapDiaryEventToDb(merged);
+    delete db.garden_id;
+    db.revision = (existing.data.revision || 1) + 1;
+    db.updated_at = new Date().toISOString();
+    const { data, error } = await client.from('diary_events').update(db).eq('id', id).select().single();
+    if (error) throw this.buildCloudPersistenceError('updateDiaryEvent', 'La modifica al diario non è stata salvata.', error);
+    return this.mapDiaryEventFromDb(data);
+  }
+
+  async voidDiaryEvent(id: string, reason: string): Promise<DiaryEvent> {
+    const client = this.ensureClient();
+    const { data: { user } } = await client.auth.getUser();
+    const { data, error } = await client.from('diary_events').update({ status: 'voided', voided_at: new Date().toISOString(), voided_by: user?.id || null, void_reason: reason, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+    if (error) throw this.buildCloudPersistenceError('voidDiaryEvent', 'L’annullamento non è stato salvato.', error);
+    return this.mapDiaryEventFromDb(data);
+  }
+
+  async getAgronomicMemoryEvents(gardenId: string): Promise<UnifiedAgronomicMemoryEvent[]> {
+    const client = this.ensureClient();
+    const { data, error } = await client.from('agronomic_memory_events').select('*').eq('garden_id', gardenId).order('occurred_at', { ascending: false }).limit(500);
+    if (error) throw this.buildCloudReadError('getAgronomicMemoryEvents', 'Impossibile leggere la memoria agronomica.', error);
+    return (data || []).map(row => ({ id: row.id, gardenId: row.garden_id, type: row.event_type, occurredAt: row.occurred_at, zoneId: row.zone_id || undefined, fieldRowId: row.field_row_id || undefined, plantId: row.plant_id || undefined, taskId: row.task_id || undefined, sourceService: row.source_service, summary: row.summary, payload: row.payload || undefined }));
+  }
+
+  async createAgronomicMemoryEvent(event: UnifiedAgronomicMemoryEvent): Promise<UnifiedAgronomicMemoryEvent> {
+    const client = this.ensureClient();
+    const { data, error } = await client.from('agronomic_memory_events').upsert({ id: event.id, garden_id: event.gardenId, event_type: event.type, occurred_at: event.occurredAt, zone_id: event.zoneId || null, field_row_id: event.fieldRowId || null, plant_id: event.plantId || null, task_id: event.taskId || null, source_service: event.sourceService, summary: event.summary, payload: event.payload || {} }, { onConflict: 'id' }).select().single();
+    if (error) throw this.buildCloudPersistenceError('createAgronomicMemoryEvent', 'La memoria agronomica non è stata salvata.', error);
+    return { id: data.id, gardenId: data.garden_id, type: data.event_type, occurredAt: data.occurred_at, zoneId: data.zone_id || undefined, fieldRowId: data.field_row_id || undefined, plantId: data.plant_id || undefined, taskId: data.task_id || undefined, sourceService: data.source_service, summary: data.summary, payload: data.payload || undefined };
+  }
+
+  private mapDiaryEventFromDb(row: any): DiaryEvent {
+    const payload = row.payload || row.metadata || {};
+    return { id: row.id, gardenId: row.garden_id, zoneId: row.zone_id || undefined, fieldRowId: row.field_row_id || undefined, plantId: row.plant_id || undefined, taskId: row.task_id || undefined, authorId: row.author_id || undefined, date: row.event_date, time: row.event_time ? String(row.event_time).slice(0, 5) : '00:00', type: row.event_type, category: row.category || 'care', title: row.title, description: row.description || '', source: row.source || 'manual', status: row.status || 'active', operationData: payload.operationData, results: payload.results, gpsLocation: payload.gpsLocation, photos: payload.photos || [], attachments: row.attachments || [], verified: payload.verified ?? false, aiGenerated: payload.aiGenerated, correlatedEntries: payload.correlatedEntries || [], tags: payload.tags || [], performance: payload.performance, idempotencyKey: row.idempotency_key || undefined, revision: row.revision || 1, createdAt: row.created_at, updatedAt: row.updated_at, voidedAt: row.voided_at || undefined, voidReason: row.void_reason || undefined };
+  }
+
+  private mapDiaryEventToDb(event: DiaryEventCreate | DiaryEvent): Record<string, any> {
+    return { garden_id: event.gardenId, zone_id: event.zoneId || null, field_row_id: event.fieldRowId || null, plant_id: event.plantId || null, task_id: event.taskId || null, event_date: event.date, event_time: event.time || null, event_type: event.type, category: event.category, title: event.title, description: event.description, source: event.source, status: event.status || 'active', payload: { operationData: event.operationData, results: event.results, gpsLocation: event.gpsLocation, photos: event.photos || [], verified: event.verified, aiGenerated: event.aiGenerated, correlatedEntries: event.correlatedEntries || [], tags: event.tags || [], performance: event.performance }, attachments: event.attachments || [], idempotency_key: event.idempotencyKey || null };
   }
 
   private getLocalStoredDevices(): SmartDevice[] {
@@ -4653,6 +4721,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
         area_treated: treatment.area_treated || null,
         method: treatment.method || null,
         reason: treatment.reason || null,
+        treatment_type: treatment.treatment_type || null,
+        certification_compliance: treatment.certification_compliance || [],
+        organic_approved: treatment.organic_approved ?? null,
+        registration_number: treatment.registration_number || null,
+        product_lot_code: treatment.product_lot_code || null,
+        pre_harvest_interval_days: treatment.pre_harvest_interval_days ?? null,
+        effectiveness_score: treatment.effectiveness_score ?? null,
+        outcome_recorded_at: treatment.outcome_recorded_at || null,
+        outcome_notes: treatment.outcome_notes || null,
         weather_conditions: treatment.weather_conditions || null,
         operator_name: treatment.operator_name || null,
         notes: treatment.notes || null,
@@ -4683,6 +4760,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (updates.area_treated !== undefined) dbData.area_treated = updates.area_treated || null;
     if (updates.method !== undefined) dbData.method = updates.method || null;
     if (updates.reason !== undefined) dbData.reason = updates.reason || null;
+    if (updates.treatment_type !== undefined) dbData.treatment_type = updates.treatment_type || null;
+    if (updates.certification_compliance !== undefined) dbData.certification_compliance = updates.certification_compliance || [];
+    if (updates.organic_approved !== undefined) dbData.organic_approved = updates.organic_approved;
+    if (updates.registration_number !== undefined) dbData.registration_number = updates.registration_number || null;
+    if (updates.product_lot_code !== undefined) dbData.product_lot_code = updates.product_lot_code || null;
+    if (updates.pre_harvest_interval_days !== undefined) dbData.pre_harvest_interval_days = updates.pre_harvest_interval_days ?? null;
+    if (updates.effectiveness_score !== undefined) dbData.effectiveness_score = updates.effectiveness_score;
+    if (updates.outcome_recorded_at !== undefined) dbData.outcome_recorded_at = updates.outcome_recorded_at || null;
+    if (updates.outcome_notes !== undefined) dbData.outcome_notes = updates.outcome_notes || null;
     if (updates.weather_conditions !== undefined) dbData.weather_conditions = updates.weather_conditions || null;
     if (updates.operator_name !== undefined) dbData.operator_name = updates.operator_name || null;
     if (updates.notes !== undefined) dbData.notes = updates.notes || null;
@@ -4727,6 +4813,15 @@ export class SupabaseStorageProvider implements IStorageProvider {
       area_treated: db.area_treated ? parseFloat(db.area_treated) : undefined,
       method: db.method,
       reason: db.reason,
+      treatment_type: db.treatment_type,
+      certification_compliance: db.certification_compliance || [],
+      organic_approved: db.organic_approved,
+      registration_number: db.registration_number,
+      product_lot_code: db.product_lot_code,
+      pre_harvest_interval_days: db.pre_harvest_interval_days,
+      effectiveness_score: db.effectiveness_score,
+      outcome_recorded_at: db.outcome_recorded_at,
+      outcome_notes: db.outcome_notes,
       weather_conditions: db.weather_conditions,
       operator_name: db.operator_name,
       notes: db.notes,
@@ -6506,7 +6601,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       geo_snapshot: geoSnapshot,
       actor_type: actorType,
       device_id: deviceId,
-      source_type: sourceType
+      source_type: sourceType,
+      idempotency_key: operation.idempotencyKey || null
     };
 
     let data: any = null;
@@ -6516,7 +6612,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     for (let attempt = 0; attempt < 20; attempt++) {
       const result = await client
         .from('individual_plant_operations')
-        .insert(dbOp)
+        .upsert(dbOp, { onConflict: 'garden_id,plant_id,idempotency_key' })
         .select()
         .single();
 

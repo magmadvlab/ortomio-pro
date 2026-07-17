@@ -1921,7 +1921,11 @@ export interface TreatmentRecordDB {
   certification_compliance?: string[] // Certificazioni compatibili
   organic_approved?: boolean // Ammesso in agricoltura biologica
   registration_number?: string // Numero registrazione prodotto
+  product_lot_code?: string // Lotto del prodotto applicato
   pre_harvest_interval_days?: number // Tempo di carenza
+  effectiveness_score?: number
+  outcome_recorded_at?: string
+  outcome_notes?: string
   
   weather_conditions?: {
     temp?: number
@@ -1959,6 +1963,7 @@ export interface PhytoInventoryItemDB {
   product_type: 'bio' | 'conventional'
   category: string
   active_ingredient?: string | null
+  lot_code?: string | null
   quantity: number
   unit: 'L' | 'kg' | 'units'
   expiry_date?: string | null

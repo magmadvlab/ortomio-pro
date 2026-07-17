@@ -11,7 +11,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Bot,
   Calendar,
@@ -29,7 +29,8 @@ import {
   Star
 } from 'lucide-react'
 import PlannerAIChat from '../planner/PlannerAIChat'
-import { operationalDiaryService } from '@/services/operationalDiaryService'
+import { createOperationalDiaryService } from '@/services/operationalDiaryService'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 
 interface DiaryPlannerIntegrationProps {
   gardenId: string
@@ -54,6 +55,8 @@ export default function DiaryPlannerIntegration({
   garden, 
   tasks = [] 
 }: DiaryPlannerIntegrationProps) {
+  const { storageProvider } = useStorage()
+  const diaryService = useMemo(() => createOperationalDiaryService(storageProvider), [storageProvider])
   const [showPlannerChat, setShowPlannerChat] = useState(false)
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
   const [recentEntries, setRecentEntries] = useState<any[]>([])
@@ -70,14 +73,14 @@ export default function DiaryPlannerIntegration({
       // Carica dati in parallelo per performance migliori
       const [entries, diaryAnalytics] = await Promise.all([
         // Carica entries (simulato - in produzione sarebbe dal database)
-        Promise.resolve(operationalDiaryService.getEntries(gardenId, {
+        diaryService.getEntries(gardenId, {
           dateRange: {
             start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             end: new Date().toISOString().split('T')[0]
           }
-        })),
+        }),
         // Carica analytics
-        Promise.resolve(operationalDiaryService.getAnalytics(gardenId))
+        diaryService.getAnalytics(gardenId)
       ])
       
       setRecentEntries(entries.slice(0, 10))

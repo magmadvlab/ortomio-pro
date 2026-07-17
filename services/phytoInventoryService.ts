@@ -1,169 +1,27 @@
-/**
- * Phyto Inventory Service
- * Gestisce inventario prodotti fitofarmaci, scorte, scadenze
- */
+import type { IStorageProvider } from '@/packages/core/storage/interface'
+import type { PhytoProduct } from '@/data/phytoproducts'
+import type { UrgentAlert, PhytoInventoryItemDB } from '@/types'
 
-import { PhytoProduct } from '../data/phytoproducts';
-import { UrgentAlert } from '../types';
+type InventoryStorage = Pick<IStorageProvider, 'getPhytoInventory' | 'createPhytoInventoryItem' | 'updatePhytoInventoryItem'> & { persistenceKind?: IStorageProvider['persistenceKind'] }
+const assertDurable = (storage: InventoryStorage) => { if (storage.persistenceKind === 'local') throw new Error('Phyto inventory requires durable cloud storage') }
+export type PhytoInventoryItem = Omit<PhytoInventoryItemDB, 'garden_id' | 'product_id' | 'product_name' | 'product_type' | 'expiry_date' | 'safety_interval_days' | 'requires_license' | 'allowed_in_organic' | 'cost_per_unit' | 'created_at' | 'updated_at'> & { gardenId: string; productId: string; productName: string; productType: PhytoProduct['type']; expiryDate?: Date; safetyIntervalDays?: number; requiresLicense: boolean; allowedInOrganic: boolean; costPerUnit?: number; createdAt: Date; updatedAt: Date }
 
-export interface PhytoInventoryItem {
-  id: string;
-  gardenId: string;
-  productId: string;
-  productName: string;
-  productType: PhytoProduct['type'];
-  category: PhytoProduct['category'];
-  quantity: number;
-  unit: 'L' | 'kg' | 'units';
-  expiryDate?: Date;
-  safetyIntervalDays?: number;
-  requiresLicense: boolean;
-  allowedInOrganic: boolean;
-  costPerUnit?: number;
-  supplier?: string;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+const mapItem = (row: PhytoInventoryItemDB): PhytoInventoryItem => ({ id: row.id, gardenId: row.garden_id, productId: row.product_id || row.product_name, productName: row.product_name, productType: row.product_type as PhytoProduct['type'], category: row.category, active_ingredient: row.active_ingredient, quantity: row.quantity, unit: row.unit, expiryDate: row.expiry_date ? new Date(row.expiry_date) : undefined, safetyIntervalDays: row.safety_interval_days || undefined, requiresLicense: row.requires_license || false, allowedInOrganic: row.allowed_in_organic || false, costPerUnit: row.cost_per_unit || undefined, supplier: row.supplier, notes: row.notes, createdAt: new Date(row.created_at), updatedAt: new Date(row.updated_at) })
+
+export async function getPhytoInventory(storage: InventoryStorage, gardenId: string) { assertDurable(storage); return (await storage.getPhytoInventory(gardenId)).map(mapItem) }
+export async function addPhytoProduct(storage: InventoryStorage, gardenId: string, product: PhytoProduct, quantity: number, expiryDate?: Date, cost?: number, supplier?: string, lotCode?: string): Promise<PhytoInventoryItem> {
+  assertDurable(storage)
+  if (!(quantity > 0)) throw new Error('Inventory quantity must be positive')
+  const existing = (await storage.getPhytoInventory(gardenId)).find(item => item.product_id === product.id)
+  const saved = existing
+    ? await storage.updatePhytoInventoryItem(existing.id, { quantity: existing.quantity + quantity, expiry_date: expiryDate?.toISOString().slice(0, 10) || existing.expiry_date, cost_per_unit: cost ?? existing.cost_per_unit, supplier: supplier ?? existing.supplier })
+    : await storage.createPhytoInventoryItem({ garden_id: gardenId, product_id: product.id, product_name: product.name, product_type: product.allowedInOrganic ? 'bio' : 'conventional', category: product.category, active_ingredient: product.activeIngredient, lot_code: lotCode, quantity, unit: product.dosage.unit.includes('mL') || product.dosage.unit.includes('L') ? 'L' : product.dosage.unit.includes('g') ? 'kg' : 'units', expiry_date: expiryDate?.toISOString().slice(0, 10), safety_interval_days: product.safetyInterval, requires_license: product.requiresLicense, allowed_in_organic: product.allowedInOrganic, cost_per_unit: cost, supplier })
+  return mapItem(saved)
 }
-
-/**
- * Recupera inventario fitofarmaci
- */
-export async function getPhytoInventory(gardenId: string): Promise<PhytoInventoryItem[]> {
-  // TODO: Implementare recupero da Supabase
-  const storageKey = `phyto_inventory_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  if (stored) {
-    return JSON.parse(stored).map((item: any) => ({
-      ...item,
-      expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
-    }));
-  }
-  return [];
+export async function checkExpiryAlerts(storage: InventoryStorage, gardenId: string): Promise<UrgentAlert[]> {
+  const alerts: UrgentAlert[] = []
+  for (const item of await getPhytoInventory(storage, gardenId)) if (item.expiryDate) { const days = Math.ceil((item.expiryDate.getTime() - Date.now()) / 86400000); if (days <= 30) alerts.push({ type: 'Planning', message: days < 0 ? `Prodotto scaduto: ${item.productName}` : `Prodotto in scadenza: ${item.productName} (${days} giorni)`, action: days < 0 ? 'Rimuovi e smaltisci correttamente' : 'Usa prima della scadenza o rinnova', blockOperations: false }) }
+  return alerts
 }
-
-/**
- * Aggiunge prodotto all'inventario
- */
-export async function addPhytoProduct(
-  gardenId: string,
-  product: PhytoProduct,
-  quantity: number,
-  expiryDate?: Date,
-  cost?: number,
-  supplier?: string
-): Promise<PhytoInventoryItem> {
-  const inventory = await getPhytoInventory(gardenId);
-
-  const existing = inventory.find((item) => item.productId === product.id);
-
-  const newItem: PhytoInventoryItem = {
-    id: existing?.id || `phyto_${Date.now()}`,
-    gardenId,
-    productId: product.id,
-    productName: product.name,
-    productType: product.type,
-    category: product.category,
-    quantity: existing ? existing.quantity + quantity : quantity,
-    unit: product.dosage.unit.includes('mL') || product.dosage.unit.includes('L') ? 'L' : product.dosage.unit.includes('g') ? 'kg' : 'units',
-    expiryDate,
-    safetyIntervalDays: product.safetyInterval,
-    requiresLicense: product.requiresLicense,
-    allowedInOrganic: product.allowedInOrganic,
-    costPerUnit: cost,
-    supplier,
-    createdAt: existing?.createdAt || new Date(),
-    updatedAt: new Date(),
-  };
-
-  const updatedInventory = existing
-    ? inventory.map((item) => (item.id === existing.id ? newItem : item))
-    : [...inventory, newItem];
-
-  const storageKey = `phyto_inventory_${gardenId}`;
-  localStorage.setItem(storageKey, JSON.stringify(updatedInventory));
-
-  return newItem;
-}
-
-/**
- * Verifica prodotti in scadenza
- */
-export async function checkExpiryAlerts(gardenId: string): Promise<UrgentAlert[]> {
-  const alerts: UrgentAlert[] = [];
-  const inventory = await getPhytoInventory(gardenId);
-
-  for (const item of inventory) {
-    if (item.expiryDate) {
-      const daysUntilExpiry = Math.ceil(
-        (item.expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (daysUntilExpiry < 0) {
-        alerts.push({
-          type: 'Planning',
-          message: `⚠️ Prodotto scaduto: ${item.productName}`,
-          action: 'Rimuovi dall\'inventario o smaltisci correttamente',
-          blockOperations: false,
-        });
-      } else if (daysUntilExpiry <= 30) {
-        alerts.push({
-          type: 'Planning',
-          message: `⚠️ Prodotto in scadenza: ${item.productName} (${daysUntilExpiry} giorni)`,
-          action: 'Usa prima della scadenza o rinnova',
-          blockOperations: false,
-        });
-      }
-    }
-  }
-
-  return alerts;
-}
-
-/**
- * Verifica scorte basse
- */
-export async function checkLowStock(
-  gardenId: string,
-  season: 'Spring' | 'Summer' | 'Autumn' | 'Winter'
-): Promise<Array<{ item: PhytoInventoryItem; reason: string; urgency: 'low' | 'medium' | 'high' }>> {
-  const inventory = await getPhytoInventory(gardenId);
-  const lowStockItems: Array<{
-    item: PhytoInventoryItem;
-    reason: string;
-    urgency: 'low' | 'medium' | 'high';
-  }> = [];
-
-  for (const item of inventory) {
-    const minThreshold = item.unit === 'units' ? 5 : 0.5; // 5 trappole o 0.5L/kg
-
-    if (item.quantity < minThreshold) {
-      lowStockItems.push({
-        item,
-        reason: `Scorta molto bassa: ${item.quantity}${item.unit}`,
-        urgency: 'high',
-      });
-    } else if (item.quantity < minThreshold * 3) {
-      lowStockItems.push({
-        item,
-        reason: `Scorta bassa: ${item.quantity}${item.unit}`,
-        urgency: 'medium',
-      });
-    }
-  }
-
-  return lowStockItems;
-}
-
-/**
- * Prodotti necessari per trattamenti pianificati
- */
-export async function getRequiredProducts(
-  plannedTreatments: Array<{ productId: string; quantityNeeded: number; unit: string }>
-): Promise<Array<{ productId: string; productName: string; needed: number; available: number; unit: string }>> {
-  // TODO: Implementare logica completa
-  return [];
-}
-
+export async function checkLowStock(storage: InventoryStorage, gardenId: string, _season: 'Spring' | 'Summer' | 'Autumn' | 'Winter') { return (await getPhytoInventory(storage, gardenId)).flatMap(item => { const min = item.unit === 'units' ? 5 : 0.5; return item.quantity < min * 3 ? [{ item, reason: `Scorta ${item.quantity < min ? 'molto ' : ''}bassa: ${item.quantity}${item.unit}`, urgency: item.quantity < min ? 'high' as const : 'medium' as const }] : [] }) }
+export async function getRequiredProducts(planned: Array<{ productId: string; quantityNeeded: number; unit: string }>, storage: InventoryStorage, gardenId: string) { const inventory = await getPhytoInventory(storage, gardenId); return planned.map(item => { const found = inventory.find(stock => stock.productId === item.productId); return { productId: item.productId, productName: found?.productName || item.productId, needed: item.quantityNeeded, available: found?.quantity || 0, unit: item.unit } }) }

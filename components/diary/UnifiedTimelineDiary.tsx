@@ -10,7 +10,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   BookOpen,
   Calendar,
@@ -33,8 +33,10 @@ import { TimelineView } from '@/components/garden/TimelineView'
 import { PhotoTimeline } from '@/components/photo/PhotoTimeline'
 import { PlantLifecycleTimeline } from '@/components/planner/PlantLifecycleTimeline'
 import DiaryPlannerIntegration from './DiaryPlannerIntegration'
-import { operationalDiaryService } from '@/services/operationalDiaryService'
+import { createOperationalDiaryService } from '@/services/operationalDiaryService'
 import { DiaryEntry } from './OperationalDiary'
+import { useStorage } from '@/packages/core/hooks/useStorage'
+import QuickEventModal, { type QuickEvent } from './QuickEventModal'
 
 interface UnifiedTimelineDiaryProps {
   gardenId: string
@@ -47,10 +49,14 @@ export default function UnifiedTimelineDiary({
   garden, 
   tasks = [] 
 }: UnifiedTimelineDiaryProps) {
+  const { storageProvider } = useStorage()
+  const diaryService = useMemo(() => createOperationalDiaryService(storageProvider), [storageProvider])
   const [activeView, setActiveView] = useState<'timeline' | 'photos' | 'lifecycle' | 'analytics'>('timeline')
   const [entries, setEntries] = useState<DiaryEntry[]>([])
   const [photos, setPhotos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [showQuickEvent, setShowQuickEvent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     dateRange: 'last30',
     category: 'all',
@@ -65,7 +71,8 @@ export default function UnifiedTimelineDiary({
     setLoading(true)
     try {
       // Carica entries dal servizio esistente
-      const diaryEntries = await operationalDiaryService.getEntries(gardenId, {
+      setError(null)
+      const diaryEntries = await diaryService.getEntries(gardenId, {
         dateRange: getDateRangeFromFilter(filters.dateRange),
         category: filters.category !== 'all' ? filters.category as 'harvest' | 'analysis' | 'growth' | 'planning' | 'protection' | 'seeding' | 'care' : undefined
       })
@@ -89,9 +96,38 @@ export default function UnifiedTimelineDiary({
       
     } catch (error) {
       console.error('Error loading diary data:', error)
+      setError(error instanceof Error ? error.message : 'Diario non disponibile')
     } finally {
       setLoading(false)
     }
+  }
+
+  const saveQuickEvent = async (event: QuickEvent) => {
+    const type = event.type === 'action' ? 'operation' : event.type === 'weather_event' ? 'weather' : event.type
+    const photos = event.photos?.length && storageProvider.uploadPhoto
+      ? await Promise.all(event.photos.map(file => storageProvider.uploadPhoto!(file, `diary-${crypto.randomUUID()}`, gardenId)))
+      : []
+    await diaryService.addEntry(gardenId, {
+      date: event.date, time: event.time, type, category: type === 'issue' ? 'protection' : type === 'milestone' ? 'growth' : 'care',
+      title: event.title, description: event.description, source: 'manual', verified: true,
+      operationData: event.location ? { area: event.location } : undefined, photos, tags: event.tags,
+      idempotencyKey: crypto.randomUUID(),
+    })
+    await loadDiaryData()
+  }
+
+  const editEntry = async (entry: DiaryEntry) => {
+    const title = window.prompt('Titolo evento', entry.title)
+    if (!title || title === entry.title) return
+    await diaryService.updateEntry(entry.id, { title })
+    await loadDiaryData()
+  }
+
+  const voidEntry = async (entry: DiaryEntry) => {
+    const reason = window.prompt('Motivo dell’annullamento')
+    if (!reason) return
+    await diaryService.voidEntry(entry.id, reason)
+    await loadDiaryData()
   }
 
   const getDateRangeFromFilter = (filter: string) => {
@@ -160,11 +196,18 @@ export default function UnifiedTimelineDiary({
     switch (activeView) {
       case 'timeline':
         return (
-          <TimelineView
-            garden={garden}
-            tasks={convertEntriesToTasks()}
-            onUpdateTask={() => {}}
-          />
+          <div className="space-y-6">
+            <TimelineView garden={garden} tasks={convertEntriesToTasks()} onUpdateTask={() => {}} />
+            <section className="rounded-xl border border-gray-200 bg-white p-4">
+              <h3 className="mb-3 font-semibold text-gray-900">Registro eventi</h3>
+              <div className="divide-y">{entries.map(entry => <article key={entry.id} className="flex items-start gap-3 py-3">
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium text-gray-900">{entry.title}</p><p className="text-xs text-gray-500">{entry.date} · {entry.type} · {entry.category}</p><p className="mt-1 text-sm text-gray-700">{entry.description}</p></div>
+                <button onClick={() => editEntry(entry)} className="text-xs font-medium text-blue-700 hover:underline">Modifica</button>
+                <button onClick={() => voidEntry(entry)} className="text-xs font-medium text-red-700 hover:underline">Annulla</button>
+              </article>)}</div>
+              {entries.length === 0 && <p className="py-5 text-center text-sm text-gray-500">Nessun evento registrato.</p>}
+            </section>
+          </div>
         )
       
       case 'photos':
@@ -262,7 +305,7 @@ export default function UnifiedTimelineDiary({
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <button onClick={() => setShowQuickEvent(true)} className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
               <Plus size={16} />
               Nuova Entry
             </button>
@@ -325,8 +368,11 @@ export default function UnifiedTimelineDiary({
 
       {/* Content Area */}
       <div className="min-h-[400px]">
+        {error && <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
         {renderViewContent()}
       </div>
+
+      <QuickEventModal isOpen={showQuickEvent} onClose={() => setShowQuickEvent(false)} onSave={saveQuickEvent} gardenId={gardenId} />
 
       {/* AI Integration */}
       <DiaryPlannerIntegration

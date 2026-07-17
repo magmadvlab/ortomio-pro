@@ -14,12 +14,14 @@ import {
 import { PhytoInventoryItem } from '../../services/phytoInventoryService';
 import { allPhytoproducts, PhytoProduct } from '../../data/phytoproducts';
 import { Package, Plus, AlertTriangle, Calendar, Shield } from 'lucide-react';
+import { useStorage } from '@/packages/core/hooks/useStorage';
 
 interface PhytoInventoryProps {
   garden: Garden;
 }
 
 const PhytoInventory: React.FC<PhytoInventoryProps> = ({ garden }) => {
+  const { storageProvider } = useStorage();
   const [inventory, setInventory] = useState<PhytoInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -28,18 +30,18 @@ const PhytoInventory: React.FC<PhytoInventoryProps> = ({ garden }) => {
 
   useEffect(() => {
     loadInventory();
-  }, [garden.id]);
+  }, [garden.id, storageProvider]);
 
   const loadInventory = async () => {
     setLoading(true);
     try {
-      const inv = await getPhytoInventory(garden.id);
+      const inv = await getPhytoInventory(storageProvider, garden.id);
       setInventory(inv);
 
-      const expiry = await checkExpiryAlerts(garden.id);
+      const expiry = await checkExpiryAlerts(storageProvider, garden.id);
       setExpiryAlerts(expiry);
 
-      const lowStock = await checkLowStock(garden.id, 'Summer');
+      const lowStock = await checkLowStock(storageProvider, garden.id, 'Summer');
       setLowStockAlerts(lowStock);
     } catch (error) {
       console.error('Error loading phyto inventory:', error);
@@ -55,7 +57,7 @@ const PhytoInventory: React.FC<PhytoInventoryProps> = ({ garden }) => {
     cost?: number
   ) => {
     try {
-      await addPhytoProduct(garden.id, product, quantity, expiryDate, cost);
+      await addPhytoProduct(storageProvider, garden.id, product, quantity, expiryDate, cost);
       await loadInventory();
       setShowAddForm(false);
     } catch (error) {
@@ -289,4 +291,3 @@ const AddProductForm: React.FC<AddProductFormProps> = ({ onAdd, onCancel }) => {
 };
 
 export default PhytoInventory;
-

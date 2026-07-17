@@ -50,8 +50,8 @@ type UnifiedAgronomicMemoryStorage = Partial<
     | 'getHarvestLogs'
     | 'getPhenologyObservations'
     | 'getQualityResults'
-    | 'getUserPreference'
-    | 'setUserPreference'
+    | 'getAgronomicMemoryEvents'
+    | 'createAgronomicMemoryEvent'
     | 'getAgronomicDecisionLedgerEntries'
     | 'getAgronomicQueueOutcomeRecords'
   >
@@ -91,7 +91,7 @@ export const UNIFIED_AGRONOMIC_SOURCE_MAP: UnifiedAgronomicSourceMapEntry[] = [
     stores: ['zone planting memories', 'tree memories', 'local correlations'],
     reads: ['local memory snapshots'],
     emits: ['zone patterns', 'best planting dates', 'correlations'],
-    persistence: 'local_fallback',
+    persistence: 'derived',
   },
   {
     service: 'agronomicDecisionLedgerService',
@@ -198,9 +198,6 @@ export const UNIFIED_AGRONOMIC_PERSISTENCE_STRATEGY: UnifiedAgronomicPersistence
     rationale: 'Decisions, task outcomes, and harvest/quality results close the learning loop.',
   },
 ]
-
-const getMemoryEventsPreferenceKey = (gardenId: string) =>
-  `unified_agronomic_memory_events:${gardenId}`
 
 const nowIso = () => new Date().toISOString()
 
@@ -322,8 +319,8 @@ export class UnifiedAgronomicMemoryService {
       occurredAt?: string
     }
   ): Promise<UnifiedAgronomicMemoryEvent | null> {
-    if (!this.storageProvider?.getUserPreference || !this.storageProvider?.setUserPreference) {
-      return null
+    if (!this.storageProvider?.createAgronomicMemoryEvent) {
+      throw new Error('Cloud agronomic memory capability unavailable')
     }
 
     const event: UnifiedAgronomicMemoryEvent = {
@@ -331,10 +328,7 @@ export class UnifiedAgronomicMemoryService {
       id: input.id || createId(`uam:${input.type}`),
       occurredAt: input.occurredAt || nowIso(),
     }
-    const events = await this.getEvents(input.gardenId)
-    const nextEvents = [event, ...events.filter((entry) => entry.id !== event.id)].slice(0, 500)
-    await this.storageProvider.setUserPreference(getMemoryEventsPreferenceKey(input.gardenId), nextEvents)
-    return event
+    return this.storageProvider.createAgronomicMemoryEvent(event)
   }
 
   async recordTaskExecutionOutcome(input: {
@@ -604,15 +598,8 @@ export class UnifiedAgronomicMemoryService {
   }
 
   private async getEvents(gardenId: string): Promise<UnifiedAgronomicMemoryEvent[]> {
-    if (!this.storageProvider?.getUserPreference) {
-      return []
-    }
-
-    return (
-      (await this.storageProvider.getUserPreference<UnifiedAgronomicMemoryEvent[]>(
-        getMemoryEventsPreferenceKey(gardenId)
-      )) || []
-    )
+    if (!this.storageProvider?.getAgronomicMemoryEvents) return []
+    return this.storageProvider.getAgronomicMemoryEvents(gardenId)
   }
 
   private resolveMissingSections(scope: UnifiedAgronomicMemoryScope, input: {

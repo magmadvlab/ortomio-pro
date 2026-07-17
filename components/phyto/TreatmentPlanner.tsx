@@ -9,6 +9,7 @@ import { suggestPhytoProduct, checkTreatmentTiming, PhytoRecommendation } from '
 import { registerTreatment } from '../../services/treatmentRegistryService';
 import { getWeatherForecast } from '../../services/weatherService';
 import { AlertTriangle, CheckCircle, Calendar, Wind, Droplets } from 'lucide-react';
+import { useStorage } from '@/packages/core/hooks/useStorage';
 
 interface TreatmentPlannerProps {
   plant: PlantMasterSheet;
@@ -25,6 +26,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
   userProfile,
   harvestDate,
 }) => {
+  const { storageProvider } = useStorage();
   const [recommendation, setRecommendation] = useState<PhytoRecommendation | null>(null);
   const [timingCheck, setTimingCheck] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
 
   useEffect(() => {
     loadRecommendation();
-  }, [problem, plant, garden.id]);
+  }, [problem, plant, garden.id, storageProvider]);
 
   const loadRecommendation = async () => {
     setLoading(true);
@@ -63,7 +65,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
     if (!recommendation) return;
 
     try {
-      await registerTreatment(garden.id, {
+      await registerTreatment(storageProvider, garden.id, {
         product: recommendation.product,
         plantName: plant.commonName,
         treatmentDate: new Date(),
@@ -198,4 +200,3 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
 };
 
 export default TreatmentPlanner;
-
