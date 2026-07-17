@@ -1,353 +1,93 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { BarChart3, Calendar, Database, Download, FileText, Leaf, Package, ShieldCheck } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden, GardenTask } from '@/types'
-import { Download, FileText, Database, Calendar, Package, BarChart3, Settings } from 'lucide-react'
+import type { Garden } from '@/types'
+
+type ExportFormat = 'csv' | 'pdf'
+type ExportDataset = 'garden' | 'tasks' | 'diary' | 'treatments' | 'certification_dossier'
+
+const datasets: Array<{ id: ExportDataset; label: string; description: string; icon: typeof Calendar }> = [
+  { id: 'garden', label: 'Orto', description: 'Configurazione minimizzata', icon: Package },
+  { id: 'tasks', label: 'Attività', description: 'Task e operazioni', icon: Calendar },
+  { id: 'diary', label: 'Diario', description: 'Registro giornaliero', icon: FileText },
+  { id: 'treatments', label: 'Trattamenti', description: 'Registro fitosanitario', icon: Leaf },
+  { id: 'certification_dossier', label: 'Dossier', description: 'Evidenze certificazione reali', icon: ShieldCheck },
+]
 
 export default function ExportPage() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
-  const [tasks, setTasks] = useState<GardenTask[]>([])
+  const [gardenId, setGardenId] = useState('')
+  const [dataset, setDataset] = useState<ExportDataset>('tasks')
+  const [format, setFormat] = useState<ExportFormat>('csv')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
   const [loading, setLoading] = useState(true)
-  const [selectedGarden, setSelectedGarden] = useState<string>('all')
-  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv')
-  const [exportType, setExportType] = useState<'tasks' | 'gardens' | 'analytics'>('tasks')
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [loadedGardens, loadedTasks] = await Promise.all([
-          storageProvider.getGardens(),
-          storageProvider.getTasks()
-        ])
-        setGardens(loadedGardens)
-        setTasks(loadedTasks)
-      } catch (error) {
-        console.error('Error loading data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
+    storageProvider.getGardens().then(items => {
+      setGardens(items)
+      setGardenId(current => current || items[0]?.id || '')
+    }).catch(error => console.error('Error loading gardens for export:', error)).finally(() => setLoading(false))
   }, [storageProvider])
 
-  const handleExport = async () => {
-    try {
-      let dataToExport: any[] = []
-      let filename = ''
-
-      switch (exportType) {
-        case 'tasks':
-          dataToExport = selectedGarden === 'all' 
-            ? (tasks || [])
-            : (tasks || []).filter(t => t.gardenId === selectedGarden)
-          filename = `ortomio-tasks-${new Date().toISOString().split('T')[0]}`
-          break
-        case 'gardens':
-          dataToExport = selectedGarden === 'all' 
-            ? gardens 
-            : gardens.filter(g => g.id === selectedGarden)
-          filename = `ortomio-gardens-${new Date().toISOString().split('T')[0]}`
-          break
-        case 'analytics':
-          // Create analytics data
-          dataToExport = gardens.map(garden => {
-            const gardenTasks = (tasks || []).filter(t => t.gardenId === garden.id)
-            return {
-              gardenName: garden.name,
-              totalTasks: gardenTasks.length,
-              completedTasks: gardenTasks.filter(t => t.completed).length,
-              activePlants: gardenTasks.filter(t => !t.completed).length,
-              varieties: new Set(gardenTasks.map(t => t.plantName)).size
-            }
-          })
-          filename = `ortomio-analytics-${new Date().toISOString().split('T')[0]}`
-          break
-      }
-
-      if (exportFormat === 'csv') {
-        exportToCSV(dataToExport, filename)
-      } else {
-        exportToPDF(dataToExport, filename)
-      }
-    } catch (error) {
-      console.error('Export error:', error)
-      alert('Errore durante l\'esportazione. Riprova.')
-    }
+  const startExport = () => {
+    if (!gardenId) return
+    const params = new URLSearchParams({ garden_id: gardenId, dataset })
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    window.location.assign(`/api/export/${format}?${params.toString()}`)
   }
 
-  const exportToCSV = (data: any[], filename: string) => {
-    if (data.length === 0) {
-      alert('Nessun dato da esportare')
-      return
-    }
-
-    const headers = Object.keys(data[0])
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => 
-        headers.map(header => {
-          const value = row[header]
-          // Escape commas and quotes in CSV
-          if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-            return `"${value.replace(/"/g, '""')}"`
-          }
-          return value
-        }).join(',')
-      )
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `${filename}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  const exportToPDF = (data: any[], filename: string) => {
-    // For now, we'll create a simple HTML export that can be printed as PDF
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>OrtoMio Export - ${filename}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { color: #16a34a; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          .header { margin-bottom: 20px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>🌱 OrtoMio Export</h1>
-          <p>Data esportazione: ${new Date().toLocaleDateString('it-IT')}</p>
-          <p>Tipo: ${exportType === 'tasks' ? 'Attività' : exportType === 'gardens' ? 'Orti' : 'Analytics'}</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              ${Object.keys(data[0] || {}).map(key => `<th>${key}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(row => `
-              <tr>
-                ${Object.values(row).map(value => `<td>${value}</td>`).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `
-
-    const blob = new Blob([htmlContent], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const newWindow = window.open(url, '_blank')
-    if (newWindow) {
-      newWindow.onload = () => {
-        setTimeout(() => {
-          newWindow.print()
-        }, 250)
-      }
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Caricamento dati...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-600">Caricamento export...</div>
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Download className="text-green-600" />
-            Export Dati
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Esporta i tuoi dati in CSV o in report stampabile per backup e analisi
-          </p>
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3"><Download className="text-green-600" />Export autorizzato</h1>
+          <p className="text-gray-600 mt-1">File server-side per un singolo orto, con schema, periodo, fonti, timezone, checksum e audit.</p>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-4xl mx-auto p-4">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          {/* Export Configuration */}
-          <div className="space-y-6">
-            {/* Export Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Tipo di Dati da Esportare
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={() => setExportType('tasks')}
-                  className={`p-4 border-2 rounded-lg transition-colors ${
-                    exportType === 'tasks'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Calendar className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">Attività</div>
-                  <div className="text-sm text-gray-600">Task e operazioni</div>
-                </button>
+      <main className="max-w-5xl mx-auto p-4 space-y-6">
+        <section className="bg-white rounded-lg shadow border border-gray-200 p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Orto autorizzato</label>
+            <select value={gardenId} onChange={event => setGardenId(event.target.value)} className="w-full px-3 py-2 border rounded-lg">
+              {gardens.length === 0 && <option value="">Nessun orto disponibile</option>}
+              {gardens.map(garden => <option key={garden.id} value={garden.id}>{garden.name}</option>)}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">L'export multi-orto è disabilitato: ownership e audit vengono verificati per ogni garden.</p>
+          </div>
 
-                <button
-                  onClick={() => setExportType('gardens')}
-                  className={`p-4 border-2 rounded-lg transition-colors ${
-                    exportType === 'gardens'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Package className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">Orti</div>
-                  <div className="text-sm text-gray-600">Configurazioni orti</div>
-                </button>
-
-                <button
-                  onClick={() => setExportType('analytics')}
-                  className={`p-4 border-2 rounded-lg transition-colors ${
-                    exportType === 'analytics'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <BarChart3 className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">Analytics</div>
-                  <div className="text-sm text-gray-600">Statistiche e KPI</div>
-                </button>
-              </div>
-            </div>
-
-            {/* Garden Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleziona Orto
-              </label>
-              <select
-                value={selectedGarden}
-                onChange={(e) => setSelectedGarden(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="all">Tutti gli orti</option>
-                {gardens.map((garden) => (
-                  <option key={garden.id} value={garden.id}>
-                    {garden.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Format Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Formato di Export
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setExportFormat('csv')}
-                  className={`p-4 border-2 rounded-lg transition-colors ${
-                    exportFormat === 'csv'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Database className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">CSV</div>
-                  <div className="text-sm text-gray-600">Per Excel e fogli di calcolo</div>
-                </button>
-
-                <button
-                  onClick={() => setExportFormat('pdf')}
-                  className={`p-4 border-2 rounded-lg transition-colors ${
-                    exportFormat === 'pdf'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <FileText className="mx-auto mb-2" size={24} />
-                  <div className="font-medium">Report stampabile</div>
-                  <div className="text-sm text-gray-600">Apre un report HTML per stampa/salvataggio PDF</div>
-                </button>
-              </div>
-            </div>
-
-            {/* Data Preview */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">Anteprima Dati</h3>
-              <div className="text-sm text-gray-600">
-                {exportType === 'tasks' && (
-                  <p>
-                    {selectedGarden === 'all' 
-                      ? `${(tasks || []).length} attività totali`
-                      : `${(tasks || []).filter(t => t.gardenId === selectedGarden).length} attività per l'orto selezionato`
-                    }
-                  </p>
-                )}
-                {exportType === 'gardens' && (
-                  <p>
-                    {selectedGarden === 'all' 
-                      ? `${gardens.length} orti configurati`
-                      : `1 orto selezionato`
-                    }
-                  </p>
-                )}
-                {exportType === 'analytics' && (
-                  <p>
-                    Statistiche per {selectedGarden === 'all' ? 'tutti gli orti' : '1 orto'}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Export Button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleExport}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
-              >
-                <Download size={20} />
-                Esporta {exportFormat.toUpperCase()}
-              </button>
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3">Dataset</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {datasets.map(item => <button key={item.id} onClick={() => setDataset(item.id)} className={`p-4 border-2 rounded-lg text-left ${dataset === item.id ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+                <item.icon className="mb-2 text-green-700" size={22} /><div className="font-medium">{item.label}</div><div className="text-xs text-gray-600">{item.description}</div>
+              </button>)}
             </div>
           </div>
-        </div>
 
-        {/* Info Section */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Settings className="text-blue-600 mt-1" size={20} />
-            <div>
-              <h4 className="font-medium text-blue-900 mb-1">Informazioni Export</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• I file CSV possono essere aperti con Excel, Google Sheets o altri fogli di calcolo</li>
-                <li>• Il formato report usa una pagina HTML stampabile o salvabile come PDF dal browser</li>
-                <li>• L'export di questa pagina è una superficie operativa rapida, non un framework enterprise unificato</li>
-                <li>• Verifica sempre manualmente il contenuto prima di condividerlo esternamente</li>
-              </ul>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="text-sm font-medium text-gray-700">Dal<input type="date" value={from} onChange={event => setFrom(event.target.value)} className="mt-2 w-full px-3 py-2 border rounded-lg" /></label>
+            <label className="text-sm font-medium text-gray-700">Al<input type="date" value={to} min={from || undefined} onChange={event => setTo(event.target.value)} className="mt-2 w-full px-3 py-2 border rounded-lg" /></label>
           </div>
-        </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => setFormat('csv')} className={`p-4 border-2 rounded-lg ${format === 'csv' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}><Database className="mx-auto mb-2" />CSV stabile</button>
+            <button onClick={() => setFormat('pdf')} className={`p-4 border-2 rounded-lg ${format === 'pdf' ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}><BarChart3 className="mx-auto mb-2" />PDF paginato</button>
+          </div>
+
+          <div className="flex justify-end"><button disabled={!gardenId || Boolean(from && to && from > to)} onClick={startExport} className="bg-green-600 disabled:opacity-50 text-white px-6 py-3 rounded-lg flex items-center gap-2"><Download size={20} />Esporta {format.toUpperCase()}</button></div>
+        </section>
+
+        <section className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+          Il dossier certificazioni esclude eventi e documenti demo/simulati. Ogni export è registrato con garden, utente, dataset, periodo, schema, fonti, numero record e SHA-256. Nessun file viene prodotto se l'audit non può essere persistito.
+        </section>
       </main>
     </div>
   )

@@ -17,6 +17,7 @@ import {
   CertificationDeadline,
   CertificationActivity
 } from '@/types/certifications'
+import { getSupabaseClient } from '@/config/supabase'
 
 class UnifiedCertificationsService {
   private certifications: Map<string, BaseCertification> = new Map()
@@ -30,22 +31,44 @@ class UnifiedCertificationsService {
   // ===== CERTIFICATION OVERVIEW =====
   
   async getCertificationOverview(gardenId: string): Promise<CertificationOverview> {
-    const certifications = Array.from(this.certifications.values())
-      .filter(cert => cert.gardenId === gardenId)
+    const supabase = getSupabaseClient()
+    if (!supabase) throw new Error('Supabase non configurato: la panoramica certificazioni richiede dati persistiti.')
+    const [certResponse, auditResponse, activityResponse] = await Promise.all([
+      supabase.from('certifications').select('id,type,status,valid_until').eq('garden_id', gardenId),
+      supabase.from('audit_schedules').select('id,certification_type,audit_type,scheduled_date,status').eq('garden_id', gardenId),
+      supabase.from('certification_evidence_events').select('id,certification_type,event_type,occurred_at,source_kind').eq('garden_id', gardenId).order('occurred_at', { ascending: false }).limit(20),
+    ])
+    if (certResponse.error) throw certResponse.error
+    if (auditResponse.error) throw auditResponse.error
+    if (activityResponse.error) throw activityResponse.error
 
+    const certifications = (certResponse.data || []) as Array<{ type: CertificationType; status: CertificationStatus; valid_until: string | null }>
     const totalCertifications = certifications.length
-    const activeCertifications = certifications.filter(cert => 
-      cert.status === 'COMPLIANT' || cert.status === 'IN_PROGRESS'
-    ).length
-    
-    const expiringSoon = this.getExpiringSoonCount(certifications)
-    const nonCompliant = certifications.filter(cert => 
-      cert.status === 'NON_COMPLIANT' || cert.status === 'EXPIRED'
-    ).length
-
-    const certificationsByType = this.getCertificationsByType(certifications)
-    const upcomingDeadlines = await this.getUpcomingDeadlines(gardenId)
-    const recentActivities = await this.getRecentActivities(gardenId)
+    const activeCertifications = certifications.filter(cert => cert.status === 'COMPLIANT' || cert.status === 'IN_PROGRESS').length
+    const now = new Date()
+    const sixtyDays = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
+    const expiringSoon = certifications.filter(cert => cert.valid_until && new Date(cert.valid_until) > now && new Date(cert.valid_until) <= sixtyDays).length
+    const nonCompliant = certifications.filter(cert => cert.status === 'NON_COMPLIANT' || cert.status === 'EXPIRED').length
+    const certificationsByType = this.getCertificationsByType(certifications.map((cert, index) => ({
+      id: `persisted-${index}`, gardenId, type: cert.type, status: cert.status, createdAt: '', updatedAt: '',
+    } as BaseCertification)))
+    const certificationDeadlines: CertificationDeadline[] = certifications.filter(cert => cert.valid_until).map(cert => ({
+      certificationType: cert.type, description: `Scadenza record ${this.getCertificationTypeName(cert.type)}`,
+      dueDate: cert.valid_until!, priority: new Date(cert.valid_until!) <= now ? 'CRITICAL' : 'HIGH',
+      status: new Date(cert.valid_until!) <= now ? 'OVERDUE' : 'PENDING',
+    }))
+    const auditDeadlines: CertificationDeadline[] = (auditResponse.data || []).map(audit => ({
+      certificationType: audit.certification_type as CertificationType,
+      description: `Audit ${audit.audit_type}`, dueDate: audit.scheduled_date,
+      priority: new Date(audit.scheduled_date) <= now ? 'CRITICAL' : 'MEDIUM',
+      status: audit.status === 'COMPLETED' ? 'COMPLETED' : new Date(audit.scheduled_date) <= now ? 'OVERDUE' : 'PENDING',
+    }))
+    const upcomingDeadlines = [...certificationDeadlines, ...auditDeadlines].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    const recentActivities: CertificationActivity[] = (activityResponse.data || []).map(event => ({
+      id: event.id, certificationType: event.certification_type as CertificationType,
+      activity: event.event_type, date: event.occurred_at, user: 'Operatore registrato',
+      status: event.source_kind === 'simulated' || event.source_kind === 'demo' ? 'WARNING' : 'SUCCESS',
+    }))
 
     return {
       gardenId,
