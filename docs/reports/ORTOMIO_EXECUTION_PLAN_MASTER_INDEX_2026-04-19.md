@@ -1,12 +1,18 @@
 # ORTOMIO EXECUTION PLAN MASTER INDEX (2026-04-19)
 
+> **Stato dal 16 luglio 2026:** registro storico, non piu entrypoint esecutivo.
+> La coda canonica e
+> [`execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md`](./execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md).
+> I blocchi chiusi restano come evidenza; gli eventuali residui sono stati assorbiti nelle fasi P0-P9 e non costituiscono una seconda coda attiva.
+
 ## Purpose
-This file is the cascading index for implementation plans produced during the current consolidation wave.
+This file preserves the cascading index and decision history produced during the April consolidation wave.
 
 Rule:
 - every focused implementation plan gets its own dated file
 - this master index links the plan, its status, and the next decision point
-- the master index is the first file to open when resuming work
+- for historical April work, this index explains the decision chain
+- for current work, open the July P0-P9 plan first
 - every architectural or interface gap discovered during implementation or manual review must be added here as a tracked item with priority, owner block and closure rule
 - when documentation contains promised but unclosed capability, that promise must first become an explicit `todo` here before any attempt to merely soften the wording in the manual
 
