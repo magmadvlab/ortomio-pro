@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainTraceabilityService } from '@/services/blockchainTraceabilityService'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    await requireGardenAccess(request, gardenId)
 
     let record
 
@@ -73,6 +75,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error creating blockchain record:', error)
     return NextResponse.json(
       { error: 'Failed to create blockchain record' },

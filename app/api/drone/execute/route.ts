@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { droneIntegrationService } from '@/services/droneIntegrationService'
+import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +18,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const flightPlan = await droneIntegrationService.getFlightPlan(flightPlanId)
+    if (!flightPlan) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
+    await requireGardenAccess(request, flightPlan.gardenId)
+
     const results = await droneIntegrationService.executeFlightPlan(flightPlanId)
 
     return NextResponse.json({
@@ -25,6 +32,8 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error executing flight plan:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to execute flight plan' },

@@ -7,19 +7,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
 // import { getChallengeForDate } from '@/data/giornateSpeciali'; // REMOVED: gamification
 import { convertChallengeActionsToTasks, checkChallengeTasksExist } from '../../../../services/challengeTaskConverter';
+import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server';
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const body = await request.json();
-    const { user_id, challenge_id, auto_schedule, garden_id } = body;
+    const { challenge_id, auto_schedule, garden_id } = body;
     
-    if (!user_id || !challenge_id) {
+    if (!challenge_id) {
       return NextResponse.json(
-        { error: 'user_id and challenge_id required' },
+        { error: 'challenge_id required' },
         { status: 400 }
       );
     }
+    if (garden_id) await requireGardenAccess(request, garden_id);
     
     // Parse challenge_id (formato: "giorno-mese")
     const [giorno, mese] = challenge_id.split('-').map(Number);
@@ -43,14 +46,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Verifica se i task sono già stati creati
-    const tasksExist = await checkChallengeTasksExist(supabase, user_id, challenge_id);
+    const tasksExist = await checkChallengeTasksExist(supabase, user.id, challenge_id);
     
     if (tasksExist) {
       // Recupera i task esistenti
       const { data: existingTasks } = await supabase
         .from('calendar_tasks')
         .select('id, title, start_date, completed')
-        .eq('user_id', user_id)
+        .eq('user_id', user.id)
         .eq('challenge_id', challenge_id);
       
       return NextResponse.json({
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Converti challenge actions in tasks
-    const taskIds = await convertChallengeActionsToTasks(supabase, user_id, challenge, {
+    const taskIds = await convertChallengeActionsToTasks(supabase, user.id, challenge, {
       autoSchedule: auto_schedule !== false,
       defaultDate: new Date(),
       gardenId: garden_id
@@ -82,6 +85,8 @@ export async function POST(request: NextRequest) {
       message: `Creati ${taskIds.length} task nel calendario`
     });
   } catch (error: any) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error converting challenge to tasks:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
@@ -89,4 +94,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

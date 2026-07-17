@@ -4,9 +4,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainTraceabilityService } from '@/services/blockchainTraceabilityService'
+import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
+    await requireUser(request)
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
     const gardenId = searchParams.get('gardenId')
@@ -29,6 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (gardenId) {
+      await requireGardenAccess(request, gardenId)
       // Get all chains for garden
       const chains = await blockchainTraceabilityService.getAllChains(gardenId)
       
@@ -44,6 +47,8 @@ export async function GET(request: NextRequest) {
     )
 
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error fetching traceability data:', error)
     return NextResponse.json(
       { error: 'Failed to fetch traceability data' },

@@ -7,14 +7,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
 import { awardBadge } from '../../../../lib/challenges/badgeSystem';
 import { updateStreak } from '../../../../lib/challenges/streakCalculator';
+import { accessErrorResponse, requireUser } from '@/lib/auth.server';
 
 // POST /api/challenges/complete
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const body = await request.json();
     const { 
-      user_id, 
       challenge_id, 
       actions_completed, 
       photo_url,
@@ -22,9 +23,9 @@ export async function POST(request: NextRequest) {
       badge_earned
     } = body;
     
-    if (!user_id || !challenge_id || !points_awarded) {
+    if (!challenge_id || !points_awarded) {
       return NextResponse.json(
-        { error: 'Missing required fields: user_id, challenge_id, points_awarded' },
+        { error: 'Missing required fields: challenge_id, points_awarded' },
         { status: 400 }
       );
     }
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     const { data: existing } = await supabase
       .from('challenge_completions')
       .select('id')
-      .eq('user_id', user_id)
+      .eq('user_id', user.id)
       .eq('challenge_id', challenge_id)
       .single();
     
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     const { data: completion, error: completionError } = await supabase
       .from('challenge_completions')
       .insert({
-        user_id,
+        user_id: user.id,
         challenge_id,
         actions_completed: actions_completed || [],
         photo_url: photo_url || null,
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       const badgeEmoji = badgeParts[0];
       const badgeName = badgeParts.slice(1).join(' ');
       
-      await awardBadge(user_id, {
+      await awardBadge(user.id, {
         id: `challenge_${challenge_id.replace('-', '_')}`,
         nome: badgeName,
         emoji: badgeEmoji,
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('total_points')
-      .eq('id', user_id)
+      .eq('id', user.id)
       .single();
     
     const newTotalPoints = (profile?.total_points || 0) + points_awarded;
@@ -92,10 +93,10 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('profiles')
       .update({ total_points: newTotalPoints })
-      .eq('id', user_id);
+      .eq('id', user.id);
     
     // 5. Update streak
-    const streakData = await updateStreak(user_id);
+    const streakData = await updateStreak(user.id);
     
     return NextResponse.json({
       success: true,
@@ -105,6 +106,8 @@ export async function POST(request: NextRequest) {
       streak: streakData
     });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in POST /api/challenges/complete:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -116,19 +119,15 @@ export async function POST(request: NextRequest) {
 // GET /api/challenges/complete?user_id=&challenge_id=
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireUser(request);
     const supabase = requireSupabase();
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('user_id');
     const challengeId = searchParams.get('challenge_id');
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'user_id required' }, { status: 400 });
-    }
     
     let query = supabase
       .from('challenge_completions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('completed_at', { ascending: false });
     
     if (challengeId) {
@@ -144,6 +143,8 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ completions: data || [] });
   } catch (error) {
+    const accessResponse = accessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     console.error('Error in GET /api/challenges/complete:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

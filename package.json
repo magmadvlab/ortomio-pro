@@ -26,7 +26,8 @@
     "generate:plant-migration": "tsx scripts/generatePlantTaxonomyMigration.ts",
     "apply:plant-migration": "tsx scripts/applyPlantTaxonomyMigration.ts",
     "test:health-check": "tsx scripts/test-health-check.ts",
-    "test:precision-hub": "npx --yes tsx --test __tests__/precision-hub/**/*.test.ts",
+    "test:precision-hub": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/precision-hub/**/*.test.ts",
+    "test:security": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/security/**/*.test.ts",
     "audit:p0": "node scripts/audit-p0-baseline.mjs"
   },
   "dependencies": {
@@ -45,6 +46,7 @@
     "react-dom": "^19.2.1",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.6.0",
+    "server-only": "^0.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

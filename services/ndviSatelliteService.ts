@@ -321,6 +321,7 @@ export class NDVISatelliteService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          gardenId: request.garden_id,
           bbox: request.coordinates,
           dateFrom: request.date_from,
           dateTo: request.date_to,

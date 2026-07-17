@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
-import { getUserFromRequest, getUserProfile } from '@/lib/auth.server'
+import { accessErrorResponse, requireAdmin } from '@/lib/auth.server'
 
 const resolveAuthSiteUrl = (): string => {
   return (
@@ -11,18 +11,8 @@ const resolveAuthSiteUrl = (): string => {
   )
 }
 
-async function requireAdmin(request: NextRequest) {
-  const user = await getUserFromRequest(request)
-  if (!user) {
-    return { error: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) }
-  }
-
-  const profile = await getUserProfile(user.id)
-  const hasAdminAccess = profile?.role === 'admin' || profile?.is_superadmin
-  if (!hasAdminAccess) {
-    return { error: NextResponse.json({ error: 'forbidden' }, { status: 403 }) }
-  }
-
+async function getAdminSupabase(request: NextRequest) {
+  await requireAdmin(request)
   const supabase = getSupabaseServerClient()
   if (!supabase) {
     return { error: NextResponse.json({ error: 'supabase_not_configured' }, { status: 503 }) }
@@ -32,8 +22,8 @@ async function requireAdmin(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const access = await requireAdmin(request)
-  if ('error' in access) return access.error
+  const access = await getAdminSupabase(request).catch((error) => ({ error: accessErrorResponse(error) }))
+  if ('error' in access) return access.error ?? NextResponse.json({ error: 'internal_error' }, { status: 500 })
 
   const { supabase } = access
   const page = Math.max(Number(request.nextUrl.searchParams.get('page') || '1'), 1)
@@ -67,8 +57,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const access = await requireAdmin(request)
-  if ('error' in access) return access.error
+  const access = await getAdminSupabase(request).catch((error) => ({ error: accessErrorResponse(error) }))
+  if ('error' in access) return access.error ?? NextResponse.json({ error: 'internal_error' }, { status: 500 })
 
   const { supabase } = access
   const body = await request.json().catch(() => ({}))

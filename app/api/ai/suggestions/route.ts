@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireUser(request)
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('user_id')
     const gardenId = searchParams.get('garden_id')
     const suggestionType = searchParams.get('suggestion_type')
     const status = searchParams.get('status')
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-    }
+    if (gardenId) await requireGardenAccess(request, gardenId)
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
@@ -46,7 +45,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('ai_suggestions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (gardenId) {
@@ -72,6 +71,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data || [])
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error in AI suggestions API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -79,19 +80,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser(request)
     const body = await request.json()
-    const { user_id, garden_id, suggestion_type, title, description } = body
+    const { garden_id, suggestion_type, title, description } = body
 
-    if (!user_id || !title || !description) {
+    if (!title || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+    if (garden_id) await requireGardenAccess(request, garden_id)
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
       // Return grounded mock response for local development
       return NextResponse.json({
         id: 'mock-new',
-        user_id,
+        user_id: user.id,
         garden_id,
         suggestion_type: suggestion_type || 'GENERAL',
         title,
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('ai_suggestions')
       .insert({
-        user_id,
+        user_id: user.id,
         garden_id,
         suggestion_type: suggestion_type || 'GENERAL',
         title,
@@ -122,6 +125,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data)
   } catch (error) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Error in AI suggestions POST:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
