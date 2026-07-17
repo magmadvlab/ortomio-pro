@@ -1939,59 +1939,35 @@ export class SupabaseStorageProvider implements IStorageProvider {
       }
 
       const now = new Date().toISOString()
-      const { data: mapRow, error: mapError } = await client
-        .from('prescription_maps')
-        .insert({
-          ...mapPrescriptionMapToDb({
-            ...map,
-            generationDate: map.generationDate || now,
-            createdAt: now,
-            updatedAt: now,
-            createdBy: user.id,
-          }),
-        })
-        .select()
-        .single()
-
-      if (mapError || !mapRow) {
-        throw this.buildCloudPersistenceError(
-          'createPrescriptionMap',
-          'Persistenza cloud fallita: la prescription map non e stata salvata su Supabase.',
-          mapError ?? undefined
-        )
-      }
-
-      const mapId = String(mapRow.id)
-      const zoneRows = map.zones.map((zone, index) => ({
-        ...mapPrescriptionZoneToDb({
-          ...zone,
-          prescriptionMapId: mapId,
-          zoneNumber: zone.zoneNumber || index + 1,
-          createdAt: zone.createdAt || now,
-          updatedAt: zone.updatedAt || now,
-        }),
-      }))
-
-      if (zoneRows.length > 0) {
-        const { error: zonesError } = await client.from('prescription_zones').insert(zoneRows)
-        if (zonesError) {
-          await client.from('prescription_maps').delete().eq('id', mapId)
-          throw this.buildCloudPersistenceError(
-            'createPrescriptionMap',
-            'Persistenza cloud fallita: la prescription map e stata creata ma il salvataggio delle zone non e riuscito.',
-            zonesError
-          )
-        }
-      }
-
-      return mapPrescriptionMapFromDb(mapRow, map.zones.map((zone, index) => ({
+      const mapPayload = mapPrescriptionMapToDb({
+        ...map,
+        generationDate: map.generationDate || now,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: user.id,
+      })
+      const zonePayloads = map.zones.map((zone, index) => mapPrescriptionZoneToDb({
         ...zone,
-        id: zone.id || crypto.randomUUID(),
-        prescriptionMapId: mapId,
+        prescriptionMapId: undefined,
         zoneNumber: zone.zoneNumber || index + 1,
         createdAt: zone.createdAt || now,
         updatedAt: zone.updatedAt || now,
-      })))
+      }))
+      const { data: mapId, error: mapError } = await client.rpc('create_prescription_map_atomic', {
+        p_map: mapPayload,
+        p_zones: zonePayloads,
+      })
+
+      if (mapError || !mapId) {
+        throw this.buildCloudPersistenceError(
+          'createPrescriptionMap',
+          'Persistenza cloud fallita: mappa e zone non sono state salvate atomicamente.',
+          mapError ?? undefined
+        )
+      }
+      const persisted = await this.getPrescriptionMap(String(mapId))
+      if (!persisted) throw this.buildCloudPersistenceError('createPrescriptionMap', 'Mappa atomica non rileggibile dopo il salvataggio.')
+      return persisted
     } catch (error) {
       if (error instanceof StoragePersistenceError) {
         throw error

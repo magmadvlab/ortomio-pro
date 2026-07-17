@@ -344,34 +344,15 @@ class DroneIntegrationService {
   // ===== FLIGHT EXECUTION =====
 
   async executeFlightPlan(flightPlanId: string): Promise<FlightResults> {
+    void flightPlanId
+    throw new Error('drone_provider_unavailable_use_explicit_simulation')
+  }
+
+  async simulateFlightPlan(flightPlanId: string): Promise<FlightResults & { sourceKind: 'simulated'; evidenceEligible: false }> {
     const flightPlan = this.flightPlans.get(flightPlanId)
-    if (!flightPlan) {
-      throw new Error('Flight plan not found')
-    }
-
-    // Check weather conditions
-    const weather = await this.checkWeatherConditions(await this.getGarden(flightPlan.gardenId))
-    if (!weather.suitable) {
-      throw new Error('Weather conditions not suitable for flight')
-    }
-
-    // Update flight plan status
-    flightPlan.status = 'IN_PROGRESS'
-    flightPlan.updatedAt = new Date().toISOString()
-
-    try {
-      // Execute flight (simulated)
-      const results = await this.simulateFlightExecution(flightPlan)
-      
-      // Update status
-      flightPlan.status = 'COMPLETED'
-      flightPlan.results = results
-      
-      return results
-    } catch (error) {
-      flightPlan.status = 'FAILED'
-      throw error
-    }
+    if (!flightPlan) throw new Error('Flight plan not found')
+    const results = await this.simulateFlightExecution(flightPlan)
+    return { ...results, sourceKind: 'simulated', evidenceEligible: false }
   }
 
   private async simulateFlightExecution(flightPlan: DroneFlightPlan): Promise<FlightResults> {

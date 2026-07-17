@@ -80,6 +80,12 @@ export class PrescriptionMapsService {
     this.storageProvider = storageProvider;
   }
 
+  private async sha256(value: unknown) {
+    const encoded = new TextEncoder().encode(JSON.stringify(value))
+    const digest = await crypto.subtle.digest('SHA-256', encoded)
+    return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('')
+  }
+
   async getPrescriptionMaps(gardenId: string): Promise<PrescriptionMap[]> {
     if (!this.storageProvider?.getPrescriptionMaps) {
       return [];
@@ -284,6 +290,11 @@ export class PrescriptionMapsService {
       exportCount: 0,
       lastExportedAt: undefined,
       lastExecutedAt: undefined,
+      // Una revisione che cambia contenuto non puo ereditare checksum e input
+      // della versione precedente. L'export resta chiuso finche non vengono
+      // forniti metadati ricalcolati esplicitamente.
+      algorithmMetadata: overrides.algorithmMetadata,
+      contentChecksum: overrides.contentChecksum,
       zones: (overrides.zones || currentMap.zones).map((zone: PrescriptionZone) => ({
         ...zone,
         id: crypto.randomUUID(),
@@ -420,13 +431,22 @@ export class PrescriptionMapsService {
 
       // 5. Perform cost analysis
       const costAnalysis = await this.calculateCostAnalysis(zones, request);
+      const inputHash = await this.sha256({ request, dataPoints: fusionResult.dataPoints })
+      const contentChecksum = await this.sha256({ zones, mapType: request.mapType, inputHash })
 
       // 6. Create prescription map record
       const prescriptionMap = await this.createPrescriptionMapRecord({
         ...request,
         zones,
         costAnalysis,
-        quality: fusionResult.quality
+        quality: fusionResult.quality,
+        algorithmMetadata: {
+          algorithmVersion: 'prescription-fusion-kmeans-v2',
+          inputHash,
+          sourceQuality: fusionResult.dataPoints.every(point => point.sources.includes('ndvi')) ? 'measured' : 'mixed',
+          generatedFrom: Array.from(new Set(fusionResult.dataPoints.flatMap(point => point.sources))).sort(),
+        },
+        contentChecksum,
       });
 
       // 7. Return result
@@ -484,6 +504,11 @@ export class PrescriptionMapsService {
         request.analysisPeriod.endDate,
         gardenBounds
       );
+      const distinctLocations = new Set(ndviData.map(point => `${point.latitude.toFixed(6)}:${point.longitude.toFixed(6)}`))
+      const distinctValues = new Set(ndviData.map(point => point.ndviValue.toFixed(4)))
+      if (distinctLocations.size < 3 || distinctValues.size < 2) {
+        return { dataPoints: [], quality: { completeness: 0, accuracy: 0, temporal_relevance: 0 } }
+      }
     }
 
     // Collect plant-level data
@@ -727,6 +752,14 @@ export class PrescriptionMapsService {
     if (totalWeight === 0) {
       errors.push('At least one data source must have weight > 0');
     }
+    if (Object.values(request.dataSources).some(weight => !Number.isFinite(weight) || weight < 0 || weight > 1)) {
+      errors.push('Data source weights must be between 0 and 1');
+    }
+    const periodStart = new Date(request.analysisPeriod?.startDate)
+    const periodEnd = new Date(request.analysisPeriod?.endDate)
+    if (!Number.isFinite(periodStart.getTime()) || !Number.isFinite(periodEnd.getTime()) || periodStart > periodEnd) {
+      errors.push('Analysis period is invalid');
+    }
 
     // Validate zone configuration
     if (request.zoneConfig.maxZones < 1) {
@@ -747,14 +780,23 @@ export class PrescriptionMapsService {
   private async getGardenBounds(gardenId: string): Promise<{
     minLat: number; maxLat: number; minLon: number; maxLon: number;
   }> {
-    // This would query the garden's geographic bounds
-    // For now, return default bounds
-    return {
-      minLat: 45.0,
-      maxLat: 45.1,
-      minLon: 9.0,
-      maxLon: 9.1
-    };
+    if (!this.storageProvider?.getGarden) throw new Error('Garden storage richiesto per la geometria prescrittiva')
+    const garden = await this.storageProvider.getGarden(gardenId)
+    if (!garden) throw new Error('Garden non trovato')
+    const points = Array.isArray(garden.points) ? garden.points.flatMap((point: any) => {
+      const latitude = Number(point.latitude ?? point.coordinates?.latitude)
+      const longitude = Number(point.longitude ?? point.coordinates?.longitude)
+      return Number.isFinite(latitude) && Number.isFinite(longitude) ? [{ latitude, longitude }] : []
+    }) : []
+    if (points.length >= 3) return {
+      minLat: Math.min(...points.map((point: any) => point.latitude)), maxLat: Math.max(...points.map((point: any) => point.latitude)),
+      minLon: Math.min(...points.map((point: any) => point.longitude)), maxLon: Math.max(...points.map((point: any) => point.longitude)),
+    }
+    const latitude = Number(garden.coordinates?.latitude)
+    const longitude = Number(garden.coordinates?.longitude)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) throw new Error('Geometria o coordinate garden insufficienti')
+    const buffer = 0.001
+    return { minLat: latitude - buffer, maxLat: latitude + buffer, minLon: longitude - buffer, maxLon: longitude + buffer };
   }
 
   private async getNDVIData(
@@ -763,9 +805,17 @@ export class PrescriptionMapsService {
     endDate: string,
     bounds: any
   ): Promise<NDVIDataPoint[]> {
-    // This would query NDVI data from cache or API
-    // For now, return sample data
-    return [];
+    const supabase = getSupabaseClient()
+    if (!supabase) return []
+    const { data, error } = await supabase.from('ndvi_data_cache')
+      .select('latitude, longitude, ndvi_value, data_date, data_quality, source_kind, algorithm_version')
+      .eq('garden_id', gardenId).eq('source_kind', 'real').in('quality_status', ['accepted', 'warning'])
+      .gte('data_date', startDate).lte('data_date', endDate).order('data_date', { ascending: false }).limit(5000)
+    if (error) throw new Error(`NDVI cache read failed: ${error.message}`)
+    return (data ?? []).map((row: any) => ({
+      latitude: Number(row.latitude), longitude: Number(row.longitude), ndviValue: Number(row.ndvi_value),
+      date: row.data_date, quality: Number(row.data_quality), sourceKind: row.source_kind, algorithmVersion: row.algorithm_version,
+    }));
   }
 
   private async getPlantLevelData(
@@ -1114,19 +1164,13 @@ export class PrescriptionMapsService {
       qualityScore: this.calculateOverallQuality(data.quality, data.zones),
       dataCompleteness: data.quality?.completeness || 90,
       costAnalysis: data.costAnalysis,
+      algorithmMetadata: data.algorithmMetadata,
+      contentChecksum: data.contentChecksum,
       createdBy: data.createdBy
     };
 
-    if (this.storageProvider?.createPrescriptionMap) {
-      return this.storageProvider.createPrescriptionMap(builtMap);
-    }
-
-    return {
-      ...builtMap,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (!this.storageProvider?.createPrescriptionMap) throw new Error('Persistenza cloud richiesta per la prescription map')
+    return this.storageProvider.createPrescriptionMap(builtMap);
   }
 }
 

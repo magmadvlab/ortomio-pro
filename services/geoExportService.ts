@@ -25,6 +25,10 @@ export interface ExportResult {
     zoneCount: number;
     totalArea: number;
     generatedAt: string;
+    algorithmVersion?: string;
+    inputHash?: string;
+    contentChecksum?: string;
+    sourceQuality?: string;
   };
 }
 
@@ -69,6 +73,14 @@ export class GeoExportService {
   ): Promise<ExportResult> {
     
     try {
+      if (!prescriptionMap.algorithmMetadata?.algorithmVersion || !prescriptionMap.algorithmMetadata.inputHash || !prescriptionMap.contentChecksum) {
+        return {
+          success: false,
+          fileName: '',
+          errors: ['Export bloccato: provenance algoritmo/input e checksum mancanti. Crea una nuova revisione P6.'],
+          metadata: this.createMetadata(prescriptionMap, config),
+        }
+      }
       // Validate export configuration
       const validationErrors = this.validateExportConfig(config);
       if (validationErrors.length > 0) {
@@ -744,7 +756,11 @@ export class GeoExportService {
       coordinateSystem: config.coordinateSystem,
       zoneCount: prescriptionMap.totalZones,
       totalArea: prescriptionMap.totalAreaSqm,
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
+      algorithmVersion: prescriptionMap.algorithmMetadata?.algorithmVersion,
+      inputHash: prescriptionMap.algorithmMetadata?.inputHash,
+      contentChecksum: prescriptionMap.contentChecksum,
+      sourceQuality: prescriptionMap.algorithmMetadata?.sourceQuality,
     };
   }
 
@@ -780,6 +796,10 @@ export class GeoExportService {
         zoneCount: prescriptionMap.totalZones,
         totalArea: prescriptionMap.totalAreaSqm,
         coordinateSystem: config.coordinateSystem,
+        algorithmVersion: prescriptionMap.algorithmMetadata?.algorithmVersion || null,
+        inputHash: prescriptionMap.algorithmMetadata?.inputHash || null,
+        contentChecksum: prescriptionMap.contentChecksum || null,
+        sourceQuality: prescriptionMap.algorithmMetadata?.sourceQuality || null,
       },
       exportedAt,
       downloadedAt: result.downloadUrl ? exportedAt : undefined,

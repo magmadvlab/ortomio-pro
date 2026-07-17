@@ -52,26 +52,15 @@ export default function SatelliteConfigStatus() {
   const testConnection = async () => {
     setTesting(true)
     setStatus(prev => ({ ...prev, testResult: 'pending' }))
-    
     try {
-      const response = await fetch('/api/ndvi/sentinel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bbox: { north: 42.0, south: 41.9, east: 12.6, west: 12.5 },
-          dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          dateTo: new Date().toISOString().split('T')[0],
-          cloudCoverage: 20
-        })
-      })
-
+      const response = await fetch('/api/ndvi/config-status')
       const data = await response.json()
-      
       setStatus(prev => ({
         ...prev,
+        ...data,
         lastTest: new Date(),
-        testResult: data.simulated ? 'error' : 'success',
-        errorMessage: data.simulated ? 'Credenziali non configurate - usando dati simulati' : undefined
+        testResult: 'pending',
+        errorMessage: data.configured ? 'Secret presenti; la prova provider richiede un garden reale con coordinate.' : 'Secret Sentinel mancanti.'
       }))
     } catch (error: any) {
       setStatus(prev => ({
@@ -185,7 +174,7 @@ export default function SatelliteConfigStatus() {
             }`}
           >
             <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
-            {testing ? 'Testing...' : 'Test'}
+            {testing ? 'Verifica...' : 'Rileggi configurazione'}
           </button>
         </div>
       </div>

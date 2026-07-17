@@ -71,6 +71,13 @@ export interface PrescriptionMap {
   lastExportedAt?: string;
   exportCount?: number;
   lastExecutedAt?: string;
+  algorithmMetadata?: {
+    algorithmVersion: string;
+    inputHash: string;
+    sourceQuality: 'measured' | 'mixed' | 'estimated' | 'insufficient';
+    generatedFrom: string[];
+  };
+  contentChecksum?: string;
   
   // Validation and quality
   validationStatus: 'pending' | 'valid' | 'invalid' | 'warning';
@@ -458,6 +465,8 @@ export interface NDVIDataPoint {
   ndviValue: number;
   date: string;
   quality: number;
+  sourceKind?: 'real' | 'estimated' | 'simulated' | 'fallback';
+  algorithmVersion?: string;
 }
 
 export interface PlantDataPoint {
