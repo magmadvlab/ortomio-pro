@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0-P6 implementate e verificate in locale; i gate provider, staging e produzione restano raccolti in P8
+- **Stato esecuzione:** P0-P7 implementate e verificate in locale; i gate provider, storage, staging e produzione restano raccolti in P8
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -499,40 +499,40 @@ Ogni dato remoto dichiara fonte e qualita; moduli demo non possono essere confus
 
 ### 13.1 Certificazioni
 
-- [ ] verificare CRUD e RLS GlobalGAP/Bio;
-- [ ] rendere append-only gli eventi regolatori;
-- [ ] proteggere documenti e foto;
-- [ ] collegare evidenza a owner, garden, operatore, data e fonte;
-- [ ] escludere dati demo dai dossier;
-- [ ] aggiungere report di completezza/anomalie;
-- [ ] mantenere fuori scope submission ufficiale non implementata.
+- [x] verificare CRUD e RLS GlobalGAP/Bio e rinforzare ownership documenti;
+- [x] rendere append-only gli eventi regolatori;
+- [!] proteggere documenti e foto — metadata, checksum, owner e RLS completati; policy del bucket storage da verificare nello staging P8;
+- [x] collegare evidenza a owner, garden, operatore, data e fonte;
+- [x] escludere dati demo dai dossier;
+- [x] aggiungere report di completezza/anomalie;
+- [x] mantenere fuori scope submission ufficiale non implementata e dichiararlo nella UI.
 
 ### 13.2 Export
 
-- [ ] definire dataset autorizzati per ruolo e garden;
-- [ ] stabilizzare CSV e formati data/unita;
-- [ ] generare PDF reale con paginazione;
-- [ ] completare diario e registro trattamenti;
-- [ ] includere periodo, fonte, timezone e versione schema;
-- [ ] registrare export sensibili;
-- [ ] minimizzare dati personali.
+- [x] definire dataset autorizzati per ruolo e garden;
+- [x] stabilizzare CSV e formati data/unita;
+- [x] generare PDF reale con paginazione;
+- [x] completare diario e registro trattamenti;
+- [x] includere periodo, fonte, timezone e versione schema;
+- [x] registrare export sensibili e fallire se l'audit non e persistibile;
+- [x] minimizzare dati personali.
 
 ### 13.3 Admin
 
-- [ ] risolvere capability server-side;
-- [ ] validare le colonne usate dalle statistiche;
-- [ ] completare o rimuovere azioni placeholder;
-- [ ] mostrare provider health senza secret;
-- [ ] registrare audit admin;
-- [ ] verificare che il tier da solo non conceda visibilita/accesso.
+- [x] risolvere capability server-side;
+- [x] validare le colonne usate dalle statistiche usando Auth Admin e conteggio garden server-side;
+- [x] completare o rimuovere azioni placeholder;
+- [x] mostrare provider health senza secret;
+- [x] registrare audit admin;
+- [x] verificare che il tier da solo non conceda visibilita/accesso.
 
 ### Test obbligatori
 
-- [ ] dossier senza dati demo;
-- [ ] documento di altro garden non accessibile;
-- [ ] PDF leggibile e riproducibile;
-- [ ] export sensibile auditato;
-- [ ] Admin invisibile e inaccessibile al non-admin.
+- [x] dossier senza dati demo;
+- [x] documento di altro garden non accessibile;
+- [x] PDF reale, paginato e riproducibile dagli stessi record;
+- [x] export sensibile auditato;
+- [x] Admin invisibile e inaccessibile al non-admin.
 
 ### Criterio di uscita
 
@@ -756,7 +756,7 @@ Compilare durante l'esecuzione.
 | P4 | implementazione locale completata; gate provider/remoto bloccato | `codex/ortomio-p4-physical-operations` | `20260717020000_p4_physical_operation_lifecycle.sql`; replay doppio e test RLS/constraint/transazione su PostgreSQL 16 | physical-operations 6/6; type-check; security 10/10; precision 228/228; build 142/142; diff-check | migrazione non applicata; nessuna attuazione ThingsBoard inviata | flag avanzati spenti fino a P8; manca device staging classificato; evidenza `docs/reports/P4_PHYSICAL_OPERATIONS_EVIDENCE_2026-07-17.md` |
 | P5 | implementazione locale completata; gate staging bloccato | `codex/ortomio-p5-health-predictions-monitoring` | `20260717030000_p5_health_prediction_monitoring.sql`; replay doppio e test RLS/vincoli su PostgreSQL 16 | health/predictions/monitoring 7/7; security 10/10; capabilities 7/7; persistence 9/9; physical 6/6; precision 228/228; type-check; build 142/142; diff-check | migrazione e cron non applicati; menu predizioni spento | alert e forecast persistenti e riproducibili; outcome/calibrazione; evidenza `docs/reports/P5_HEALTH_PREDICTIONS_MONITORING_EVIDENCE_2026-07-17.md` |
 | P6 | implementazione locale completata; gate provider/staging bloccato | `codex/ortomio-p6-remote-data-demo-isolation` | `20260717040000_p6_remote_data_provenance.sql`; replay doppio, RLS cross-garden e RPC atomica su PostgreSQL 16 | remote-data-isolation 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 142/142; diff-check | migrazione e chiamata provider non applicate; nessuna attuazione drone/blockchain | Sentinel Statistical reale senza fallback casuale; mappe fail-closed e provenance; demo isolate; evidenza `docs/reports/P6_REMOTE_DATA_DEMO_ISOLATION_EVIDENCE_2026-07-17.md` |
-| P7 | non iniziato | — | — | — | — | — |
+| P7 | implementazione locale completata; gate storage/staging bloccato | `codex/ortomio-p7-certifications-export-admin` | `20260717050000_p7_regulatory_exports_admin.sql`; replay doppio, RLS cross-garden, vincolo demo e append-only su PostgreSQL 16 | regulatory/exports/admin 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 143/143; diff-check | migrazione non applicata; bucket documenti non verificato | dossier senza demo; CSV/PDF server-side auditati; Admin server-only; evidenza `docs/reports/P7_CERTIFICATIONS_EXPORT_ADMIN_EVIDENCE_2026-07-17.md` |
 | P8 | non iniziato | — | — | — | — | — |
 | P9 | non iniziato | — | — | — | — | — |
 

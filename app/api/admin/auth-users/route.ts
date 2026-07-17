@@ -12,13 +12,13 @@ const resolveAuthSiteUrl = (): string => {
 }
 
 async function getAdminSupabase(request: NextRequest) {
-  await requireAdmin(request)
+  const access = await requireAdmin(request)
   const supabase = getSupabaseServerClient()
   if (!supabase) {
     return { error: NextResponse.json({ error: 'supabase_not_configured' }, { status: 503 }) }
   }
 
-  return { supabase }
+  return { supabase, adminUser: access.user }
 }
 
 export async function GET(request: NextRequest) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   const access = await getAdminSupabase(request).catch((error) => ({ error: accessErrorResponse(error) }))
   if ('error' in access) return access.error ?? NextResponse.json({ error: 'internal_error' }, { status: 500 })
 
-  const { supabase } = access
+  const { supabase, adminUser } = access
   const body = await request.json().catch(() => ({}))
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
 
@@ -77,8 +77,18 @@ export async function POST(request: NextRequest) {
   })
 
   if (error) {
+    await supabase.from('admin_audit_log').insert({
+      admin_user_id: adminUser.id, action: 'resend_verification_email', target_type: 'auth_user',
+      target_id: email, outcome: 'failure', metadata: { providerError: error.message },
+    })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  const { error: auditError } = await supabase.from('admin_audit_log').insert({
+    admin_user_id: adminUser.id, action: 'resend_verification_email', target_type: 'auth_user',
+    target_id: email, outcome: 'success', metadata: {},
+  })
+  if (auditError) return NextResponse.json({ error: 'admin_audit_failed' }, { status: 503 })
 
   return NextResponse.json({ success: true, email })
 }

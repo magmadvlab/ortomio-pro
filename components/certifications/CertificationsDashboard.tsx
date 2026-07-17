@@ -8,6 +8,8 @@ import { Shield, Leaf, Award, FileText, TrendingUp, CheckCircle, AlertTriangle }
 import GlobalGapDashboard from '../compliance/GlobalGapDashboard';
 import BioCertificationForm, { BioCertificationData } from './BioCertificationForm';
 import { bioCertificationService, BioCertificationRecord } from '../../services/bioCertificationService';
+import { globalGapCbFvService } from '../../services/globalGapCbFvService';
+import type { CompleteComplianceOverview } from '../../types/globalGapCbFv';
 
 interface CertificationsDashboardProps {
   gardenId: string;
@@ -22,6 +24,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
   const [bioSaving, setBioSaving] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
   const [bioMessage, setBioMessage] = useState<string | null>(null);
+  const [globalGapOverview, setGlobalGapOverview] = useState<CompleteComplianceOverview | null>(null);
 
   useEffect(() => {
     if (!gardenId) return;
@@ -33,9 +36,13 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       setBioError(null);
 
       try {
-        const existing = await bioCertificationService.getLatestByGarden(gardenId);
+        const [existing, globalGap] = await Promise.all([
+          bioCertificationService.getLatestByGarden(gardenId),
+          globalGapCbFvService.getCompleteComplianceOverview(gardenId),
+        ]);
         if (!cancelled) {
           setBioCertification(existing);
+          setGlobalGapOverview(globalGap);
         }
       } catch (error) {
         if (!cancelled) {
@@ -80,8 +87,8 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       icon: Leaf,
       color: 'green',
       progress: bioCertification?.complianceScore || 0,
-      status: bioCertification ? (bioCertification.status === 'approved' ? 'completed' : 'in_progress') : 'not_started',
-      benefits: ['Accesso mercato BIO', 'Miglior posizionamento commerciale dei lotti conformi', 'Sostenibilità ambientale']
+      status: bioCertification ? (bioCertification.readinessStatus === 'ready' ? 'ready' : 'in_progress') : 'not_started',
+      benefits: ['Preparazione del dossier BIO', 'Controllo gap documentali', 'Tracciabilità delle evidenze']
     },
     {
       id: 'globalgap',
@@ -90,9 +97,9 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       maturityLabel: 'Workspace compliance parziale',
       icon: Shield,
       color: 'blue',
-      progress: 45,
-      status: 'in_progress',
-      benefits: ['Export internazionale', 'GDO requirement', 'Sicurezza alimentare']
+      progress: globalGapOverview?.overall_compliance || 0,
+      status: globalGapOverview?.certification_readiness === 'ready' ? 'ready' : globalGapOverview?.overall_compliance ? 'in_progress' : 'not_started',
+      benefits: ['Preparazione audit IFA', 'Controllo requisiti AF/CB/FV', 'Dossier di conformità interno']
     },
     {
       id: 'sqnpi',
@@ -116,11 +123,11 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
       status: 'not_started',
       benefits: ['Responsabilità sociale', 'Diritti lavoratori', 'Etica aziendale']
     }
-  ], [bioCertification]);
+  ], [bioCertification, globalGapOverview]);
 
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600 bg-green-50 border-green-200';
+      case 'ready': return 'text-green-600 bg-green-50 border-green-200';
       case 'in_progress': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       case 'not_started': return 'text-gray-600 bg-gray-50 border-gray-200';
       default: return 'text-gray-600 bg-gray-50 border-gray-200';
@@ -129,7 +136,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
 
   const getStatusText = useCallback((status: string) => {
     switch (status) {
-      case 'completed': return 'Completata';
+      case 'ready': return 'Readiness completa';
       case 'in_progress': return 'In Corso';
       case 'not_started': return 'Non Iniziata';
       default: return 'Sconosciuto';
@@ -165,7 +172,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
   const getCertificationCardClasses = useCallback((status: string) => {
     const baseClasses = 'border-2 rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer';
     switch (status) {
-      case 'completed': return `${baseClasses} border-green-300 bg-green-50`;
+      case 'ready': return `${baseClasses} border-green-300 bg-green-50`;
       case 'in_progress': return `${baseClasses} border-yellow-300 bg-yellow-50`;
       default: return `${baseClasses} border-gray-200 bg-white`;
     }
@@ -187,6 +194,7 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Certificazioni</h1>
             <p className="text-gray-600">Gestione certificazioni e compliance aziendale</p>
+            <p className="text-xs text-amber-700 mt-1">Readiness interna: OrtoMio non esegue submission ufficiali e non attribuisce certificazioni.</p>
           </div>
         </div>
 
@@ -195,9 +203,9 @@ const CertificationsDashboard: React.FC<CertificationsDashboardProps> = ({ garde
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600">Certificazioni Attive</p>
+                <p className="text-sm text-green-600">Dossier pronti</p>
                 <p className="text-2xl font-bold text-green-700">
-                  {certifications.filter(c => c.status === 'completed').length}
+                  {certifications.filter(c => c.status === 'ready').length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />

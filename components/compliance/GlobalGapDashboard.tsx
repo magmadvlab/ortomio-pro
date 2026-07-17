@@ -54,32 +54,8 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
   }
 
   const handleExportAuditPackage = async () => {
-    try {
-      const auditPackage = await globalGapCbFvService.exportComplianceReport(gardenId, 'csv')
-      
-      // Check if data is an array before processing
-      if (!Array.isArray(auditPackage.data)) {
-        console.error('Audit package data is not an array:', auditPackage.data)
-        return
-      }
-      
-      // Create downloadable file
-      const csvContent = auditPackage.data.map((row: any) => 
-        row.map((cell: any) => `"${cell}"`).join(',')
-      ).join('\n')
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = auditPackage.filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error exporting audit package:', error)
-    }
+    const params = new URLSearchParams({ garden_id: gardenId, dataset: 'certification_dossier' })
+    window.location.assign(`/api/export/csv?${params.toString()}`)
   }
 
   const handleCreateDocument = async (requirementId: string, documentType: string) => {
