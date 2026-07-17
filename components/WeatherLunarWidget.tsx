@@ -22,6 +22,7 @@ interface WeatherLunarWidgetProps {
   longitude: number;
   activePlants?: Array<{ plantName: string; minTemp?: number }>;
   gardens?: Garden[];
+  onAlertsChange?: (alerts: WeatherAlert[]) => void;
 }
 
 interface LunarAdvice {
@@ -48,6 +49,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
   longitude,
   activePlants = [],
   gardens = [],
+  onAlertsChange,
 }) => {
   const { can } = useTier();
   const [forecast, setForecast] = useState<ExtendedWeatherForecast[]>([]);
@@ -218,6 +220,8 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     try {
       setLoading(true);
       setError(null);
+      setAlerts([]);
+      onAlertsChange?.([]);
 
       const timeoutId = setTimeout(() => {
         setLoading(false);
@@ -251,8 +255,10 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
           await cacheForecast(weatherLat, weatherLng, normalizeForecastList(transformedData));
           const generatedAlerts = generateWeatherAlerts(data, activePlants);
           setAlerts(generatedAlerts);
+          onAlertsChange?.(generatedAlerts);
         } else {
           setError('Nessun dato meteo disponibile');
+          onAlertsChange?.([]);
         }
       } catch (innerErr) {
         clearTimeout(timeoutId);
@@ -261,6 +267,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     } catch (err) {
       console.error('Error loading weather forecast:', err);
       setError('Errore nel caricamento delle previsioni meteo');
+      onAlertsChange?.([]);
     } finally {
       setLoading(false);
     }
@@ -325,19 +332,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     
     const advice = [lunarAdvice.todayAdvice];
     
-    // Aggiungi consigli meteo se disponibili
-    if (forecast.length > 0) {
-      const todayWeather = forecast[0];
-      if (todayWeather.rainForecastMm > 5) {
-        advice.push('⚠️ Pioggia prevista - rimanda irrigazioni');
-      }
-      if (todayWeather.temp < 5) {
-        advice.push('🥶 Temperature basse - proteggi piante sensibili');
-      }
-      if (todayWeather.temp > 30) {
-        advice.push('🌡️ Caldo intenso - irriga al mattino presto');
-      }
-    }
+    alerts.forEach((alert) => advice.push(`⚠️ ${alert.action}`));
     
     return advice;
   };
@@ -556,8 +551,17 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
                     alert.severity === 'MEDIUM' ? 'text-yellow-700' :
                     'text-blue-700'
                   }`}>
-                    {alert.message}
+                    <strong>Cosa fare ora:</strong> {alert.action}
                   </p>
+                  <ol className={`mt-2 space-y-1 pl-5 list-decimal text-sm ${
+                    alert.severity === 'HIGH' ? 'text-red-700' :
+                    alert.severity === 'MEDIUM' ? 'text-yellow-700' :
+                    'text-blue-700'
+                  }`}>
+                    {alert.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
                 </div>
               ))}
             </div>

@@ -54,6 +54,9 @@ export interface WeatherAlert {
   severity: 'LOW' | 'MEDIUM' | 'HIGH'
   message: string
   type: 'temperature' | 'rain' | 'wind' | 'humidity'
+  action: string
+  steps: string[]
+  estimatedMinutes: number
 }
 
 interface GardenLocation {
@@ -143,28 +146,56 @@ export function generateWeatherAlerts(
   if (today.temp_max > 35) {
     alerts.push({
       severity: 'HIGH',
-      message: 'Temperature estreme previste - proteggi le piante',
-      type: 'temperature'
+      message: `Caldo estremo previsto (${Math.round(today.temp_max)}°C)`,
+      type: 'temperature',
+      action: 'Proteggi oggi le colture sensibili con ombreggiante 30–50%, irrigazione lenta al suolo nelle ore fresche e pacciamatura.',
+      steps: [
+        'Irriga tra le 05:00 e le 08:00, lentamente e alla base; prima controlla che i primi 5 cm di terreno siano asciutti.',
+        'Ombreggia dalle 11:00 alle 17:00 soprattutto piantine, ortaggi a foglia e frutti esposti; non usare plastica chiusa.',
+        'Stendi 5–8 cm di pacciamatura senza appoggiarla ai fusti e rimanda trapianti, potature e trattamenti fogliari.'
+      ],
+      estimatedMinutes: 25
     });
   } else if (today.temp_max > 30) {
     alerts.push({
       severity: 'MEDIUM', 
-      message: 'Temperature elevate - aumenta irrigazione',
-      type: 'temperature'
+      message: `Temperature elevate previste (${Math.round(today.temp_max)}°C)`,
+      type: 'temperature',
+      action: 'Controlla l’umidità del suolo e anticipa l’irrigazione al mattino; prepara ombreggiatura per le colture più sensibili.',
+      steps: [
+        'Controlla il terreno a 5 cm di profondità prima di irrigare.',
+        'Se asciutto, irriga lentamente alla base entro le 09:00.',
+        'Evita lavorazioni, trapianti e concimazioni nelle ore più calde.'
+      ],
+      estimatedMinutes: 15
     });
   }
   
   if (today.temp_min < 0) {
     alerts.push({
       severity: 'HIGH',
-      message: 'Rischio gelo - proteggi piante sensibili',
-      type: 'temperature'
+      message: `Rischio gelo (minima ${Math.round(today.temp_min)}°C)`,
+      type: 'temperature',
+      action: 'Copri le colture sensibili con tessuto non tessuto prima del tramonto e proteggi le radici con pacciamatura asciutta.',
+      steps: [
+        'Installa il telo senza farlo aderire alle foglie e fissalo contro il vento.',
+        'Pacciama la zona radicale e sposta in riparo i vasi trasportabili.',
+        'Rimuovi o arieggia la copertura quando la temperatura risale al mattino.'
+      ],
+      estimatedMinutes: 20
     });
   } else if (today.temp_min < 5) {
     alerts.push({
       severity: 'MEDIUM',
-      message: 'Temperature basse - monitora piante sensibili',
-      type: 'temperature'
+      message: `Temperature basse (minima ${Math.round(today.temp_min)}°C)`,
+      type: 'temperature',
+      action: 'Prepara tessuto non tessuto e ripara piantine e colture termofile prima della sera.',
+      steps: [
+        'Individua piantine giovani, solanacee e colture in vaso più esposte.',
+        'Copri prima del tramonto lasciando circolare aria.',
+        'Controlla la minima effettiva al mattino seguente.'
+      ],
+      estimatedMinutes: 15
     });
   }
   
@@ -172,14 +203,28 @@ export function generateWeatherAlerts(
   if (today.precipitation > 20) {
     alerts.push({
       severity: 'HIGH',
-      message: 'Pioggia intensa prevista - sospendi irrigazione',
-      type: 'rain'
+      message: `Pioggia intensa prevista (${Math.round(today.precipitation)} mm)`,
+      type: 'rain',
+      action: 'Sospendi l’irrigazione, libera gli scarichi e metti in sicurezza terreno nudo e colture soggette a ristagno.',
+      steps: [
+        'Disattiva i cicli irrigui programmati.',
+        'Controlla canalette, drenaggi e sottovasi.',
+        'Rimanda trattamenti fogliari e lavorazioni del terreno.'
+      ],
+      estimatedMinutes: 15
     });
   } else if (today.precipitation > 5) {
     alerts.push({
       severity: 'MEDIUM',
-      message: 'Pioggia prevista - riduci irrigazione',
-      type: 'rain'
+      message: `Pioggia prevista (${Math.round(today.precipitation)} mm)`,
+      type: 'rain',
+      action: 'Riduci o rimanda l’irrigazione e verifica domani l’umidità reale prima di riattivarla.',
+      steps: [
+        'Riduci il ciclo irriguo previsto per oggi.',
+        'Evita trattamenti che richiedono una finestra asciutta.',
+        'Ricontrolla il terreno dopo la pioggia.'
+      ],
+      estimatedMinutes: 10
     });
   }
   
@@ -187,8 +232,15 @@ export function generateWeatherAlerts(
   if (today.wind_speed > 50) {
     alerts.push({
       severity: 'HIGH',
-      message: 'Vento forte - proteggi piante alte',
-      type: 'wind'
+      message: `Vento forte previsto (${Math.round(today.wind_speed)} km/h)`,
+      type: 'wind',
+      action: 'Fissa tutori, serre leggere e teli; raccogli o abbassa gli elementi che possono danneggiare le colture.',
+      steps: [
+        'Controlla legature e tutori senza stringere i fusti.',
+        'Chiudi e ancora tunnel, ombreggianti e coperture.',
+        'Rimanda irrorazioni e trattamenti fogliari.'
+      ],
+      estimatedMinutes: 20
     });
   }
   

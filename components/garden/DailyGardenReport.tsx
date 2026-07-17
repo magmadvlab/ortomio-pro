@@ -16,10 +16,12 @@ import {
   Sparkles
 } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
+import type { WeatherAlert } from '@/services/weatherService'
 
 interface DailyGardenReportProps {
   garden: Garden
   tasks?: GardenTask[]
+  weatherAlerts?: WeatherAlert[]
   onTaskClick?: (taskId: string) => void
 }
 
@@ -45,6 +47,7 @@ interface SuggestedTask {
 export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
   garden,
   tasks = [],
+  weatherAlerts = [],
   onTaskClick
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -178,6 +181,20 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
     }
   }
 
+  const weatherSuggestions: SuggestedTask[] = weatherAlerts.map((alert, index) => ({
+    id: `weather-${alert.type}-${index}`,
+    type: 'urgent',
+    title: alert.message,
+    description: `${alert.action} ${alert.steps.join(' ')}`,
+    priority: alert.severity === 'HIGH' ? 'high' : 'medium',
+    estimatedMinutes: alert.estimatedMinutes,
+    icon:
+      alert.type === 'temperature' ? '🌡️' :
+      alert.type === 'rain' ? '🌧️' :
+      alert.type === 'wind' ? '💨' : '⚠️'
+  }))
+  const displayedSuggestions = [...weatherSuggestions, ...suggestedTasks]
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header con Data e Ora */}
@@ -247,7 +264,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
         </div>
         
         <div className="space-y-2">
-          {suggestedTasks.map((task) => (
+          {displayedSuggestions.map((task) => (
             <div
               key={task.id}
               className={`p-3 rounded-lg border-l-4 cursor-pointer hover:shadow-sm transition-shadow min-h-[44px] ${getPriorityColor(task.priority)}`}
@@ -270,7 +287,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
           ))}
         </div>
 
-        {suggestedTasks.length === 0 && (
+        {displayedSuggestions.length === 0 && (
           <div className="text-center py-4 text-gray-500">
             <CheckCircle size={20} className="sm:hidden mx-auto mb-2 text-green-500" />
             <CheckCircle size={24} className="hidden sm:block mx-auto mb-2 text-green-500" />

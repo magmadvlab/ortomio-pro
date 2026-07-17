@@ -50,6 +50,7 @@ import { QuickActions } from './QuickActions'
 import { GardenSelectorCard } from './GardenSelectorCard'
 import { TaskCard } from './TaskCard'
 import WeatherLunarWidget from '@/components/WeatherLunarWidget'
+import type { WeatherAlert } from '@/services/weatherService'
 import AISuggestionsWidget from '@/components/ai/AISuggestionsWidget'
 import DirectorBriefingWidget from '@/components/director/DirectorBriefingWidget'
 import HealthAlertsWidget from '@/components/planner/HealthAlertsWidget'
@@ -133,6 +134,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
   const [weather, setWeather] = useState<{ temp: number; code: number; rainForecastMm: number } | null>(null)
+  const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([])
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
@@ -508,7 +510,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Garden Card */}
           {activeGarden && (
-            <GardenCard garden={activeGarden} tasks={currentTasks} />
+            <GardenCard garden={activeGarden} tasks={currentTasks} weatherAlerts={weatherAlerts} />
           )}
 
           {/* Weather + Lunar Widget - Unified forecast with lunar advice */}
@@ -536,6 +538,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                 latitude={weatherCoordinates.latitude}
                 longitude={weatherCoordinates.longitude}
                 gardens={gardens}
+                onAlertsChange={setWeatherAlerts}
                 activePlants={(currentTasks || [])
                   .filter(t => !t.completed && t.plantName)
                   .map(t => ({
@@ -553,6 +556,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           <DirectorBriefingWidget
             compact={false}
             maxActions={5}
+            weatherAlerts={weatherAlerts}
           />
         )}
 
