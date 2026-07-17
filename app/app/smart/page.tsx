@@ -26,9 +26,6 @@ import {
 } from '@/services/smartDeviceAutomationAnalyticsService'
 import { hasAgronomicScope } from '@/utils/smartDeviceScope'
 
-const IRRIGATION_SIMULATION_INTERVAL_MS = 5000
-const IRRIGATION_SIMULATION_INTERVAL_MINUTES = IRRIGATION_SIMULATION_INTERVAL_MS / 60000
-
 const getUserFacingStorageError = (error: unknown, fallbackMessage: string) =>
   error instanceof Error && error.message.trim().length > 0
     ? error.message
@@ -407,130 +404,6 @@ export default function SmartHubPage() {
     }
   }, [activeGarden, hasCloudDevices, storageProvider])
 
-  useEffect(() => {
-    const localSimulatableDevices = devices.filter(device =>
-      device.lastConfirmedValveState &&
-      (device.provider === 'manual' || device.metadata?.source === 'demo')
-    )
-
-    if (localSimulatableDevices.length === 0) {
-      return
-    }
-
-    const intervalId = setInterval(() => {
-      void (async () => {
-        const now = new Date().toISOString()
-        const updates = await Promise.all(
-          localSimulatableDevices.map(async device => {
-            const deliveredLiters = (device.flowRateActualLpm ?? device.flowRateLpm) * IRRIGATION_SIMULATION_INTERVAL_MINUTES
-            const nextSessionLiters = Number((device.sessionLiters + deliveredLiters).toFixed(1))
-            const nextMoisture = Math.min(
-              100,
-              Number((device.moisture + Math.max(0.4, deliveredLiters * 0.35)).toFixed(1))
-            )
-            const baselineMoisture = device.lastIrrigationBaselineMoisture ?? device.moisture
-            const moistureDelta = Number((nextMoisture - baselineMoisture).toFixed(1))
-            const reachedTarget = device.targetLiters > 0 && nextSessionLiters >= device.targetLiters
-
-            const nextOutcome: NonNullable<SmartDevice['lastIrrigationOutcome']> =
-              (device.linePressureBar ?? 0) < 0.8 || (device.flowRateActualLpm ?? 0) <= 0
-                ? 'critical'
-                : moistureDelta < 3 && reachedTarget
-                ? 'warning'
-                : 'nominal'
-
-            const updatePayload: Partial<SmartDevice> = {
-              moisture: nextMoisture,
-              sessionLiters: nextSessionLiters,
-              lastTelemetryAt: now,
-              lastIrrigationDeltaMoisture: moistureDelta,
-              lastIrrigationOutcome: nextOutcome,
-            }
-
-            if (reachedTarget) {
-              updatePayload.isValveOpen = false
-              updatePayload.lastCommandAt = now
-              updatePayload.lastCommandStatus = 'confirmed'
-              updatePayload.lastCommandedValveState = false
-              updatePayload.lastConfirmedValveState = false
-              updatePayload.lastConfirmedValveAt = now
-              updatePayload.lastIrrigationCompletedAt = now
-              updatePayload.flowRateActualLpm = 0
-              updatePayload.linePressureBar = 0
-            }
-
-            const updatedDevice = await storageProvider.updateDevice(device.id, updatePayload)
-            if (reachedTarget) {
-              await persistAutomationLogRef.current({
-                gardenId: device.gardenId,
-                deviceId: device.id,
-                provider: device.provider,
-                eventType: 'outcome',
-                source: 'simulation',
-                eventAt: now,
-                scopeType: device.scopeType,
-                scopeId: device.scopeId,
-                zoneId: device.zoneId,
-                fieldRowId: device.fieldRowId,
-                treeId: device.treeId,
-                plantId: device.plantId,
-                decision: device.lastAutomationDecision,
-                trigger: 'target_reached',
-                confidence: device.lastAutomationConfidence,
-                reason: 'Chiusura automatica locale a target dinamico raggiunto.',
-                commandStatus: 'confirmed',
-                commandedValveState: false,
-                confirmedValveState: false,
-                targetLiters: device.targetLiters,
-                sessionLiters: nextSessionLiters,
-                moisture: nextMoisture,
-                irrigationDeltaMoisture: moistureDelta,
-                irrigationOutcome: nextOutcome,
-                flowRateActualLpm: 0,
-                linePressureBar: 0,
-              })
-            }
-            return updatedDevice
-          })
-        )
-
-        setDevices(prev =>
-          prev.map(device => updates.find(updatedDevice => updatedDevice.id === device.id) ?? device)
-        )
-      })().catch(error => {
-        console.error('Errore nella simulazione irrigua locale:', error)
-      })
-    }, IRRIGATION_SIMULATION_INTERVAL_MS)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [devices, storageProvider])
-
-  const evaluateIrrigationOutcome = ({
-    deliveredLiters,
-    targetLiters,
-    moistureDelta,
-    linePressureBar,
-    flowRateActualLpm,
-  }: {
-    deliveredLiters: number
-    targetLiters: number
-    moistureDelta: number
-    linePressureBar?: number
-    flowRateActualLpm?: number
-  }): NonNullable<SmartDevice['lastIrrigationOutcome']> => {
-    if ((linePressureBar ?? 0) < 0.8 || (flowRateActualLpm ?? 0) <= 0) {
-      return 'critical'
-    }
-
-    if (targetLiters > 0 && deliveredLiters >= targetLiters && moistureDelta < 3) {
-      return 'warning'
-    }
-
-    return 'nominal'
-  }
-
   const handleToggleValve = async (
     id: string,
     isOpen: boolean,
@@ -541,8 +414,7 @@ export default function SmartHubPage() {
       if (!currentDevice) return
       const now = new Date().toISOString()
       const commandStartedAt = Date.now()
-      const canConfirmLocally =
-        currentDevice.provider === 'manual' || currentDevice.metadata?.source === 'demo'
+      const idempotencyKey = crypto.randomUUID()
 
       if (pendingCommandTimeouts.current[id]) {
         clearTimeout(pendingCommandTimeouts.current[id])
@@ -550,9 +422,10 @@ export default function SmartHubPage() {
       }
 
       const updatedDevice = await storageProvider.updateDevice(id, {
-        isValveOpen: isOpen,
-        isOnline: true,
-        lastTelemetryAt: now,
+        // Lo stato osservato cambia solo quando arriva un acknowledgement telemetrico.
+        isValveOpen: currentDevice.isValveOpen,
+        isOnline: currentDevice.isOnline,
+        lastTelemetryAt: currentDevice.lastTelemetryAt,
         lastCommandAt: now,
         lastCommandStatus: 'pending',
         lastCommandedValveState: isOpen,
@@ -560,8 +433,8 @@ export default function SmartHubPage() {
         lastCommandLatencyMs: undefined,
         lastConfirmedValveState: currentDevice.lastConfirmedValveState,
         lastConfirmedValveAt: currentDevice.lastConfirmedValveAt,
-        lastIrrigationStartedAt: isOpen ? now : currentDevice.lastIrrigationStartedAt,
-        lastIrrigationCompletedAt: !isOpen ? now : currentDevice.lastIrrigationCompletedAt,
+        lastIrrigationStartedAt: currentDevice.lastIrrigationStartedAt,
+        lastIrrigationCompletedAt: currentDevice.lastIrrigationCompletedAt,
         lastIrrigationBaselineMoisture: isOpen ? currentDevice.moisture : currentDevice.lastIrrigationBaselineMoisture,
         lastIrrigationDeltaMoisture: isOpen ? 0 : currentDevice.lastIrrigationDeltaMoisture,
         lastIrrigationOutcome: isOpen ? undefined : currentDevice.lastIrrigationOutcome,
@@ -670,48 +543,16 @@ export default function SmartHubPage() {
         }
       }
 
-      if (canConfirmLocally) {
-        pendingCommandTimeouts.current[id] = setTimeout(() => {
-          void finalizeCommand('confirmed', {
-            lastTelemetryAt: new Date().toISOString(),
-            lastConfirmedValveState: isOpen,
-            lastConfirmedValveAt: new Date().toISOString(),
-            lastCommandLatencyMs: Date.now() - commandStartedAt,
-            flowRateActualLpm: isOpen ? currentDevice.flowRateLpm : 0,
-            linePressureBar: isOpen ? currentDevice.linePressureBar ?? 1.7 : 0,
-            lastIrrigationCompletedAt: isOpen ? currentDevice.lastIrrigationCompletedAt : new Date().toISOString(),
-            lastIrrigationDeltaMoisture: isOpen
-              ? currentDevice.lastIrrigationDeltaMoisture
-              : Number(
-                  (
-                    currentDevice.moisture -
-                    (currentDevice.lastIrrigationBaselineMoisture ?? currentDevice.moisture)
-                  ).toFixed(1)
-                ),
-            lastIrrigationOutcome: isOpen
-              ? currentDevice.lastIrrigationOutcome
-              : evaluateIrrigationOutcome({
-                  deliveredLiters: currentDevice.sessionLiters,
-                  targetLiters: currentDevice.targetLiters,
-                  moistureDelta:
-                    currentDevice.moisture -
-                    (currentDevice.lastIrrigationBaselineMoisture ?? currentDevice.moisture),
-                  linePressureBar: currentDevice.linePressureBar,
-                  flowRateActualLpm: currentDevice.flowRateActualLpm,
-                }),
-          })
-        }, 1200)
-        return
-      }
-
       const commandResponse = await fetch('/api/iot/devices/command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({
           deviceId: currentDevice.id,
           desiredValveState: isOpen,
+          idempotencyKey,
         }),
       })
 

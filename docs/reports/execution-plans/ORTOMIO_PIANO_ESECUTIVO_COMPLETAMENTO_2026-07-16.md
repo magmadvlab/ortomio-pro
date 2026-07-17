@@ -367,41 +367,41 @@ Diario, piante, suolo, memoria e trattamenti sono durevoli, autorizzati e leggib
 
 ### 10.1 Smart Hub
 
-- [ ] definire command lifecycle `requested/sent/acknowledged/failed/timed_out`;
-- [ ] aggiungere idempotency key;
-- [ ] legare device a organization/garden/zona;
-- [ ] validare source, timestamp, unita e range telemetry;
-- [ ] separare desired state e observed state;
-- [ ] implementare retry e dead-letter log;
-- [ ] mostrare successo UI solo dopo ack;
-- [ ] mantenere Tuya disabilitato finche manca l'adapter reale;
-- [ ] testare ThingsBoard con device staging.
+- [x] definire command lifecycle `requested/sent/acknowledged/failed/timed_out`;
+- [x] aggiungere idempotency key;
+- [x] legare device a organization/garden/zona;
+- [x] validare source, timestamp, unita e range telemetry;
+- [x] separare desired state e observed state;
+- [x] implementare retry e dead-letter log;
+- [x] mostrare successo UI solo dopo ack;
+- [x] mantenere Tuya disabilitato finche manca l'adapter reale;
+- [!] testare ThingsBoard con device staging — nessun device/ambiente staging identificato; vietato inviare attuazioni a endpoint non classificati.
 
 ### 10.2 Irrigazione
 
-- [ ] rimuovere il task mock da `irrigationService`;
-- [ ] usare task, meteo persistito, sensori e soil hydraulic profile reali;
-- [ ] distinguere fabbisogno, piano, comando, esecuzione e misura;
-- [ ] registrare volume previsto e misurato;
-- [ ] implementare fallback esplicito senza sensori;
-- [ ] attivare zone, scheduling e analytics separatamente.
+- [x] rimuovere il task mock da `irrigationService`;
+- [x] usare task, meteo persistito, sensori e soil hydraulic profile reali;
+- [x] distinguere fabbisogno, piano, comando, esecuzione e misura;
+- [x] registrare volume previsto e misurato;
+- [x] implementare fallback esplicito senza sensori;
+- [!] attivare zone, scheduling e analytics separatamente — flag mantenuti indipendenti e spenti fino a migrazione/staging P8.
 
 ### 10.3 Nutrizione
 
-- [ ] collegare inventario, dose e compatibilita alle tabelle canoniche;
-- [ ] validare unita e concentrazioni;
-- [ ] distinguere suggerimento, piano, applicazione e outcome;
-- [ ] scaricare stock su esecuzione confermata;
-- [ ] attivare le feature avanzate una alla volta.
+- [x] collegare inventario, dose e compatibilita alle tabelle canoniche;
+- [x] validare unita e concentrazioni;
+- [x] distinguere suggerimento, piano, applicazione e outcome;
+- [x] scaricare stock su esecuzione confermata;
+- [!] attivare le feature avanzate una alla volta — flag mantenuti indipendenti e spenti fino a migrazione/staging P8.
 
 ### Test obbligatori
 
-- [ ] comando duplicato non produce doppia attuazione;
-- [ ] timeout non appare come successo;
-- [ ] device di altro garden non e comandabile;
-- [ ] volume calcolato e misurato restano distinti;
-- [ ] stock non cambia su suggerimento non eseguito;
-- [ ] fallback stimato e visibile come tale.
+- [x] comando duplicato non produce doppia attuazione;
+- [x] timeout non appare come successo;
+- [x] device di altro garden non e comandabile;
+- [x] volume calcolato e misurato restano distinti;
+- [x] stock non cambia su suggerimento non eseguito;
+- [x] fallback stimato e visibile come tale.
 
 ### Criterio di uscita
 
@@ -753,7 +753,7 @@ Compilare durante l'esecuzione.
 | P1 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p1-security` | `20260717000000_p1_security_hardening.sql`; fixture e test RLS transazionale | type-check; security 10/10; precision 228/228; build 140/140; diff-check | Supabase `main` e Production su piano Free; nessun branch/backup; migrazione non applicata | restano staging, password leak protection, Security Advisor post-fix e rollout produzione |
 | P2 | completato e verificato localmente | `codex/ortomio-p2-capabilities` | nessuna | capabilities 7/7; type-check; security 10/10; precision 228/228; build 141/141; diff-check | nessuna modifica remota richiesta | descriptor unico; Admin/satellite role-based; Help e ricerca senza route morte; alias consolidati; evidenza `docs/reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md` |
 | P3 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p3-persistence` | `20260717010000_p3_core_persistence.sql`; replay doppio e test RLS su PostgreSQL 16 | persistence 9/9; type-check; security 10/10; precision 228/228; build 141/141; diff-check | migrazione non applicata | writer DB-first e fail-closed; restano snapshot/backup e test allegato cross-user remoto; evidenza `docs/reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md` |
-| P4 | non iniziato | — | — | — | — | — |
+| P4 | implementazione locale completata; gate provider/remoto bloccato | `codex/ortomio-p4-physical-operations` | `20260717020000_p4_physical_operation_lifecycle.sql`; replay doppio e test RLS/constraint/transazione su PostgreSQL 16 | physical-operations 6/6; type-check; security 10/10; precision 228/228; build 142/142; diff-check | migrazione non applicata; nessuna attuazione ThingsBoard inviata | flag avanzati spenti fino a P8; manca device staging classificato; evidenza `docs/reports/P4_PHYSICAL_OPERATIONS_EVIDENCE_2026-07-17.md` |
 | P5 | non iniziato | — | — | — | — | — |
 | P6 | non iniziato | — | — | — | — | — |
 | P7 | non iniziato | — | — | — | — | — |

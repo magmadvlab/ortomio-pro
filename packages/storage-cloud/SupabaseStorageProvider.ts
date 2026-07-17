@@ -4411,7 +4411,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('garden_id', gardenId)
       .order('updated_at', { ascending: false });
     if (error) throw error;
-    return (data || []) as any;
+    return (data || []).map((row: any) => ({
+      id: row.id, garden_id: row.garden_id, product_id: row.product_id,
+      product_name: row.fertilizer_name, product_type: row.fertilizer_type === 'chemical' ? 'mineral' : row.fertilizer_type,
+      category: row.category || row.fertilizer_type, npk: row.npk || { n: row.nitrogen_n, p: row.phosphorus_p, k: row.potassium_k },
+      quantity: row.quantity, unit: row.quantity_unit === 'g' ? 'kg' : row.quantity_unit === 'ml' ? 'L' : row.quantity_unit,
+      expiry_date: row.expiry_date, cost_per_unit: row.unit_cost, supplier: row.manufacturer, notes: row.notes,
+      created_at: row.created_at, updated_at: row.updated_at,
+    })) as FertilizerInventoryItemDB[];
   }
 
   async getFertilizerInventoryItem(id: string): Promise<FertilizerInventoryItemDB | null> {
@@ -4422,21 +4429,32 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .eq('id', id)
       .maybeSingle();
     if (error) throw error;
-    return (data || null) as any;
+    if (!data) return null;
+    return (await this.getFertilizerInventory(data.garden_id)).find(item => item.id === id) || null;
   }
 
   async createFertilizerInventoryItem(
     item: Omit<FertilizerInventoryItemDB, 'id' | 'created_at' | 'updated_at'>
   ): Promise<FertilizerInventoryItemDB> {
     const client = this.ensureClient();
-    const payload: any = { ...item };
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error('Authenticated user required for fertilizer inventory');
+    const payload: any = {
+      user_id: user.id, garden_id: item.garden_id, product_id: item.product_id,
+      fertilizer_name: item.product_name,
+      fertilizer_type: item.product_type === 'mineral' ? 'mineral' : item.product_type === 'organic' ? 'organic' : 'mixed',
+      category: item.category, npk: item.npk,
+      nitrogen_n: item.npk?.n, phosphorus_p: item.npk?.p, potassium_k: item.npk?.k,
+      quantity: item.quantity, quantity_unit: item.unit, expiry_date: item.expiry_date,
+      unit_cost: item.cost_per_unit, manufacturer: item.supplier, notes: item.notes,
+    };
     const { data, error } = await client
       .from('fertilizer_inventory')
       .insert(payload)
       .select()
       .single();
     if (error) throw error;
-    return data as any;
+    return (await this.getFertilizerInventoryItem(data.id)) as FertilizerInventoryItemDB;
   }
 
   async updateFertilizerInventoryItem(
@@ -4444,14 +4462,26 @@ export class SupabaseStorageProvider implements IStorageProvider {
     updates: Partial<FertilizerInventoryItemDB>
   ): Promise<FertilizerInventoryItemDB> {
     const client = this.ensureClient();
+    const payload: any = {};
+    if (updates.product_id !== undefined) payload.product_id = updates.product_id;
+    if (updates.product_name !== undefined) payload.fertilizer_name = updates.product_name;
+    if (updates.product_type !== undefined) payload.fertilizer_type = updates.product_type === 'mineral' ? 'mineral' : updates.product_type === 'organic' ? 'organic' : 'mixed';
+    if (updates.category !== undefined) payload.category = updates.category;
+    if (updates.npk !== undefined) { payload.npk = updates.npk; payload.nitrogen_n = updates.npk?.n; payload.phosphorus_p = updates.npk?.p; payload.potassium_k = updates.npk?.k; }
+    if (updates.quantity !== undefined) payload.quantity = updates.quantity;
+    if (updates.unit !== undefined) payload.quantity_unit = updates.unit;
+    if (updates.expiry_date !== undefined) payload.expiry_date = updates.expiry_date;
+    if (updates.cost_per_unit !== undefined) payload.unit_cost = updates.cost_per_unit;
+    if (updates.supplier !== undefined) payload.manufacturer = updates.supplier;
+    if (updates.notes !== undefined) payload.notes = updates.notes;
     const { data, error } = await client
       .from('fertilizer_inventory')
-      .update(updates as any)
+      .update(payload)
       .eq('id', id)
       .select()
       .single();
     if (error) throw error;
-    return data as any;
+    return (await this.getFertilizerInventoryItem(data.id)) as FertilizerInventoryItemDB;
   }
 
   async deleteFertilizerInventoryItem(id: string): Promise<void> {

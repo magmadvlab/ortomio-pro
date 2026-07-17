@@ -381,6 +381,8 @@ class AdvancedIrrigationService {
         planned_volume_liters: plannedVolumeLiters,
         irrigation_type: irrigationType,
         trigger_source: irrigationType === 'manual' ? 'user' : 'schedule',
+        lifecycle_status: 'executing',
+        volume_source: 'estimated_no_sensor',
         operator_id: user?.id,
         automatic_trigger: irrigationType !== 'manual'
       }
@@ -403,11 +405,22 @@ class AdvancedIrrigationService {
   async stopIrrigation(logId: string, actualData: ActualIrrigationData): Promise<IrrigationLog> {
     try {
       const supabase = getSupabaseClient()
+      if (
+        !Number.isFinite(actualData.actualVolumeLiters) ||
+        actualData.actualVolumeLiters < 0 ||
+        !actualData.measurementRecordedAt ||
+        !['sensor', 'meter', 'operator'].includes(actualData.measurementSource)
+      ) {
+        throw new Error('Measured irrigation volume requires a valid source and timestamp')
+      }
       
       const updateData = {
         end_time: new Date().toISOString(),
         actual_duration_minutes: actualData.actualDurationMinutes,
         actual_volume_liters: actualData.actualVolumeLiters,
+        lifecycle_status: 'measured',
+        volume_source: actualData.measurementSource,
+        measurement_recorded_at: actualData.measurementRecordedAt,
         pressure_variations: JSON.stringify(actualData.pressureReadings),
         weather_conditions: actualData.environmentalConditions.weatherConditions,
         temperature_celsius: actualData.environmentalConditions.temperatureCelsius,
@@ -746,20 +759,40 @@ class AdvancedIrrigationService {
 
       if (scheduleError) throw scheduleError
 
-      // Start irrigation
-      const log = await this.startIrrigation(
-        schedule.zone_id,
-        schedule.system_id,
-        schedule.duration_minutes,
-        0, // Will be calculated based on system flow rate
-        'scheduled'
+      const { data: system, error: systemError } = await supabase
+        .from('irrigation_systems')
+        .select('flow_rate_lh')
+        .eq('id', schedule.system_id)
+        .single()
+      if (systemError || !system || !(system.flow_rate_lh > 0)) {
+        throw new Error('Cannot plan irrigation without a valid system flow rate')
+      }
+      const plannedVolumeLiters = Number(
+        ((system.flow_rate_lh / 60) * schedule.duration_minutes).toFixed(2)
       )
+      // Una schedulazione crea un piano: non dichiara esecuzione fisica senza comando e ack.
+      const { data: logRow, error: logError } = await supabase
+        .from('irrigation_logs')
+        .insert({
+          zone_id: schedule.zone_id,
+          system_id: schedule.system_id,
+          start_time: new Date().toISOString(),
+          planned_duration_minutes: schedule.duration_minutes,
+          planned_volume_liters: plannedVolumeLiters,
+          irrigation_type: 'scheduled',
+          trigger_source: 'schedule',
+          lifecycle_status: 'planned',
+          volume_source: 'estimated_no_sensor',
+        })
+        .select()
+        .single()
+      if (logError || !logRow) throw logError ?? new Error('Irrigation plan persistence failed')
+      const log = this.mapLogFromDatabase(logRow)
 
       // Update schedule's last execution date
       await supabase
         .from('irrigation_schedules')
         .update({ 
-          last_execution_date: new Date().toISOString().split('T')[0],
           next_execution_date: this.calculateNextExecutionDate(schedule)
         })
         .eq('id', scheduleId)

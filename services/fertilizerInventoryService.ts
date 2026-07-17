@@ -5,6 +5,22 @@
 
 import { FertilizerProduct } from '../data/fertilizers';
 import { UrgentAlert } from '../types';
+import type { FertilizerInventoryItemDB } from '../types';
+import { getDefaultStorageProvider } from '@/packages/core/storage/factory';
+
+const durableStorage = () => {
+  const storage = getDefaultStorageProvider();
+  if (storage.persistenceKind === 'local') throw new Error('Fertilizer inventory requires durable cloud storage');
+  return storage;
+};
+
+const mapInventoryItem = (row: FertilizerInventoryItemDB): FertilizerInventoryItem => ({
+  id: row.id, gardenId: row.garden_id, productId: row.product_id || row.id,
+  productName: row.product_name, productType: row.product_type, category: row.category as FertilizerInventoryItem['category'],
+  quantity: row.quantity, unit: row.unit, expiryDate: row.expiry_date ? new Date(row.expiry_date) : undefined,
+  costPerUnit: row.cost_per_unit || undefined, supplier: row.supplier || undefined, notes: row.notes || undefined,
+  createdAt: new Date(row.created_at), updatedAt: new Date(row.updated_at),
+});
 
 export interface FertilizerInventoryItem {
   id: string;
@@ -37,19 +53,7 @@ export interface PlannedFertilizerUsage {
  * Recupera inventario fertilizzanti
  */
 export async function getFertilizerInventory(gardenId: string): Promise<FertilizerInventoryItem[]> {
-  // TODO: Implementare recupero da Supabase
-  // Per ora, mock da localStorage
-  const storageKey = `fertilizer_inventory_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  if (stored) {
-    return JSON.parse(stored).map((item: any) => ({
-      ...item,
-      expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
-      createdAt: new Date(item.createdAt),
-      updatedAt: new Date(item.updatedAt),
-    }));
-  }
-  return [];
+  return (await durableStorage().getFertilizerInventory(gardenId)).map(mapInventoryItem);
 }
 
 /**
@@ -63,37 +67,24 @@ export async function addFertilizerProduct(
   expiryDate?: Date,
   supplier?: string
 ): Promise<FertilizerInventoryItem> {
-  const inventory = await getFertilizerInventory(gardenId);
+  const storage = durableStorage();
+  const inventory = (await storage.getFertilizerInventory(gardenId));
 
   // Verifica se prodotto già esiste
-  const existing = inventory.find((item) => item.productId === product.id);
-
-  const newItem: FertilizerInventoryItem = {
-    id: existing?.id || `fert_${Date.now()}`,
-    gardenId,
-    productId: product.id,
-    productName: product.name,
-    productType: product.type,
-    category: product.category,
-    quantity: existing ? existing.quantity + quantity : quantity,
-    unit: product.dosagePerSqm.unit.includes('g') ? 'kg' : 'L',
-    expiryDate,
-    costPerUnit: cost,
-    supplier,
-    createdAt: existing?.createdAt || new Date(),
-    updatedAt: new Date(),
-  };
-
-  // Aggiorna inventario
-  const updatedInventory = existing
-    ? inventory.map((item) => (item.id === existing.id ? newItem : item))
-    : [...inventory, newItem];
-
-  // Salva in localStorage (temporaneo)
-  const storageKey = `fertilizer_inventory_${gardenId}`;
-  localStorage.setItem(storageKey, JSON.stringify(updatedInventory));
-
-  return newItem;
+  if (!(quantity > 0)) throw new Error('Inventory quantity must be positive');
+  const existing = inventory.find((item) => item.product_id === product.id);
+  const saved = existing
+    ? await storage.updateFertilizerInventoryItem(existing.id, {
+        quantity: existing.quantity + quantity, expiry_date: expiryDate?.toISOString().slice(0, 10) || existing.expiry_date,
+        cost_per_unit: cost ?? existing.cost_per_unit, supplier: supplier ?? existing.supplier,
+      })
+    : await storage.createFertilizerInventoryItem({
+        garden_id: gardenId, product_id: product.id, product_name: product.name, product_type: product.type,
+        category: product.category, npk: product.npk, quantity,
+        unit: product.dosagePerSqm.unit.includes('g') ? 'kg' : 'L', expiry_date: expiryDate?.toISOString().slice(0, 10),
+        cost_per_unit: cost, supplier,
+      });
+  return mapInventoryItem(saved);
 }
 
 /**
@@ -104,18 +95,16 @@ export async function updateFertilizerQuantity(
   gardenId: string,
   quantity: number
 ): Promise<void> {
-  const inventory = await getFertilizerInventory(gardenId);
-  const item = inventory.find((i) => i.id === productId);
+  const storage = durableStorage();
+  const item = await storage.getFertilizerInventoryItem(productId);
 
   if (!item) {
     throw new Error(`Prodotto ${productId} non trovato nell'inventario`);
   }
 
-  item.quantity = quantity;
-  item.updatedAt = new Date();
-
-  const storageKey = `fertilizer_inventory_${gardenId}`;
-  localStorage.setItem(storageKey, JSON.stringify(inventory));
+  if (item.garden_id !== gardenId) throw new Error('Fertilizer inventory garden mismatch');
+  if (quantity < 0) throw new Error('Inventory quantity cannot be negative');
+  await storage.updateFertilizerInventoryItem(productId, { quantity });
 }
 
 /**
@@ -279,4 +268,3 @@ export function suggestPurchaseTiming(
     urgency: 'medium',
   };
 }
-
