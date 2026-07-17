@@ -32,6 +32,7 @@
     "test:persistence": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/persistence/**/*.test.ts",
     "test:physical-operations": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/physical-operations/**/*.test.ts",
     "test:health-predictions-monitoring": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/health-predictions-monitoring/**/*.test.ts",
+    "test:remote-data-isolation": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/remote-data-isolation/**/*.test.ts",
     "audit:p0": "node scripts/audit-p0-baseline.mjs"
   },
   "dependencies": {

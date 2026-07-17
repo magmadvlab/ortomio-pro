@@ -105,6 +105,8 @@ export const mapPrescriptionMapFromDb = (
     lastExportedAt: db.last_exported_at ? String(db.last_exported_at) : undefined,
     exportCount: Number(db.export_count ?? 0),
     lastExecutedAt: db.last_executed_at ? String(db.last_executed_at) : undefined,
+    algorithmMetadata: (db.algorithm_metadata as PrescriptionMap['algorithmMetadata']) ?? undefined,
+    contentChecksum: db.content_checksum ? String(db.content_checksum) : undefined,
     validationStatus: db.validation_status as PrescriptionMap['validationStatus'],
     qualityScore: Number(db.quality_score ?? 0),
     dataCompleteness: Number(db.data_completeness ?? 0),
@@ -138,6 +140,8 @@ export const mapPrescriptionMapToDb = (map: Partial<PrescriptionMap>): DbRecord 
   if (map.lastExportedAt !== undefined) db.last_exported_at = map.lastExportedAt
   if (map.exportCount !== undefined) db.export_count = map.exportCount
   if (map.lastExecutedAt !== undefined) db.last_executed_at = map.lastExecutedAt
+  if (map.algorithmMetadata !== undefined) db.algorithm_metadata = map.algorithmMetadata
+  if (map.contentChecksum !== undefined) db.content_checksum = map.contentChecksum
   if (map.validationStatus !== undefined) db.validation_status = map.validationStatus
   if (map.qualityScore !== undefined) db.quality_score = map.qualityScore
   if (map.dataCompleteness !== undefined) db.data_completeness = map.dataCompleteness

@@ -9,7 +9,7 @@ import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { flightPlanId } = body
+    const { flightPlanId, mode } = body
 
     if (!flightPlanId) {
       return NextResponse.json(
@@ -23,11 +23,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 })
     }
     await requireGardenAccess(request, flightPlan.gardenId)
-
-    const results = await droneIntegrationService.executeFlightPlan(flightPlanId)
+    if (mode !== 'simulation') {
+      return NextResponse.json({ error: 'drone_provider_unavailable', message: 'Questo modulo e un simulatore missione. Specifica mode=simulation per il laboratorio.' }, { status: 501 })
+    }
+    const results = await droneIntegrationService.simulateFlightPlan(flightPlanId)
 
     return NextResponse.json({
       success: true,
+      simulated: true,
+      certificationEligible: false,
+      operationalLedgerEligible: false,
       data: results
     })
 

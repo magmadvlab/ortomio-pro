@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      simulated: true,
+      certificationEligible: false,
       data: traceabilityData
     })
 
@@ -50,12 +52,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const consumerApp = await blockchainTraceabilityService.generateConsumerQR(productId)
-
     return NextResponse.json({
-      success: true,
-      data: consumerApp
-    })
+      error: 'traceability_demo_only', message: 'QR commerciale disabilitato: il ledger disponibile e simulato.',
+      simulated: true, certificationEligible: false,
+    }, { status: 501 })
 
   } catch (error) {
     const accessResponse = accessErrorResponse(error)

@@ -225,16 +225,10 @@ export default function IntegratedSmartHub({
   const executeFlightPlan = async (flightPlanId: string) => {
     try {
       setDroneError(null)
-      setFlightPlans(prev => prev.map(plan => 
-        plan.id === flightPlanId 
-          ? { ...plan, status: 'IN_PROGRESS' as const }
-          : plan
-      ))
-
       const response = await fetch('/api/drone/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flightPlanId }),
+        body: JSON.stringify({ flightPlanId, mode: 'simulation' }),
       })
       const payload = await response.json()
 
@@ -244,17 +238,12 @@ export default function IntegratedSmartHub({
 
       setFlightPlans(prev => prev.map(plan =>
         plan.id === flightPlanId
-          ? { ...plan, status: 'COMPLETED' as const, results: payload.data }
+          ? { ...plan, status: 'PLANNED' as const, results: payload.data }
           : plan
       ))
     } catch (error) {
       console.error('Error executing flight:', error)
       setDroneError(error instanceof Error ? error.message : 'Errore esecuzione piano drone')
-      setFlightPlans(prev => prev.map(plan =>
-        plan.id === flightPlanId
-          ? { ...plan, status: 'FAILED' as const }
-          : plan
-      ))
     }
   }
 
@@ -927,7 +916,7 @@ export default function IntegratedSmartHub({
               }`}
             >
               <Drone size={16} />
-              Operazioni Drone
+              Simulatore missione
             </button>
           </div>
         </div>
@@ -1940,7 +1929,7 @@ export default function IntegratedSmartHub({
             {/* Drone Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Operazioni Drone</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Simulatore missione drone</h2>
                 <p className="text-gray-600">Pianificazione e risultati simulati tramite scaffold API interno</p>
               </div>
               <button
@@ -1971,7 +1960,7 @@ export default function IntegratedSmartHub({
             <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-md">
               {[
                 { id: 'flights', label: 'Piani di Volo', icon: Calendar },
-                { id: 'results', label: 'Risultati', icon: BarChart3 },
+                { id: 'results', label: 'Risultati simulati', icon: BarChart3 },
                 { id: 'create', label: 'Crea Volo', icon: Plus }
               ].map((tab) => (
                 <button
@@ -2043,6 +2032,12 @@ export default function IntegratedSmartHub({
                         <div className="text-sm text-gray-600">
                           <strong>Programmato:</strong> {new Date(plan.scheduledDate).toLocaleString('it-IT')}
                         </div>
+
+                        {plan.results && (
+                          <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                            Risultato simulato: non conferma un volo, non alimenta il ledger operativo e non vale come evidenza certificativa.
+                          </p>
+                        )}
 
                         {plan.results && (
                           <div className="mt-4 grid md:grid-cols-3 gap-4 text-center">

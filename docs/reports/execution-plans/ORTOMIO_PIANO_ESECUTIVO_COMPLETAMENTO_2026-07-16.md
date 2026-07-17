@@ -6,7 +6,7 @@
 - **Baseline:** `main` al commit `cc5f99f26c7f1d9d75e83759d547f7802046184e`
 - **Fonte di verita prodotto:** [`MASTERDOC.md`](../../../MASTERDOC.md)
 - **Stato iniziale:** pianificato, non ancora avviato
-- **Stato esecuzione:** P0 e P2 completate; P1 e P3 implementate e verificate in locale con gate remoto in attesa di staging/backup
+- **Stato esecuzione:** P0-P6 implementate e verificate in locale; i gate provider, staging e produzione restano raccolti in P8
 - **Obiettivo finale:** portare OrtoMio a una baseline produttiva sicura, persistente, verificabile e documentata senza presentare funzioni ibride o simulate come complete.
 
 ## 1. Ruolo di questo piano
@@ -456,40 +456,40 @@ Ogni alert o previsione e autorizzato, riproducibile, persistente e confrontabil
 
 ### 12.1 NDVI reale
 
-- [ ] spostare le credenziali nel secret manager del deploy;
-- [ ] processare realmente raster/statistics Sentinel;
-- [ ] persistere provider, scena, data, geometria, cloud cover e risoluzione;
-- [ ] versionare algoritmo e quality status;
-- [ ] distinguere nel tipo `real`, `estimated`, `simulated`, `fallback`;
-- [ ] impedire source `sentinel-hub-connected` per valori casuali;
-- [ ] costruire storico reale;
-- [ ] implementare quality gate prima dell'uso nel Director.
+- [!] spostare le credenziali nel secret manager del deploy — il codice usa soltanto secret server-side; configurazione del deploy da verificare in P8;
+- [x] processare realmente le statistics Sentinel con evalscript NDVI e maschera SCL;
+- [!] persistere provider, scena, data, geometria, cloud cover e risoluzione — provider, intervallo acquisizione, bbox, filtro cloud, pixel mascherati e risoluzione sono persistiti; scene id e cloud osservato richiedono metadata Catalog/provider in P8;
+- [x] versionare algoritmo e quality status;
+- [x] distinguere nel tipo `real`, `estimated`, `simulated`, `fallback`;
+- [x] impedire source `sentinel-hub-connected` per valori casuali;
+- [x] costruire storico reale dalla cache persistita, senza interpolazione sintetica;
+- [x] implementare quality gate prima dell'uso nel Director (`real` e qualita `accepted|warning`).
 
 ### 12.2 Prescription Maps
 
-- [ ] richiedere geometrie e dataset minimi;
-- [ ] verificare versionamento algoritmo/input;
-- [ ] esportare metadati e checksum;
-- [ ] separare prescrizione da applicazione effettiva;
-- [ ] validare variance e outcome su casi reali;
-- [ ] usare RPC/transazione per update multi-tabella critici;
-- [ ] eseguire E2E mappa → export → applicazione → outcome.
+- [x] richiedere geometrie e dataset minimi;
+- [x] verificare versionamento algoritmo/input;
+- [x] esportare metadati e checksum e bloccare le mappe legacy prive di provenienza;
+- [x] separare prescrizione da applicazione effettiva;
+- [!] validare variance e outcome su casi reali — contratto separato, test provider/campo rinviato al pilot P8;
+- [x] usare RPC/transazione per insert mappa e zone critici;
+- [!] eseguire E2E mappa → export → applicazione → outcome — richiede dataset satellitare e attrezzatura staging P8.
 
 ### 12.3 Drone e blockchain
 
-- [ ] rinominare il drone `Simulatore missione` finche usa `simulateFlightExecution`;
-- [ ] impedire a risultati drone simulati di alimentare ledger/certificazioni reali;
-- [ ] mantenere blockchain/NFT in laboratorio demo;
-- [ ] impedire a hash/transazioni sintetiche di sostenere tracciabilita commerciale;
-- [ ] definire un piano separato solo se viene scelto un provider reale.
+- [x] rinominare il drone `Simulatore missione` finche usa `simulateFlightExecution`;
+- [x] impedire a risultati drone simulati di alimentare ledger/certificazioni reali;
+- [x] mantenere blockchain/NFT in laboratorio demo;
+- [x] impedire a hash/transazioni sintetiche di sostenere tracciabilita commerciale;
+- [x] non aprire un piano provider finche non viene scelto e finanziato un provider reale.
 
 ### Test obbligatori
 
-- [ ] dato simulato non confluisce in KPI reali;
-- [ ] NDVI reale conserva provenance completa;
-- [ ] errore provider non produce valore casuale mascherato;
-- [ ] aggiornamento mappa non perde zone su errore;
-- [ ] outcome resta separato dalla prescrizione.
+- [x] dato simulato non confluisce in KPI reali;
+- [!] NDVI reale conserva provenance disponibile dalla Statistical API; scene id/cloud osservato saranno verificati con Catalog/provider in P8;
+- [x] errore provider non produce valore casuale mascherato;
+- [x] aggiornamento mappa non perde zone su errore;
+- [x] outcome resta separato dalla prescrizione.
 
 ### Criterio di uscita
 
@@ -755,7 +755,7 @@ Compilare durante l'esecuzione.
 | P3 | implementazione locale completata; gate remoto bloccato | `codex/ortomio-p3-persistence` | `20260717010000_p3_core_persistence.sql`; replay doppio e test RLS su PostgreSQL 16 | persistence 9/9; type-check; security 10/10; precision 228/228; build 141/141; diff-check | migrazione non applicata | writer DB-first e fail-closed; restano snapshot/backup e test allegato cross-user remoto; evidenza `docs/reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md` |
 | P4 | implementazione locale completata; gate provider/remoto bloccato | `codex/ortomio-p4-physical-operations` | `20260717020000_p4_physical_operation_lifecycle.sql`; replay doppio e test RLS/constraint/transazione su PostgreSQL 16 | physical-operations 6/6; type-check; security 10/10; precision 228/228; build 142/142; diff-check | migrazione non applicata; nessuna attuazione ThingsBoard inviata | flag avanzati spenti fino a P8; manca device staging classificato; evidenza `docs/reports/P4_PHYSICAL_OPERATIONS_EVIDENCE_2026-07-17.md` |
 | P5 | implementazione locale completata; gate staging bloccato | `codex/ortomio-p5-health-predictions-monitoring` | `20260717030000_p5_health_prediction_monitoring.sql`; replay doppio e test RLS/vincoli su PostgreSQL 16 | health/predictions/monitoring 7/7; security 10/10; capabilities 7/7; persistence 9/9; physical 6/6; precision 228/228; type-check; build 142/142; diff-check | migrazione e cron non applicati; menu predizioni spento | alert e forecast persistenti e riproducibili; outcome/calibrazione; evidenza `docs/reports/P5_HEALTH_PREDICTIONS_MONITORING_EVIDENCE_2026-07-17.md` |
-| P6 | non iniziato | — | — | — | — | — |
+| P6 | implementazione locale completata; gate provider/staging bloccato | `codex/ortomio-p6-remote-data-demo-isolation` | `20260717040000_p6_remote_data_provenance.sql`; replay doppio, RLS cross-garden e RPC atomica su PostgreSQL 16 | remote-data-isolation 7/7; security 10/10; capabilities 7/7; precision 228/228; type-check; build 142/142; diff-check | migrazione e chiamata provider non applicate; nessuna attuazione drone/blockchain | Sentinel Statistical reale senza fallback casuale; mappe fail-closed e provenance; demo isolate; evidenza `docs/reports/P6_REMOTE_DATA_DEMO_ISOLATION_EVIDENCE_2026-07-17.md` |
 | P7 | non iniziato | — | — | — | — | — |
 | P8 | non iniziato | — | — | — | — | — |
 | P9 | non iniziato | — | — | — | — | — |

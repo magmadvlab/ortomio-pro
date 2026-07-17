@@ -3,7 +3,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { blockchainTraceabilityService } from '@/services/blockchainTraceabilityService'
 import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 
 export async function POST(request: NextRequest) {
@@ -19,12 +18,10 @@ export async function POST(request: NextRequest) {
     }
     await requireGardenAccess(request, gardenId)
 
-    const nftCertificate = await blockchainTraceabilityService.generateNFTCertificate(productId, gardenId, certificateData)
-
     return NextResponse.json({
-      success: true,
-      data: nftCertificate
-    })
+      error: 'nft_lab_only', message: 'Mint NFT disabilitato: nessun provider blockchain reale configurato.',
+      simulated: true, certificationEligible: false,
+    }, { status: 501 })
 
   } catch (error) {
     const accessResponse = accessErrorResponse(error)
