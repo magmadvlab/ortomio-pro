@@ -4,7 +4,7 @@
  */
 
 import { GardenTask, Garden } from '@/types'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import {
   buildAgronomicQualityLearningAdjustment,
   getAgronomicProfileLearningSnapshots,
@@ -649,7 +649,9 @@ class AIPredictiveEngine {
 
   private async loadQualityBenchmark(gardenId: string) {
     try {
-      const storageProvider = getDefaultStorageProvider()
+      // Forced to 'cloud': NeonStorageProvider does not implement the
+      // domains this learning snapshot draws from yet.
+      const storageProvider = createStorageProvider('cloud')
       const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId)
       return buildAgronomicQualityLearningAdjustment(snapshots, {})
     } catch (error) {

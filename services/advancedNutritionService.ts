@@ -18,7 +18,7 @@ import {
   NutritionWaterQualityInsight,
 } from '@/types/nutrition'
 import { getSupabaseClient } from '@/config/supabase'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
 import { calculateSoilHydraulicProfile, getLatestSoilAnalysis } from '@/services/soilAnalysisService'
 import type { IrrigationSystem } from '@/types/irrigation'
@@ -1191,7 +1191,9 @@ class AdvancedNutritionService {
     adaptiveThresholds: NutritionAdaptiveThresholds
   }> {
     try {
-      const storageProvider = getDefaultStorageProvider()
+      // Forced to 'cloud': NeonStorageProvider does not implement nutrition
+      // treatments/inventory yet.
+      const storageProvider = createStorageProvider('cloud')
       const snapshots = await getAgronomicProfileLearningSnapshots(storageProvider, gardenId)
       const nutritionAdjustment = buildAgronomicNutritionLearningAdjustment(snapshots, {})
       const qualityAdjustment = buildAgronomicQualityLearningAdjustment(snapshots, {})

@@ -9,7 +9,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
 import { collaborativeAIService } from './collaborativeAIService'
 import { dailyDiaryService } from './dailyDiaryService'
@@ -280,7 +280,10 @@ class DirectorService {
 
   private getStorageProvider(): IStorageProvider {
     if (!this.storageProvider) {
-      this.storageProvider = getDefaultStorageProvider()
+      // Forced to 'cloud': the Director orchestrator reads treatments,
+      // health alerts, predictions and other domains NeonStorageProvider
+      // does not implement yet.
+      this.storageProvider = createStorageProvider('cloud')
     }
 
     return this.storageProvider

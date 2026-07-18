@@ -18,7 +18,7 @@ import {
   calculateAdaptiveQualityPrice,
   resolveAdaptiveQualityPricingBenchmarkForGarden,
 } from '@/services/adaptiveMarketPricingService'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import { ensurePlantOperationLineageContext } from '@/utils/plantOperationLineage'
 
 type MonitoringStore = {
@@ -29,7 +29,9 @@ type MonitoringStore = {
 }
 
 const STORE_KEY = 'ortomio:plant-monitoring:v1'
-const storageProvider = getDefaultStorageProvider()
+// Forced to 'cloud': createPlantOperation is only implemented by
+// SupabaseStorageProvider (NeonStorageProvider doesn't define it at all).
+const storageProvider = createStorageProvider('cloud')
 
 const emptyStore = (): MonitoringStore => ({
   photos: [],

@@ -17,7 +17,7 @@ import {
 } from '@/types/irrigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient as getSupabaseClientUnsafe } from '@/config/supabase'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import {
   getAgronomicMeasuredFeedbackRecords,
   summarizeAgronomicMeasuredFeedback,
@@ -2287,7 +2287,9 @@ class AdvancedIrrigationService {
     profileId?: string
   ): Promise<AgronomicMeasuredFeedbackSummary | null> {
     try {
-      const storageProvider = getDefaultStorageProvider()
+      // Forced to 'cloud': NeonStorageProvider does not implement irrigation
+      // systems/zones/logs yet.
+      const storageProvider = createStorageProvider('cloud')
       const zone = await this.getIrrigationZone(zoneId)
       if (!zone?.gardenId) {
         return null

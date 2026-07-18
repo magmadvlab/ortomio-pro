@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseServerClient()
     if (!supabase) {
-      const storageProvider = getDefaultStorageProvider()
+      // Forced to 'cloud': NeonStorageProvider stubs tasks/beds/rows/devices
+      // as empty, so this fallback path would silently under-report.
+      const storageProvider = createStorageProvider('cloud')
       const resolvedContext = gardenId
         ? await resolveGardenContext(storageProvider, gardenId).catch(() => null)
         : null

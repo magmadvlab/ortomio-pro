@@ -1,5 +1,5 @@
 import type { IStorageProvider } from '@/packages/core/storage/interface'
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory'
+import { createStorageProvider } from '@/packages/core/storage/factory'
 import {
   buildAgronomicQualityLearningAdjustment,
   getAgronomicProfileLearningSnapshots,
@@ -56,7 +56,9 @@ export async function resolveAdaptiveQualityPricingBenchmarkForGarden(
   } = {}
 ): Promise<AdaptiveQualityPricingBenchmark> {
   try {
-    const storageProvider = getDefaultStorageProvider()
+    // Forced to 'cloud': NeonStorageProvider does not implement the domains
+    // this pricing benchmark draws from yet.
+    const storageProvider = createStorageProvider('cloud')
     return await resolveAdaptiveQualityPricingBenchmark(storageProvider, gardenId, options)
   } catch (error) {
     console.error('Error resolving adaptive quality pricing benchmark:', error)

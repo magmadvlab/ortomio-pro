@@ -1414,10 +1414,12 @@ export const getDailyGardenPlan = async (
     );
 
     if (hasActivePlantings) {
-      const { getDefaultStorageProvider } = await import(
+      const { createStorageProvider } = await import(
         '../packages/core/storage/factory'
       );
-      const provider = getDefaultStorageProvider();
+      // Forced to 'cloud': NeonStorageProvider does not implement irrigation
+      // systems yet.
+      const provider = createStorageProvider('cloud');
 
       const existingSystems = await provider.getIrrigationSystems(garden.id);
 
@@ -2338,8 +2340,10 @@ export const getDailyGardenPlan = async (
   const irrigationTasks: import('../types/irrigation').IrrigationTask[] = [];
   try {
     // Carica zone irrigue per questo giardino
-    const { getDefaultStorageProvider } = await import('../packages/core/storage/factory');
-    const storageProvider = getDefaultStorageProvider();
+    const { createStorageProvider } = await import('../packages/core/storage/factory');
+    // Forced to 'cloud': NeonStorageProvider does not implement irrigation
+    // systems yet.
+    const storageProvider = createStorageProvider('cloud');
     
     // Per ora 1 sistema = 1 giardino (semplificazione)
     const systems = await storageProvider.getIrrigationSystems(garden.id);

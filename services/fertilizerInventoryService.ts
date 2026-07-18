@@ -6,10 +6,12 @@
 import { FertilizerProduct } from '../data/fertilizers';
 import { UrgentAlert } from '../types';
 import type { FertilizerInventoryItemDB } from '../types';
-import { getDefaultStorageProvider } from '@/packages/core/storage/factory';
+import { createStorageProvider } from '@/packages/core/storage/factory';
 
+// Forced to 'cloud': NeonStorageProvider does not implement fertilizer
+// inventory yet (throws 'not yet implemented' on write).
 const durableStorage = () => {
-  const storage = getDefaultStorageProvider();
+  const storage = createStorageProvider('cloud');
   if (storage.persistenceKind === 'local') throw new Error('Fertilizer inventory requires durable cloud storage');
   return storage;
 };
