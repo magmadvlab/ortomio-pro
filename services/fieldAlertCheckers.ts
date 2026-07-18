@@ -1,4 +1,4 @@
-import type { FieldAlert, AlertSeverity, WeatherData } from '@/types/fieldAlerts';
+import type { FieldAlert, AlertSeverity, WeatherData } from '../types/fieldAlerts';
 
 function makeAlert(
   gardenId: string,
