@@ -86,7 +86,6 @@ function AuthPageContent() {
       setBypassActive(true)
       const timer = setTimeout(() => {
         router.push('/app')
-        router.refresh()
       }, 1500)
       return () => clearTimeout(timer)
     }
@@ -102,7 +101,6 @@ function AuthPageContent() {
     
     if (isBypassActive()) {
       router.push('/app')
-      router.refresh()
       return
     }
 
@@ -143,7 +141,6 @@ function AuthPageContent() {
         }
         
         router.push('/app')
-        router.refresh()
       }
     } catch (err: any) {
       console.error('Login error:', {
