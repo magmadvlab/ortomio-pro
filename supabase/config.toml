@@ -354,6 +354,14 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.compute-field-alerts]
+# Disabled: the browser's CORS preflight (OPTIONS) request carries no
+# Authorization header, so with verify_jwt on, the gateway rejects the
+# preflight itself before the function's own CORS handling ever runs.
+# The function uses the service-role key internally and doesn't rely on
+# the caller's JWT, so this is safe.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
