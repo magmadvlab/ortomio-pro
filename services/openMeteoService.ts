@@ -1,4 +1,4 @@
-import type { WeatherData } from '@/types/fieldAlerts';
+import type { WeatherData } from '../types/fieldAlerts';
 
 const OPENMETEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 

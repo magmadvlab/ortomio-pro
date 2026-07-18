@@ -8,9 +8,9 @@ import {
   checkHeatAlert,
   checkDiseaseAlert,
   checkHarvestAlert,
-} from '../../services/fieldAlertCheckers.ts';
-import { fetchWeatherForecast } from '../../services/openMeteoService.ts';
-import type { FieldAlert } from '../../types/fieldAlerts.ts';
+} from '../../../services/fieldAlertCheckers.ts';
+import { fetchWeatherForecast } from '../../../services/openMeteoService.ts';
+import type { FieldAlert } from '../../../types/fieldAlerts.ts';
 
 const CACHE_TTL_MINUTES = 30;
 
