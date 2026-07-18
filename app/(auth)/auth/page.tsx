@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getSupabaseClient } from '@/config/supabase'
+import { getSupabaseClient, syncAuthCookie } from '@/config/supabase'
 import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Shield, User, Phone, Building, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { isBypassActive, logBypassStatus } from '@/lib/auth-bypass'
@@ -131,6 +131,11 @@ function AuthPageContent() {
         throw authError
       }
 
+      // Scrive subito il cookie di sessione: onAuthStateChange lo farebbe comunque,
+      // ma in modo asincrono (tick successivo), troppo tardi per il redirect qui sotto,
+      // che verrebbe rimbalzato dal middleware perché non troverebbe ancora il cookie.
+      syncAuthCookie(data.session)
+
       if (data.user) {
         // Controlla se l'email è verificata
         if (!data.user.email_confirmed_at) {
@@ -139,7 +144,7 @@ function AuthPageContent() {
           router.push(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
           return
         }
-        
+
         router.push('/app')
       }
     } catch (err: any) {

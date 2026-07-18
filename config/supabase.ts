@@ -16,7 +16,7 @@ const ACCESS_TOKEN_COOKIE = 'sb-access-token';
  * request.cookies — the Supabase client itself only persists the session
  * in localStorage, which is invisible to the server.
  */
-const syncAuthCookie = (session: { access_token: string; expires_in?: number } | null): void => {
+export const syncAuthCookie = (session: { access_token: string; expires_in?: number } | null): void => {
   if (typeof document === 'undefined') return;
 
   const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
