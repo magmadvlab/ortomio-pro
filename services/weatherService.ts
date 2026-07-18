@@ -423,7 +423,9 @@ class WeatherService {
 
       return await this.getWeatherForLocation(location)
     } catch (error) {
-      console.error('Error getting user location:', error)
+      // Permesso negato/non disponibile è un esito atteso del browser, non un errore applicativo:
+      // procediamo con i fallback sottostanti invece di allarmare in console.
+      console.warn('Geolocation unavailable, falling back:', error)
       const saved = this.readSavedUserLocation()
       if (saved) {
         try {
