@@ -8,6 +8,27 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 let supabaseClient: SupabaseClient | null = null;
 let clientInitialized = false;
 
+const ACCESS_TOKEN_COOKIE = 'sb-access-token';
+
+/**
+ * Mirrors the current session's access token into a cookie so that
+ * server-side code (proxy.ts middleware, API routes) can read it via
+ * request.cookies — the Supabase client itself only persists the session
+ * in localStorage, which is invisible to the server.
+ */
+const syncAuthCookie = (session: { access_token: string; expires_in?: number } | null): void => {
+  if (typeof document === 'undefined') return;
+
+  const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
+
+  if (session?.access_token) {
+    const maxAge = session.expires_in ?? 3600;
+    document.cookie = `${ACCESS_TOKEN_COOKIE}=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax${secureAttr}`;
+  } else {
+    document.cookie = `${ACCESS_TOKEN_COOKIE}=; path=/; max-age=0; SameSite=Lax${secureAttr}`;
+  }
+};
+
 /**
  * Initialize Supabase client
  * Returns null if credentials are not configured (for local development)
@@ -61,17 +82,19 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     });
     
     clientInitialized = true;
-    
+
     // Clear any invalid sessions on initialization
     if (typeof window !== 'undefined') {
       supabaseClient.auth.onAuthStateChange((event, session) => {
+        syncAuthCookie(session);
+
         if (event === 'TOKEN_REFRESHED' && !session) {
           // Clear invalid session
           supabaseClient?.auth.signOut();
         }
       });
     }
-    
+
     return supabaseClient;
   } catch (error) {
     console.error('Error initializing Supabase client:', error);
