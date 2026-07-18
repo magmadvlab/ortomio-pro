@@ -1,7 +1,13 @@
 /**
  * Storage Provider Factory
  * Creates the appropriate storage provider based on tier and availability.
- * Priority: Neon (DATABASE_URL) > Supabase > localStorage
+ * Priority: Supabase > localStorage. 'auto' does NOT pick Neon right now:
+ * NeonStorageProvider only implements gardens/zones/individual_plants/
+ * field_alerts, so letting 'auto' pick it (whenever DATABASE_URL happens to
+ * be set) put half the app's writes on Neon and half on Supabase, which is
+ * not an acceptable split state. Everything stays on Supabase until Neon
+ * gets a real, complete migration; pass type 'neon' explicitly to opt in
+ * for the domains it does support.
  */
 
 import { IStorageProvider } from './interface';
@@ -24,7 +30,8 @@ function createNeonProvider(): IStorageProvider {
 
 /**
  * Create storage provider based on type.
- * 'auto' prefers Neon, then Supabase, then localStorage.
+ * 'auto' uses Supabase, then localStorage. Neon is only used when 'neon' is
+ * requested explicitly (see module comment above).
  */
 export const createStorageProvider = (type: StorageProviderType = 'auto'): IStorageProvider => {
   switch (type) {
@@ -47,9 +54,6 @@ export const createStorageProvider = (type: StorageProviderType = 'auto'): IStor
 
     case 'auto':
     default:
-      if (isNeonAvailable()) {
-        return createNeonProvider();
-      }
       if (isSupabaseAvailable()) {
         return new SupabaseStorageProvider();
       }
