@@ -340,9 +340,19 @@ class DailyDiaryService {
         )
       }
 
+      // La colonna DB non corrisponde 1:1 al modello dominio (DailyWeatherLog):
+      // solar_radiation -> solar_radiation_mj, uv_index -> uv_index_max, eto_calculated -> eto_mm.
       const { data, error } = await this.supabase
         .from('daily_weather_log')
-        .insert(log)
+        .insert({
+          ...log,
+          solar_radiation: undefined,
+          uv_index: undefined,
+          eto_calculated: undefined,
+          solar_radiation_mj: log.solar_radiation,
+          uv_index_max: log.uv_index,
+          eto_mm: log.eto_calculated,
+        })
         .select()
         .single()
 
