@@ -3,7 +3,6 @@
  * Analisi AI per diagnosi malattie tramite foto e matching contestuale
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { diseaseDatabase, Disease, getDiseasesForPlant, getDiseasesForSeason } from '../data/diseaseDatabase';
 import { PlantMasterSheet, Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
@@ -22,11 +21,27 @@ const getConditionFromCode = (code: number): string => {
   return 'cloudy';
 };
 
-// Support both Next.js and Vite environments
-const apiKey = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
-  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// La diagnosi foto passa dalla route server-side /api/ai/generate (tier + crediti),
+// che tiene GEMINI_API_KEY solo lato server. Nessuna chiave esposta al client.
+const generateDiagnosisContent = async (contents: any): Promise<string> => {
+  const response = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      feature: 'diagnose',
+      model: 'gemini-2.5-flash',
+      contents,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || 'Richiesta diagnosi non riuscita');
+  }
+
+  const data = await response.json();
+  return data.text || '';
+};
 
 export interface DiseaseDiagnosis {
   disease: Disease;
@@ -73,13 +88,6 @@ export const diagnoseFromPhoto = async (
     garden?: Garden;
   }
 ): Promise<DiagnosisResult> => {
-  if (!genAI) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
-  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
-
   // Ottieni malattie possibili per questa pianta
   const possibleDiseases = getDiseasesForPlant(plantName);
   
@@ -139,8 +147,8 @@ Rispondi in formato JSON:
 
   try {
     const imageData = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
-    
-    const result = await model.generateContent([
+
+    const responseText = await generateDiagnosisContent([
       prompt,
       {
         inlineData: {
@@ -150,8 +158,6 @@ Rispondi in formato JSON:
       }
     ]);
 
-    const responseText = result.response.text();
-    
     // Estrai JSON dalla risposta
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {

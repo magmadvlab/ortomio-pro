@@ -3,7 +3,16 @@
  * Handles credit costs, deduction, and granting
  */
 
-export type CreditFeature = 'chat' | 'recipe' | 'diagnose' | 'advanced_analysis' | 'technical_advice'
+export type CreditFeature =
+  | 'chat'
+  | 'recipe'
+  | 'diagnose'
+  | 'advanced_analysis'
+  | 'technical_advice'
+  | 'plant_search'
+  | 'seasonal_suggestions'
+  | 'harvest_readiness'
+  | 'sensor_analysis'
 
 export const CREDIT_COSTS: Record<CreditFeature, number> = {
   chat: 1,
@@ -11,6 +20,10 @@ export const CREDIT_COSTS: Record<CreditFeature, number> = {
   diagnose: 3,
   advanced_analysis: 5,
   technical_advice: 2,
+  plant_search: 2,
+  seasonal_suggestions: 1,
+  harvest_readiness: 1,
+  sensor_analysis: 1,
 } as const
 
 /**
