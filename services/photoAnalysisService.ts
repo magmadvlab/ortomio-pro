@@ -3,13 +3,35 @@
  * Uses Gemini Vision API to analyze garden photos for sun exposure, aspect direction, and plant health
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Le analisi foto passano dalla route server-side /api/ai/generate (tier + crediti),
+// che tiene GEMINI_API_KEY solo lato server. Nessuna chiave esposta al client.
+const generatePhotoAnalysisContent = async (imageData: string, prompt: string): Promise<string> => {
+  const response = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      feature: 'advanced_analysis',
+      model: 'gemini-2.5-flash',
+      contents: [
+        prompt,
+        {
+          inlineData: {
+            data: imageData,
+            mimeType: 'image/jpeg',
+          },
+        },
+      ],
+    }),
+  });
 
-// Support both Next.js and Vite environments
-const apiKey = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
-  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || 'Richiesta analisi foto non riuscita');
+  }
+
+  const data = await response.json();
+  return data.text || '';
+};
 
 export interface SunExposureAnalysis {
   dailySunHours: number;
@@ -75,15 +97,8 @@ export interface PanoramicAnalysis {
  * @throws Error se Gemini API key non configurata
  */
 export const analyzeSunExposure = async (photoBase64: string): Promise<SunExposureAnalysis> => {
-  if (!genAI) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
-  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
-
   const prompt = `Analizza questa foto di un orto scattata a mezzogiorno (12:30).
-  
+
 Determina:
 1. Ore di sole diretto giornaliere stimate (0-12 ore)
 2. Tipo di esposizione: FullSun (8+ ore), PartSun (4-7 ore), Shade (<4 ore)
@@ -99,19 +114,9 @@ Rispondi in formato JSON:
 }`;
 
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: photoBase64.split(',')[1] || photoBase64, // Remove data:image/jpeg;base64, prefix if present
-          mimeType: 'image/jpeg',
-        },
-      },
-    ]);
+    const imageData = photoBase64.split(',')[1] || photoBase64; // Remove data:image/jpeg;base64, prefix if present
+    const text = await generatePhotoAnalysisContent(imageData, prompt);
 
-    const response = result.response;
-    const text = response.text();
-    
     // Parse JSON response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -154,15 +159,8 @@ Rispondi in formato JSON:
  * @throws Error se Gemini API key non configurata
  */
 export const analyzeAspectDirection = async (photoBase64: string): Promise<AspectDirectionAnalysis> => {
-  if (!genAI) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
-  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
-
   const prompt = `Analizza questa foto dell'orizzonte dell'orto scattata all'alba o al tramonto.
-  
+
 Determina:
 1. Direzione dell'esposizione: North, South, East, West, o Flat (pianura)
 2. Presenza di ostacoli (montagne, colline, edifici) e loro direzione
@@ -176,19 +174,9 @@ Rispondi in formato JSON:
 }`;
 
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: photoBase64.split(',')[1] || photoBase64,
-          mimeType: 'image/jpeg',
-        },
-      },
-    ]);
+    const imageData = photoBase64.split(',')[1] || photoBase64;
+    const text = await generatePhotoAnalysisContent(imageData, prompt);
 
-    const response = result.response;
-    const text = response.text();
-    
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -219,15 +207,8 @@ export const analyzePlantHealth = async (
   expectedPhase: string,
   daysFromPlanting: number
 ): Promise<PlantHealthAnalysis> => {
-  if (!genAI) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
-  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
-
   const prompt = `Analizza questa foto di una pianta di ${plantName}.
-  
+
 Contesto:
 - Pianta: ${plantName}
 - Fase attesa: ${expectedPhase}
@@ -251,19 +232,9 @@ Rispondi in formato JSON:
 }`;
 
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: photoBase64.split(',')[1] || photoBase64,
-          mimeType: 'image/jpeg',
-        },
-      },
-    ]);
+    const imageData = photoBase64.split(',')[1] || photoBase64;
+    const text = await generatePhotoAnalysisContent(imageData, prompt);
 
-    const response = result.response;
-    const text = response.text();
-    
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -324,15 +295,8 @@ Rispondi in formato JSON:
  * @throws Error se Gemini API key non configurata o errore nell'analisi
  */
 export const analyzePanoramic360 = async (photoBase64: string): Promise<PanoramicAnalysis> => {
-  if (!genAI) {
-    throw new Error('Gemini API key not configured');
-  }
-
-  // TypeScript workaround: cast to any per evitare errore tipo (il metodo esiste runtime)
-  const model = (genAI as any).generativeModel({ model: 'gemini-pro-vision' });
-
   const prompt = `Analizza questa foto panoramica 360° di un orto/giardino.
-  
+
 Determina:
 1. Ore di sole diretto giornaliere totali stimate (0-12 ore)
 2. Tipo di esposizione complessiva: FullSun (8+ ore), PartSun (4-7 ore), Shade (<4 ore)
@@ -368,19 +332,10 @@ Rispondi in formato JSON:
 }`;
 
   try {
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: photoBase64.split(',')[1] || photoBase64,
-          mimeType: 'image/jpeg',
-        },
-      },
-    ]);
+    const imageData = photoBase64.split(',')[1] || photoBase64;
+    const text = await generatePhotoAnalysisContent(imageData, prompt);
 
-    const response = result.response;
-    const text = response.text();
-    
+
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
