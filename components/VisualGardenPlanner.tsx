@@ -113,19 +113,6 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
     loadZones();
   }, [garden.id]);
 
-  // Protezione Pro: Visual Planner è feature Pro
-  if (!can('visualGardenPlanner')) {
-    return (
-      <div className="bg-white p-6 rounded-xl border-2 border-purple-200">
-        <UpgradePrompt
-          feature="Visual Garden Planner"
-          variant="inline"
-          onUpgrade={() => console.log('Upgrade to Pro')}
-        />
-      </div>
-    );
-  }
-  
   // Calcola incidenza solare per griglia
   const sunIncidenceCells = React.useMemo(() => {
     if (!garden.dailySunHours && (!garden.coordinates || !garden.obstacles || garden.obstacles.length === 0)) {
@@ -310,6 +297,19 @@ const VisualGardenPlanner: React.FC<VisualGardenPlannerProps> = ({
       onUpdateTask(updatedTask);
     }
   }, [masterDataMap, activeTasks, gardenSizeCm, onUpdateTask]);
+
+  // Protezione Pro: Visual Planner è feature Pro
+  if (!can('visualGardenPlanner')) {
+    return (
+      <div className="bg-white p-6 rounded-xl border-2 border-purple-200">
+        <UpgradePrompt
+          feature="Visual Garden Planner"
+          variant="inline"
+          onUpgrade={() => console.log('Upgrade to Pro')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
