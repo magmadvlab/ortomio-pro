@@ -25,8 +25,8 @@ export const FEATURES = {
   
   /**
    * Diario Operativo - Timeline attività
-   * Componente: OperationalDiary.tsx
-   * Route: /app/journal
+   * Componente: UnifiedTimelineDiary.tsx
+   * Route: /app/diary (/app/journal reindirizza qui)
    */
   JOURNAL: true, // ✅ IMPLEMENTATO
   

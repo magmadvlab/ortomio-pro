@@ -34,7 +34,7 @@ import { PhotoTimeline } from '@/components/photo/PhotoTimeline'
 import { PlantLifecycleTimeline } from '@/components/planner/PlantLifecycleTimeline'
 import DiaryPlannerIntegration from './DiaryPlannerIntegration'
 import { createOperationalDiaryService } from '@/services/operationalDiaryService'
-import { DiaryEntry } from './OperationalDiary'
+import type { DiaryEvent } from '@/types/diary'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import QuickEventModal, { type QuickEvent } from './QuickEventModal'
 
@@ -52,7 +52,7 @@ export default function UnifiedTimelineDiary({
   const { storageProvider } = useStorage()
   const diaryService = useMemo(() => createOperationalDiaryService(storageProvider), [storageProvider])
   const [activeView, setActiveView] = useState<'timeline' | 'photos' | 'lifecycle' | 'analytics'>('timeline')
-  const [entries, setEntries] = useState<DiaryEntry[]>([])
+  const [entries, setEntries] = useState<DiaryEvent[]>([])
   const [photos, setPhotos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showQuickEvent, setShowQuickEvent] = useState(false)
@@ -77,7 +77,7 @@ export default function UnifiedTimelineDiary({
         category: filters.category !== 'all' ? filters.category as 'harvest' | 'analysis' | 'growth' | 'planning' | 'protection' | 'seeding' | 'care' : undefined
       })
       
-      setEntries(diaryEntries as DiaryEntry[])
+      setEntries(diaryEntries)
       
       // Estrai foto dalle entries
       const photoEntries = diaryEntries
@@ -116,14 +116,14 @@ export default function UnifiedTimelineDiary({
     await loadDiaryData()
   }
 
-  const editEntry = async (entry: DiaryEntry) => {
+  const editEntry = async (entry: DiaryEvent) => {
     const title = window.prompt('Titolo evento', entry.title)
     if (!title || title === entry.title) return
     await diaryService.updateEntry(entry.id, { title })
     await loadDiaryData()
   }
 
-  const voidEntry = async (entry: DiaryEntry) => {
+  const voidEntry = async (entry: DiaryEvent) => {
     const reason = window.prompt('Motivo dell’annullamento')
     if (!reason) return
     await diaryService.voidEntry(entry.id, reason)
