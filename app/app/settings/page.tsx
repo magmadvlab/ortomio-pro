@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Settings, User, Bell, Shield, Database, Palette, MapPin, Trash2, Plus } from 'lucide-react'
+import { Settings, User, Bell, Shield, Database, Palette, MapPin, Trash2, Plus, Edit2 } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
+import { GardenEditModal } from '@/components/settings/GardenEditModal'
 import APIKeysManager from '@/components/settings/APIKeysManager'
 import OrganizationManager from '@/components/settings/OrganizationManager'
 import SatelliteCredentialsManager from '@/components/settings/SatelliteCredentialsManager'
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [loadingGardens, setLoadingGardens] = useState(false)
   const [showGardenWizard, setShowGardenWizard] = useState(false)
+  const [editingGarden, setEditingGarden] = useState<Garden | null>(null)
 
   useEffect(() => {
     const loadGardens = async () => {
@@ -217,6 +219,14 @@ export default function SettingsPage() {
                                     </Link>
                                   )
                                 })()}
+                                <button
+                                  onClick={() => setEditingGarden(garden)}
+                                  className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm font-medium"
+                                  title={`Modifica impostazioni di ${garden.name}`}
+                                >
+                                  <Edit2 size={16} />
+                                  Gestisci
+                                </button>
                                 <button
                                   onClick={async () => {
                                     if (confirm(`Sei sicuro di voler eliminare "${garden.name}"?\n\nQuesta azione eliminerà anche tutti i dati associati (piante, task, raccolti, ecc.)`)) {
@@ -466,6 +476,16 @@ export default function SettingsPage() {
         <GardenTypeWizard
           onComplete={handleGardenCreated}
           onCancel={() => setShowGardenWizard(false)}
+        />
+      )}
+
+      {/* Garden Edit Modal */}
+      {editingGarden && (
+        <GardenEditModal
+          garden={editingGarden}
+          isOpen={!!editingGarden}
+          onClose={() => setEditingGarden(null)}
+          onSave={handleGardenEdited}
         />
       )}
     </div>
