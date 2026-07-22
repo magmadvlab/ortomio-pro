@@ -163,11 +163,11 @@ function createExternalProvider(
 function getExternalAPIKey(provider: string): string | null {
   switch (provider) {
     case 'openrouter':
-      return process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || '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';
+      return process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || null;
     case 'groq':
-      return process.env.NEXT_PUBLIC_GROQ_API_KEY || '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';
+      return process.env.NEXT_PUBLIC_GROQ_API_KEY || null;
     case 'huggingface':
-      return process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || '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';
+      return process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || null;
     case 'mistral':
       return process.env.NEXT_PUBLIC_MISTRAL_API_KEY || null;
     default:
