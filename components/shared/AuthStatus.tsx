@@ -36,8 +36,12 @@ export default function AuthStatus() {
     // Ascolta cambiamenti autenticazione
     const supabase = getSupabaseClient()
     if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user ?? null)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        try {
+          setUser(session?.user ?? null)
+        } catch (err) {
+          console.error('onAuthStateChange handler error (AuthStatus):', err)
+        }
       })
 
       return () => {

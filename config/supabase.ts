@@ -83,14 +83,18 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     
     clientInitialized = true;
 
-    // Clear any invalid sessions on initialization
+    // Mirror session into cookie for server-side middleware on every auth event.
+    // The handler is wrapped in try/catch because a throw here would propagate
+    // out of the Supabase SDK's internal _notifyAllSubscribers call, which (per
+    // @supabase/auth-js@2.110.8) can leave a concurrently-awaited refresh promise
+    // unresolved forever in other components subscribed to the same client —
+    // manifesting as a page stuck indefinitely on an auth-loading screen.
     if (typeof window !== 'undefined') {
-      supabaseClient.auth.onAuthStateChange((event, session) => {
-        syncAuthCookie(session);
-
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          // Clear invalid session
-          supabaseClient?.auth.signOut();
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        try {
+          syncAuthCookie(session);
+        } catch (err) {
+          console.error('onAuthStateChange handler error (config/supabase.ts):', err);
         }
       });
     }
