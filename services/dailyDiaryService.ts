@@ -13,6 +13,7 @@
  * 2. Sistema predittivo per raccomandazioni
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient } from '@/config/supabase'
 import { getLocationInfo, formatLocationForDisplay } from './geocodingService'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
@@ -32,6 +33,7 @@ import {
 export interface DailyWeatherLog {
   id?: string
   user_id: string
+  garden_id?: string
   log_date: string
   temp_min: number
   temp_max: number
@@ -143,8 +145,17 @@ export interface PredictiveInsight {
 // ============================================================================
 
 class DailyDiaryService {
+  // Client iniettabile per contesti server-side (cron) che devono bypassare la RLS
+  // con service_role, senza cambiare il comportamento lato browser (utente reale loggato).
+  private supabaseOverride: SupabaseClient | null = null
+
+  setSupabaseClient(client: SupabaseClient | null): void {
+    this.supabaseOverride = client
+  }
+
   // Helper per ottenere il client Supabase
-  private get supabase(): NonNullable<ReturnType<typeof getSupabaseClient>> {
+  private get supabase(): SupabaseClient {
+    if (this.supabaseOverride) return this.supabaseOverride
     const supabase = getSupabaseClient()
     if (!supabase) {
       throw new Error('Supabase client not available')
@@ -287,6 +298,10 @@ class DailyDiaryService {
         return null
       }
 
+      // La RLS su daily_weather_log richiede garden_id valorizzato (policy basata su
+      // gardens.user_id), quindi associamo il log all'orto più recente dell'utente.
+      const gardenId = await this.resolvePrimaryGardenId(userId)
+
       // Calcola ETo (evapotraspirazione di riferimento)
       const eto = this.calculateETo(
         weatherData.temp_min ?? 0,
@@ -297,6 +312,7 @@ class DailyDiaryService {
 
       const log: DailyWeatherLog = {
         user_id: userId,
+        garden_id: gardenId ?? undefined,
         log_date: date,
         temp_min: weatherData.temp_min ?? 0,
         temp_max: weatherData.temp_max ?? 0,
@@ -363,6 +379,21 @@ class DailyDiaryService {
       console.error('Errore registrazione meteo:', err)
       return null
     }
+  }
+
+  /**
+   * Risolve l'orto più recente dell'utente, usato per associare il log meteo
+   * (un solo record/utente/giorno, non ancora per singolo orto).
+   */
+  private async resolvePrimaryGardenId(userId: string): Promise<string | null> {
+    const { data } = await this.supabase
+      .from('gardens')
+      .select('id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    return data?.id ?? null
   }
 
   /**

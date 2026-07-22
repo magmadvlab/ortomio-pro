@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { dailyDiaryService } from '@/services/dailyDiaryService'
+import { requireSupabase } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,10 +33,17 @@ export async function GET(request: NextRequest) {
     
     console.log('🌱 Starting daily diary cron job...')
     const startTime = Date.now()
-    
-    // Esegui registrazione diario giornaliero
-    await dailyDiaryService.recordDailyEntries()
-    
+
+    // Usa un client service_role: il cron non ha un utente loggato, e la RLS
+    // di daily_weather_log richiede auth.uid() -- senza questo, ogni scrittura
+    // fallirebbe silenziosamente.
+    dailyDiaryService.setSupabaseClient(requireSupabase())
+    try {
+      await dailyDiaryService.recordDailyEntries()
+    } finally {
+      dailyDiaryService.setSupabaseClient(null)
+    }
+
     const duration = Date.now() - startTime
     console.log(`✅ Daily diary cron job completed in ${duration}ms`)
     
@@ -70,8 +78,13 @@ export async function POST(request: NextRequest) {
   
   try {
     console.log('🔧 Manual trigger of daily diary...')
-    await dailyDiaryService.recordDailyEntries()
-    
+    dailyDiaryService.setSupabaseClient(requireSupabase())
+    try {
+      await dailyDiaryService.recordDailyEntries()
+    } finally {
+      dailyDiaryService.setSupabaseClient(null)
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Daily diary manually triggered',
