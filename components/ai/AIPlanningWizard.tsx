@@ -18,11 +18,12 @@ import {
   DollarSign,
   Camera
 } from 'lucide-react';
-import { 
-  AIPlanningService, 
-  CropPlanningRequest, 
-  ScalingPlan 
+import {
+  AIPlanningService,
+  CropPlanningRequest,
+  ScalingPlan
 } from '../../services/aiPlanningService';
+import { useAuth } from '../../packages/core/hooks/useAuth';
 import { Garden } from '../../types';
 
 interface AIPlanningWizardProps {
@@ -38,6 +39,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
   onPlanGenerated,
   onClose
 }) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<WizardStep>('crop');
   const [request, setRequest] = useState<Partial<CropPlanningRequest>>({
     location: {
@@ -135,6 +137,11 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
       return;
     }
 
+    if (!user) {
+      setError('Devi essere autenticato per generare un piano');
+      return;
+    }
+
     setCurrentStep('generating');
     setIsGenerating(true);
     setError(null);
@@ -143,7 +150,7 @@ export const AIPlanningWizard: React.FC<AIPlanningWizardProps> = ({
       // Usa il nuovo sistema integrato di scaglionamento
       const plan = await AIPlanningService.generateScalingPlan(
         request as CropPlanningRequest,
-        'current-user', // In produzione, usa l'ID utente reale
+        user.id,
         soilAnalysis,
         layoutSuggestion
       );

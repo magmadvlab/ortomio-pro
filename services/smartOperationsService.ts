@@ -58,20 +58,22 @@ export class SmartOperationsService {
 
     try {
       // In produzione: chiamata API meteo reale
+      // relative_humidity_2m e' disponibile solo come dato orario su Open-Meteo,
+      // non nel blocco daily: viene richiesto e mediato per giorno qui sotto.
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode&timezone=auto&forecast_days=${days}`
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode&hourly=relative_humidity_2m&timezone=auto&forecast_days=${days}`
       )
-      
+
       if (!response.ok) {
         throw new Error('Weather API error')
       }
 
       const data = await response.json()
-      
+
       const forecast: WeatherData[] = data.daily.time.map((date: string, index: number) => ({
         date,
         temp: (data.daily.temperature_2m_max[index] + data.daily.temperature_2m_min[index]) / 2,
-        humidity: 60 + Math.random() * 30, // Mock - in produzione da API
+        humidity: this.averageHourlyHumidityForDay(data.hourly, date),
         windSpeed: data.daily.windspeed_10m_max[index],
         precipitation: data.daily.precipitation_sum[index],
         conditions: this.mapWeatherCode(data.daily.weathercode[index])
@@ -79,13 +81,36 @@ export class SmartOperationsService {
 
       this.weatherCache.set(cacheKey, forecast)
       return forecast
-      
+
     } catch (error) {
       console.error('Weather forecast error:', error)
-      
-      // Fallback: dati mock
-      return this.generateMockWeather(days)
+
+      // Fallback: cache scaduta ma reale se disponibile, mai dati inventati.
+      // Un array vuoto è "dati insufficienti" per il chiamante, non un falso "tutto ok".
+      const staleCache = this.weatherCache.get(cacheKey)
+      return staleCache ?? []
     }
+  }
+
+  /**
+   * Media l'umidita' relativa oraria di Open-Meteo per un singolo giorno.
+   * Ritorna 0 se non ci sono letture orarie per quel giorno (nessun valore
+   * inventato: il chiamante puo' trattare 0 come dato mancante se necessario).
+   */
+  private averageHourlyHumidityForDay(
+    hourly: { time?: string[]; relative_humidity_2m?: number[] } | undefined,
+    date: string
+  ): number {
+    if (!hourly?.time || !hourly?.relative_humidity_2m) return 0
+
+    const dayReadings = hourly.time
+      .map((timestamp, index) => ({ timestamp, value: hourly.relative_humidity_2m![index] }))
+      .filter(({ timestamp, value }) => timestamp.startsWith(date) && typeof value === 'number')
+
+    if (dayReadings.length === 0) return 0
+
+    const sum = dayReadings.reduce((total, { value }) => total + value, 0)
+    return Math.round(sum / dayReadings.length)
   }
 
   /**
@@ -97,26 +122,6 @@ export class SmartOperationsService {
     if (code >= 51 && code <= 67) return 'rain'
     if (code >= 80 && code <= 99) return 'storm'
     return 'cloudy'
-  }
-
-  /**
-   * Genera dati meteo mock per testing
-   */
-  private generateMockWeather(days: number): WeatherData[] {
-    const today = new Date()
-    return Array.from({ length: days }, (_, i) => {
-      const date = new Date(today)
-      date.setDate(date.getDate() + i)
-      
-      return {
-        date: date.toISOString().split('T')[0],
-        temp: 15 + Math.random() * 10,
-        humidity: 60 + Math.random() * 30,
-        windSpeed: 5 + Math.random() * 15,
-        precipitation: Math.random() > 0.7 ? Math.random() * 20 : 0,
-        conditions: Math.random() > 0.7 ? 'rain' : Math.random() > 0.5 ? 'cloudy' : 'sunny'
-      }
-    })
   }
 
   /**

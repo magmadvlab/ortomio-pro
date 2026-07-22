@@ -9,6 +9,7 @@ import { PlantMasterSheet } from '../types';
 import { getAllMasterSheets } from '../services/plantMasterService';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { useTier } from '../packages/core/hooks/useTier';
+import { useAuth } from '../packages/core/hooks/useAuth';
 import { X, Save, Edit2, Plus } from 'lucide-react';
 
 interface CustomPlanEditorProps {
@@ -26,6 +27,7 @@ const CustomPlanEditor: React.FC<CustomPlanEditorProps> = ({
 }) => {
   const { storageProvider } = useStorage();
   const { isPro } = useTier();
+  const { user } = useAuth();
   const [masterSheets, setMasterSheets] = useState<PlantMasterSheet[]>([]);
   const [selectedBaseId, setSelectedBaseId] = useState<string>(baseMasterSheet?.id || existingPlan?.baseMasterSheetId || '');
   const [name, setName] = useState<string>(existingPlan?.name || '');
@@ -53,8 +55,11 @@ const CustomPlanEditor: React.FC<CustomPlanEditorProps> = ({
       return;
     }
 
-    // Get user ID (for now, use a placeholder - in real app, get from auth)
-    const userId = 'current-user-id'; // TODO: Get from auth context
+    if (!user) {
+      alert('Devi essere autenticato per salvare un piano personalizzato');
+      return;
+    }
+    const userId = user.id;
 
     // Get the selected master sheet to include all PlantMasterSheet properties
     const selectedBase = masterSheets.find(s => s.id === selectedBaseId) || baseMasterSheet;

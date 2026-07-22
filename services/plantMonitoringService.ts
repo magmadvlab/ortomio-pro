@@ -750,7 +750,7 @@ export const treatmentTrackingService = {
 }
 
 export const brixManagementService = {
-  async recordBrixMeasurement(request: BrixMeasurementRequest): Promise<BrixHistory> {
+  async recordBrixMeasurement(request: BrixMeasurementRequest, measuredBy: string): Promise<BrixHistory> {
     const measurement: BrixHistory = {
       id: crypto.randomUUID(),
       plantId: request.plantId,
@@ -764,7 +764,7 @@ export const brixManagementService = {
         fruitNumber: request.fruitNumber
       },
       photoId: request.photoId,
-      measuredBy: 'current_user',
+      measuredBy,
       notes: request.notes
     }
 

@@ -213,6 +213,7 @@ class BiologicalControlService {
   async updateChecklistStatus(
     checklistId: string,
     status: ChecklistStatus,
+    completedBy: string,
     data?: {
       notes?: string
       effectivenessScore?: number
@@ -226,7 +227,7 @@ class BiologicalControlService {
 
     if (status === 'COMPLETED') {
       updates.completed_date = new Date().toISOString().split('T')[0]
-      updates.completed_by = 'Current User' // TODO: Get from auth
+      updates.completed_by = completedBy
     }
 
     if (data?.notes) updates.notes = data.notes
@@ -277,6 +278,7 @@ class BiologicalControlService {
   async updateSubtaskStatus(
     subtaskId: string,
     status: ChecklistStatus,
+    completedBy: string,
     data?: {
       notes?: string
       evidencePhotos?: string[]
@@ -289,7 +291,7 @@ class BiologicalControlService {
 
     if (status === 'COMPLETED') {
       updates.completed_date = new Date().toISOString().split('T')[0]
-      updates.completed_by = 'Current User' // TODO: Get from auth
+      updates.completed_by = completedBy
     }
 
     if (data?.notes) updates.notes = data.notes
@@ -305,14 +307,14 @@ class BiologicalControlService {
     if (error) throw error
 
     // Update parent checklist status if all subtasks completed
-    await this.updateParentChecklistStatus(subtask.checklist_id)
+    await this.updateParentChecklistStatus(subtask.checklist_id, completedBy)
 
     return this.mapSubtaskFromDb(subtask)
   }
 
-  private async updateParentChecklistStatus(checklistId: string): Promise<void> {
+  private async updateParentChecklistStatus(checklistId: string, completedBy: string): Promise<void> {
     const subtasks = await this.getSubtasks(checklistId)
-    
+
     const allCompleted = subtasks.every(s => s.status === 'COMPLETED')
     const anyInProgress = subtasks.some(s => s.status === 'IN_PROGRESS')
     const anyFailed = subtasks.some(s => s.status === 'FAILED')
@@ -326,7 +328,7 @@ class BiologicalControlService {
       newStatus = 'IN_PROGRESS'
     }
 
-    await this.updateChecklistStatus(checklistId, newStatus)
+    await this.updateChecklistStatus(checklistId, newStatus, completedBy)
   }
 
   // ===== CERTIFICATION REPORTS =====

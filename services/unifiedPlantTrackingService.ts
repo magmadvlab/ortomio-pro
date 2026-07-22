@@ -184,7 +184,8 @@ export class UnifiedPlantTrackingService {
       photos?: string[]
       weather?: any
       gpsLocation?: { lat: number; lng: number }
-    }
+    },
+    recordedBy: string
   ): Promise<PlantTrackingRecord> {
     const record: PlantTrackingRecord = {
       id: `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -201,7 +202,7 @@ export class UnifiedPlantTrackingService {
         duration: this.estimateOperationDuration(operationType),
         weather: data.weather
       },
-      recordedBy: 'current_user', // TODO: Get from auth
+      recordedBy,
       verified: true,
       gpsLocation: data.gpsLocation
     }
@@ -227,7 +228,8 @@ export class UnifiedPlantTrackingService {
       issues?: string[]
       notes: string
       photos?: string[]
-    }
+    },
+    recordedBy: string
   ): Promise<PlantTrackingRecord> {
     const record: PlantTrackingRecord = {
       id: `obs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -236,7 +238,7 @@ export class UnifiedPlantTrackingService {
       type: 'observation',
       category: 'growth',
       observationData: data,
-      recordedBy: 'current_user',
+      recordedBy,
       verified: true
     }
     
@@ -259,7 +261,8 @@ export class UnifiedPlantTrackingService {
       destination: 'personal' | 'market' | 'processing' | 'seed'
       notes?: string
       photos?: string[]
-    }
+    },
+    recordedBy: string
   ): Promise<PlantTrackingRecord> {
     const record: PlantTrackingRecord = {
       id: `harv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -268,7 +271,7 @@ export class UnifiedPlantTrackingService {
       type: 'harvest',
       category: 'harvest',
       harvestData: data,
-      recordedBy: 'current_user',
+      recordedBy,
       verified: true
     }
     
@@ -902,7 +905,8 @@ export interface PlantLifecycleStageExtended extends PlantLifecycleStage {
  */
 export async function recordPlantOrigin(
   plantId: string,
-  origin: PlantOrigin
+  origin: PlantOrigin,
+  recordedBy: string
 ): Promise<PlantTrackingRecord> {
   const record: PlantTrackingRecord = {
     id: `origin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -918,7 +922,7 @@ export async function recordPlantOrigin(
       cost: origin.seedData?.costPerSeed || origin.nurseryData?.costPerSeedling || 0,
       duration: origin.type === 'seed' ? 10 : 15 // minuti
     },
-    recordedBy: 'current_user',
+    recordedBy,
     verified: true,
     metadata: {
       origin,

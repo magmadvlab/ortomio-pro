@@ -29,7 +29,6 @@ export async function searchAll(
 
   const searchTerm = query.toLowerCase().trim();
   const results: SearchResult[] = [];
-  const userId = 'current-user-id'; // TODO: Get from auth context
 
   try {
     // Search in Tasks
