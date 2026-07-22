@@ -35,6 +35,7 @@ export type CapabilityIcon =
   | 'traceability'
   | 'harvest'
   | 'seedbed'
+  | 'calendar'
 
 export interface CapabilityDescriptor {
   id: string
@@ -81,6 +82,7 @@ export const CAPABILITIES: CapabilityDescriptor[] = [
   { id: 'diary', label: 'Diario operativo', description: 'Timeline canonica di attività ed esiti.', group: 'PRINCIPALE', icon: 'diary', route: '/app/diary', helpHref: '/docs/manual/10-activity-registry', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['daily_diary_entries'], maturity: 'beta', targets: APP_TARGETS, featureFlag: 'JOURNAL', searchResultTypes: ['task'] },
   { id: 'seedbed', label: 'Semenzaio', description: 'Gestione di semi e semine.', group: 'PRINCIPALE', icon: 'seedbed', route: '/app/semenzaio', helpHref: '/docs/manual/30-use-cases', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['seed'] },
   { id: 'harvest', label: 'Raccolti', description: 'Registro delle raccolte e delle rese.', group: 'PRINCIPALE', icon: 'harvest', route: '/app/harvest', helpHref: '/docs/manual/22-business-intelligence', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['harvest'] },
+  { id: 'calendar', label: 'Calendario', description: 'Vista calendario di tutte le attività pianificate.', group: 'PRINCIPALE', icon: 'calendar', route: '/app/calendar', helpHref: '/docs/manual/29-interface-navigation', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS },
 
   { id: 'orchard', label: 'Frutteto', description: 'Gestione agronomica del frutteto.', group: 'COLTURE SPECIALIZZATE', icon: 'orchard', route: '/app/orchard', helpHref: '/docs/manual/18-orchard-management', roles: ALL_ROLES, tiers: PRO, maturity: 'stable', targets: APP_TARGETS, featureFlag: 'ORCHARD' },
   { id: 'olives', label: 'Oliveto', description: 'Gestione agronomica dell’oliveto.', group: 'COLTURE SPECIALIZZATE', icon: 'olive', route: '/app/olives', helpHref: '/docs/manual/19-olive-management', roles: ALL_ROLES, tiers: PRO, maturity: 'stable', targets: APP_TARGETS, featureFlag: 'OLIVE_GROVE' },
