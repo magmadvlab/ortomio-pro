@@ -1,56 +1,45 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
 import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
 import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
 import { getSeasonForDate } from "../utils/seasonalAdjustment";
 import { getAIProvider as getCustomAIProvider, isAIProviderAvailable } from "./aiProviderAdapter";
+import type { CreditFeature } from "../lib/credits";
 
-// Per Next.js: usa process.env.NEXT_PUBLIC_*
-// Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-// Validazione API Key (legacy - per retrocompatibilità)
-export const isApiKeyConfigured = (): boolean => {
-  return !!apiKey && apiKey.trim().length > 0;
-};
-
-if (!isApiKeyConfigured()) {
-  console.warn("⚠️ NEXT_PUBLIC_GEMINI_API_KEY non configurata! Le funzionalità AI non saranno disponibili.");
-  console.warn("Crea un file .env nella root del progetto con: NEXT_PUBLIC_GEMINI_API_KEY=la_tua_chiave");
-  console.warn("Oppure configura una API key personalizzata nelle Impostazioni > API Keys");
-}
-
-const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+// Il default dell'app non usa più una chiave client-side: le chiamate Gemini
+// legacy passano dalla route server-side /api/ai/generate (tier + crediti),
+// che tiene GEMINI_API_KEY solo lato server. Una chiave personalizzata
+// configurata dall'utente in Impostazioni > API Keys resta un percorso
+// separato (getCustomAIProvider) e continua a funzionare come prima.
+export const isApiKeyConfigured = (): boolean => true;
 
 const generateWithLegacyGemini = async (request: {
   model: string;
   contents: any;
   config?: Record<string, unknown>;
+  feature: CreditFeature;
 }): Promise<{ text: string }> => {
-  if (!ai) {
-    throw new Error("API Key non configurata");
-  }
-
-  const modelClient = ai.getGenerativeModel({ model: request.model });
-  const result = await modelClient.generateContent({
-    contents: request.contents,
-    generationConfig: request.config,
+  const response = await fetch("/api/ai/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      feature: request.feature,
+      model: request.model,
+      contents: request.contents,
+      config: request.config,
+    }),
   });
 
-  return {
-    text: result.response.text() || "",
-  };
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || "Richiesta AI non riuscita");
+  }
+
+  const data = await response.json();
+  return { text: data.text || "" };
 };
 
 // Helper per verificare se l'API è disponibile (usa configurazione personalizzata se disponibile)
-const checkApiAvailable = (): boolean => {
-  // Per retrocompatibilità, verifica solo configurazione default
-  // Le funzioni async useranno checkApiAvailableAsync() quando possibile
-  if (!isApiKeyConfigured()) {
-    return false;
-  }
-  return ai !== null;
-};
+const checkApiAvailable = (): boolean => true;
 
 // Versione async che verifica anche configurazioni personalizzate
 export const checkApiAvailableAsync = async (): Promise<boolean> => {
@@ -62,17 +51,6 @@ export const checkApiAvailableAsync = async (): Promise<boolean> => {
   
   // Fallback a configurazione default
   return checkApiAvailable();
-};
-
-// Helper per ottenere provider AI (personalizzato o default)
-const getActiveAIProvider = async () => {
-  const customProvider = await getCustomAIProvider('ai_gemini');
-  if (customProvider) {
-    return customProvider;
-  }
-  
-  // Fallback a provider legacy
-  return ai;
 };
 
 // Schema for Plant Suggestions
@@ -255,19 +233,18 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
           systemInstruction: "You are an expert agronomist specialized in Italian vegetable gardens (orto). be concise.",
         }
       );
-    } else if (ai) {
-      // Usa provider legacy
+    } else {
+      // Usa la route server-side di default (nessuna chiave lato client)
       response = await generateWithLegacyGemini({
         model,
         contents: prompt,
+        feature: "seasonal_suggestions",
         config: {
           responseMimeType: "application/json",
           responseSchema: plantSuggestionSchema,
           systemInstruction: "You are an expert agronomist specialized in Italian vegetable gardens (orto). be concise.",
         },
       });
-    } else {
-      throw new Error("API Key non configurata");
     }
 
     const text = response.text;
@@ -607,6 +584,7 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
     const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
+      feature: "plant_search",
       config: {
         responseMimeType: "application/json",
         responseSchema: specificPlantSchema,
@@ -654,6 +632,7 @@ export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice
     const response = await generateWithLegacyGemini({
       model,
       contents: prompt,
+      feature: "technical_advice",
       config: {
         responseMimeType: "application/json",
         responseSchema: treatmentAdviceSchema,
@@ -758,6 +737,7 @@ export const analyzePlantImage = async (
   try {
     const response = await generateWithLegacyGemini({
       model,
+      feature: "advanced_analysis",
       contents: {
         parts: [
           {
@@ -794,6 +774,7 @@ export const diagnosePlantHealth = async (base64Image: string): Promise<Treatmen
   try {
     const response = await generateWithLegacyGemini({
       model,
+      feature: "diagnose",
       contents: {
         parts: [
           {
@@ -853,6 +834,7 @@ export const checkHarvestReadiness = async (plantName: string, brix: number): Pr
   try {
     const response = await generateWithLegacyGemini({
       model,
+      feature: "harvest_readiness",
       contents: prompt,
     });
     return response.text || "Analisi non disponibile";
@@ -883,6 +865,7 @@ export const analyzeSensorData = async (moisture: number, temperature: number, g
   try {
     const response = await generateWithLegacyGemini({
       model,
+      feature: "sensor_analysis",
       contents: prompt,
     });
     return response.text || "Dati ricevuti.";

@@ -1,29 +1,28 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// Support both Next.js and Vite environments
-const apiKey = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY)
-  : (process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || (import.meta as any)?.env?.VITE_GEMINI_API_KEY);
-const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-
+// Le ricette passano dalla route server-side /api/ai/generate (tier + crediti),
+// che tiene GEMINI_API_KEY solo lato server. Nessuna chiave esposta al client.
 const generateRecipeContent = async (request: {
   model: string;
   contents: any;
   config?: Record<string, unknown>;
 }): Promise<{ text: string }> => {
-  if (!ai) {
-    throw new Error('AI client not available');
-  }
-
-  const modelClient = ai.getGenerativeModel({ model: request.model });
-  const result = await modelClient.generateContent({
-    contents: request.contents,
-    generationConfig: request.config,
+  const response = await fetch('/api/ai/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      feature: 'recipe',
+      model: request.model,
+      contents: request.contents,
+      config: request.config,
+    }),
   });
 
-  return {
-    text: result.response.text() || '',
-  };
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || error.error || 'Richiesta ricetta non riuscita');
+  }
+
+  const data = await response.json();
+  return { text: data.text || '' };
 };
 
 export interface Recipe {
@@ -75,11 +74,6 @@ export const getRecipesForHarvest = async (
   quantity: number,
   unit: string
 ): Promise<Recipe[]> => {
-  if (!apiKey || !ai) {
-    console.warn("API Key non configurata per le ricette");
-    return [];
-  }
-
   const model = "gemini-2.5-flash";
   
   const prompt = `

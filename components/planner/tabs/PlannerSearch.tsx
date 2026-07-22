@@ -76,8 +76,10 @@ export default function PlannerSearch({ garden, onAddToJournal }: PlannerSearchP
       console.error('Search error:', err)
       const errorMsg = err?.message || 'Errore sconosciuto'
       
-      if (errorMsg.includes('API Key')) {
-        setError('API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY per la ricerca avanzata.')
+      if (errorMsg.includes('insufficient_credits') || errorMsg.includes('Credits insufficienti')) {
+        setError('Credits insufficienti per la ricerca avanzata.')
+      } else if (errorMsg.includes('insufficient_tier') || errorMsg.includes('unauthorized')) {
+        setError('La ricerca avanzata richiede un piano PLUS o PRO.')
       } else {
         setError(`Errore nella ricerca: ${errorMsg}`)
       }

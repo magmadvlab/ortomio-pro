@@ -512,21 +512,21 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
             } catch (err: any) {
               const errorMsg = err?.message || "Errore sconosciuto";
               
-              // Se errore è per API Key non configurata, fallback a suggerimenti solari
-              if (errorMsg.includes("API Key") || errorMsg.includes("API Key non configurata")) {
-                console.log('Gemini API non configurata, uso suggerimenti basati su esposizione solare');
+              // Su credits/tier insufficienti o errore AI generico, fallback a suggerimenti solari
+              if (errorMsg.includes("insufficient_credits") || errorMsg.includes("Credits insufficienti")) {
+                console.log('Credits insufficienti per Gemini, uso suggerimenti basati su esposizione solare');
                 try {
                   await loadSolarSuggestions();
                 } catch (fallbackError: any) {
-                  setError("Chiave API non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env o nelle Impostazioni > API Keys");
+                  setError("Credits insufficienti per i suggerimenti AI.");
                 }
-              } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
-                // Per errori di autenticazione, prova fallback
-                console.log('Errore autenticazione Gemini, provo fallback a suggerimenti solari');
+              } else if (errorMsg.includes("insufficient_tier") || errorMsg.includes("unauthorized")) {
+                // Per errori di tier/autenticazione, prova fallback
+                console.log('Tier insufficiente per Gemini, provo fallback a suggerimenti solari');
                 try {
                   await loadSolarSuggestions();
                 } catch (fallbackError: any) {
-                  setError("Chiave API non valida. Verifica la configurazione in .env");
+                  setError("I suggerimenti AI richiedono un piano PLUS o PRO.");
                 }
               } else {
                 // Per altri errori, prova fallback a suggerimenti solari
@@ -593,16 +593,10 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     } catch (e: any) {
       console.error(e);
       const errorMsg = e?.message || "Errore sconosciuto";
-      if (errorMsg.includes("API Key")) {
-        // Se API non configurata ma pianta non trovata localmente
-        const localMaster = getMasterSheetSync(searchQuery);
-        if (!localMaster) {
-          setError("Pianta non trovata nel database locale. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env per cercare piante non presenti nel database.");
-        } else {
-          setError("Errore imprevisto. La pianta dovrebbe essere disponibile localmente.");
-        }
-      } else if (errorMsg.includes("401") || errorMsg.includes("403")) {
-        setError("Chiave API non valida. Verifica la configurazione in .env");
+      if (errorMsg.includes("insufficient_credits") || errorMsg.includes("Credits insufficienti")) {
+        setError("Credits insufficienti per la ricerca avanzata.");
+      } else if (errorMsg.includes("insufficient_tier") || errorMsg.includes("unauthorized")) {
+        setError("La ricerca avanzata richiede un piano PLUS o PRO.");
       } else {
         setError(`Errore nella ricerca: ${errorMsg}`);
       }
