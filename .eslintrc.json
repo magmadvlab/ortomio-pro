@@ -12,7 +12,15 @@
     "build/",
     "__tests__/",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "EXAMPLE_INTEGRATION_GUIDES.tsx",
+    "capacitor.config.ts",
+    "ortomio/",
+    "orto-mio/",
+    "vcchiortomio/",
+    "file da verificare/",
+    "X_pro_edit/",
+    "x_ortomio_free/"
   ]
 }
 

@@ -28,20 +28,11 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">Supabase non configurato. Configura le credenziali prima di migrare.</p>
-      </div>
-    );
-  }
-
   const previewData = () => {
     const gardens = StorageService.getGardens();
     const tasks = StorageService.getTasks();
     const devices = StorageService.getDevices();
-    
+
     // Get seeds from localStorage
     const seedsJson = localStorage.getItem('ortoSeedPackets');
     const seeds = seedsJson ? JSON.parse(seedsJson) : [];
@@ -58,6 +49,15 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({ onComplete, onCancel 
   React.useEffect(() => {
     previewData();
   }, []);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p className="text-red-800">Supabase non configurato. Configura le credenziali prima di migrare.</p>
+      </div>
+    );
+  }
 
   const startMigration = async () => {
     setStep('migrating');

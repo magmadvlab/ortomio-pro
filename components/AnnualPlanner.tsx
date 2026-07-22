@@ -19,6 +19,12 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
   const [isGenerating, setIsGenerating] = useState(false);
   const [showProjections, setShowProjections] = useState(false);
 
+  useEffect(() => {
+    if (tasks.length > 0 && garden) {
+      generateInitialPlan();
+    }
+  }, [tasks, garden]);
+
   // Protezione Pro: Annual Planner è feature Pro
   if (!can('annualPlanner')) {
     return (
@@ -39,12 +45,6 @@ const AnnualPlanner: React.FC<AnnualPlannerProps> = ({ garden, tasks, onUpdatePl
       </div>
     );
   }
-
-  useEffect(() => {
-    if (tasks.length > 0 && garden) {
-      generateInitialPlan();
-    }
-  }, [tasks, garden]);
 
   const generateInitialPlan = async () => {
     setIsGenerating(true);
