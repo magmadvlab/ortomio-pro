@@ -13,6 +13,7 @@ import {
   Download
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import { biologicalControlService } from '@/services/biologicalControlService'
 import {
   BiologicalControlChecklist,
@@ -33,6 +34,7 @@ const CATEGORY_LABELS: Record<BiologicalControlCategory, string> = {
 
 export default function BiologicalControlDashboard() {
   const { activeGarden } = useGarden()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [checklists, setChecklists] = useState<BiologicalControlChecklist[]>([])
   const [selectedChecklist, setSelectedChecklist] = useState<BiologicalControlChecklist | null>(null)
@@ -87,8 +89,12 @@ export default function BiologicalControlDashboard() {
   }
 
   const handleUpdateStatus = async (checklistId: string, status: ChecklistStatus) => {
+    if (!user) {
+      console.error('Cannot update checklist status: user not authenticated')
+      return
+    }
     try {
-      await biologicalControlService.updateChecklistStatus(checklistId, status)
+      await biologicalControlService.updateChecklistStatus(checklistId, status, user.id)
       await loadChecklists()
       if (selectedChecklist?.id === checklistId) {
         const updated = checklists.find(c => c.id === checklistId)

@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Garden, ProductCard, GardenTask } from '@/types';
 import { useProductCards } from '@/hooks/useProductCards';
+import { useAuth } from '@/packages/core/hooks/useAuth';
 import { IntegratedTreatmentService, TreatmentRequest, TreatmentPlan } from '@/services/integratedTreatmentService';
 import ProductCardView from '@/components/ProductCardView';
 import { 
@@ -42,6 +43,7 @@ export default function SmartTreatmentWizard({
   onClose 
 }: SmartTreatmentWizardProps) {
   const { productCards, addProductCard, loading: cardsLoading } = useProductCards(garden.id);
+  const { user } = useAuth();
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState<WizardStep>('search');
@@ -85,6 +87,11 @@ export default function SmartTreatmentWizard({
       return;
     }
 
+    if (!user) {
+      setError('Devi essere autenticato per cercare un prodotto');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -95,7 +102,7 @@ export default function SmartTreatmentWizard({
         diseaseContext: searchData.diseaseContext || undefined,
         plantContext: searchData.plantContext || undefined,
         garden,
-        userId: 'current-user' // TODO: get from auth context
+        userId: user.id
       };
 
       // Genera o trova scheda prodotto
@@ -123,6 +130,11 @@ export default function SmartTreatmentWizard({
   const handleScheduleNext = async () => {
     if (!selectedProduct) return;
 
+    if (!user) {
+      setError('Devi essere autenticato per programmare un trattamento');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -133,7 +145,7 @@ export default function SmartTreatmentWizard({
         diseaseContext: searchData.diseaseContext || undefined,
         plantContext: searchData.plantContext || undefined,
         garden,
-        userId: 'current-user', // TODO: get from auth context
+        userId: user.id,
         applicationArea: areaData,
         startDate: scheduleData.startDate,
         customFrequency: scheduleData.customFrequency,

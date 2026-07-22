@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react'
 import { Droplet, TrendingUp, Camera, Plus, Calendar } from 'lucide-react'
 import { BrixHistory, BrixMeasurementRequest } from '@/types/plantMonitoring'
 import { brixManagementService } from '@/services/plantMonitoringService'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 
 interface BrixTrackerProps {
   plantId: string
@@ -23,6 +24,7 @@ export default function BrixTracker({
   fieldRowId,
   plantName
 }: BrixTrackerProps) {
+  const { user } = useAuth()
   const [history, setHistory] = useState<BrixHistory[]>([])
   const [trend, setTrend] = useState<any>(null)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -55,6 +57,10 @@ export default function BrixTracker({
       alert('Inserisci un valore Brix valido (0-30)')
       return
     }
+    if (!user) {
+      alert('Devi essere autenticato per registrare una misurazione')
+      return
+    }
 
     try {
       const request: BrixMeasurementRequest = {
@@ -68,7 +74,7 @@ export default function BrixTracker({
         notes: newMeasurement.notes
       }
 
-      await brixManagementService.recordBrixMeasurement(request)
+      await brixManagementService.recordBrixMeasurement(request, user.id)
       await loadBrixData()
       
       setShowAddModal(false)

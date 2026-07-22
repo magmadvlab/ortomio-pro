@@ -3,6 +3,7 @@ import { Garden } from '../types';
 import { IStorageProvider } from '../packages/core/storage/interface';
 import { downloadExport, exportGardenData } from '../services/exportService';
 import { importGardenData, validateExportFile, ImportResult } from '../services/importService';
+import { useAuth } from '../packages/core/hooks/useAuth';
 import { Download, Upload, CheckCircle, AlertTriangle, Loader2, FileText } from 'lucide-react';
 
 interface DataBackupProps {
@@ -16,6 +17,7 @@ const DataBackup: React.FC<DataBackupProps> = ({
   storage,
   onImportComplete,
 }) => {
+  const { user } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -42,6 +44,11 @@ const DataBackup: React.FC<DataBackupProps> = ({
       setError(null);
       setImportResult(null);
 
+      if (!user) {
+        setError('Devi essere autenticato per importare dati');
+        return;
+      }
+
       // Valida file prima di importare
       const validation = await validateExportFile(file);
       if (!validation.valid) {
@@ -50,7 +57,7 @@ const DataBackup: React.FC<DataBackupProps> = ({
       }
 
       // Importa dati
-      const result = await importGardenData(file, 'current-user', storage); // TODO: Get real user ID
+      const result = await importGardenData(file, user.id, storage);
 
       setImportResult(result);
 

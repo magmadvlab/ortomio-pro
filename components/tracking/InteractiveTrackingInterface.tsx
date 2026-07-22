@@ -54,6 +54,7 @@ import {
   calculateOriginSpecificAnalytics,
   generateOriginSpecificRecommendations
 } from '@/services/unifiedPlantTrackingService'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 
 interface InteractiveTrackingInterfaceProps {
   plant: GardenPlant
@@ -167,6 +168,7 @@ export default function InteractiveTrackingInterface({
   onClose,
   onRecordAdded
 }: InteractiveTrackingInterfaceProps) {
+  const { user } = useAuth()
   const [activeMode, setActiveMode] = useState<'quick' | 'detailed' | 'analytics'>('quick')
   const [selectedAction, setSelectedAction] = useState<QuickAction | null>(null)
   const [formData, setFormData] = useState<Record<string, any>>({})
@@ -240,6 +242,10 @@ export default function InteractiveTrackingInterface({
 
   const handleSaveRecord = async () => {
     if (!selectedAction) return
+    if (!user) {
+      console.error('Cannot save record: user not authenticated')
+      return
+    }
 
     setLoading(true)
     try {
@@ -258,7 +264,8 @@ export default function InteractiveTrackingInterface({
             photos,
             weather: weatherData,
             gpsLocation: gpsLocation || undefined
-          }
+          },
+          user.id
         )
       } else if (selectedAction.type === 'observation') {
         record = await unifiedPlantTrackingService.recordObservation(
@@ -273,7 +280,8 @@ export default function InteractiveTrackingInterface({
             issues: formData.issues,
             notes: formData.notes,
             photos
-          }
+          },
+          user.id
         )
       } else if (selectedAction.type === 'harvest') {
         record = await unifiedPlantTrackingService.recordHarvest(
@@ -286,7 +294,8 @@ export default function InteractiveTrackingInterface({
             destination: formData.destination,
             notes: formData.notes,
             photos
-          }
+          },
+          user.id
         )
       } else {
         throw new Error('Invalid action type')
@@ -1057,7 +1066,8 @@ export default function InteractiveTrackingInterface({
               <OriginSetupForm
                 plantId={plant.id}
                 onOriginSaved={async (origin) => {
-                  await recordPlantOrigin(plant.id, origin)
+                  if (!user) return
+                  await recordPlantOrigin(plant.id, origin, user.id)
                   await loadPlantData()
                   setShowOriginModal(false)
                 }}

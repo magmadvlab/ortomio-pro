@@ -329,6 +329,7 @@ class WinterProtectionService {
   async updateChecklistStatus(
     checklistId: string,
     status: ChecklistStatus,
+    completedBy: string,
     data?: {
       effectiveness?: ProtectionEffectiveness
       damageAssessment?: string
@@ -343,7 +344,7 @@ class WinterProtectionService {
 
     if (status === 'COMPLETED') {
       updates.completed_date = new Date().toISOString().split('T')[0]
-      updates.completed_by = 'Current User' // TODO: Get from auth
+      updates.completed_by = completedBy
     }
 
     if (data?.effectiveness) updates.effectiveness = data.effectiveness
@@ -416,6 +417,7 @@ class WinterProtectionService {
   async updateTaskStatus(
     taskId: string,
     status: ChecklistStatus,
+    completedBy: string,
     data?: {
       notes?: string
       photos?: string[]
@@ -428,7 +430,7 @@ class WinterProtectionService {
 
     if (status === 'COMPLETED') {
       updates.completed_date = new Date().toISOString().split('T')[0]
-      updates.completed_by = 'Current User' // TODO: Get from auth
+      updates.completed_by = completedBy
     }
 
     if (data?.notes) updates.notes = data.notes
@@ -444,14 +446,14 @@ class WinterProtectionService {
     if (error) throw error
 
     // Update parent checklist status if all tasks completed
-    await this.updateParentChecklistStatus(task.checklist_id)
+    await this.updateParentChecklistStatus(task.checklist_id, completedBy)
 
     return this.mapTaskFromDb(task)
   }
 
-  private async updateParentChecklistStatus(checklistId: string): Promise<void> {
+  private async updateParentChecklistStatus(checklistId: string, completedBy: string): Promise<void> {
     const tasks = await this.getTasks(checklistId)
-    
+
     const allCompleted = tasks.every(t => t.status === 'COMPLETED')
     const anyInProgress = tasks.some(t => t.status === 'IN_PROGRESS')
     const anyFailed = tasks.some(t => t.status === 'FAILED')
@@ -465,7 +467,7 @@ class WinterProtectionService {
       newStatus = 'IN_PROGRESS'
     }
 
-    await this.updateChecklistStatus(checklistId, newStatus)
+    await this.updateChecklistStatus(checklistId, newStatus, completedBy)
   }
 
   // ===== SEASONAL REPORTS =====

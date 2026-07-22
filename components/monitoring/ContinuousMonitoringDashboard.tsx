@@ -58,6 +58,7 @@ import {
   IntelligentNotification,
   intelligentNotificationService
 } from '@/services/intelligentNotificationService'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 
 interface ContinuousMonitoringDashboardProps {
   garden: Garden
@@ -74,6 +75,7 @@ export default function ContinuousMonitoringDashboard({
   onCreateTask,
   onUpdatePlant
 }: ContinuousMonitoringDashboardProps) {
+  const { user } = useAuth()
   const [monitoringService, setMonitoringService] = useState<ContinuousMonitoringService | null>(null)
   const [isMonitoring, setIsMonitoring] = useState(false)
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([])
@@ -110,13 +112,13 @@ export default function ContinuousMonitoringDashboard({
 
   // Aggiorna dati periodicamente
   useEffect(() => {
-    if (!monitoringService) return
+    if (!monitoringService || !user) return
 
     const updateData = () => {
       setAlerts(monitoringService.getActiveAlerts())
       setPlantStatuses(monitoringService.getAllPlantStatuses())
       setStats(monitoringService.getMonitoringStats())
-      setNotifications(intelligentNotificationService.getUserNotifications('current-user'))
+      setNotifications(intelligentNotificationService.getUserNotifications(user.id))
     }
 
     // Aggiornamento iniziale
@@ -126,7 +128,7 @@ export default function ContinuousMonitoringDashboard({
     const interval = setInterval(updateData, 30000) // Ogni 30 secondi
 
     return () => clearInterval(interval)
-  }, [monitoringService])
+  }, [monitoringService, user])
 
   const handleStartMonitoring = () => {
     if (monitoringService) {
