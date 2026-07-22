@@ -110,8 +110,12 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
       const supabase = getSupabaseClient();
       if (supabase) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            checkAuthAndSwitch();
+          try {
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+              checkAuthAndSwitch();
+            }
+          } catch (err) {
+            console.error('onAuthStateChange handler error (StorageContext):', err);
           }
         });
         
