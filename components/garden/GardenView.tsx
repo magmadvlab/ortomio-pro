@@ -11,7 +11,7 @@ import { HarvestRegistrationModal } from '../harvest/HarvestRegistrationModal'
 import { PhotoCaptureModal } from '../camera/PhotoCaptureModal'
 import { ContextualTip } from '@/components/shared/ContextualTip'
 import { BedManager } from '@/components/gardens/BedManager'
-import OperationalDiary from '../diary/OperationalDiary'
+import UnifiedTimelineDiary from '../diary/UnifiedTimelineDiary'
 import DailyGardenReport from './DailyGardenReport'
 import ProfessionalDashboard from '../professional/ProfessionalDashboard'
 import Link from 'next/link'
@@ -223,11 +223,10 @@ export function GardenView({
 
         {activeTab === 'monitoring' && (
           <div className="space-y-6">
-            <OperationalDiary
+            <UnifiedTimelineDiary
               gardenId={garden.id}
-              onEntryAdded={(entry) => {
-                console.log('New diary entry:', entry)
-              }}
+              garden={garden}
+              tasks={tasks}
             />
           </div>
         )}

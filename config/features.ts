@@ -25,8 +25,8 @@ export const FEATURES = {
   
   /**
    * Diario Operativo - Timeline attività
-   * Componente: OperationalDiary.tsx
-   * Route: /app/journal
+   * Componente: UnifiedTimelineDiary.tsx
+   * Route: /app/diary (/app/journal reindirizza qui)
    */
   JOURNAL: true, // ✅ IMPLEMENTATO
   
@@ -62,8 +62,9 @@ export const FEATURES = {
   /**
    * Irrigazione - Gestione zone irrigazione
    * Componente: IrrigationZoneManager.tsx
+   * Route: /app/irrigation (tab "zones")
    */
-  IRRIGATION_ZONES: false, // TODO: Attivare dopo implementazione
+  IRRIGATION_ZONES: true, // ✅ IMPLEMENTATO - montato senza gate in app/app/irrigation/page.tsx, il flag era disallineato dalla realtà
   
   /**
    * Irrigazione - Programmazione automatica

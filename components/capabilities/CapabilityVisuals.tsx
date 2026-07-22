@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  BarChart3, BookOpen, Bot, Brain, CircleDot, Crown, Database, Droplets,
+  BarChart3, BookOpen, Bot, Brain, Calendar, CircleDot, Crown, Database, Droplets,
   FlaskConical, Grape, Heart, LayoutDashboard, Leaf, Link2, Map, MapPinned,
   Satellite, Settings, Shield, Sprout, Tractor, TreePine, Wifi,
   type LucideIcon,
@@ -16,7 +16,7 @@ const ICONS: Record<CapabilityIcon, LucideIcon> = {
   mechanical: Tractor, certifications: Shield, prediction: Brain, satellite: Satellite,
   map: Map, analytics: BarChart3, smart: Wifi, export: Database, help: BookOpen,
   settings: Settings, admin: Crown, drone: Bot, traceability: Link2,
-  harvest: Database, seedbed: Sprout,
+  harvest: Database, seedbed: Sprout, calendar: Calendar,
 }
 
 export function CapabilityIconView({ icon, size = 18 }: { icon: CapabilityIcon; size?: number }) {
