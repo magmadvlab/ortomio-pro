@@ -296,7 +296,7 @@ export default function VineyardPage() {
           />
         ) : viewMode === 'vines' && selectedVineyard ? (
           <div className="space-y-6">
-            <VineManager vineyardId={selectedVineyard.id} />
+            <VineManager vineyardId={selectedVineyard.id} gardenId={selectedGardenId} />
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">

@@ -6,15 +6,16 @@ import { vineyardService } from '@/services/vineyardService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
 import { createOperationContextService } from '@/services/operationContextService'
-import { 
-  Grape, 
-  Plus, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Calendar, 
-  Camera, 
-  Edit, 
+import { AppModal } from '@/components/shared/AppModal'
+import {
+  Grape,
+  Plus,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  Camera,
+  Edit,
   Trash2,
   Eye,
   AlertCircle,
@@ -27,18 +28,18 @@ import {
   Scissors,
   Info,
   QrCode,
-  BarChart3
+  BarChart3,
+  X
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 interface VineManagerProps {
   vineyardId: string
-  onCreateVine?: () => void
-  onEditVine?: (vine: VineyardVine) => void
+  gardenId: string
 }
 
-export default function VineManager({ vineyardId, onCreateVine, onEditVine }: VineManagerProps) {
+export default function VineManager({ vineyardId, gardenId }: VineManagerProps) {
   const [vines, setVines] = useState<VineyardVine[]>([])
   const [filteredVines, setFilteredVines] = useState<VineyardVine[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +47,9 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
   const [showFilters, setShowFilters] = useState(false)
   const [selectedVine, setSelectedVine] = useState<VineyardVine | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showBatchModal, setShowBatchModal] = useState(false)
+  const [editingVine, setEditingVine] = useState<VineyardVine | null>(null)
   const { storageProvider } = useStorage()
   const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
   const operationContextService = createOperationContextService()
@@ -113,6 +117,41 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
       console.error('Error loading vines:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreateVine = async (data: {
+    vineNumber: string
+    variety: string
+    rootstock: string
+    plantingDate: string
+    rowNumber?: number
+    positionInRow?: number
+  }) => {
+    try {
+      const created = await vineyardService.createVine({
+        vineyardId,
+        gardenId,
+        vineNumber: data.vineNumber,
+        variety: data.variety,
+        rootstock: data.rootstock || undefined,
+        plantingDate: data.plantingDate || undefined,
+        rowNumber: data.rowNumber,
+        positionInRow: data.positionInRow,
+        healthStatus: 'healthy',
+        vigorLevel: 'normal',
+        productivityStatus: 'young',
+        isActive: true,
+        needsPruning: false,
+        needsTreatment: false,
+        needsReplacement: false,
+        cumulativeYieldKg: 0,
+      })
+      setVines(prev => [...prev, created])
+      setShowAddModal(false)
+    } catch (error) {
+      console.error('Error creating vine:', error)
+      alert(`Errore nella creazione della vite: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -488,15 +527,13 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
             </button>
           </div>
           
-          {onCreateVine && (
-            <button
-              onClick={onCreateVine}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <Plus size={16} />
-              Nuova Vite
-            </button>
-          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            <Plus size={16} />
+            Nuova Vite
+          </button>
         </div>
       </div>
 
@@ -679,9 +716,9 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
               : 'Prova a modificare i filtri di ricerca'
             }
           </p>
-          {vines.length === 0 && onCreateVine && (
+          {vines.length === 0 && (
             <button
-              onClick={onCreateVine}
+              onClick={() => setShowAddModal(true)}
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
               <Plus size={20} />
@@ -716,14 +753,12 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
                     </div>
                     
                     <div className="flex items-center gap-1">
-                      {onEditVine && (
-                        <button
-                          onClick={() => onEditVine(vine)}
-                          className="p-1 text-gray-400 hover:text-gray-600"
-                        >
-                          <Edit size={14} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setEditingVine(vine)}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        <Edit size={14} />
+                      </button>
                       <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-1 text-gray-400 hover:text-red-600"
@@ -866,14 +901,12 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
                     
                     {/* Azioni */}
                     <div className="flex items-center gap-2">
-                      {onEditVine && (
-                        <button
-                          onClick={() => onEditVine(vine)}
-                          className="p-2 text-gray-400 hover:text-gray-600"
-                        >
-                          <Edit size={16} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setEditingVine(vine)}
+                        className="p-2 text-gray-400 hover:text-gray-600"
+                      >
+                        <Edit size={16} />
+                      </button>
                       <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-2 text-gray-400 hover:text-red-600"
@@ -1285,6 +1318,113 @@ export default function VineManager({ vineyardId, onCreateVine, onEditVine }: Vi
           </div>
         </div>
       )}
+
+      {showAddModal && (
+        <AddVineModal
+          onClose={() => setShowAddModal(false)}
+          onCreate={handleCreateVine}
+        />
+      )}
     </div>
+  )
+}
+
+interface AddVineModalProps {
+  onClose: () => void
+  onCreate: (data: {
+    vineNumber: string
+    variety: string
+    rootstock: string
+    plantingDate: string
+    rowNumber?: number
+    positionInRow?: number
+  }) => Promise<void>
+}
+
+function AddVineModal({ onClose, onCreate }: AddVineModalProps) {
+  const [vineNumber, setVineNumber] = useState('')
+  const [variety, setVariety] = useState('')
+  const [rootstock, setRootstock] = useState('')
+  const [plantingDate, setPlantingDate] = useState('')
+  const [rowNumber, setRowNumber] = useState('')
+  const [positionInRow, setPositionInRow] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!vineNumber.trim() || !variety.trim()) {
+      alert('Inserisci numero vite e varietà')
+      return
+    }
+    setLoading(true)
+    try {
+      await onCreate({
+        vineNumber: vineNumber.trim(),
+        variety: variety.trim(),
+        rootstock: rootstock.trim(),
+        plantingDate,
+        rowNumber: rowNumber ? parseInt(rowNumber, 10) : undefined,
+        positionInRow: positionInRow ? parseInt(positionInRow, 10) : undefined,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AppModal isOpen onClose={onClose} fullScreenOnMobile panelClassName="bg-white shadow-2xl w-full max-w-lg sm:rounded-2xl">
+      <div className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-green-600 text-white px-6 py-4 flex items-center justify-between sm:rounded-t-2xl">
+        <h2 className="text-xl font-bold">Nuova Vite</h2>
+        <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+          <X size={20} />
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Numero Vite *</label>
+          <input type="text" required value={vineNumber} onChange={(e) => setVineNumber(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            placeholder="es. A1-1" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Varietà *</label>
+          <input type="text" required value={variety} onChange={(e) => setVariety(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            placeholder="es. Sangiovese" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fila</label>
+            <input type="number" value={rowNumber} onChange={(e) => setRowNumber(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" min="1" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Posizione in fila</label>
+            <input type="number" value={positionInRow} onChange={(e) => setPositionInRow(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" min="1" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Portinnesto</label>
+          <input type="text" value={rootstock} onChange={(e) => setRootstock(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            placeholder="es. 1103 Paulsen" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Data Impianto</label>
+          <input type="date" value={plantingDate} onChange={(e) => setPlantingDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            Annulla
+          </button>
+          <button type="submit" disabled={loading}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+            {loading ? 'Creazione...' : 'Crea Vite'}
+          </button>
+        </div>
+      </form>
+    </AppModal>
   )
 }
