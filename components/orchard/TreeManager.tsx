@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { OrchardConfiguration, OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
-import type { FieldRow, FieldRowOrdering } from '@/types/fieldRow'
+import type { FieldRow, FieldRowOrdering, FieldRowAxis } from '@/types/fieldRow'
+import { FIELD_ROW_ORDERING_OPTIONS } from '@/types/fieldRow'
 import { orchardService } from '@/services/orchardService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
@@ -40,18 +41,6 @@ interface TreeManagerProps {
   initialSelectedTreeId?: string | null
   onInitialTreeHandled?: () => void
 }
-
-type FieldRowAxis = '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
-
-const FIELD_ROW_ORDERING_OPTIONS: Array<{
-  value: FieldRowOrdering
-  label: string
-}> = [
-  { value: 'west_to_east', label: 'Ovest -> Est' },
-  { value: 'east_to_west', label: 'Est -> Ovest' },
-  { value: 'north_to_south', label: 'Nord -> Sud' },
-  { value: 'south_to_north', label: 'Sud -> Nord' },
-]
 
 export default function TreeManager({
   orchardId,
