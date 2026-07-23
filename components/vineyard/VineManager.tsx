@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { VineyardVine, VineSearchCriteria, VineHealthStatus, VineVigorLevel, VineProductivityStatus } from '@/types/vineyard'
+import type { FieldRow, FieldRowOrdering, FieldRowAxis } from '@/types/fieldRow'
+import { FIELD_ROW_ORDERING_OPTIONS } from '@/types/fieldRow'
 import { vineyardService } from '@/services/vineyardService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
@@ -29,6 +31,7 @@ import {
   Info,
   QrCode,
   BarChart3,
+  Upload,
   X
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -41,6 +44,7 @@ interface VineManagerProps {
 
 export default function VineManager({ vineyardId, gardenId }: VineManagerProps) {
   const [vines, setVines] = useState<VineyardVine[]>([])
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
   const [filteredVines, setFilteredVines] = useState<VineyardVine[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -111,8 +115,19 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
   const loadVines = async () => {
     try {
       setLoading(true)
-      const vinesData = await vineyardService.getVineyardVines(vineyardId, filters)
+      const fieldRowsPromise = storageProvider?.getFieldRows
+        ? storageProvider.getFieldRows(gardenId).catch((error) => {
+            console.error('Error loading field rows:', error)
+            return []
+          })
+        : Promise.resolve([])
+
+      const [vinesData, fieldRowsData] = await Promise.all([
+        vineyardService.getVineyardVines(vineyardId, filters),
+        fieldRowsPromise
+      ])
       setVines(vinesData)
+      setFieldRows(fieldRowsData)
     } catch (error) {
       console.error('Error loading vines:', error)
     } finally {
@@ -152,6 +167,157 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     } catch (error) {
       console.error('Error creating vine:', error)
       alert(`Errore nella creazione della vite: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  const handleBatchAddVines = async (batchData: {
+    startRowNumber: number
+    rowsCount: number
+    vinesPerRow: number
+    variety: string
+    rootstock: string
+    plantingDate: string
+    prefix: string
+    plantSpacingCm?: number
+    distanceFromPreviousRowCm?: number
+    orientation?: FieldRowAxis
+    rowOrdering?: FieldRowOrdering
+    plantOrderingInRow?: FieldRowOrdering
+  }) => {
+    try {
+      if (!storageProvider?.getFieldRows || !storageProvider?.createFieldRow) {
+        throw new Error('Storage provider non supporta la gestione dei filari reali')
+      }
+
+      const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100
+      const calculateRowLengthMeters = (vineCount: number, plantSpacingCm: number) =>
+        roundToTwoDecimals((vineCount * plantSpacingCm) / 100)
+
+      const vinesToCreate: Omit<VineyardVine, 'id' | 'createdAt' | 'updatedAt'>[] = []
+      const nextPositionByRow = new Map<number, number>()
+      const rowIdByRowNumber = new Map<number, string>()
+      const existingFieldRows = await storageProvider.getFieldRows(gardenId)
+      const fieldRowByNumber = new Map<number, FieldRow>()
+
+      vines.forEach((vine) => {
+        if (!vine.rowNumber) return
+        const rowNumber = vine.rowNumber
+        const nextPosition = (vine.positionInRow || 0) + 1
+        const currentMax = nextPositionByRow.get(rowNumber) || 1
+        nextPositionByRow.set(rowNumber, Math.max(currentMax, nextPosition))
+      })
+
+      existingFieldRows.forEach((row) => {
+        if (!fieldRowByNumber.has(row.rowNumber)) {
+          fieldRowByNumber.set(row.rowNumber, row)
+        }
+      })
+
+      for (let rowOffset = 0; rowOffset < batchData.rowsCount; rowOffset++) {
+        const currentRow = batchData.startRowNumber + rowOffset
+        const rowStartPosition = nextPositionByRow.get(currentRow) || 1
+        const totalVinesAfterBatch = rowStartPosition + batchData.vinesPerRow - 1
+        let linkedFieldRow = fieldRowByNumber.get(currentRow)
+
+        if (!linkedFieldRow) {
+          if (!batchData.plantSpacingCm || batchData.plantSpacingCm <= 0) {
+            throw new Error(`Manca la distanza piante per creare il filare ${currentRow}`)
+          }
+
+          linkedFieldRow = await storageProvider.createFieldRow({
+            gardenId,
+            name: `Fila ${currentRow}`,
+            rowNumber: currentRow,
+            lengthMeters: calculateRowLengthMeters(totalVinesAfterBatch, batchData.plantSpacingCm),
+            distanceFromPreviousRow: batchData.distanceFromPreviousRowCm,
+            plantSpacing: batchData.plantSpacingCm,
+            cultivar: batchData.variety,
+            plantCount: totalVinesAfterBatch,
+            orientation: batchData.orientation || undefined,
+            rowOrdering: batchData.rowOrdering,
+            plantOrderingInRow: batchData.plantOrderingInRow,
+            plantedDate: batchData.plantingDate || undefined,
+            isActive: true,
+            notes: 'Creato automaticamente dal batch viti del vigneto'
+          })
+
+          fieldRowByNumber.set(currentRow, linkedFieldRow)
+        } else if (storageProvider.updateFieldRow) {
+          const spacingForLength = linkedFieldRow.plantSpacing || batchData.plantSpacingCm
+          const updates: Partial<FieldRow> = {}
+
+          if (spacingForLength && (!linkedFieldRow.lengthMeters || calculateRowLengthMeters(totalVinesAfterBatch, spacingForLength) > linkedFieldRow.lengthMeters)) {
+            updates.lengthMeters = calculateRowLengthMeters(totalVinesAfterBatch, spacingForLength)
+          }
+          if (!linkedFieldRow.plantSpacing && batchData.plantSpacingCm) {
+            updates.plantSpacing = batchData.plantSpacingCm
+          }
+          if (!linkedFieldRow.distanceFromPreviousRow && batchData.distanceFromPreviousRowCm) {
+            updates.distanceFromPreviousRow = batchData.distanceFromPreviousRowCm
+          }
+          if (!linkedFieldRow.orientation && batchData.orientation) {
+            updates.orientation = batchData.orientation
+          }
+          if (!linkedFieldRow.rowOrdering && batchData.rowOrdering) {
+            updates.rowOrdering = batchData.rowOrdering
+          }
+          if (!linkedFieldRow.plantOrderingInRow && batchData.plantOrderingInRow) {
+            updates.plantOrderingInRow = batchData.plantOrderingInRow
+          }
+          if (!linkedFieldRow.cultivar && batchData.variety) {
+            updates.cultivar = batchData.variety
+          }
+          if (!linkedFieldRow.plantedDate && batchData.plantingDate) {
+            updates.plantedDate = batchData.plantingDate
+          }
+          if (!linkedFieldRow.plantCount || linkedFieldRow.plantCount < totalVinesAfterBatch) {
+            updates.plantCount = totalVinesAfterBatch
+          }
+
+          if (Object.keys(updates).length > 0) {
+            linkedFieldRow = await storageProvider.updateFieldRow(linkedFieldRow.id, updates)
+            fieldRowByNumber.set(currentRow, linkedFieldRow)
+          }
+        }
+
+        if (linkedFieldRow?.id) {
+          rowIdByRowNumber.set(currentRow, linkedFieldRow.id)
+        }
+
+        for (let i = 0; i < batchData.vinesPerRow; i++) {
+          const pos = rowStartPosition + i
+          vinesToCreate.push({
+            vineyardId,
+            gardenId,
+            vineNumber: `${batchData.prefix}${currentRow}-${pos}`,
+            variety: batchData.variety,
+            rootstock: batchData.rootstock || undefined,
+            plantingDate: batchData.plantingDate || undefined,
+            fieldRowId: rowIdByRowNumber.get(currentRow),
+            rowNumber: currentRow,
+            positionInRow: pos,
+            healthStatus: 'healthy',
+            vigorLevel: 'normal',
+            productivityStatus: 'young',
+            isActive: true,
+            needsPruning: false,
+            needsTreatment: false,
+            needsReplacement: false,
+            cumulativeYieldKg: 0,
+          })
+        }
+
+        nextPositionByRow.set(currentRow, rowStartPosition + batchData.vinesPerRow)
+      }
+
+      const created = await vineyardService.bulkCreateVines(vinesToCreate)
+      setVines(prev => [...prev, ...created])
+      const refreshedFieldRows = await storageProvider.getFieldRows(gardenId)
+      setFieldRows(refreshedFieldRows)
+      setShowBatchModal(false)
+    } catch (error) {
+      console.error('Error batch creating vines:', error)
+      alert(`Errore nella creazione batch: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -528,6 +694,14 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
           </div>
           
           <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Upload size={18} />
+            Crea Fila
+          </button>
+
+          <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
@@ -717,13 +891,22 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
             }
           </p>
           {vines.length === 0 && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <Plus size={20} />
-              Registra Prima Vite
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => setShowBatchModal(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Upload size={20} />
+                Crea Fila
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                <Plus size={20} />
+                Registra Prima Vite
+              </button>
+            </div>
           )}
         </div>
       ) : (
@@ -1325,6 +1508,15 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
           onCreate={handleCreateVine}
         />
       )}
+
+      {showBatchModal && (
+        <BatchAddVineModal
+          existingVines={vines}
+          existingFieldRows={fieldRows}
+          onClose={() => setShowBatchModal(false)}
+          onBatchAdd={handleBatchAddVines}
+        />
+      )}
     </div>
   )
 }
@@ -1425,6 +1617,358 @@ function AddVineModal({ onClose, onCreate }: AddVineModalProps) {
           </button>
         </div>
       </form>
+    </AppModal>
+  )
+}
+
+// Batch Add Vines Modal Component
+interface BatchAddVineModalProps {
+  existingVines: VineyardVine[]
+  existingFieldRows: FieldRow[]
+  onClose: () => void
+  onBatchAdd: (data: {
+    startRowNumber: number
+    rowsCount: number
+    vinesPerRow: number
+    variety: string
+    rootstock: string
+    plantingDate: string
+    prefix: string
+    plantSpacingCm?: number
+    distanceFromPreviousRowCm?: number
+    orientation?: FieldRowAxis
+    rowOrdering?: FieldRowOrdering
+    plantOrderingInRow?: FieldRowOrdering
+  }) => Promise<void>
+}
+
+function BatchAddVineModal({ existingVines, existingFieldRows, onClose, onBatchAdd }: BatchAddVineModalProps) {
+  const [rowNumber, setRowNumber] = useState(1)
+  const [rowsCount, setRowsCount] = useState(1)
+  const [count, setCount] = useState(10)
+  const [variety, setVariety] = useState('')
+  const [rootstock, setRootstock] = useState('')
+  const [plantingDate, setPlantingDate] = useState('')
+  const [prefix, setPrefix] = useState('')
+  const [plantSpacingCm, setPlantSpacingCm] = useState('')
+  const [distanceFromPreviousRowCm, setDistanceFromPreviousRowCm] = useState('')
+  const [orientation, setOrientation] = useState<FieldRowAxis>('')
+  const [rowOrdering, setRowOrdering] = useState<FieldRowOrdering | ''>('')
+  const [plantOrderingInRow, setPlantOrderingInRow] = useState<FieldRowOrdering | ''>('')
+  const [loading, setLoading] = useState(false)
+
+  // Calcola la prossima fila disponibile
+  useEffect(() => {
+    if (existingVines.length > 0) {
+      const maxRow = Math.max(...existingVines.map(v => v.rowNumber || 0))
+      setRowNumber(maxRow + 1)
+    }
+  }, [existingVines])
+
+  const getStartPositionForRow = (targetRowNumber: number) => {
+    const vinesInRow = existingVines.filter(v => v.rowNumber === targetRowNumber)
+    if (vinesInRow.length === 0) return 1
+    return Math.max(...vinesInRow.map(v => v.positionInRow || 0)) + 1
+  }
+
+  const firstRowStartPosition = getStartPositionForRow(rowNumber)
+  const lastRowNumber = rowNumber + rowsCount - 1
+  const lastRowStartPosition = getStartPositionForRow(lastRowNumber)
+  const totalVines = rowsCount * count
+  const rowNumbersInRange = Array.from({ length: rowsCount }, (_, index) => rowNumber + index)
+  const missingFieldRows = rowNumbersInRange.filter((targetRowNumber) =>
+    !existingFieldRows.some((row) => Number(row.rowNumber) === targetRowNumber)
+  )
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!variety.trim()) {
+      alert('Inserisci la varietà')
+      return
+    }
+    if (count < 1 || count > 500) {
+      alert('Numero viti deve essere tra 1 e 500')
+      return
+    }
+    if (rowsCount < 1 || rowsCount > 200) {
+      alert('Numero file consecutive deve essere tra 1 e 200')
+      return
+    }
+    if (totalVines > 5000) {
+      alert('Massimo 5.000 viti per singola operazione batch')
+      return
+    }
+    if (missingFieldRows.length > 0) {
+      const parsedPlantSpacing = parseFloat(plantSpacingCm)
+      if (!parsedPlantSpacing || parsedPlantSpacing <= 0) {
+        alert('Inserisci la distanza tra piante per creare i filari mancanti')
+        return
+      }
+    }
+
+    setLoading(true)
+    try {
+      await onBatchAdd({
+        startRowNumber: rowNumber,
+        rowsCount,
+        vinesPerRow: count,
+        variety: variety.trim(),
+        rootstock: rootstock.trim(),
+        plantingDate,
+        prefix: prefix.trim(),
+        plantSpacingCm: plantSpacingCm ? parseFloat(plantSpacingCm) : undefined,
+        distanceFromPreviousRowCm: distanceFromPreviousRowCm ? parseFloat(distanceFromPreviousRowCm) : undefined,
+        orientation: orientation || undefined,
+        rowOrdering: rowOrdering || undefined,
+        plantOrderingInRow: plantOrderingInRow || undefined,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Existing rows summary
+  const rowSummary = new Map<number, number>()
+  existingVines.forEach(v => {
+    if (v.rowNumber) {
+      rowSummary.set(v.rowNumber, (rowSummary.get(v.rowNumber) || 0) + 1)
+    }
+  })
+
+  return (
+    <AppModal
+      isOpen
+      onClose={onClose}
+      fullScreenOnMobile
+      panelClassName="bg-white shadow-2xl w-full max-w-2xl sm:rounded-2xl"
+    >
+      <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-4 flex items-center justify-between sm:rounded-t-2xl">
+          <div>
+            <h2 className="text-xl font-bold">Crea Fila di Viti</h2>
+            <p className="text-blue-100 text-sm">Genera automaticamente una fila intera</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Riepilogo file esistenti */}
+          {rowSummary.size > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-700 mb-2">File esistenti:</p>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(rowSummary.entries()).sort((a, b) => a[0] - b[0]).map(([row, count]) => (
+                  <span key={row} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    Fila {row}: {count} viti
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Numero Fila */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero Fila *</label>
+              <input type="number" required value={rowNumber}
+                onChange={(e) => setRowNumber(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" />
+              <p className="text-xs text-gray-500 mt-1">
+                {existingVines.filter(v => v.rowNumber === rowNumber).length > 0
+                  ? `Fila ${rowNumber} ha già ${existingVines.filter(v => v.rowNumber === rowNumber).length} viti (si aggiunge da pos. ${firstRowStartPosition})`
+                  : `Nuova fila ${rowNumber}`}
+              </p>
+            </div>
+
+            {/* Numero File Consecutive */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero File Consecutive *</label>
+              <input type="number" required value={rowsCount}
+                onChange={(e) => setRowsCount(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" max="200" />
+              <p className="text-xs text-gray-500 mt-1">
+                Da Fila {rowNumber} a Fila {lastRowNumber}
+              </p>
+            </div>
+
+            {/* Numero Viti */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Numero Viti *</label>
+              <input type="number" required value={count}
+                onChange={(e) => setCount(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1" max="500" />
+            </div>
+
+            {/* Varietà */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Varietà *</label>
+              <input type="text" required value={variety}
+                onChange={(e) => setVariety(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. Sangiovese, Nebbiolo, Chardonnay" />
+            </div>
+
+            {/* Portinnesto */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Portinnesto</label>
+              <input type="text" value={rootstock}
+                onChange={(e) => setRootstock(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. 1103 Paulsen, SO4" />
+            </div>
+
+            {/* Data Impianto */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data Impianto</label>
+              <input type="date" value={plantingDate}
+                onChange={(e) => setPlantingDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            {/* Prefisso Numerazione */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prefisso (opzionale)</label>
+              <input type="text" value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="es. A, F1-" />
+              <p className="text-xs text-gray-500 mt-1">Esempio: prefisso "A" → A1-1, A1-2, A1-3...</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Distanza piante nel filare (cm){missingFieldRows.length > 0 ? ' *' : ''}
+              </label>
+              <input
+                type="number"
+                value={plantSpacingCm}
+                onChange={(e) => setPlantSpacingCm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="1"
+                step="1"
+                placeholder="es. 150"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Serve per creare il filare reale se nel range ci sono file non ancora configurate.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Distanza dal filare precedente (cm)</label>
+              <input
+                type="number"
+                value={distanceFromPreviousRowCm}
+                onChange={(e) => setDistanceFromPreviousRowCm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                min="0"
+                step="1"
+                placeholder="es. 250"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Orientamento filare</label>
+              <select
+                value={orientation}
+                onChange={(e) => setOrientation(e.target.value as FieldRowAxis)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                <option value="N-S">Nord-Sud</option>
+                <option value="E-W">Est-Ovest</option>
+                <option value="NE-SW">NordEst-SudOvest</option>
+                <option value="NW-SE">NordOvest-SudEst</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ordine numerazione filari</label>
+              <select
+                value={rowOrdering}
+                onChange={(e) => setRowOrdering(e.target.value as FieldRowOrdering | '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ordine piante nel filare</label>
+              <select
+                value={plantOrderingInRow}
+                onChange={(e) => setPlantOrderingInRow(e.target.value as FieldRowOrdering | '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Non specificato</option>
+                {FIELD_ROW_ORDERING_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Anteprima */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">Anteprima creazione</h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>
+                Verranno create <strong>{totalVines}</strong> viti in <strong>{rowsCount} {rowsCount === 1 ? 'fila' : 'file'}</strong>
+              </p>
+              <p>
+                Intervallo file: <strong>{rowNumber}</strong> → <strong>{lastRowNumber}</strong> ({count} viti per fila)
+              </p>
+              <p>
+                Prima fila ({rowNumber}) posizioni: <strong>{firstRowStartPosition}</strong> → <strong>{firstRowStartPosition + count - 1}</strong>
+              </p>
+              <p>
+                Numerazione prima fila: <strong>{prefix}{rowNumber}-{firstRowStartPosition}</strong> → <strong>{prefix}{rowNumber}-{firstRowStartPosition + count - 1}</strong>
+              </p>
+              {rowsCount > 1 && (
+                <p>
+                  Ultima fila ({lastRowNumber}) parte da posizione <strong>{lastRowStartPosition}</strong>
+                </p>
+              )}
+              {missingFieldRows.length > 0 ? (
+                <p>
+                  Verranno creati anche i filari reali: <strong>{missingFieldRows.join(', ')}</strong>
+                </p>
+              ) : (
+                <p>
+                  Tutte le file del range risultano gia collegate a filari reali.
+                </p>
+              )}
+              {plantSpacingCm && (
+                <p>
+                  Passo piante usato per il filare: <strong>{plantSpacingCm} cm</strong>
+                  {distanceFromPreviousRowCm ? ` • Interfila: ${distanceFromPreviousRowCm} cm` : ''}
+                </p>
+              )}
+              <p>Varietà: <strong>{variety || '(da specificare)'}</strong>{rootstock ? ` su ${rootstock}` : ''}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              Annulla
+            </button>
+            <button type="submit" disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2">
+              {loading ? 'Creazione...' : `Crea ${totalVines} Viti`}
+            </button>
+          </div>
+        </form>
     </AppModal>
   )
 }
