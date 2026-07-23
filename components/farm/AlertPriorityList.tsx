@@ -17,9 +17,9 @@ const CATEGORY_ICONS: Record<FieldAlert['category'], string> = {
 };
 
 const CTA: Record<FieldAlert['category'], { label: string; href: string } | null> = {
-  treatment: { label: 'Registra intervento →', href: '/dashboard' },
-  disease: { label: 'Vedi prescrizione AI →', href: '/dashboard' },
-  water: { label: 'Pianifica irrigazione →', href: '/dashboard' },
+  treatment: { label: 'Registra intervento →', href: '/app/nutrition' },
+  disease: { label: 'Vedi prescrizione AI →', href: '/app/health' },
+  water: { label: 'Pianifica irrigazione →', href: '/app/irrigation' },
   heat: null,
   harvest: null,
 };
@@ -76,7 +76,7 @@ export function AlertPriorityList({ alerts, highlightedGardenId, getGardenName }
         {okAlerts.length > 0 && (
           <div className="bg-green-950/40 border-l-4 border-green-700 rounded-r-lg p-3">
             <p className="text-xs text-green-400 font-semibold">
-              ✓ {okAlerts.map(a => getGardenName(a.gardenId)).join(', ')} — Nessun alert
+              ✓ {[...new Set(okAlerts.map(a => getGardenName(a.gardenId)))].join(', ')} — Nessun alert
             </p>
             <p className="text-[10px] text-gray-500 mt-1">
               Ultimo controllo: {new Date(okAlerts[0].computedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
