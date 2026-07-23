@@ -1,9 +1,9 @@
 # OrtoMio — Masterdoc canonico
 
-- **Versione:** 3.0 release candidate P0-P8
-- **Ultimo aggiornamento:** 2026-07-17
+- **Versione:** 3.1 release candidate P0-P8 + correzioni 21-22/07
+- **Ultimo aggiornamento:** 2026-07-22
 - **Repository canonico:** `/Volumes/990P/ortomio-main`
-- **Baseline verificata:** catena di branch P0-P9; contenuti `fdb0aa9`, bonifica `babbe93`, chiusura `7da7b57`
+- **Baseline verificata:** `main` = `c7ab657` (22 luglio 2026, pomeriggio) — antenato diretto della catena P0-P9 di questo documento, nessuna divergenza
 - **Documento sorgente confrontato:** `/Users/magma/Desktop/MASTERDOC_16Luglio-2026.md`
 - **SHA-256 del sorgente:** `4e03edb1134179be16ebb2a5393bbbdba27632ba06a600d49e685bc7a5bd18d0`
 - **Stato:** documento unico canonico di prodotto, architettura e maturita; rollout remoto differito
@@ -26,11 +26,24 @@ La baseline corretta e il checkout 990P. Il checkout LaCie e un antenato fermo a
 
 ## 0. Stato vincolante della release candidate
 
-P0-P8 sono implementate e verificate nella baseline locale del 17 luglio 2026. Sono verdi le suite di fase, 228 test di regressione, type-check, build da 144 pagine, replay SQL locale e drill locale backup/restore. Questa evidenza non equivale a un deploy di produzione.
+P0-P8 sono implementate e verificate nella baseline locale del 17 luglio 2026. Sono verdi le suite di fase, 228 test di regressione, type-check, build da 144 pagine. Questa evidenza non equivale a un deploy di produzione.
 
-Restano obbligatori prima dell'attivazione remota: snapshot del target, restore drill sul target autorizzato, applicazione migrazioni P1-P8, verifica drift e RLS cross-tenant, Security Advisor, smoke dei provider, shadow mode, pilot e prova del rollback. In assenza di questi gate `deployReady` resta `false`.
+Restano obbligatori prima dell'attivazione remota: snapshot del target, restore drill sul target autorizzato (ultimo backup reale disponibile: 12 gennaio 2026 — non un drill recente), riconciliazione completa delle migrazioni (vedi sotto), verifica drift e RLS cross-tenant, Security Advisor, smoke dei provider, shadow mode, pilot e prova del rollback. In assenza di questi gate `deployReady` resta `false`.
 
-Le migrazioni P1-P8 non risultano applicate al progetto remoto da questa esecuzione. Nessun comando fisico, provider remoto o capability critica e stato attivato. Le funzioni non validate restano spente server-side; drone e blockchain restano simulazioni isolate.
+**Stato migrazioni verificato il 22/07** (non piu una stima): `schema_migrations` remoto ha 40 righe tracciate; 79 file locali restano da riconciliare uno per uno via query read-only su `information_schema` (nessun branch disponibile, piano Supabase free); 3 file hanno naming che ne impedisce l'applicazione automatica, decisione ancora da prendere. Dettaglio operativo in `docs/reports/execution-plans/ORTOMIO_ROADMAP_INDUSTRIALIZZAZIONE_2026-07-22.md`.
+
+Nessun comando fisico, provider remoto o capability critica e stato attivato. Le funzioni non validate restano spente server-side; drone e blockchain restano simulazioni isolate (decisione confermata il 22/07: nessun hardware/blockchain reale previsto a breve, restano cosi).
+
+**Correzioni verificate 21-22 luglio 2026** (bug reali trovati e corretti in produzione, fuori dal perimetro P0-P8 originale — dettaglio completo in `docs/reports/execution-plans/` e PR #34-#44 su GitHub):
+- Checkout riproducibile (lockfile canonico), CORS rotto su `compute-field-alerts`, hang su "Verifica autenticazione...".
+- Persistenza meteo storica (`daily_weather_log`) non scriveva mai nulla per due bug distinti (nomi colonna sbagliati, client anonimo senza permessi in contesto cron) — corretto e verificato con query reale.
+- Chiavi Gemini/OpenRouter/Groq/HuggingFace esposte lato client (una addirittura hardcoded nel sorgente) — rimosse; 9 funzioni AI legacy migrate su una route server-side unica (`/api/ai/generate`) gated per tier e crediti.
+- 11 file con identita fittizie (`'current-user'` letterale) invece dell'utente autenticato reale — 5 erano bug funzionali attivi (es. notifiche sempre vuote per ogni utente reale), 5 corrompevano l'audit trail.
+- Lint era disattivato senza motivo tecnico (script faceva solo `echo`) — riattivato; dei 39 errori reali emersi, corretti i 10 hook React chiamati dopo un return condizionale (bug dormiente, innocuo solo perche il tier-gating e oggi disattivato).
+- `smartOperationsService.ts`: su errore API meteo restituiva dati completamente casuali usati per warning reali su irrigazione/trattamenti; separatamente l'umidita era sempre finta anche a chiamata riuscita (Open-Meteo non la include nel blocco daily).
+- `intelligentNotificationService.ts`: l'invio notifiche costruiva l'oggetto per la funzione di invio reale ma non la chiamava mai, marcando comunque un falso "inviato con successo".
+
+Nessuna di queste correzioni ha cambiato lo stato `deployReady`/`maturity` di alcuna capability — sono bug fix, non promozioni. Vedi sezione 28 per il registro di maturita reale.
 
 La regola di lettura e semplice: quando il documento dice che una funzione "calcola", deve spiegare almeno:
 
@@ -1350,11 +1363,13 @@ Per un contesto professionale:
 
 ## 28. Limiti e verita da non nascondere
 
-Questo masterdoc deve distinguere sempre tre livelli:
+La maturita reale di ogni capability non e un giudizio soggettivo di questo documento: e un dato di codice, definito in `config/capabilities.ts` (campo `maturity` su ciascuna delle 31 capability registrate) e mostrato realmente nella UI tramite `getCapabilityBadge()`. Stato verificato il 22/07/2026:
 
-- operativo: funzione usabile oggi;
-- ibrido: funzione presente ma con fallback o copertura parziale;
-- beta: funzione presente come UI/modello/servizio ma da validare end-to-end.
+- **15 stable** (nessun badge mostrato all'utente);
+- **14 beta** (badge "Beta"): Centro operativo, Planner AI, Consigli AI, Diario operativo, Irrigazione, Nutrizione e trattamenti, Lavorazioni, Certificazioni, Predizioni AI, NDVI satellitare, Prescription Maps, Smart Hub, Export, Configurazione satellite;
+- **2 simulation** (badge "Simulazione"): drone e blockchain/NFT — demo isolate, mai da promuovere senza hardware/provider reale.
+
+Qui "beta" significa specificamente: *funzionalmente completo e testato in locale, ma senza le prove richieste in produzione* (RLS testate su piu aziende reali con dati reali, pilot con cliente vero, contract test sul provider esterno, restore drill). Non significa "codice incompleto" ne "rotto". **Decisione di prodotto confermata il 22/07/2026: nessuna delle 14 capability beta va promossa a stable finche il suo gate specifico (vedi Specifica v1.1, matrice delle 29 capability) non e chiuso con evidenza riproducibile.** Promuovere in blocco senza quella evidenza ripeterebbe l'errore opposto gia corretto in questa stessa data (dichiarare piu pronto di quanto verificato — vedi bug fix 21-22/07 in sezione 0).
 
 Le aree da verificare sempre prima di dichiararle complete sono:
 
