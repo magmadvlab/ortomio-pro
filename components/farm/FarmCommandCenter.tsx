@@ -1,6 +1,7 @@
 // components/farm/FarmCommandCenter.tsx
 'use client'
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { getFieldAlerts, clearFieldAlertsCache } from '@/services/fieldAlertService';
 import { WeatherStrip } from './WeatherStrip';
@@ -14,6 +15,7 @@ const SUPABASE_FUNCTIONS_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
   : '';
 
 export function FarmCommandCenter() {
+  const router = useRouter();
   const { storageProvider } = useStorage();
   const [gardens, setGardens] = useState<Garden[]>([]);
   const [allAlerts, setAllAlerts] = useState<FieldAlert[]>([]);
@@ -56,6 +58,13 @@ export function FarmCommandCenter() {
   }, [storageProvider, loadAlerts]);
 
   const handleFieldSelect = (gardenId: string) => {
+    const hasActiveAlert = allAlerts.some(a => a.gardenId === gardenId && a.severity !== 'ok');
+    if (!hasActiveAlert) {
+      // Nessun alert per questo orto: non c'e' nulla su cui scorrere nella lista,
+      // porta l'utente alla gestione dell'orto invece di lasciare il click senza effetto.
+      router.push(`/app/garden?garden=${gardenId}`);
+      return;
+    }
     setHighlightedId(gardenId);
     document.getElementById(`alert-${gardenId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
