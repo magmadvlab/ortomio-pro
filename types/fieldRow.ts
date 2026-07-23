@@ -56,6 +56,18 @@ export type FieldRowOrdering =
   | 'north_to_south'
   | 'south_to_north'
 
+export type FieldRowAxis = '' | 'N-S' | 'E-W' | 'NE-SW' | 'NW-SE'
+
+export const FIELD_ROW_ORDERING_OPTIONS: Array<{
+  value: FieldRowOrdering
+  label: string
+}> = [
+  { value: 'west_to_east', label: 'Ovest -> Est' },
+  { value: 'east_to_west', label: 'Est -> Ovest' },
+  { value: 'north_to_south', label: 'Nord -> Sud' },
+  { value: 'south_to_north', label: 'Sud -> Nord' },
+]
+
 /**
  * Batch di semina/trapianto scalare
  * Traccia ogni "lotto" di piante piantate in momenti diversi
