@@ -107,7 +107,8 @@ export class IntelligentNotificationService {
    */
   async processAlerts(
     alerts: MonitoringAlert[],
-    context: NotificationContext
+    context: NotificationContext,
+    supabaseClient: any
   ): Promise<IntelligentNotification[]> {
     const notifications: IntelligentNotification[] = []
     
@@ -136,7 +137,7 @@ export class IntelligentNotificationService {
     // Salva e programma notifiche
     for (const notification of optimizedNotifications) {
       this.notifications.set(notification.id, notification)
-      await this.scheduleNotification(notification, context)
+      await this.scheduleNotification(notification, context, supabaseClient)
     }
     
     return optimizedNotifications
@@ -204,8 +205,10 @@ export class IntelligentNotificationService {
         weatherRelated: alerts.some(a => a.category === 'weather'),
         timesSensitive: isTimesSensitive
       },
-      aiGenerated: true,
-      aiConfidence: 0.85, // TODO: Calcolare confidence reale
+      // generateAIContent usa ancora generateRuleBasedContent (nessuna chiamata AI reale,
+      // vedi TODO li' dentro): non dichiarare contenuto/confidenza AI che non esiste.
+      aiGenerated: false,
+      aiConfidence: undefined,
       scheduledFor: notificationType === 'immediate' 
         ? new Date().toISOString()
         : this.calculateOptimalSendTime(context),
@@ -419,7 +422,7 @@ export class IntelligentNotificationService {
       context: {
         alertIds: digestNotifications.flatMap(n => n.context.alertIds || [])
       },
-      aiGenerated: true,
+      aiGenerated: false, // titolo/messaggio da template, nessuna chiamata AI
       scheduledFor: this.calculateDigestSendTime(context),
       metadata: {
         combinedNotifications: digestNotifications.length,
@@ -502,16 +505,17 @@ export class IntelligentNotificationService {
    */
   private async scheduleNotification(
     notification: IntelligentNotification,
-    context: NotificationContext
+    context: NotificationContext,
+    supabaseClient: any
   ): Promise<void> {
     if (notification.type === 'immediate') {
-      await this.sendNotificationNow(notification, context)
+      await this.sendNotificationNow(notification, context, supabaseClient)
     } else if (notification.type === 'digest') {
       this.addToDigest(notification, context.user.id)
     } else {
-      // Programma per dopo
-      // TODO: Implementare scheduler reale
-      console.log(`📅 Scheduled notification "${notification.title}" for ${notification.scheduledFor}`)
+      // Programma per dopo: nessuno scheduler persistente esiste ancora
+      // (richiede cron/coda dedicati, rinviato deliberatamente - vedi D11).
+      console.log(`📅 Notification "${notification.title}" scheduled for ${notification.scheduledFor}, but no persistent scheduler exists yet - it will not be sent automatically.`)
     }
   }
 
@@ -520,7 +524,8 @@ export class IntelligentNotificationService {
    */
   private async sendNotificationNow(
     notification: IntelligentNotification,
-    context: NotificationContext
+    context: NotificationContext,
+    supabaseClient: any
   ): Promise<void> {
     try {
       const notificationData: NotificationData = {
@@ -537,13 +542,17 @@ export class IntelligentNotificationService {
           aiGenerated: notification.aiGenerated
         }
       }
-      
-      // TODO: Implementare invio reale
-      console.log(`📧 Sending immediate notification: ${notification.title}`)
-      
-      notification.sentAt = new Date().toISOString()
+
+      const result = await sendNotification(notificationData, supabaseClient)
+
+      if (result.success) {
+        notification.sentAt = new Date().toISOString()
+      } else {
+        console.error(`Notification "${notification.title}" not sent: ${result.error}`)
+      }
+
       this.notifications.set(notification.id, notification)
-      
+
     } catch (error) {
       console.error('Error sending notification:', error)
     }
@@ -669,19 +678,19 @@ export class IntelligentNotificationService {
   /**
    * Invia digest giornaliero
    */
-  async sendDailyDigest(userId: string, context: NotificationContext): Promise<boolean> {
+  async sendDailyDigest(userId: string, context: NotificationContext, supabaseClient: any): Promise<boolean> {
     const pendingNotifications = this.getPendingDigest(userId)
-    
+
     if (pendingNotifications.length === 0) {
       return false
     }
-    
+
     const digestNotification = this.combineDigestNotifications(
       pendingNotifications,
       context
     )
-    
-    await this.sendNotificationNow(digestNotification, context)
+
+    await this.sendNotificationNow(digestNotification, context, supabaseClient)
     
     // Pulisci digest pendenti
     this.pendingDigests.delete(userId)
