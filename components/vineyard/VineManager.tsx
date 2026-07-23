@@ -17,7 +17,6 @@ import {
   MapPin,
   Calendar,
   Camera,
-  Edit,
   Trash2,
   Eye,
   AlertCircle,
@@ -53,7 +52,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showBatchModal, setShowBatchModal] = useState(false)
-  const [editingVine, setEditingVine] = useState<VineyardVine | null>(null)
   const { storageProvider } = useStorage()
   const unifiedOperationsService = createUnifiedOperationsService(storageProvider)
   const operationContextService = createOperationContextService()
@@ -937,12 +935,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
                     
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setEditingVine(vine)}
-                        className="p-1 text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-1 text-gray-400 hover:text-red-600"
                       >
@@ -1084,12 +1076,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
                     
                     {/* Azioni */}
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditingVine(vine)}
-                        className="p-2 text-gray-400 hover:text-gray-600"
-                      >
-                        <Edit size={16} />
-                      </button>
                       <button
                         onClick={() => handleDeleteVine(vine.id)}
                         className="p-2 text-gray-400 hover:text-red-600"
@@ -1672,6 +1658,7 @@ function BatchAddVineModal({ existingVines, existingFieldRows, onClose, onBatchA
   }
 
   const firstRowStartPosition = getStartPositionForRow(rowNumber)
+  const vinesInSelectedRowCount = existingVines.filter(v => v.rowNumber === rowNumber).length
   const lastRowNumber = rowNumber + rowsCount - 1
   const lastRowStartPosition = getStartPositionForRow(lastRowNumber)
   const totalVines = rowsCount * count
@@ -1776,8 +1763,8 @@ function BatchAddVineModal({ existingVines, existingFieldRows, onClose, onBatchA
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 min="1" />
               <p className="text-xs text-gray-500 mt-1">
-                {existingVines.filter(v => v.rowNumber === rowNumber).length > 0
-                  ? `Fila ${rowNumber} ha già ${existingVines.filter(v => v.rowNumber === rowNumber).length} viti (si aggiunge da pos. ${firstRowStartPosition})`
+                {vinesInSelectedRowCount > 0
+                  ? `Fila ${rowNumber} ha già ${vinesInSelectedRowCount} viti (si aggiunge da pos. ${firstRowStartPosition})`
                   : `Nuova fila ${rowNumber}`}
               </p>
             </div>
