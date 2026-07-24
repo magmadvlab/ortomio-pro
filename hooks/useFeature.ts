@@ -56,7 +56,7 @@ export function useFeatures<T extends FeatureFlag[]>(
  * @example
  * ```tsx
  * function MyComponent() {
- *   const allEnabled = useAllFeatures(['IRRIGATION_ZONES', 'IRRIGATION_SCHEDULING'])
+ *   const allEnabled = useAllFeatures(['IRRIGATION_BASE', 'IRRIGATION_ZONES'])
  *   
  *   if (!allEnabled) {
  *     return <div>Alcune funzionalità non sono disponibili</div>

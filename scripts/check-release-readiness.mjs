@@ -31,16 +31,14 @@ const local = {
     releaseTests: Boolean(packageJson.scripts?.['test:release']),
     releaseCheck: Boolean(packageJson.scripts?.['release:check']),
   },
-  failClosedFlags: {
-    AI_PREDICTIONS: /AI_PREDICTIONS:\s*false/.test(featureSource),
-    IRRIGATION_SCHEDULING: /IRRIGATION_SCHEDULING:\s*false/.test(featureSource),
-    ADVANCED_CERTIFICATIONS: /ADVANCED_CERTIFICATIONS:\s*false/.test(featureSource),
+  featureRegistry: {
+    noDisabledPlaceholders: !/^\s*[A-Z][A-Z0-9_]*:\s*false\b/m.test(featureSource),
   },
 }
 const localReady = Object.values(local.migrations).every(Boolean)
   && Object.values(local.evidence).every(Boolean)
   && Object.values(local.scripts).every(Boolean)
-  && Object.values(local.failClosedFlags).every(Boolean)
+  && Object.values(local.featureRegistry).every(Boolean)
 
 let remote = { checked: false, deployReady: false, reason: 'remote_not_requested' }
 if (requireRemote) {

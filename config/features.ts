@@ -68,89 +68,7 @@ export const FEATURES = {
    * Route: /app/irrigation (tab "zones")
    */
   IRRIGATION_ZONES: true, // ✅ IMPLEMENTATO - montato senza gate in app/app/irrigation/page.tsx, il flag era disallineato dalla realtà
-  
-  /**
-   * Irrigazione - Programmazione automatica
-   * Componente: AutomaticScheduler.tsx
-   */
-  IRRIGATION_SCHEDULING: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Irrigazione - Analytics consumo acqua
-   * Componente: WaterConsumptionAnalytics.tsx
-   */
-  IRRIGATION_ANALYTICS: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Nutrizione - Inventario prodotti
-   * Componente: ProductInventoryManager.tsx
-   */
-  NUTRITION_INVENTORY: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Nutrizione - Calcolo dosi per zona
-   * Componente: DoseCalculator.tsx
-   */
-  NUTRITION_DOSE_CALCULATOR: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Nutrizione - Compatibilità prodotti
-   * Componente: ProductCompatibilityChecker.tsx
-   */
-  NUTRITION_COMPATIBILITY: false, // TODO: Attivare dopo implementazione
-  
-  // ============================================
-  // MODULI MEDI - Fase 3
-  // ============================================
-  
-  /**
-   * Lavori Meccanici - Gestione attrezzature
-   * Componente: EquipmentManager.tsx
-   */
-  EQUIPMENT_MANAGEMENT: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Lavori Meccanici - Calendario manutenzioni
-   * Componente: MaintenanceScheduler.tsx
-   */
-  MAINTENANCE_SCHEDULER: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Lavori Meccanici - Costi operativi
-   * Componente: OperationalCostsTracker.tsx
-   */
-  OPERATIONAL_COSTS: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Certificazioni - Gestione documenti avanzata
-   * Componente: AdvancedDocumentManager.tsx
-   */
-  ADVANCED_CERTIFICATIONS: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Consigli - Consigli stagionali base
-   * Componente: SeasonalAdvice.tsx
-   */
-  SEASONAL_ADVICE: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Planner - Wizard piantagione esteso
-   * Componente: ExtendedPlannerWizard.tsx
-   */
-  PLANNER_WIZARD_EXTENDED: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Planner - Selezione materiale (seme/piantina/alberello)
-   * Componente: MaterialSelector.tsx
-   */
-  PLANNER_MATERIAL_SELECTOR: false, // TODO: Attivare dopo implementazione
-  
-  /**
-   * Planner - Collegamento banca semi
-   * Componente: SeedBankConnector.tsx
-   */
-  PLANNER_SEED_BANK: false, // TODO: Attivare dopo implementazione
-  
+
   // ============================================
   // FUNZIONALITÀ ESISTENTI (sempre attive)
   // ============================================
@@ -246,21 +164,5 @@ export const FEATURES_BY_PHASE = {
   
   PHASE_2_HIGH: [
     'IRRIGATION_ZONES',
-    'IRRIGATION_SCHEDULING',
-    'IRRIGATION_ANALYTICS',
-    'NUTRITION_INVENTORY',
-    'NUTRITION_DOSE_CALCULATOR',
-    'NUTRITION_COMPATIBILITY',
-  ] as FeatureFlag[],
-  
-  PHASE_3_MEDIUM: [
-    'EQUIPMENT_MANAGEMENT',
-    'MAINTENANCE_SCHEDULER',
-    'OPERATIONAL_COSTS',
-    'ADVANCED_CERTIFICATIONS',
-    'SEASONAL_ADVICE',
-    'PLANNER_WIZARD_EXTENDED',
-    'PLANNER_MATERIAL_SELECTOR',
-    'PLANNER_SEED_BANK',
   ] as FeatureFlag[],
 } as const

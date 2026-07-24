@@ -2244,22 +2244,47 @@ Fonte: `config/features.ts`.
 
 | Feature | Stato | Nota |
 |---|---:|---|
-| `IRRIGATION_ZONES` | false | da attivare dopo implementazione/validazione |
-| `IRRIGATION_SCHEDULING` | false | programmazione automatica non flaggata attiva |
-| `IRRIGATION_ANALYTICS` | false | analytics consumo acqua non flaggati attivi |
-| `NUTRITION_INVENTORY` | false | inventario prodotti non flaggato attivo |
-| `NUTRITION_DOSE_CALCULATOR` | false | calcolo dosi non flaggato attivo |
-| `NUTRITION_COMPATIBILITY` | false | compatibilita non flaggata attiva |
-| `EQUIPMENT_MANAGEMENT` | false | gestione attrezzature |
-| `MAINTENANCE_SCHEDULER` | false | manutenzioni |
-| `OPERATIONAL_COSTS` | false | costi operativi |
-| `ADVANCED_CERTIFICATIONS` | false | documenti avanzati |
-| `SEASONAL_ADVICE` | false | consigli stagionali |
-| `PLANNER_WIZARD_EXTENDED` | false | wizard esteso |
-| `PLANNER_MATERIAL_SELECTOR` | false | selezione materiale |
-| `PLANNER_SEED_BANK` | false | banca semi |
+| `IRRIGATION_SCHEDULING` | rimosso il 24/07/2026 | vedi 44.3 |
+| `IRRIGATION_ANALYTICS` | rimosso il 24/07/2026 | vedi 44.3 |
+| `NUTRITION_INVENTORY` | rimosso il 24/07/2026 | vedi 44.3 |
+| `NUTRITION_DOSE_CALCULATOR` | rimosso il 24/07/2026 | vedi 44.3 |
+| `NUTRITION_COMPATIBILITY` | rimosso il 24/07/2026 | vedi 44.3 |
+| `EQUIPMENT_MANAGEMENT` | rimosso il 24/07/2026 | vedi 44.3 |
+| `MAINTENANCE_SCHEDULER` | rimosso il 24/07/2026 | vedi 44.3 |
+| `OPERATIONAL_COSTS` | rimosso il 24/07/2026 | vedi 44.3 |
+| `ADVANCED_CERTIFICATIONS` | rimosso il 24/07/2026 | vedi 44.3 |
+| `SEASONAL_ADVICE` | rimosso il 24/07/2026 | vedi 44.3 |
+| `PLANNER_WIZARD_EXTENDED` | rimosso il 24/07/2026 | vedi 44.3 |
+| `PLANNER_MATERIAL_SELECTOR` | rimosso il 24/07/2026 | vedi 44.3 |
+| `PLANNER_SEED_BANK` | rimosso il 24/07/2026 | vedi 44.3 |
 
-Nota importante: una feature flag a `false` non significa sempre assenza totale di codice. Una flag a `true` non prova completezza. In entrambi i casi servono verifica di route, storage, ownership, UI e flusso end-to-end.
+Nessuna feature `false` residua in `config/features.ts`: l'unico flag della Fase 2 rimasto, `IRRIGATION_ZONES`, è `true` (vedi 44.1).
+
+### 44.3 Rimozione dei 13 flag morti (D5, 24/07/2026)
+
+`IRRIGATION_ZONES` era nella lista 44.2 fino al 22/07/2026: verificato che il componente era già montato senza gate (`app/app/irrigation/page.tsx`), flag disallineato dalla realtà, corretto a `true` (D5, `config/features.ts:67`).
+
+Le altre 13 righe sono state verificate il 24/07/2026 con una ricerca sull'intero repo (esclusi `node_modules`) sul nome del componente citato nel commento di ciascun flag: **nessuno dei 13 file esisteva**. Non erano funzionalità disattivate temporaneamente, ma flag creati in anticipo per moduli della Fase 2 ("MODULI ALTI") e Fase 3 ("MODULI MEDI") del piano originale mai scritti — zero codice dietro. Nessuno dei 13 nomi è mai stato letto da `isFeatureEnabled`, `<FeatureGate>` o `FEATURES_BY_PHASE` fuori da `config/features.ts` stesso: rimuoverli non ha effetto sul comportamento dell'app (verificato con `tsc --noEmit`, nessun errore).
+
+Decisione presa: eliminati da `config/features.ts` insieme all'intera sezione "MODULI MEDI - Fase 3" (tutti e 8 i suoi flag erano in questo elenco) e dalla relativa voce in `FEATURES_BY_PHASE`, invece di lasciarli come dichiarazione di roadmap futura — nessuna implementazione esisteva da preservare.
+
+| Feature rimossa | Componente referenziato (comment ormai eliminato) |
+|---|---|
+| `IRRIGATION_SCHEDULING` | `AutomaticScheduler.tsx` |
+| `IRRIGATION_ANALYTICS` | `WaterConsumptionAnalytics.tsx` |
+| `NUTRITION_INVENTORY` | `ProductInventoryManager.tsx` |
+| `NUTRITION_DOSE_CALCULATOR` | `DoseCalculator.tsx` |
+| `NUTRITION_COMPATIBILITY` | `ProductCompatibilityChecker.tsx` |
+| `EQUIPMENT_MANAGEMENT` | `EquipmentManager.tsx` |
+| `MAINTENANCE_SCHEDULER` | `MaintenanceScheduler.tsx` |
+| `OPERATIONAL_COSTS` | `OperationalCostsTracker.tsx` |
+| `ADVANCED_CERTIFICATIONS` | `AdvancedDocumentManager.tsx` |
+| `SEASONAL_ADVICE` | `SeasonalAdvice.tsx` |
+| `PLANNER_WIZARD_EXTENDED` | `ExtendedPlannerWizard.tsx` |
+| `PLANNER_MATERIAL_SELECTOR` | `MaterialSelector.tsx` |
+| `PLANNER_SEED_BANK` | `SeedBankConnector.tsx` |
+
+Se uno di questi moduli tornerà in roadmap, va ricreato da zero (flag + componente + route + gate), non riattivato: non c'era nulla dietro da riaccendere.
 
 ## 45. Database e tabelle storicamente documentate
 

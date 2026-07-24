@@ -79,7 +79,7 @@ interface MultiFeatureGateProps {
  * 
  * @example Tutte le features devono essere attive
  * ```tsx
- * <MultiFeatureGate features={['IRRIGATION_ZONES', 'IRRIGATION_SCHEDULING']} mode="all">
+ * <MultiFeatureGate features={['IRRIGATION_BASE', 'IRRIGATION_ZONES']} mode="all">
  *   <FullIrrigationDashboard />
  * </MultiFeatureGate>
  * ```
