@@ -25,7 +25,7 @@
 - le ricorrenze mensili mantengono il giorno originario e ripiegano sull'ultimo giorno valido del mese;
 - intervalli non positivi e range invertiti falliscono senza produrre occorrenze;
 - i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
-- test locali aggiornati: type-check verde e persistenza 39/39.
+- test locali aggiornati: type-check verde e persistenza 40/40.
 
 ## Riconciliazione debito core
 
@@ -41,7 +41,8 @@
 - anche `InteractiveTrackingInterface`, non importata e basata su meteo e foto inventati, e' stata rimossa invece di lasciare una falsa superficie operativa;
 - il duplicato morto `components/SaplingDashboard.tsx` e' stato rimosso; le pagine continuano a usare il dashboard alberelli canonico in `components/seedbank`;
 - la route tecnica `/app/compare` e il dettaglio obsoleto sono stati rimossi: puntavano a route legacy inesistenti e descrivevano come placeholder capability specializzate oggi stabili;
-- le voci M11 pianificate scendono da 58 a 34; nessuna voce release resta non classificata.
+- la modifica di un'operazione nel ciclo pianta riusa il form esistente e invoca il callback persistente `onUpdateOperation`, invece di limitarsi a un log console;
+- le voci M11 pianificate scendono da 58 a 33; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 

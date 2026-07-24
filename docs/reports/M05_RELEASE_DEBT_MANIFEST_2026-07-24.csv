@@ -43,7 +43,6 @@
 "components/planner/tabs/PlannerHealthSuggestions.tsx","130","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implementare chiamata API per analisi AI"
 "components/planner/tabs/PlannerHealthSuggestions.tsx","166","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implementare invio richiesta a sistema agronomi"
 "components/plants/BulkOperationModal.tsx","213","placeholder","release","accepted","form label or placeholder copy, not simulated operational data","{operationInfo.placeholder}"
-"components/plants/PlantLifecycleManager.tsx","689","todo","release","scheduled:M11","core operational lifecycle","// TODO: Implementare modifica operazione"
 "components/plants/TreatmentTracker.tsx","269","todo","release","scheduled:M12","agronomic operation pilot","{/* TODO: Caricare foto reale */}"
 "components/prescription/CostOptimizationPanel.tsx","728","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implement export functionality"
 "components/prescription/HistoricalComparisonPanel.tsx","635","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implement export functionality"

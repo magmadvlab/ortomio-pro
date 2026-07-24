@@ -191,6 +191,7 @@ export default function PlantLifecycleManager({
   const [showAddOperation, setShowAddOperation] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<OperationTemplate | null>(null)
   const [newOperation, setNewOperation] = useState<Partial<PlantOperation>>({})
+  const [editingOperationId, setEditingOperationId] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
@@ -332,10 +333,31 @@ export default function PlantLifecycleManager({
       photos: newOperation.photos || []
     }
     
-    onAddOperation(operation)
+    if (editingOperationId) {
+      onUpdateOperation(editingOperationId, operation)
+    } else {
+      onAddOperation(operation)
+    }
     setShowAddOperation(false)
+    setEditingOperationId(null)
     setSelectedTemplate(null)
     setNewOperation({})
+  }
+
+  const handleEditOperation = (operation: PlantOperation) => {
+    const template = OPERATION_TEMPLATES.find(item => item.type === operation.operationType)
+    if (!template) return
+    setEditingOperationId(operation.id)
+    setSelectedTemplate(template)
+    setNewOperation({
+      operationDate: resolveOperationDate(operation),
+      date: resolveOperationDate(operation),
+      quantity: operation.quantity,
+      productName: operation.productName,
+      notes: operation.notes,
+      photos: operation.photos,
+    })
+    setShowAddOperation(true)
   }
 
   const handleQuickOperation = (template: OperationTemplate) => {
@@ -685,10 +707,7 @@ export default function PlantLifecycleManager({
                       
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            // TODO: Implementare modifica operazione
-                            console.log('Edit operation:', operation.id)
-                          }}
+                          onClick={() => handleEditOperation(operation)}
                           className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
                         >
                           <Edit3 size={16} />
@@ -746,10 +765,13 @@ export default function PlantLifecycleManager({
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Aggiungi Operazione</h3>
+                <h3 className="text-lg font-semibold">
+                  {editingOperationId ? 'Modifica Operazione' : 'Aggiungi Operazione'}
+                </h3>
                 <button
                   onClick={() => {
                     setShowAddOperation(false)
+                    setEditingOperationId(null)
                     setSelectedTemplate(null)
                     setNewOperation({})
                   }}
@@ -877,6 +899,7 @@ export default function PlantLifecycleManager({
                 <button
                   onClick={() => {
                     setShowAddOperation(false)
+                    setEditingOperationId(null)
                     setSelectedTemplate(null)
                     setNewOperation({})
                   }}
@@ -889,7 +912,7 @@ export default function PlantLifecycleManager({
                   disabled={!selectedTemplate || !newOperation.operationDate}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Aggiungi Operazione
+                  {editingOperationId ? 'Salva Modifiche' : 'Aggiungi Operazione'}
                 </button>
               </div>
             </div>
