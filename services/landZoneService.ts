@@ -5,6 +5,7 @@
  */
 
 import { getSupabaseClient } from '@/config/supabase'
+import type { LandZoneInput, LandZoneShape } from '@/lib/land-zones'
 
 const getLandZoneSupabaseClient = () => {
   const supabase = getSupabaseClient()
@@ -22,6 +23,9 @@ export interface LandZone {
   zone_name: string
   zone_code?: string
   area_hectares: number
+  shape_type: LandZoneShape
+  length_meters?: number
+  width_meters?: number
   current_status: 'active' | 'resting'
   status_since: string
   soil_type?: string
@@ -91,15 +95,13 @@ export interface ZoneHistoryEntry {
  */
 export async function getLandZones(gardenId: string): Promise<LandZone[]> {
   try {
-    const supabase = getLandZoneSupabaseClient()
-    const { data, error } = await supabase
-      .from('land_zones')
-      .select('*')
-      .eq('garden_id', gardenId)
-      .order('zone_name', { ascending: true })
-
-    if (error) throw error
-    return data || []
+    const response = await fetch(`/api/garden/zones?garden_id=${encodeURIComponent(gardenId)}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body?.error || 'zones_read_failed')
+    return body.zones || []
   } catch (error) {
     console.error('Error fetching land zones:', error)
     throw error
@@ -131,30 +133,18 @@ export async function getLandZone(zoneId: string): Promise<LandZone | null> {
  */
 export async function createLandZone(
   gardenId: string,
-  userId: string,
-  zoneData: {
-    zone_name: string
-    zone_code?: string
-    area_hectares: number
-    current_status?: 'active' | 'resting'
-    soil_type?: string
-    notes?: string
-  }
+  zoneData: LandZoneInput,
 ): Promise<LandZone> {
   try {
-    const supabase = getLandZoneSupabaseClient()
-    const { data, error } = await supabase
-      .from('land_zones')
-      .insert({
-        garden_id: gardenId,
-        user_id: userId,
-        ...zoneData
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+    const response = await fetch('/api/garden/zones', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gardenId, zone: zoneData }),
+    })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body?.error || 'zone_creation_failed')
+    return body.zone
   } catch (error) {
     console.error('Error creating land zone:', error)
     throw error

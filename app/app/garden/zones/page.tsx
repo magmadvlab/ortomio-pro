@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
@@ -19,6 +19,19 @@ import {
   type ZoneSoilHealth,
   type ZoneRotationSuggestion
 } from '@/services/landZoneService'
+import type { LandZoneInput } from '@/lib/land-zones'
+
+const EMPTY_ZONE_FORM: LandZoneInput = {
+  zoneName: '',
+  zoneCode: '',
+  shapeType: 'rectangle',
+  lengthMeters: undefined,
+  widthMeters: undefined,
+  areaSquareMeters: undefined,
+  currentStatus: 'active',
+  soilType: '',
+  notes: '',
+}
 
 export default function LandZonesPage() {
   const { storageProvider } = useStorage()
@@ -30,6 +43,9 @@ export default function LandZonesPage() {
   const [zones, setZones] = useState<LandZone[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [zoneForm, setZoneForm] = useState<LandZoneInput>(EMPTY_ZONE_FORM)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [creatingZone, setCreatingZone] = useState(false)
   const [selectedZoneForHistory, setSelectedZoneForHistory] = useState<string | null>(null)
   
   // Zone stats cache
@@ -123,6 +139,29 @@ export default function LandZonesPage() {
     } catch (error) {
       console.error('Error deleting zone:', error)
       alert('❌ Errore durante l\'eliminazione della zona')
+    }
+  }
+
+  const handleCreateZone = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedGarden || creatingZone) return
+
+    setCreateError(null)
+    setCreatingZone(true)
+    try {
+      await createLandZone(selectedGarden.id, zoneForm)
+      await loadZones(selectedGarden.id)
+      setZoneForm(EMPTY_ZONE_FORM)
+      setShowCreateModal(false)
+    } catch (error) {
+      console.error('Error creating zone:', error)
+      setCreateError(
+        error instanceof Error
+          ? `Impossibile creare la zona: ${error.message}`
+          : 'Impossibile creare la zona. Riprova.',
+      )
+    } finally {
+      setCreatingZone(false)
     }
   }
 
@@ -427,18 +466,171 @@ export default function LandZonesPage() {
         )}
       </main>
 
-      {/* Create Zone Modal - TODO: Implement */}
+      {/* Create Zone Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="presentation">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="create-zone-title">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Crea Nuova Zona</h2>
-            <p className="text-gray-600 mb-4">TODO: Implementare form creazione zona</p>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Chiudi
-            </button>
+            <p className="text-sm text-gray-600 mb-5">
+              La zona verrà associata a <strong>{selectedGarden.name}</strong>. L’utente e la proprietà
+              dell’orto vengono verificati dal server.
+            </p>
+            <form onSubmit={handleCreateZone} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="text-sm font-medium text-gray-700">
+                  Nome zona *
+                  <input
+                    required
+                    maxLength={120}
+                    value={zoneForm.zoneName}
+                    onChange={(event) => setZoneForm({ ...zoneForm, zoneName: event.target.value })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Es. Campo nord"
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Codice
+                  <input
+                    maxLength={40}
+                    value={zoneForm.zoneCode || ''}
+                    onChange={(event) => setZoneForm({ ...zoneForm, zoneCode: event.target.value })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Es. NORD-01"
+                  />
+                </label>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700">
+                Geometria *
+                <select
+                  value={zoneForm.shapeType}
+                  onChange={(event) => setZoneForm({
+                    ...zoneForm,
+                    shapeType: event.target.value as LandZoneInput['shapeType'],
+                  })}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  <option value="rectangle">Rettangolo (calcolo automatico)</option>
+                  <option value="custom">Forma personalizzata (area nota)</option>
+                </select>
+              </label>
+
+              {zoneForm.shapeType === 'rectangle' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Lunghezza (m) *
+                    <input
+                      required
+                      min="0.01"
+                      step="0.01"
+                      type="number"
+                      value={zoneForm.lengthMeters ?? ''}
+                      onChange={(event) => setZoneForm({
+                        ...zoneForm,
+                        lengthMeters: event.target.value ? Number(event.target.value) : undefined,
+                      })}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Larghezza (m) *
+                    <input
+                      required
+                      min="0.01"
+                      step="0.01"
+                      type="number"
+                      value={zoneForm.widthMeters ?? ''}
+                      onChange={(event) => setZoneForm({
+                        ...zoneForm,
+                        widthMeters: event.target.value ? Number(event.target.value) : undefined,
+                      })}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <label className="block text-sm font-medium text-gray-700">
+                  Superficie (m²) *
+                  <input
+                    required
+                    min="0.01"
+                    step="0.01"
+                    type="number"
+                    value={zoneForm.areaSquareMeters ?? ''}
+                    onChange={(event) => setZoneForm({
+                      ...zoneForm,
+                      areaSquareMeters: event.target.value ? Number(event.target.value) : undefined,
+                    })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </label>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="text-sm font-medium text-gray-700">
+                  Stato iniziale
+                  <select
+                    value={zoneForm.currentStatus}
+                    onChange={(event) => setZoneForm({
+                      ...zoneForm,
+                      currentStatus: event.target.value as LandZoneInput['currentStatus'],
+                    })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="active">Attiva</option>
+                    <option value="resting">A riposo</option>
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Tipo di terreno
+                  <input
+                    maxLength={80}
+                    value={zoneForm.soilType || ''}
+                    onChange={(event) => setZoneForm({ ...zoneForm, soilType: event.target.value })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Es. franco argilloso"
+                  />
+                </label>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700">
+                Note
+                <textarea
+                  maxLength={2000}
+                  rows={3}
+                  value={zoneForm.notes || ''}
+                  onChange={(event) => setZoneForm({ ...zoneForm, notes: event.target.value })}
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </label>
+
+              {createError && (
+                <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                  {createError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={creatingZone}
+                  onClick={() => {
+                    setCreateError(null)
+                    setShowCreateModal(false)
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingZone}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {creatingZone ? 'Creazione…' : 'Crea zona'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
