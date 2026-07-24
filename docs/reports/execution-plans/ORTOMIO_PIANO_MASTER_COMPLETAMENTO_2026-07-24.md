@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M05 completati; M06-M07 bloccati in attesa di staging; preparazione M08 in corso
+- **Stato esecuzione:** M01-M05 completati; M06-M08 bloccati in attesa di staging; M09 e' il prossimo blocco locale
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -164,7 +164,7 @@ Un blocco passa a completato solo quando:
 
 ### M08 - Certificazione multi-cliente e RLS
 
-- **Stato:** `[ ]`
+- **Stato:** `[!]` matrice pronta; certificazione staging bloccata
 - **Obiettivo:** provare isolamento end-to-end con almeno due clienti differenti.
 - **Attivita':**
   - creare fixture multi-azienda/multi-utente;
@@ -173,6 +173,9 @@ Un blocco passa a completato solo quando:
   - verificare ruoli amministratore, responsabile e operatore;
   - rieseguire Security Advisor.
 - **Criterio di uscita:** nessun percorso legge o modifica risorse dell'altro cliente.
+- **Risultato parziale:** consolidate fixture SQL esistenti e matrice di verifica per garden, zone, core operativo, operazioni, export, cron, provider, organizzazioni, storage e admin.
+- **Evidenza:** `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md`; test locali di sicurezza, persistenza e isolamento provider.
+- **Blocco:** M06-M07 non consentono ancora di creare due clienti sullo schema candidato in staging; Security Advisor remoto non rieseguito.
 
 ### M09 - Provider autorevoli e convergenza reader/writer
 
@@ -307,13 +310,14 @@ La correzione M02 ha:
 | 24/07/2026 | M05 | Censimento completato | `aac8046` | 203 voci classificate; nessun TODO/mock release senza destinazione |
 | 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
 | 24/07/2026 | M07 | Bloccato dopo preparazione | `769a052` | Script e template pronti; RPO/RTO e restore remoto non misurati |
+| 24/07/2026 | M08 | Bloccato dopo preparazione | `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md` | Matrice pronta; prove SQL/API/UI staging mancanti |
 
 ## 6. Prossima azione
 
-Preparare M08 senza mutare il database collegato:
+Avviare M09 localmente:
 
-1. consolidare fixture e matrice multi-cliente;
-2. coprire accessi negativi API e servizi localmente;
-3. predisporre query RLS transazionali per staging;
-4. mantenere il gate remoto bloccato fino al restore drill;
-5. proseguire sui blocchi locali indipendenti, registrando la dipendenza.
+1. mappare dominio, writer, reader, tabella e fallback;
+2. individuare servizi paralleli e split-write;
+3. scegliere i contratti canonici e migrare i consumatori prioritari;
+4. aggiungere test di parita', isolamento e fail-closed;
+5. mantenere separata la certificazione remota M06-M08.
