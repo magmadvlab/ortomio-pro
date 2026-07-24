@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M05 completati; M06-M08 bloccati in attesa di staging; M09 e' il prossimo blocco locale
+- **Stato esecuzione:** M01-M05 completati; M06-M08 bloccati; M09-M10 parziali; M11 e' il prossimo blocco locale
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -179,7 +179,7 @@ Un blocco passa a completato solo quando:
 
 ### M09 - Provider autorevoli e convergenza reader/writer
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` mappa pronta e cloud fail-closed; convergenza incompleta
 - **Obiettivo:** scegliere un'unica verita' persistente per ogni dominio.
 - **Attivita':**
   - mappare dominio -> writer -> reader -> tabella/provider;
@@ -188,10 +188,13 @@ Un blocco passa a completato solo quando:
   - rendere i writer critici fail-closed;
   - aggiungere test di parita' e idempotenza.
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
+- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; test dedicati verdi.
+- **Evidenza:** commit `270a214` e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
+- **Residuo:** helper cache sementi, bootstrap `StorageContext`, 52 voci M09 del manifest e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` semantica fail-closed corretta; delivery lifecycle incompleto
 - **Obiettivo:** completare reminder essenziali senza falsi stati di consegna.
 - **Attivita':**
   - scheduler persistente;
@@ -201,6 +204,9 @@ Un blocco passa a completato solo quando:
   - stato inviato/fallito confermato dal provider;
   - metriche, alert e runbook.
 - **Criterio di uscita:** una notifica e' tracciabile dalla generazione alla consegna o al fallimento.
+- **Risultato parziale:** un errore nella lettura preferenze sopprime l'invio invece di abilitarlo; `sentAt` resta legato al successo provider; gap delivery censiti.
+- **Evidenza:** commit `2e55ac4` e `M10_NOTIFICATION_DELIVERY_GAPS_2026-07-24.md`.
+- **Residuo:** coda persistente, scheduler, deduplica, retry/dead-letter, provider message ID, webhook e metriche.
 
 ### M11 - Core operativo end-to-end
 
@@ -311,13 +317,15 @@ La correzione M02 ha:
 | 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
 | 24/07/2026 | M07 | Bloccato dopo preparazione | `769a052` | Script e template pronti; RPO/RTO e restore remoto non misurati |
 | 24/07/2026 | M08 | Bloccato dopo preparazione | `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md` | Matrice pronta; prove SQL/API/UI staging mancanti |
+| 24/07/2026 | M09 | Parziale | `270a214` | Cloud esplicito fail-closed; convergenza completa ancora aperta |
+| 24/07/2026 | M10 | Parziale | `2e55ac4` | Preferenze fail-closed; coda e conferma delivery mancanti |
 
 ## 6. Prossima azione
 
-Avviare M09 localmente:
+Avviare M11 localmente:
 
-1. mappare dominio, writer, reader, tabella e fallback;
-2. individuare servizi paralleli e split-write;
-3. scegliere i contratti canonici e migrare i consumatori prioritari;
-4. aggiungere test di parita', isolamento e fail-closed;
-5. mantenere separata la certificazione remota M06-M08.
+1. rieseguire e documentare il percorso task -> esecuzione -> diario -> ledger;
+2. verificare transizioni, retry, riapertura e idempotenza;
+3. verificare timezone e ricorrenze;
+4. produrre una matrice delle prove mancanti per la giornata simulata;
+5. mantenere espliciti i residui M09-M10.
