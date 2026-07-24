@@ -357,6 +357,17 @@ export async function getZoneStats(zoneId: string): Promise<{
     
     // Count field rows
     const fieldRowsCount = await countActiveFieldRowsInZone(zoneId)
+    const { data: rowData, error: rowError } = await supabase
+      .from('garden_rows')
+      .select('calculated_plants')
+      .eq('land_zone_id', zoneId)
+      .eq('is_active', true)
+    if (rowError) throw rowError
+    const totalPlants = (rowData || []).reduce(
+      (sum: number, row: { calculated_plants?: number | null }) =>
+        sum + Math.max(0, Number(row.calculated_plants) || 0),
+      0
+    )
 
     // Get soil memory stats
     const { data: memoryData, error: memoryError } = await supabase
@@ -375,7 +386,7 @@ export async function getZoneStats(zoneId: string): Promise<{
 
     return {
       totalFieldRows: fieldRowsCount,
-      totalPlants: 0, // TODO: Calculate from field rows
+      totalPlants,
       activeFieldRows: fieldRowsCount,
       totalYieldKg,
       avgQualityRating: Math.round(avgQualityRating * 10) / 10,

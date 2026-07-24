@@ -6,7 +6,7 @@
 
 'use client'
 
-import React from 'react';
+import React, { useState } from 'react';
 import { getAlmanaccoForDate, getRegionalContentForDate } from '../../data/almanacco-database';
 import { calculateMoonPhase } from '../../logic/lunarCalendar';
 import { BookOpen, Share2, MapPin, ArrowRight } from 'lucide-react';
@@ -21,6 +21,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
   regione, 
   date = new Date() 
 }) => {
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const almanacco = getAlmanaccoForDate(date, regione);
   const faseLunare = calculateMoonPhase(date);
   
@@ -43,7 +44,7 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
         fonte: almanacco.nazionale.fonte
       };
   
-  const handleShare = () => {
+  const handleShare = async () => {
     const text = `📖 Almanacco del Contadino - ${date.toLocaleDateString('it-IT', { 
       day: 'numeric', 
       month: 'long',
@@ -51,18 +52,21 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
     })}\n\n${almanacco.evento ? `🗓️ ${almanacco.evento}\n` : ''}"${content.dialetto || content.proverbio}"\n\n${content.spiegazione}\n\n🌱 Scopri di più su OrtoMio.app\n\n#AlmanaccoContadino #TradizionePopolare #OrtoMio`;
     
     if (navigator.share) {
-      navigator.share({
-        title: `Almanacco del Contadino - ${date.toLocaleDateString('it-IT')}`,
-        text
-      }).catch(() => {
-        // User cancelled, do nothing
-      });
+      try {
+        await navigator.share({
+          title: `Almanacco del Contadino - ${date.toLocaleDateString('it-IT')}`,
+          text
+        });
+      } catch {
+        // La chiusura del pannello nativo non richiede feedback.
+      }
     } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(text).then(() => {
-        // Toast notification (da implementare con toast library)
-        alert('Copiato negli appunti! Incollalo sui tuoi social 📱');
-      });
+      try {
+        await navigator.clipboard.writeText(text);
+        setShareStatus('Copiato negli appunti.');
+      } catch {
+        setShareStatus('Copia non riuscita: verifica i permessi del browser.');
+      }
     }
   };
   
@@ -97,6 +101,11 @@ const AlmanaccoWidget: React.FC<AlmanaccoWidgetProps> = ({
             <Share2 size={18} className="text-amber-700" />
           </button>
         </div>
+        {shareStatus && (
+          <p role="status" aria-live="polite" className="text-sm text-amber-800">
+            {shareStatus}
+          </p>
+        )}
         
         {/* Badge regione (se disponibile variante regionale) */}
         {hasRegional && (
