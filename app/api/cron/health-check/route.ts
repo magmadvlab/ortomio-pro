@@ -37,12 +37,13 @@ export async function GET(request: NextRequest) {
       try {
         result.gardensChecked += 1
         const since = new Date(checkedAt.getTime() - 30 * 86_400_000).toISOString().slice(0, 10)
-        const [tasksRes, weatherRes, sensorsRes, inventoryRes, prefsRes] = await Promise.all([
+        const [tasksRes, weatherRes, sensorsRes, inventoryRes, prefsRes, profileRes] = await Promise.all([
           supabase.from('garden_tasks').select('*').eq('garden_id', gardenRow.id).order('date'),
           supabase.from('daily_weather_log').select('*').eq('garden_id', gardenRow.id).gte('log_date', since).order('log_date', { ascending: false }),
           supabase.from('sensor_readings').select('*').eq('garden_id', gardenRow.id).gte('recorded_at', new Date(checkedAt.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }),
           supabase.from('phyto_inventory').select('id, quantity').eq('garden_id', gardenRow.id).gt('quantity', 0).limit(1),
           supabase.from('notification_preferences').select('*').eq('user_id', gardenRow.user_id).maybeSingle(),
+          supabase.from('profiles').select('email').eq('id', gardenRow.user_id).maybeSingle(),
         ])
         if (tasksRes.error) throw new Error(tasksRes.error.message)
         const tasks = (tasksRes.data ?? []).map((row: any) => ({
@@ -137,6 +138,21 @@ export async function GET(request: NextRequest) {
             status: emailAllowed ? 'queued' : 'suppressed', suppression_reason: emailAllowed ? null : 'notification_preferences',
             payload: { title: alert.title, message: alert.message, severity: alert.severity },
           }, { onConflict: 'alert_id,channel', ignoreDuplicates: true })
+          if (emailAllowed && profileRes.data?.email) {
+            await supabase.from('notification_delivery_queue').upsert({
+              user_id: gardenRow.user_id,
+              garden_id: gardenRow.id,
+              channel: 'email',
+              notification_type: 'weather_alert',
+              recipient: profileRes.data.email,
+              subject: alert.title,
+              payload: { alertId, title: alert.title, message: alert.message, severity: alert.severity },
+              idempotency_key: `${gardenRow.user_id}:health-alert:${alertId}:email`,
+              status: 'scheduled',
+              scheduled_for: checkedAt.toISOString(),
+              next_attempt_at: checkedAt.toISOString(),
+            }, { onConflict: 'idempotency_key', ignoreDuplicates: true })
+          }
         }
         await supabase.from('monitoring_runs').update({
           status: 'completed', completed_at: new Date().toISOString(),

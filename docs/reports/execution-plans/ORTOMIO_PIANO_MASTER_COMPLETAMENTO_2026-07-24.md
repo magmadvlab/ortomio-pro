@@ -66,12 +66,12 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
-| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 169 voci correnti assegnate a M10-M15 (`O05`) |
+| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 168 voci correnti assegnate a M11-M15 (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
 | M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
 | M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09; seed interamente asincroni | Certificazione staging (`O18`) |
-| M10 | `[-]` parziale | Preferenze fail-closed e `sentAt` corretto | Intero lifecycle delivery (`O19-O24`) |
+| M10 | `[L]` locale | Coda, scheduler, deduplica, retry, dead-letter, rate limit, webhook e metriche | Consegna provider reale in staging (`O23`) |
 | M11 | `[-]` parziale | Baseline core e protocollo giornata | Transizioni, ruoli, DST e prova staging (`O25-O28`) |
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
 | M13 | `[-]` parziale | Smoke Open-Meteo reale | Provider avanzato e gestione operativa (`O31-O33`) |
@@ -230,7 +230,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 
 ### M10 - Notifiche operative e osservabilita'
 
-- **Stato:** `[-]` semantica fail-closed corretta; delivery lifecycle incompleto
+- **Stato:** `[L]` lifecycle locale completato; certificazione provider aperta
 - **Obiettivo:** completare reminder essenziali senza falsi stati di consegna.
 - **Attivita':**
   - scheduler persistente;
@@ -240,9 +240,9 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - stato inviato/fallito confermato dal provider;
   - metriche, alert e runbook.
 - **Criterio di uscita:** una notifica e' tracciabile dalla generazione alla consegna o al fallimento.
-- **Risultato parziale:** un errore nella lettura preferenze sopprime l'invio invece di abilitarlo; `sentAt` resta legato al successo provider; gap delivery censiti.
-- **Evidenza:** commit `2e55ac4` e `M10_NOTIFICATION_DELIVERY_GAPS_2026-07-24.md`.
-- **Residuo:** coda persistente, scheduler, deduplica, retry/dead-letter, provider message ID, webhook e metriche.
+- **Risultato locale:** preferenze fail-closed; coda persistente; claim concorrente; deduplica; retry/backoff; dead-letter; rate limit persistente; cron; provider message ID; webhook autenticato; metriche readiness e runbook.
+- **Evidenza:** commit `2e55ac4`, avanzamento PR `#48` e `M10_NOTIFICATION_DELIVERY_GAPS_2026-07-24.md`.
+- **Residuo:** applicazione migrazione e prova provider/webhook end-to-end in staging (`O23`).
 
 ### M11 - Core operativo end-to-end
 
@@ -378,6 +378,7 @@ La correzione M02 ha:
 | 24/07/2026 | M09 / O16-O17 | Completato localmente | avanzamento PR `#48` | 44 voci riclassificate; coordinate e memoria agronomica convergenti; zero voci M09 nel manifest |
 | 24/07/2026 | M09 / O04 | Completato localmente | avanzamento PR `#48` | Cache seed rimossa; reader e consumer interamente asincroni |
 | 24/07/2026 | M09 locale | Gate verde | avanzamento PR `#48` | Type-check; persistenza 27/27; release 314/314; build 147 pagine; resta O18 staging |
+| 24/07/2026 | M10 / O19-O22, O24 | Completato localmente | avanzamento PR `#48` | Lifecycle delivery persistente e operabile; resta O23 provider staging |
 
 ## 5.1 Registro unico del lavoro aperto
 
@@ -388,7 +389,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
 | O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
-| O05 | M05 | Riconciliare gli esiti delle 169 voci correnti trasferite a M10-M15 | Manifest finale senza voce `scheduled` irrisolta |
+| O05 | M05 | Riconciliare gli esiti delle 168 voci correnti trasferite a M11-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
 | O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
@@ -400,12 +401,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O14 | M08 | Certificare storage, cron, export, cache e admin | Nessun percorso cross-tenant |
 | O15 | M08 | Rieseguire Security Advisor | Nessun finding release-blocking aperto |
 | O18 | M09 | Certificare reader/writer canonici in staging | Stato ricostruibile per ogni dominio prioritario |
-| O19 | M10 | Implementare coda notifiche persistente | Evento accodato e auditabile |
-| O20 | M10 | Implementare scheduler e deduplica/soppressione | Nessun doppio invio nel caso provato |
-| O21 | M10 | Implementare retry con backoff | Retry osservabile e limitato |
-| O22 | M10 | Implementare dead-letter e procedura recupero | Fallimenti terminali ispezionabili |
 | O23 | M10 | Registrare provider message ID e webhook delivery | Stato finale confermato dal provider |
-| O24 | M10 | Aggiungere metriche, alert e runbook | Delivery lifecycle operabile |
 | O25 | M11 | Uniformare riapertura, annullamento e motivazione | Transizioni auditabili per tutti i task |
 | O26 | M11 | Verificare ricorrenze, timezone e DST | Casi Europe/Rome verdi |
 | O27 | M11 | Eseguire giornata completa con ruoli reali | Planner-outcome completato senza interventi fuori flusso |
@@ -432,7 +428,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 Eseguita il 24/07/2026 sulla baseline locale:
 
-- audit debito release corrente: 189 voci, di cui 169 pianificate, 10 accettate e 10 isolate; nessuna voce release non classificata;
+- audit debito release corrente: 188 voci, di cui 168 pianificate, 10 accettate e 10 isolate; nessuna voce release non classificata;
 - audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
 - suite release: 307/307 test superati;
 - build produzione: completata, 147 pagine generate;

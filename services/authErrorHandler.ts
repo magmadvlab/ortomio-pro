@@ -281,8 +281,8 @@ export class AuthErrorHandler {
     
     // In produzione, invia a servizio di logging
     if (process.env.NODE_ENV === 'production') {
-      console.error('Auth Error:', logData);
-      // TODO: Invia a servizio di monitoring (Sentry, LogRocket, etc.)
+      // JSON strutturato: acquisito dal provider runtime senza esporre token o payload auth.
+      console.error(JSON.stringify({ event: 'auth_error', ...logData }));
     } else {
       console.warn('Auth Error (Development):', logData);
     }

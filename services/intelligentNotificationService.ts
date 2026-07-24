@@ -508,15 +508,31 @@ export class IntelligentNotificationService {
     context: NotificationContext,
     supabaseClient: any
   ): Promise<void> {
-    if (notification.type === 'immediate') {
-      await this.sendNotificationNow(notification, context, supabaseClient)
-    } else if (notification.type === 'digest') {
-      this.addToDigest(notification, context.user.id)
-    } else {
-      // Programma per dopo: nessuno scheduler persistente esiste ancora
-      // (richiede cron/coda dedicati, rinviato deliberatamente - vedi D11).
-      console.log(`📅 Notification "${notification.title}" scheduled for ${notification.scheduledFor}, but no persistent scheduler exists yet - it will not be sent automatically.`)
+    const notificationData: NotificationData = {
+      userId: context.user.id,
+      userEmail: context.user.email,
+      type: this.mapToNotificationType(notification.category),
+      subject: notification.title,
+      templateData: {
+        title: notification.title,
+        message: notification.message,
+        actions: notification.actions,
+        gardenName: context.garden.name,
+        priority: notification.priority,
+        aiGenerated: notification.aiGenerated,
+      },
     }
+    const result = await sendNotification(notificationData, supabaseClient, {
+      gardenId: context.garden.id,
+      scheduledFor: notification.type === 'immediate'
+        ? new Date().toISOString()
+        : notification.scheduledFor,
+      idempotencyKey: `${context.user.id}:${context.garden.id}:${notification.id}:email`,
+    })
+    if (!result.success) {
+      throw new Error(result.error || 'notification_enqueue_failed')
+    }
+    this.notifications.set(notification.id, notification)
   }
 
   /**

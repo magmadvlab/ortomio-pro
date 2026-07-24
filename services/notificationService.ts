@@ -37,37 +37,6 @@ export interface NotificationPreferences {
 }
 
 /**
- * Rate limiting: max 10 email per utente al giorno
- */
-const RATE_LIMIT_PER_USER = 10;
-const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 ore
-
-// In-memory rate limiting (in produzione usare Redis)
-const rateLimitCache = new Map<string, { count: number; resetAt: number }>();
-
-/**
- * Verifica se l'utente può ricevere notifiche (rate limiting)
- */
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const userLimit = rateLimitCache.get(userId);
-
-  if (!userLimit || now > userLimit.resetAt) {
-    // Reset o nuovo utente
-    rateLimitCache.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-
-  if (userLimit.count >= RATE_LIMIT_PER_USER) {
-    console.warn(`Rate limit exceeded for user ${userId}`);
-    return false;
-  }
-
-  userLimit.count++;
-  return true;
-}
-
-/**
  * Verifica preferenze utente per tipo di notifica
  */
 async function checkUserPreferences(
@@ -132,17 +101,15 @@ async function checkUserPreferences(
  */
 export async function sendNotification(
   notification: NotificationData,
-  supabaseClient: any
-): Promise<{ success: boolean; error?: string }> {
+  supabaseClient: any,
+  options: {
+    directProvider?: boolean
+    idempotencyKey?: string
+    gardenId?: string
+    scheduledFor?: string
+  } = {}
+): Promise<{ success: boolean; queued?: boolean; error?: string; providerMessageId?: string }> {
   try {
-    // Verifica rate limiting
-    if (!checkRateLimit(notification.userId)) {
-      return {
-        success: false,
-        error: 'Rate limit exceeded',
-      };
-    }
-
     // Verifica preferenze utente
     const canSend = await checkUserPreferences(
       notification.userId,
@@ -155,6 +122,24 @@ export async function sendNotification(
         success: false,
         error: 'User preferences disabled this notification type',
       };
+    }
+
+    if (!options.directProvider) {
+      const { enqueueNotificationDelivery } = await import('./notificationDeliveryService')
+      const sourceId =
+        notification.templateData.taskId ||
+        notification.templateData.alertId ||
+        notification.templateData.challengeId ||
+        notification.subject
+      const day = (options.scheduledFor || new Date().toISOString()).slice(0, 10)
+      await enqueueNotificationDelivery(supabaseClient, notification, {
+        gardenId: options.gardenId,
+        scheduledFor: options.scheduledFor,
+        idempotencyKey:
+          options.idempotencyKey ||
+          `${notification.userId}:${notification.type}:${String(sourceId)}:${day}:email`,
+      })
+      return { success: true, queued: true }
     }
 
     // Ottieni URL Edge Function da variabile ambiente
@@ -197,7 +182,16 @@ export async function sendNotification(
       };
     }
 
-    return { success: true };
+    const providerResponse = await response.json().catch(() => ({}));
+    return {
+      success: true,
+      providerMessageId:
+        providerResponse.messageId ||
+        providerResponse.message_id ||
+        providerResponse.id ||
+        response.headers.get('x-message-id') ||
+        undefined,
+    };
   } catch (error: any) {
     console.error('Error sending notification:', error);
     return {
@@ -331,4 +325,3 @@ export function createWeatherAlertNotification(
     },
   };
 }
-
