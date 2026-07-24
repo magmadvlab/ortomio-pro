@@ -125,7 +125,8 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Risultato:** sostituito il modal TODO con form validato per rettangolo o area personalizzata; lettura e creazione passano dalla route server `/api/garden/zones`; identita' e garden sono derivati dal controllo autorizzativo server; la lista viene riletta dopo la scrittura e l'errore resta visibile per consentire il retry.
 - **Evidenza:** commit `fed4732` (`feat: complete authorized land zone creation`).
 - **Verifiche:** type-check verde; 5 test M03 verdi; persistenza e sicurezza 24/24; suite release 297/297; lint mirato con 0 errori e 10 warning gia' censiti nel perimetro; build produzione 146 pagine.
-- **Rischio residuo:** la migrazione `20260724120000_land_zones_garden_ownership.sql` e' verificata localmente ma deve ancora essere applicata e provata su staging. Le operazioni legacy di aggiornamento, cambio stato ed eliminazione restano protette dalle RLS rafforzate, ma non sono ancora migrate alla nuova API server.
+- **O02 chiuso il 24/07/2026** (commit `fcd97de`, `fix: migrate legacy zone update/delete to canonical server API`): aggiunte `PATCH`/`DELETE` a `/api/garden/zones` con lo stesso pattern `requireGardenAccess` + verifica di ownership della zona nel garden autorizzato, whitelist esplicita dei campi scrivibili (blocca `garden_id`/`user_id` lato client). `updateLandZone`/`deleteLandZone`/`toggleZoneStatus` in `services/landZoneService.ts` ora passano dalla route invece di scrivere Supabase direttamente dal client. 3 nuovi test in `__tests__/persistence/landZones.test.ts`; persistenza 61/61; type-check e build produzione verdi.
+- **Rischio residuo:** la migrazione `20260724120000_land_zones_garden_ownership.sql` e' stata applicata al Supabase di produzione il 24/07/2026 (vedi §8), ma senza la certificazione staging che O01 richiede formalmente.
 
 ### M04 - Persistenza suolo, seed inventory e fallback production
 
@@ -390,7 +391,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | ID | Owner | Deliverable aperto | Condizione di chiusura |
 |---|---|---|---|
 | O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
-| O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
+| O02 | M03 | ~~Migrare update, cambio stato ed eliminazione zone legacy alla API canonica~~ **Chiuso 24/07/2026** (`fcd97de`) | Nessuna mutazione production parallela — verificato: solo `/api/garden/zones` scrive `land_zones` dal client |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
 | O05 | M05 | Riconciliare gli esiti delle 81 voci correnti trasferite a M13-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
