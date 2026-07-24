@@ -458,72 +458,6 @@ export class PlantRowSyncService {
   }
 
   /**
-   * Sync all pending operations
-   */
-  async syncAllPendingOperations(gardenId: string): Promise<SyncResult> {
-    const result: SyncResult = {
-      success: false,
-      operationsProcessed: 0,
-      plantsAffected: 0,
-      errors: []
-    };
-
-    try {
-      this.syncStatus.isRunning = true;
-
-      // Get pending operations (operations that haven't been synced yet)
-      const pendingOperations = await this.getPendingOperations(gardenId);
-
-      let totalProcessed = 0;
-      const affectedPlants = new Set<string>();
-
-      // Process in batches
-      for (let i = 0; i < pendingOperations.length; i += this.config.batchSize) {
-        const batch = pendingOperations.slice(i, i + this.config.batchSize);
-
-        for (const operation of batch) {
-          try {
-            const syncResult = await this.syncRowOperationToPlants(
-              operation.type,
-              operation.id
-            );
-
-            if (syncResult.success) {
-              totalProcessed += syncResult.operationsProcessed;
-              // Add affected plants to set (would need to get actual plant IDs)
-            } else {
-              result.errors.push(...syncResult.errors);
-            }
-          } catch (error) {
-            result.errors.push(`Failed to sync ${operation.type} ${operation.id}: ${error}`);
-          }
-        }
-
-        // Small delay between batches to avoid overwhelming the database
-        if (i + this.config.batchSize < pendingOperations.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      result.operationsProcessed = totalProcessed;
-      result.plantsAffected = affectedPlants.size;
-      result.success = totalProcessed > 0;
-
-      // Update status
-      this.syncStatus.totalSynced += totalProcessed;
-      this.syncStatus.pendingOperations = Math.max(0, this.syncStatus.pendingOperations - totalProcessed);
-      this.syncStatus.lastSyncDate = new Date().toISOString();
-
-    } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : 'Batch sync failed');
-    } finally {
-      this.syncStatus.isRunning = false;
-    }
-
-    return result;
-  }
-
-  /**
    * Assign plants to rows
    */
   async assignPlantsToRow(
@@ -608,15 +542,10 @@ export class PlantRowSyncService {
       const plantsInRows = mappings.filter(m => m.gardenRowId || m.fieldRowId).length;
       const plantsWithoutRows = totalPlants - plantsInRows;
 
-      // Get recent sync logs (last 24 hours)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const recentSyncLogs = await this.getRecentSyncLogs(gardenId, yesterday.toISOString());
-      const recentSyncOperations = recentSyncLogs.length;
-
-      const successfulSyncs = recentSyncLogs.filter(log => log.syncStatus === 'completed').length;
-      const syncSuccessRate = recentSyncOperations > 0 ? (successfulSyncs / recentSyncOperations) * 100 : 100;
+      const recentSyncOperations = this.syncStatus.totalSynced + this.syncStatus.failedOperations;
+      const syncSuccessRate = recentSyncOperations > 0
+        ? (this.syncStatus.totalSynced / recentSyncOperations) * 100
+        : 100;
 
       return {
         totalPlants,
@@ -670,75 +599,21 @@ export class PlantRowSyncService {
     }
   }
 
-  private async executeSyncFunction(functionName: string, operationId: string): Promise<number> {
-    try {
-      // This would execute the database function
-      // For now, return 0 as placeholder
-      return 0;
-    } catch (error) {
-      console.error(`Error executing sync function ${functionName}:`, error);
-      return 0;
-    }
-  }
-
-  private async countAffectedPlants(operationType: string, operationId: string): Promise<number> {
-    try {
-      // This would count plants affected by the operation
-      // For now, return 0 as placeholder
-      return 0;
-    } catch (error) {
-      console.error('Error counting affected plants:', error);
-      return 0;
-    }
-  }
-
-  private async getLatestSyncLogId(operationType: string, operationId: string): Promise<string | undefined> {
-    try {
-      // This would query operation_sync_log table
-      // For now, return undefined as placeholder
-      return undefined;
-    } catch (error) {
-      console.error('Error getting sync log ID:', error);
-      return undefined;
-    }
-  }
-
-  private async getPendingOperations(gardenId: string): Promise<Array<{ id: string; type: 'watering' | 'fertilizer' | 'treatment' }>> {
-    try {
-      // This would query for operations that haven't been synced yet
-      // For now, return empty array as placeholder
-      return [];
-    } catch (error) {
-      console.error('Error getting pending operations:', error);
-      return [];
-    }
-  }
-
   private async updatePlantRowAssignment(
     plantId: string,
     rowId: string | null,
     rowType: 'garden_row' | 'field_row' | null
   ): Promise<void> {
-    try {
-      // This would update the individual_plants table
-      // For now, just log the operation
-      console.log(`Updating plant ${plantId} assignment to ${rowType} ${rowId}`);
-    } catch (error) {
-      console.error('Error updating plant row assignment:', error);
-      throw error;
+    const update = this.storageProvider.updateIndividualPlant;
+    if (typeof update !== 'function') {
+      throw new Error('Plant row assignment requires durable individual-plant storage');
     }
+    await update.call(this.storageProvider, plantId, {
+      gardenRowId: rowType === 'garden_row' ? rowId || undefined : undefined,
+      fieldRowId: rowType === 'field_row' ? rowId || undefined : undefined,
+    });
   }
 
-  private async getRecentSyncLogs(gardenId: string, fromDate: string): Promise<Array<{ syncStatus: string }>> {
-    try {
-      // This would query operation_sync_log table
-      // For now, return empty array as placeholder
-      return [];
-    } catch (error) {
-      console.error('Error getting recent sync logs:', error);
-      return [];
-    }
-  }
 }
 
 /**
