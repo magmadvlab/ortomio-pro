@@ -10,6 +10,8 @@ import TaskExecutionFormContextSummary from '@/components/shared/TaskExecutionFo
 import TaskExecutionQuickFeedback from '@/components/shared/TaskExecutionQuickFeedback'
 import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes'
 import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
+import { getPlantTaxonomy } from '@/services/plantTaxonomyService'
+import { getArchetypeById } from '@/data/archetypes'
 
 interface QuickHarvestFormProps {
   task: GardenTask
@@ -17,9 +19,30 @@ interface QuickHarvestFormProps {
   onSkip: () => void
 }
 
+async function resolveTaskLocation(storageProvider: any, task: GardenTask): Promise<string> {
+  if (task.rowId) {
+    const gardenRow = await storageProvider.getGardenRow?.(task.rowId)
+    if (gardenRow?.name) return gardenRow.name
+    const fieldRow = await storageProvider.getFieldRow?.(task.rowId)
+    if (fieldRow?.name) return fieldRow.name
+  }
+  if (task.bedId) {
+    const bed = await storageProvider.getGardenBed?.(task.bedId)
+    if (bed?.name) return bed.name
+  }
+  if (task.zoneId) {
+    const zone = await storageProvider.getGardenZone?.(task.zoneId)
+    if (zone?.name) return zone.name
+  }
+  if (typeof task.rowNumber === 'number') return `Fila ${task.rowNumber}`
+  return 'Posizione non specificata'
+}
+
 export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormProps) {
   const { storageProvider } = useStorage()
   const [garden, setGarden] = useState<Garden | null>(null)
+  const [plantEmoji, setPlantEmoji] = useState('🌱')
+  const [locationLabel, setLocationLabel] = useState('Posizione non specificata')
   const [quantity, setQuantity] = useState<number>(1)
   const [unit, setUnit] = useState<'kg' | 'g' | 'units'>('kg')
   const [quality, setQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good')
@@ -53,6 +76,25 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
     }
     loadGarden()
   }, [task.gardenId, storageProvider])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadContext = async () => {
+      const taxonomy = await getPlantTaxonomy(task.plantName)
+      const archetype = taxonomy?.archetypeId
+        ? getArchetypeById(taxonomy.archetypeId)
+        : undefined
+      const location = await resolveTaskLocation(storageProvider, task)
+      if (!cancelled) {
+        setPlantEmoji(archetype?.icon || '🌱')
+        setLocationLabel(location)
+      }
+    }
+    void loadContext().catch(error => {
+      console.error('Error loading harvest context:', error)
+    })
+    return () => { cancelled = true }
+  }, [storageProvider, task])
 
   // Check if garden is hydroponic/aquaponic/aeroponic
   const isHydroponic = useMemo(() => {
@@ -101,27 +143,6 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
     const today = new Date()
     return differenceInDays(today, plantingDate)
   }, [task.date])
-
-  // Ottieni emoji pianta (placeholder - da migliorare con mapping reale)
-  const getPlantEmoji = (plantName: string) => {
-    const emojiMap: Record<string, string> = {
-      'Lattuga': '🥬',
-      'Pomodoro': '🍅',
-      'Basilico': '🌿',
-      'Peperone': '🫑',
-      'Zucchina': '🥒',
-    }
-    return emojiMap[plantName] || '🌱'
-  }
-
-  // Ottieni zona (placeholder - da migliorare con dati reali)
-  const getZone = () => {
-    if (typeof task.rowNumber === 'number') return `Fila ${task.rowNumber}`
-    if (task.rowId) return `Riga ${task.rowId}`
-    if (task.bedId) return `Aiuola ${task.bedId}`
-    if (task.zoneId) return `Zona ${task.zoneId}`
-    return 'Posizione non specificata'
-  }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -327,14 +348,14 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
           {/* Plant Info Card */}
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-6">
             <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-3xl shadow-lg flex-shrink-0">
-              {getPlantEmoji(task.plantName)}
+              {plantEmoji}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">
                 {task.plantName} {task.variety ? `(${task.variety})` : ''}
               </h3>
               <p className="text-[13px] text-gray-500">
-                📍 {getZone()} • Piantata {daysSincePlanting} giorni fa
+                📍 {locationLabel} • Piantata {daysSincePlanting} giorni fa
               </p>
             </div>
           </div>
