@@ -33,9 +33,13 @@ Il 24/07/2026 e' stata completata anche la prima convergenza dei consumer autent
 
 Verifiche locali: type-check verde, persistenza 22/22, suite release 309/309, build produzione 147 pagine.
 
+Un secondo lotto ha reso fail-closed anche le route production di trattamenti, lavori meccanici e supporto: l'assenza del database restituisce `503` e una richiesta non viene piu' dichiarata riuscita tramite oggetti temporanei, `localStorage` server-side o semplici log. Le route di esposizione solare non sostituiscono piu' il garden richiesto con coordinate predefinite di Roma e non forniscono suggerimenti mock agli utenti anonimi.
+
+Verifiche del secondo lotto: type-check verde, persistenza 24/24, audit release con 193 voci totali, 47 assegnate a M09 e zero non classificate, build produzione 147 pagine.
+
 ## Residuo
 
 - rimuovere o rendere non autorevoli gli helper sincroni dell'inventario semi rimasti per compatibilita';
-- verificare i restanti percorsi production che simulano successo o degradano a storage locale;
+- verificare i restanti percorsi production assegnati a M09;
 - riclassificare le voci M09 del manifest che appartengono a export, pilot agronomico o AI shadow;
 - applicare e certificare le migrazioni canoniche in staging.

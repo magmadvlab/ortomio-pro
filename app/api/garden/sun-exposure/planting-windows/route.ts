@@ -28,27 +28,8 @@ export async function POST(request: NextRequest) {
     
     const targetYear = year || new Date().getFullYear()
     
-    // In locale senza Supabase, restituisci calcolo mock
     if (!isSupabaseAvailable()) {
-      const mockObstacles: Obstacle3D[] = []
-      const mockLat = 41.9028
-      const mockLng = 12.4964
-      
-      const windows = calculateSeasonalWindows(mockLat, mockLng, mockObstacles, targetYear)
-      const classification = classifyGardenType(windows)
-      const plantingWindows = findPlantingWindows(
-        classification,
-        windows,
-        mockLat,
-        mockLng,
-        mockObstacles,
-        targetYear
-      )
-      
-      return NextResponse.json({
-        plantingWindows,
-        classification,
-      })
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
     
     // Verify user authentication
@@ -134,4 +115,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

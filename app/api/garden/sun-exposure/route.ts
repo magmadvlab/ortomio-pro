@@ -42,20 +42,8 @@ export async function GET(request: NextRequest) {
     
     const targetDate = dateParam ? new Date(dateParam) : new Date()
     
-    // In locale senza Supabase, restituisci calcolo mock
     if (!isSupabaseAvailable()) {
-      // Mock data per sviluppo locale
-      const mockObstacles: Obstacle3D[] = []
-      const mockLat = 41.9028 // Roma
-      const mockLng = 12.4964
-      
-      const dailyHours = calculateDailySunHours(mockLat, mockLng, targetDate, mockObstacles)
-      
-      return NextResponse.json({
-        date: targetDate.toISOString().split('T')[0],
-        dailySunHours: dailyHours,
-        exposure: getExposureType(dailyHours),
-      })
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
     
     // Verify user authentication
@@ -145,19 +133,8 @@ export async function POST(request: NextRequest) {
     
     const targetYear = year || new Date().getFullYear()
     
-    // In locale senza Supabase, restituisci calcolo mock
     if (!isSupabaseAvailable()) {
-      const mockObstacles: Obstacle3D[] = []
-      const mockLat = 41.9028
-      const mockLng = 12.4964
-      
-      const monthlyHours = []
-      for (let month = 1; month <= 12; month++) {
-        const monthly = calculateMonthlySunHours(mockLat, mockLng, targetYear, month, mockObstacles)
-        monthlyHours.push(monthly)
-      }
-      
-      return NextResponse.json({ monthlySunHours: monthlyHours })
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
     
     // Verify user authentication
@@ -246,15 +223,8 @@ export async function PUT(request: NextRequest) {
     
     const targetMinSunHours = minSunHours || 6
     
-    // In locale senza Supabase, restituisci calcolo mock
     if (!isSupabaseAvailable()) {
-      const mockObstacles: Obstacle3D[] = []
-      const mockLat = 41.9028
-      const mockLng = 12.4964
-      
-      const optimal = calculateOptimalPeriod(mockLat, mockLng, mockObstacles, targetMinSunHours)
-      
-      return NextResponse.json(optimal)
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
     
     // Verify user authentication
@@ -320,4 +290,3 @@ export async function PUT(request: NextRequest) {
     )
   }
 }
-

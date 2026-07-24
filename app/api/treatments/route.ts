@@ -4,9 +4,8 @@ import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
-    // In locale senza Supabase, restituisci array vuoto
     if (!isSupabaseAvailable()) {
-      return NextResponse.json({ treatments: [] })
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
 
     // Verify tier PRO
@@ -55,16 +54,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // In locale senza Supabase, simula successo (dati salvati in localStorage dal frontend)
     if (!isSupabaseAvailable()) {
-      const body = await request.json()
-      return NextResponse.json({ 
-        treatment: {
-          id: crypto.randomUUID(),
-          ...body,
-          created_at: new Date().toISOString()
-        }
-      })
+      return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
     }
 
     // Verify tier PRO
@@ -140,7 +131,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
 
 
 

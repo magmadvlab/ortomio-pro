@@ -35,104 +35,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If Supabase is available, save to database
-    if (isSupabaseAvailable()) {
+    if (!isSupabaseAvailable()) {
+      return NextResponse.json(
+        { error: 'cloud_storage_unavailable' },
+        { status: 503 }
+      );
+    }
+
+    const { getSupabaseClient } = await import('@/lib/auth');
+    const supabase = getSupabaseClient();
+
+    let systemInfoJson = null;
+    if (systemInfo) {
       try {
-        const { getSupabaseClient } = await import('@/lib/auth');
-        const supabase = getSupabaseClient();
-
-        // Parse system info if provided
-        let systemInfoJson = null;
-        if (systemInfo) {
-          try {
-            systemInfoJson = JSON.parse(systemInfo);
-          } catch (e) {
-            console.error('Error parsing system info:', e);
-          }
-        }
-
-        // Handle screenshot upload if provided
-        let screenshotUrl = null;
-        if (screenshot) {
-          try {
-            const screenshotBuffer = await screenshot.arrayBuffer();
-            const screenshotBase64 = Buffer.from(screenshotBuffer).toString('base64');
-            const fileName = `support-${Date.now()}-${screenshot.name}`;
-            
-            // Upload to Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('support-screenshots')
-              .upload(fileName, screenshotBuffer, {
-                contentType: screenshot.type,
-                upsert: false,
-              });
-
-            if (!uploadError && uploadData) {
-              const { data: urlData } = supabase.storage
-                .from('support-screenshots')
-                .getPublicUrl(fileName);
-              screenshotUrl = urlData?.publicUrl || null;
-            }
-          } catch (e) {
-            console.error('Error uploading screenshot:', e);
-          }
-        }
-
-        // Save to database
-        const { error: dbError } = await supabase
-          .from('support_requests')
-          .insert({
-            name,
-            email,
-            type,
-            message,
-            screenshot_url: screenshotUrl,
-            system_info: systemInfoJson,
-            status: 'open',
-          });
-
-        if (dbError) {
-          console.error('Database error:', dbError);
-          // Fall through to email/logging
-        } else {
-          return NextResponse.json(
-            { success: true, message: 'Richiesta inviata con successo' },
-            { status: 200 }
-          );
-        }
-      } catch (supabaseError) {
-        console.error('Supabase error:', supabaseError);
-        // Fall through to local storage/logging
+        systemInfoJson = JSON.parse(systemInfo);
+      } catch (e) {
+        console.error('Error parsing system info:', e);
       }
     }
 
-    // Fallback: Save to localStorage for local development or if Supabase fails
-    if (typeof window !== 'undefined') {
-      const supportRequests = JSON.parse(
-        localStorage.getItem('support_requests') || '[]'
-      );
-      supportRequests.push({
-        id: Date.now().toString(),
+    let screenshotUrl = null;
+    if (screenshot) {
+      try {
+        const screenshotBuffer = await screenshot.arrayBuffer();
+        const fileName = `support-${Date.now()}-${screenshot.name}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('support-screenshots')
+          .upload(fileName, screenshotBuffer, {
+            contentType: screenshot.type,
+            upsert: false,
+          });
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('support-screenshots')
+            .getPublicUrl(fileName);
+          screenshotUrl = urlData?.publicUrl || null;
+        }
+      } catch (e) {
+        console.error('Error uploading screenshot:', e);
+      }
+    }
+
+    const { error: dbError } = await supabase
+      .from('support_requests')
+      .insert({
         name,
         email,
         type,
         message,
-        includeSystemInfo,
-        systemInfo: systemInfo ? JSON.parse(systemInfo) : null,
-        timestamp: new Date().toISOString(),
+        screenshot_url: screenshotUrl,
+        system_info: includeSystemInfo ? systemInfoJson : null,
+        status: 'open',
       });
-      localStorage.setItem('support_requests', JSON.stringify(supportRequests));
-    } else {
-      // Server-side: Log the request
-      console.log('Support Request:', {
-        name,
-        email,
-        type,
-        message,
-        includeSystemInfo,
-        systemInfo: systemInfo ? JSON.parse(systemInfo) : null,
-        timestamp: new Date().toISOString(),
-      });
+
+    if (dbError) {
+      throw dbError;
     }
 
     return NextResponse.json(
@@ -147,8 +106,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
 
 
 

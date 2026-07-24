@@ -188,9 +188,9 @@ Un blocco passa a completato solo quando:
   - rendere i writer critici fail-closed;
   - aggiungere test di parita' e idempotenza.
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
-- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi.
+- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi; trattamenti, lavori meccanici, supporto ed esposizione solare falliscono esplicitamente senza database invece di simulare dati o successo.
 - **Evidenza:** commit `270a214`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
-- **Residuo:** helper cache sementi legacy, fallback/successi simulati nei restanti percorsi production, riclassificazione delle voci M09 e certificazione staging.
+- **Residuo:** helper cache sementi legacy, 47 voci M09 da verificare o riclassificare e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
 
