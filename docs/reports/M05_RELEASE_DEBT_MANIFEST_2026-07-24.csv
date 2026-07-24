@@ -64,7 +64,6 @@
 "lib/auth-bypass.ts","141","mock","development","isolated","bypass guarded against production","throw new Error('SECURITY_ERROR: Mock user not available in production');"
 "lib/auth.server.ts","80","mock","development","isolated","references guarded development bypass only","// Se bypass attivo, ritorna mock user senza controllo token"
 "lib/auth.server.ts","299","mock","development","isolated","references guarded development bypass only","// Se bypass attivo, ritorna mock profile con tier PRO"
-"lib/calendar/exportPDF.ts","78","todo","release","scheduled:M11","core operational lifecycle","// TODO: Aggiungere celle giorni con task, meteo, luna"
 "packages/core/hooks/useAuth.tsx","31","mock","development","isolated","uses guarded development bypass","// Se bypass attivo, usa mock user"
 "packages/core/hooks/useAuth.tsx","217","mock","development","isolated","uses guarded development bypass","// Se bypass attivo, mantieni mock user"
 "services/aiPlanningService.ts","318","mock","release","scheduled:M14","AI or agronomic rule validation","* Ottieni dati pianta (mock per ora, in produzione da database)"
