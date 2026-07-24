@@ -1011,7 +1011,7 @@ export const monitoringDashboardService = {
   }
 }
 
-export default {
+const plantMonitoringService = {
   plantPhotoService,
   aiPhotoAnalysisService,
   maturityTrackingService,
@@ -1020,3 +1020,5 @@ export default {
   harvestRecommendationService,
   monitoringDashboardService
 }
+
+export default plantMonitoringService

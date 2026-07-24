@@ -340,7 +340,7 @@ export const getRowOperationStats = async (
   };
 };
 
-export default {
+const plantOperationsService = {
   createPlantOperation,
   createBulkOperation,
   updatePlantHealth,
@@ -353,3 +353,5 @@ export default {
   getPlantOperationStats,
   getRowOperationStats
 };
+
+export default plantOperationsService;

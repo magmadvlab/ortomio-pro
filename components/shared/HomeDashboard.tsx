@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { useTier } from '@/packages/core/hooks/useTier'
 import { Garden, GardenTask } from '@/types'
 import {
-  ChevronDown, MapPin, Droplets, Moon, Sun, Snowflake,
-  Package, AlertTriangle, Calendar, Wrench, Info, Plus,
-  CheckCircle, X, Loader2, Cloud, CloudRain, ThermometerSun,
+  Droplets,
+  Package, Calendar,
+  CheckCircle, X,
   Zap, Satellite, Map, BarChart3, ArrowRight
 } from 'lucide-react'
 import VacationMode from '@/components/VacationMode'
@@ -18,24 +17,15 @@ import SeedlingManager from '@/components/SeedlingManager'
 import SaplingManager from '@/components/SaplingManager'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
-import { TraditionalCropsWidget } from '@/components/shared/TraditionalCropsWidget'
 import FruitTreeManagement from '@/components/FruitTreeManagement'
 import StrawberryManagement from '@/components/StrawberryManagement'
 import ExoticFruitManagement from '@/components/ExoticFruitManagement'
 import AromaticManagement from '@/components/AromaticManagement'
 import RaspberryManagement from '@/components/RaspberryManagement'
-import OliveHarvest from '@/components/OliveHarvest'
-import VineHarvest from '@/components/VineHarvest'
 
-
-import { IrrigationZonesWidget } from '@/components/irrigation/IrrigationZonesWidget'
 import IrrigationZoneManager from '@/components/irrigation/IrrigationZoneManager'
 import { IrrigationZone } from '@/types/irrigation'
 import type { SaplingBatch } from '@/types/sapling'
-
-
-
-
 
 
 import { ReadingForm } from '@/components/hydroponic/ReadingForm'
@@ -57,11 +47,8 @@ import HealthAlertsWidget from '@/components/planner/HealthAlertsWidget'
 import { GardenCard } from './GardenCard'
 import { ProgressCard } from './ProgressCard'
 import { WeatherTaskWidget } from './WeatherTaskAlert'
-import { isToday, isSameDay, addDays, parseISO, format } from 'date-fns'
-import { it } from 'date-fns/locale'
-import { Heart, Sparkles } from 'lucide-react'
-import IntegratedFieldOperationsModal from '@/components/fieldrows/IntegratedFieldOperationsModal'
-import QuickOperationModal from '@/components/fieldrows/QuickOperationModal'
+import { isSameDay, addDays, parseISO, format } from 'date-fns'
+import { Sparkles } from 'lucide-react'
 import { normalizeGeoCoordinates } from '@/utils/coordinates'
 import { executeTaskFertilizationThroughUnifiedService } from '@/services/operationExecutionBridgeService'
 
@@ -75,7 +62,6 @@ interface HomeDashboardProps {
 
 export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
   const { storageProvider } = useStorage()
-  const { tier, isPro } = useTier()
   const router = useRouter()
 
   const getBaselineDismissKey = (gardenId: string) => `ortomio_baseline_dismissed_${gardenId}`
@@ -107,7 +93,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   }, [storageProvider])
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGardenState] = useState<Garden | null>(garden || null)
-  const [isGardenSelectorOpen, setIsGardenSelectorOpen] = useState(false)
 
   // Wrapper per setActiveGarden che persiste la selezione
   const setActiveGarden = React.useCallback((garden: Garden | null) => {
@@ -130,14 +115,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       setActiveGarden(garden)
     }
   }, [garden?.id, activeGarden?.id]) // Only re-run if IDs actually change
-  const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
-  const [loadingIrrigationZones, setLoadingIrrigationZones] = useState(false)
+  const [, setIrrigationZones] = useState<IrrigationZone[]>([])
+  const [, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
-  const [weather, setWeather] = useState<{ temp: number; code: number; rainForecastMm: number } | null>(null)
+  const [, setWeather] = useState<{ temp: number; code: number; rainForecastMm: number } | null>(null)
   const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([])
-  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [, setWeatherLoading] = useState(false)
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
-  const [loadingPlan, setLoadingPlan] = useState(false)
+  const [, setLoadingPlan] = useState(false)
   const [seedlingBatches, setSeedlingBatches] = useState<SeedlingBatch[]>([])
   const [seedPackets, setSeedPackets] = useState<SeedPacket[]>([])
   const [fieldRows, setFieldRows] = useState<any[]>([]) // Field rows del garden
@@ -147,11 +132,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   // NEW STATES FOR ADVANCED SYSTEM WIDGETS
   const [showIrrigationManager, setShowIrrigationManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
-  const [showIntegratedOperationsModal, setShowIntegratedOperationsModal] = useState(false)
-  const [selectedFieldRowsForOperations, setSelectedFieldRowsForOperations] = useState<string[]>([])
   const [fieldRowPlants, setFieldRowPlants] = useState<any[]>([]) // Piante individuali
-  const [showQuickOperationModal, setShowQuickOperationModal] = useState(false)
-  const [quickOperationType, setQuickOperationType] = useState<'fertilization' | 'treatment' | 'cultivation'>('fertilization')
 
   // States for modals
   const [showVacationMode, setShowVacationMode] = useState(false)
@@ -251,7 +232,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         let savedGardenId: string | null = null
         try {
           savedGardenId = localStorage.getItem('ortoActiveGardenId') || localStorage.getItem('ortoLastUsedGardenId')
-        } catch (e) {
+        } catch {
           // Ignora errori localStorage
         }
 
@@ -292,7 +273,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             return
           }
         }
-      } catch (e) {
+      } catch {
         // fallback below
       }
 
@@ -300,7 +281,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         const raw = localStorage.getItem(getBaselineDismissKey(activeGarden.id))
         const parsed = raw ? (JSON.parse(raw) as Record<string, string>) : {}
         setDismissedBaselinePrompts(parsed || {})
-      } catch (e) {
+      } catch {
         setDismissedBaselinePrompts({})
       }
     }
@@ -322,14 +303,14 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             return
           }
         }
-      } catch (e) {
+      } catch {
         // fallback below
       }
 
       try {
         const raw = localStorage.getItem(getBaselineShowAllKey(activeGarden.id))
         setShowAllBaselinePrompts(raw === '1')
-      } catch (e) {
+      } catch {
         setShowAllBaselinePrompts(false)
       }
     }
@@ -389,7 +370,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       for (const t of tasksToCreate) {
         await storageProvider.createTask(t)
       }
-      const updatedTasks = await storageProvider.getTasks(activeGarden.id)
+      await storageProvider.getTasks(activeGarden.id)
       await refreshTasks()
     } catch (error) {
       console.error('Error applying baseline prompt option:', error)
@@ -424,7 +405,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           seedPackets || []
         )
         setDailyPlan(plan)
-      } catch (error) {
+      } catch {
         // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
         // Il director continua comunque a funzionare senza irrigation tasks
         // Imposta un piano vuoto per evitare loop
@@ -618,7 +599,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                       key={task.id}
                       task={task}
                       compact={true}
-                      onComplete={async (id) => {
+                      onComplete={async () => {
                         const updatedTask = { ...task, completed: true }
                         if (onUpdateTask) {
                           await onUpdateTask(updatedTask)
@@ -626,7 +607,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                         // Ricarica tasks
                         await refreshTasks()
                       }}
-                      onReschedule={async (id) => {
+                      onReschedule={async () => {
                         const newDate = addDays(new Date(), 1)
                         const updatedTask = { ...task, nextDueDate: format(newDate, 'yyyy-MM-dd') }
                         if (onUpdateTask) {
@@ -773,7 +754,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                             if (activeGarden) {
                               try {
                                 localStorage.setItem(getBaselineShowAllKey(activeGarden.id), next ? '1' : '0')
-                              } catch (e) { }
+                              } catch { }
 
                               if (storageProvider.setUserPreference) {
                                 storageProvider

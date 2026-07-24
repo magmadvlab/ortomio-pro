@@ -424,7 +424,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O42 | M15 | Implementare sospensione e riattivazione | Accessi e dati coerenti |
 | O43 | M15 | Implementare cancellazione, retention e accesso assistenza auditato | Lifecycle di uscita verificato |
 | O44 | M16 | Eseguire audit finale e verbale go/no-go | `deployReady=true` con evidenze oppure no-go motivato |
-| T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici | Baseline per categoria e trend registrati; zero warning release-blocking |
+| T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici — **in corso 24/07/2026**: baseline per regola registrata (2642 -> 2589 dopo lotto 1, `docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`), lotto 1 chiuso (`no-unused-vars` in `HomeDashboard.tsx` 49->0) | Baseline per categoria e trend registrati; zero warning release-blocking |
 
 ## 6. Verifica trasversale dopo M15
 

@@ -423,7 +423,9 @@ export const getGeoClimateInfo = async (
 };
 
 // Export default per compatibilità con import dinamici
-export default {
+const geoClimateService = {
   getGeoClimateInfo,
   inferGeoClimate
 };
+
+export default geoClimateService;
