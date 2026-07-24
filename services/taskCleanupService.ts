@@ -128,9 +128,14 @@ export async function cleanupCompletedTasks(
           report.tasksDeleted++;
           report.spaceFreedKB += sizeKB;
         }
-        // Archivia task vecchi (per ora solo conteggio, implementare archiving se necessario)
+        // Archivia task vecchi in modo atomico
         else if (taskDate < archiveCutoffDate) {
-          // TODO: Implementare archiving su tabella separata se necessario
+          if (!opts.dryRun) {
+            if (!storageProvider.archiveTask) {
+              throw new Error('Task archival requires durable archive capability');
+            }
+            await storageProvider.archiveTask(task.id);
+          }
           report.tasksArchived++;
         }
         // Mantieni task recenti

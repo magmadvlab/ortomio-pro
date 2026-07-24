@@ -53,6 +53,7 @@ export interface IStorageProvider {
   createTask(task: Omit<GardenTask, 'id'>): Promise<GardenTask>;
   updateTask(id: string, updates: Partial<GardenTask>): Promise<GardenTask>;
   deleteTask(id: string): Promise<void>;
+  archiveTask?(id: string): Promise<void>;
 
   // Challenge completions (optional)
   getChallengeCompletions?(userId: string): Promise<Array<{ challenge_id: string }>>;

@@ -130,7 +130,6 @@
 "services/satelliteDataService.ts","74","mock","release","scheduled:M13","external provider integration","// Per ora, mock"
 "services/satelliteDataService.ts","112","todo","release","scheduled:M13","external provider integration","// TODO: Integrare con Open-Meteo Historical Weather API o servizio equivalente"
 "services/satelliteDataService.ts","113","mock","release","scheduled:M13","external provider integration","// Per ora, mock"
-"services/taskCleanupService.ts","133","todo","release","scheduled:M11","core operational lifecycle","// TODO: Implementare archiving su tabella separata se necessario"
 "services/unifiedCertificationsService.ts","164","mock","release","scheduled:M12","agronomic or certification pilot evidence","// Mock implementation - in real app, this would come from audit logs"
 "services/unifiedPlantTrackingService.ts","294","todo","release","scheduled:M11","core operational lifecycle","// TODO: Salva nel database"
 "services/unifiedPlantTrackingService.ts","355","todo","release","scheduled:M11","core operational lifecycle","plantName: 'Pomodoro', // TODO: Get from plant data"

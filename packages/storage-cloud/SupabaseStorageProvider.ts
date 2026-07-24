@@ -1133,6 +1133,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (error) throw error;
   }
 
+  async archiveTask(id: string): Promise<void> {
+    const client = this.ensureClient();
+    const { error } = await client.rpc('archive_completed_garden_task', {
+      target_task_id: id,
+    });
+    if (error) throw error;
+  }
+
   // Smart Devices
   async getDevices(gardenId?: string): Promise<SmartDevice[]> {
     if (!this.client) {
