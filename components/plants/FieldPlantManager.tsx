@@ -8,11 +8,10 @@ import { Garden } from '../../types';
 import { GardenPlant, FieldConfiguration, FieldWizardConfig } from '../../types/individualPlant';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
-  plantCalculations, 
   calculateFieldConfiguration, 
-  validateFieldConfiguration,
-  analyzeFieldPerformance 
+  validateFieldConfiguration
 } from '../../services/individualPlantService';
+import { createTrackedField } from '../../services/trackedFieldService';
 import { 
   TreePine, 
   Plus, 
@@ -66,10 +65,10 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
   const loadPlants = async () => {
     try {
       setLoading(true);
-      // TODO: Implementare caricamento piante dal storage
-      // const loadedPlants = await storageProvider.getGardenPlants?.(garden.id) || [];
-      // setPlants(loadedPlants);
-      setPlants([]); // Placeholder
+      if (!storageProvider.getIndividualPlants) {
+        throw new Error('Il provider cloud non supporta il tracking delle singole piante');
+      }
+      setPlants(await storageProvider.getIndividualPlants(garden.id));
     } catch (error) {
       console.error('Error loading plants:', error);
     } finally {
@@ -88,14 +87,16 @@ const FieldPlantManager: React.FC<FieldPlantManagerProps> = ({
     }
 
     try {
-      // TODO: Implementare creazione campo con storage provider
-      console.log('Creating field with config:', calculatedConfig);
-      alert(`Campo creato con successo!\n${calculatedConfig.totalPlants} piante in ${calculatedConfig.rowCount} filari`);
+      setLoading(true);
+      const created = await createTrackedField(storageProvider, garden.id, wizardConfig);
+      alert(`Campo creato con successo!\n${created.plants.length} piante in ${created.rows.length} filari`);
       setShowWizard(false);
       await loadPlants();
     } catch (error) {
       console.error('Error creating field:', error);
-      alert('Errore nella creazione del campo');
+      alert(`Errore nella creazione del campo: ${error instanceof Error ? error.message : 'errore sconosciuto'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
