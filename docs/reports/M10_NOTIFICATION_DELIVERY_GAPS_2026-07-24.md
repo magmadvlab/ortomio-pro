@@ -28,3 +28,11 @@ La lettura fallita delle preferenze non abilita piu' implicitamente l'invio. `se
 ## Residuo remoto
 
 Applicare la migrazione in staging, configurare `NOTIFICATION_WEBHOOK_SECRET`, eseguire una consegna reale e acquisire il webhook del provider. M10 non e' chiuso per la release finche' `O23` non e' provato end-to-end.
+
+## Verifiche locali
+
+- type-check verde;
+- test rollout/observability 13/13;
+- suite release 318/318;
+- audit debito release: zero voci M10 e zero voci non classificate;
+- build produzione: 149 pagine.

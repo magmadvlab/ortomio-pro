@@ -379,6 +379,7 @@ La correzione M02 ha:
 | 24/07/2026 | M09 / O04 | Completato localmente | avanzamento PR `#48` | Cache seed rimossa; reader e consumer interamente asincroni |
 | 24/07/2026 | M09 locale | Gate verde | avanzamento PR `#48` | Type-check; persistenza 27/27; release 314/314; build 147 pagine; resta O18 staging |
 | 24/07/2026 | M10 / O19-O22, O24 | Completato localmente | avanzamento PR `#48` | Lifecycle delivery persistente e operabile; resta O23 provider staging |
+| 24/07/2026 | M10 locale | Gate verde | avanzamento PR `#48` | Type-check; rollout 13/13; release 318/318; build 149 pagine; zero voci M10 |
 
 ## 5.1 Registro unico del lavoro aperto
 
