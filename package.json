@@ -42,7 +42,8 @@
     "docs:sync:check": "node scripts/sync-manual-docs.mjs --check",
     "docs:hygiene": "node scripts/check-docs-hygiene.mjs && npm run docs:sync:check",
     "audit:p0": "node scripts/audit-p0-baseline.mjs",
-    "audit:release-debt": "node scripts/audit-release-debt.mjs --check"
+    "audit:release-debt": "node scripts/audit-release-debt.mjs --check",
+    "audit:migrations": "node scripts/audit-migration-history.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
