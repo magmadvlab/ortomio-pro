@@ -76,6 +76,24 @@
 
 Durante la selezione del lotto 4, `services/aiPlanningService.ts` (41 `no-unused-vars`, il piu' alto dopo `costOptimizationService.ts`) ha portato alla scoperta che l'intero cluster che lo consuma e' irraggiungibile: `components/Planner.tsx` (2569 righe — incluso nel lotto 3 di questo stesso documento, fix ancora corretto ma su codice morto), `components/PlannerWithAI.tsx`, `components/ai/AIPlanningWizard.tsx`, `components/ai/PlanPreviewModal.tsx`, `components/planner/tabs/PlannerSuggestions.tsx`, `components/planner/tabs/PlannerSearch.tsx`, `components/ai/FloatingAIWidget.tsx`. Verifica esaustiva registrata in `ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`, sezione M05. **Decisione dell'utente: lasciare il cluster intatto** — nessun lint fix, nessuna rimozione in questa sessione. T01 prosegue saltando questi file.
 
+## Lotto 4 (24/07/2026, sera) - chiuso
+
+Prima di scegliere i file: applicata la nuova regola del cluster morto — controllato con grep la raggiungibilita' di ogni candidato prima di aprirlo. Scartati senza indagare oltre: `ListView.tsx` e `AnnualPlanner.tsx` (zero importer), `VisualGardenPlanner.tsx` (importato solo dal cluster morto "AI Planner" gia' registrato). Confermati raggiungibili prima di procedere: `OrganizationManager.tsx` (da `/app/settings`) e `ActivityRegistry.tsx` (da `/app/analytics`).
+
+- `components/settings/OrganizationManager.tsx` (11 -> 0): import morti (icone, tipo `GardenAssignment`, costante `SYSTEM_ROLES`, 3 funzioni servizio mai chiamate); prop `onRefresh` (gia' passata dal chiamante ma mai letta dentro) rimossa dalla destrutturazione di due sotto-componenti (`RolesTab`, `InvitationsTab`), tipo lasciato invariato.
+- `components/garden/ActivityRegistry.tsx` (9 -> 0): 8 icone importate mai usate rimosse; prop opzionale `onTaskUpdate` mai letta rimossa dalla destrutturazione.
+- **Verifiche:** type-check verde; `test:release` 228/228; build produzione verde.
+
+## Stato dopo il lotto 4
+
+| Regola | Errori | Warning |
+|---|---:|---:|
+| `@typescript-eslint/no-explicit-any` | 0 | 1273 |
+| `@typescript-eslint/no-unused-vars` | 0 | 1013 |
+| `react-hooks/exhaustive-deps` | 0 | 174 |
+| `@next/next/no-img-element` | 0 | 36 |
+| **Totale** | **0** | **2496** |
+
 ## Prossimo lotto
 
-Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, **saltare `costOptimizationService.ts` e l'intero cluster "AI Planner" sopra**, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI**; **se un file/componente intero e' oggetto del lotto, verificare con grep che sia davvero importato da qualche parte prima di investire tempo a ripulirlo (vedi questo cluster)** — poi type-check + `test:release` + build dopo ogni lotto.
+Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, **saltare `costOptimizationService.ts` e l'intero cluster "AI Planner"** (`Planner.tsx`, `PlannerWithAI.tsx`, `AIPlanningWizard.tsx`, `PlanPreviewModal.tsx`, `PlannerSuggestions.tsx`, `PlannerSearch.tsx`, `FloatingAIWidget.tsx`, `VisualGardenPlanner.tsx`) e altri file gia' scartati per irraggiungibilita' (`ListView.tsx`, `AnnualPlanner.tsx`) salvo nuova prova contraria — **verificare con grep la raggiungibilita' di ogni file candidato prima di aprirlo**, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI** — poi type-check + `test:release` + build dopo ogni lotto.
