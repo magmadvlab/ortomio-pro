@@ -19,9 +19,12 @@ export const FEATURES = {
    * Servizio: aiPredictiveEngine.ts
    * Route: /app/ai-predictions
    */
-  // P5: il motore e persistente, ma il menu resta chiuso finche la migrazione
-  // e il percorso E2E non sono verificati in staging.
-  AI_PREDICTIONS: false,
+  // P5: migrazione applicata e registrata, cron health-check smoke-testato su
+  // dati reali (6/6 orti, 0 errori, idempotenza confermata), persistenza meteo
+  // corretta e verificata (22/07/2026). Attivato deliberatamente pur con storico
+  // meteo ancora scarso: mostrerà "dati insufficienti" finché non si accumula
+  // storico multi-giorno, comportamento onesto per design, non un bug.
+  AI_PREDICTIONS: true,
   
   /**
    * Diario Operativo - Timeline attività
