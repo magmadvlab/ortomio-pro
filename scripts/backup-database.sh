@@ -21,4 +21,6 @@ BACKUP_FILE="${1:-$BACKUP_DIR/ortomio_$(date -u +%Y%m%dT%H%M%SZ).dump}"
 $PG_DUMP_BIN "$DATABASE_URL" --format=custom --no-owner --no-acl --file="$BACKUP_FILE"
 $PG_RESTORE_BIN --list "$BACKUP_FILE" >/dev/null
 chmod 600 "$BACKUP_FILE"
+shasum -a 256 "$BACKUP_FILE" > "$BACKUP_FILE.sha256"
+chmod 600 "$BACKUP_FILE.sha256"
 echo "$BACKUP_FILE"

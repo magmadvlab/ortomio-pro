@@ -53,9 +53,12 @@ test('backup and restore require explicit database targets and restore authoriza
   const restore = readFileSync('scripts/restore-database.sh', 'utf8')
   assert.match(backup, /DATABASE_URL/)
   assert.match(backup, /PG_RESTORE_BIN --list/)
+  assert.match(backup, /shasum -a 256/)
   assert.doesNotMatch(backup + restore, /DB_PASSWORD="postgres"|127\.0\.0\.1|54324/)
   assert.match(restore, /ALLOW_RESTORE/)
   assert.match(restore, /RESTORE_DATABASE_URL/)
+  assert.match(restore, /source e target coincidono/)
+  assert.match(restore, /to_regclass\('public\.gardens'\)/)
 })
 
 test('P8 migration provides audited rollouts and append-only release audit', () => {
