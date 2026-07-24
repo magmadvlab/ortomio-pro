@@ -16,6 +16,9 @@ import { SupabaseStorageProvider } from '../../storage-cloud/SupabaseStorageProv
 import { isSupabaseAvailable } from '@/config/supabase';
 
 export type StorageProviderType = 'local' | 'cloud' | 'neon' | 'auto';
+type StorageFactoryDependencies = {
+  isSupabaseAvailableFn?: typeof isSupabaseAvailable;
+};
 
 function isNeonAvailable(): boolean {
   return typeof process !== 'undefined' && !!process.env.DATABASE_URL;
@@ -33,7 +36,11 @@ function createNeonProvider(): IStorageProvider {
  * 'auto' uses Supabase, then localStorage. Neon is only used when 'neon' is
  * requested explicitly (see module comment above).
  */
-export const createStorageProvider = (type: StorageProviderType = 'auto'): IStorageProvider => {
+export const createStorageProvider = (
+  type: StorageProviderType = 'auto',
+  dependencies: StorageFactoryDependencies = {},
+): IStorageProvider => {
+  const supabaseAvailable = (dependencies.isSupabaseAvailableFn ?? isSupabaseAvailable)();
   switch (type) {
     case 'local':
       return new LocalStorageProvider();
@@ -46,15 +53,14 @@ export const createStorageProvider = (type: StorageProviderType = 'auto'): IStor
       return createNeonProvider();
 
     case 'cloud':
-      if (!isSupabaseAvailable()) {
-        console.warn('Supabase not available, falling back to localStorage');
-        return new LocalStorageProvider();
+      if (!supabaseAvailable) {
+        throw new Error('Cloud storage requested but Supabase is not available');
       }
       return new SupabaseStorageProvider();
 
     case 'auto':
     default:
-      if (isSupabaseAvailable()) {
+      if (supabaseAvailable) {
         return new SupabaseStorageProvider();
       }
       return new LocalStorageProvider();
@@ -84,4 +90,3 @@ export const getSupabaseStorageProvider = (): IStorageProvider | null => {
 export const getLocalStorageProvider = (): IStorageProvider => {
   return new LocalStorageProvider();
 };
-
