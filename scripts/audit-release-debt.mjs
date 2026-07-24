@@ -16,6 +16,7 @@ const classifications = [
   { match: /^services\/(?:droneIntegration|blockchain)Service\.ts$/, maturity: 'laboratory', disposition: 'isolated', reason: 'simulation/lab provider' },
   { match: /^components\/dominance\//, maturity: 'laboratory', disposition: 'isolated', reason: 'internal strategic analysis module' },
   { match: /^components\/(?:shared\/(?:LocationSelector|MobileOptimizedInput)|ui\/Select)\.tsx$/, maturity: 'release', disposition: 'accepted', reason: 'component placeholder property, not simulated data' },
+  { match: /^components\/(?:plants\/BulkOperationModal|settings\/CultivationSelector|shared\/PlantFuzzySearch)\.tsx$/, maturity: 'release', disposition: 'accepted', reason: 'form label or placeholder copy, not simulated operational data' },
   { match: /\.(?:backup|bak\d*)$/, maturity: 'legacy', disposition: 'excluded', reason: 'non-runtime backup file' },
 ]
 

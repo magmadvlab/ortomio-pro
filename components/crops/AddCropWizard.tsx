@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Garden, GardenTask, GrowingLocation, ArchetypeId } from '../../types';
 import { AddWoodyCropWizard } from './AddWoodyCropWizard';
 import { useStorage } from '../../packages/core/hooks/useStorage';
+import { useAuth } from '../../packages/core/hooks/useAuth';
 import { createAlias } from '../../services/aliasService';
 import { getArchetypeById, getDefaultProfile, getAllArchetypes } from '../../services/archetypeService';
 import { calculateRootDepthForArchetype } from '../../logic/rootDepthCalculator';
@@ -31,6 +32,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   selectedDate
 }) => {
   const { storageProvider } = useStorage();
+  const { user } = useAuth();
   const [step, setStep] = useState<WizardStep>('method');
   const [loading, setLoading] = useState(false);
   
@@ -291,7 +293,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
               archetypeId,
               undefined, // region
               undefined, // province
-              undefined, // userId (TODO: ottenere da auth)
+              user?.id,
               0.6 // Confidence media per riconoscimento automatico
             ).catch(console.error);
           }
@@ -329,7 +331,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
         archetypeId,
         undefined, // region
         undefined, // province
-        undefined, // userId (TODO: ottenere da auth)
+        user?.id,
         0.5 // Confidence bassa per selezione manuale
       ).catch(console.error);
     }
@@ -1141,4 +1143,3 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
     </div>
   );
 };
-

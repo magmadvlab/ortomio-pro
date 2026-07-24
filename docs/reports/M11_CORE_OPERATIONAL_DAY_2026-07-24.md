@@ -27,6 +27,13 @@
 - i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
 - test locali aggiornati: type-check verde e persistenza 33/33.
 
+## Riconciliazione debito core
+
+- la dashboard consumer carica i task reali dell'orto e riattiva il widget ricette sui raccolti effettivi;
+- gli alias creati dal wizard colture registrano l'utente autenticato;
+- tre occorrenze `placeholder` di soli label/prop UI sono classificate esplicitamente come accettate;
+- le voci M11 pianificate scendono da 58 a 52; nessuna voce release resta non classificata.
+
 ## Sequenza da certificare
 
 1. Responsabile crea piano e task.

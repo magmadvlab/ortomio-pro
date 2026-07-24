@@ -5,14 +5,15 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { AICreditsWidget } from '@/components/shared/AICreditsWidget'
 import WeatherWidget from '@/components/WeatherWidget'
 import GardenOnboarding from '@/components/GardenOnboarding'
-// import SmartRecipesWidget from '@/components/garden/SmartRecipesWidget'
-import { Garden } from '@/types'
+import SmartRecipesWidget from '@/components/garden/SmartRecipesWidget'
+import { Garden, GardenTask } from '@/types'
 import { Sparkles, Sun, Snowflake, ChefHat, Book, Leaf } from 'lucide-react'
 import Link from 'next/link'
 
 export function ConsumerDashboard() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
+  const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
@@ -21,6 +22,9 @@ export function ConsumerDashboard() {
       try {
         const loadedGardens = await storageProvider.getGardens()
         setGardens(loadedGardens)
+        if (loadedGardens[0]) {
+          setTasks(await storageProvider.getTasks(loadedGardens[0].id))
+        }
         if (loadedGardens.length === 0) {
           setShowOnboarding(true)
         }
@@ -131,11 +135,7 @@ export function ConsumerDashboard() {
             Ricette per i tuoi raccolti
           </h2>
           
-          {/* Widget ricette intelligente */}
-          {/* <SmartRecipesWidget 
-            tasks={[]} // TODO: Passare i task reali dalla dashboard
-            className="mb-4"
-          /> */}
+          <SmartRecipesWidget tasks={tasks} className="mb-4" />
           
           {/* Ricette statiche di fallback */}
           <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
