@@ -43,7 +43,10 @@ Il quarto lotto ha riclassificato tutte le voci impropriamente assegnate a M09 n
 
 Verifiche del quarto lotto: type-check verde; audit release con 189 voci totali, zero assegnate a M09 e zero non classificate; test di regressione dedicati.
 
+Il quinto lotto ha eliminato la cache sincrona dell'inventario sementi. Tutti i reader esportati restituiscono `Promise`, i consumer caricano dal servizio/provider autorevole e le mutazioni rileggono il backend prima di aggiornare la UI.
+
+Verifiche di chiusura locale M09: type-check verde; persistenza 27/27; suite release 314/314; audit con zero voci M09; build produzione 147 pagine.
+
 ## Residuo
 
-- rimuovere o rendere non autorevoli gli helper sincroni dell'inventario semi rimasti per compatibilita';
 - applicare e certificare le migrazioni canoniche in staging.

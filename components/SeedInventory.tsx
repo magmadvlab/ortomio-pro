@@ -6,9 +6,6 @@ import {
   getSeedPackets, 
   updateSeedPacket, 
   deleteSeedPacket, 
-  getExpiringSeeds, 
-  getLowStockSeeds,
-  getExpiredSeeds,
   shouldShowJanuaryAlert
 } from '@/services/seedInventoryService';
 import { varietyMappings } from '../data/varietyMappings';
@@ -43,12 +40,16 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
     loadPackets();
   }, [garden.id]);
 
-  const loadPackets = () => {
-    const loaded = getSeedPackets(garden.id);
-    setPackets(loaded);
+  const loadPackets = async () => {
+    try {
+      setPackets(await getSeedPackets(garden.id));
+    } catch (error) {
+      console.error('Error loading seed packets:', error);
+      setPackets([]);
+    }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newPacket.varietyName || !newPacket.speciesName) return;
     
     // Parse quantità se presente
@@ -87,8 +88,8 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
       gardenId: garden.id
     };
     
-    addSeedPacket(packet);
-    loadPackets();
+    await addSeedPacket(packet);
+    await loadPackets();
     setIsAdding(false);
     setNewPacket({
       varietyName: '',
@@ -102,24 +103,24 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
     });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Eliminare questo pacchetto di semi?')) {
-      deleteSeedPacket(garden.id, id);
-      loadPackets();
+      await deleteSeedPacket(garden.id, id);
+      await loadPackets();
     }
   };
 
-  const handleUpdate = (id: string, updates: Partial<SeedPacket>) => {
-    updateSeedPacket(garden.id, id, updates);
-    loadPackets();
+  const handleUpdate = async (id: string, updates: Partial<SeedPacket>) => {
+    await updateSeedPacket(garden.id, id, updates);
+    await loadPackets();
     setEditingId(null);
   };
 
   const currentYear = new Date().getFullYear();
   const showJanuaryAlert = shouldShowJanuaryAlert();
-  const expiredSeeds = getExpiredSeeds(garden.id, currentYear);
-  const expiringSeeds = getExpiringSeeds(garden.id, currentYear);
-  const lowStockSeeds = getLowStockSeeds(garden.id);
+  const expiredSeeds = packets.filter((packet) => packet.expiryYear < currentYear);
+  const expiringSeeds = packets.filter((packet) => packet.expiryYear <= currentYear && packet.quantityRemaining !== 'Empty');
+  const lowStockSeeds = packets.filter((packet) => ['Low', 'Empty'].includes(packet.quantityRemaining));
 
   // Filtra i pacchetti
   let filteredPackets = packets;
@@ -526,6 +527,4 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
 };
 
 export default SeedInventory;
-
-
 

@@ -65,12 +65,12 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M01 | `[x]` chiuso | Feature flag morti rimossi e gate riallineato | Nulla nel perimetro M01 |
 | M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
-| M04 | `[L]` locale | Suolo persistente e seed senza fallback mock | Migrazione staging; helper seed trasferiti a M09 (`O03-O04`) |
+| M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
 | M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 169 voci correnti assegnate a M10-M15 (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
 | M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
-| M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09 | Helper seed legacy e staging (`O04`, `O18`) |
+| M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09; seed interamente asincroni | Certificazione staging (`O18`) |
 | M10 | `[-]` parziale | Preferenze fail-closed e `sentAt` corretto | Intero lifecycle delivery (`O19-O24`) |
 | M11 | `[-]` parziale | Baseline core e protocollo giornata | Transizioni, ruoli, DST e prova staging (`O25-O28`) |
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
@@ -376,6 +376,8 @@ La correzione M02 ha:
 | 24/07/2026 | M14 | Parziale | `f94d760` | Regressione 9/9; shadow reale non eseguito |
 | 24/07/2026 | M15 | Parziale | `19cb061` | Token invito non loggato; lifecycle commerciale incompleto |
 | 24/07/2026 | M09 / O16-O17 | Completato localmente | avanzamento PR `#48` | 44 voci riclassificate; coordinate e memoria agronomica convergenti; zero voci M09 nel manifest |
+| 24/07/2026 | M09 / O04 | Completato localmente | avanzamento PR `#48` | Cache seed rimossa; reader e consumer interamente asincroni |
+| 24/07/2026 | M09 locale | Gate verde | avanzamento PR `#48` | Type-check; persistenza 27/27; release 314/314; build 147 pagine; resta O18 staging |
 
 ## 5.1 Registro unico del lavoro aperto
 
@@ -386,7 +388,6 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
 | O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
-| O04 | M09 | Eliminare o rendere non autorevoli gli helper sincroni seed legacy | Tutti i consumer usano il reader asincrono |
 | O05 | M05 | Riconciliare gli esiti delle 169 voci correnti trasferite a M10-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
 | O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
@@ -441,9 +442,8 @@ Eseguita il 24/07/2026 sulla baseline locale:
 
 Riprendere dal primo lavoro locale non bloccato:
 
-1. completare `O16-O17` di M09, uniche attività locali prioritarie gia' in corso;
-2. predisporre staging (`O06`) per sbloccare M03-M04 e M06-M08;
-3. implementare M10 (`O19-O24`);
-4. proseguire M11 e identificare gli owner esterni di M12-M14;
-5. progettare e implementare M15;
-6. eseguire M16 soltanto quando `O01-O43` sono chiusi o formalmente esclusi dalla release.
+1. predisporre staging (`O06`) per sbloccare M03-M04 e M06-M09;
+2. implementare M10 (`O19-O24`);
+3. proseguire M11 e identificare gli owner esterni di M12-M14;
+4. progettare e implementare M15;
+5. eseguire M16 soltanto quando `O01-O43` sono chiusi o formalmente esclusi dalla release.

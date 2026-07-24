@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured, checkApiAvailableAsync } from '../services/geminiService';
-import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation } from '../types';
+import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation, SeedPacket } from '../types';
 import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon, Bot, TrendingUp, Camera } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
-import { findSeedsForPlant, getExpiringSeeds } from '@/services/seedInventoryService';
 import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
 import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
 import { getAllMasterSheets, getMasterSheetSync } from '../services/plantMasterService';
@@ -247,6 +246,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   // Garden beds state
   const { storageProvider } = useStorage();
   const [beds, setBeds] = useState<GardenBed[]>([]);
+  const [seedPackets, setSeedPackets] = useState<SeedPacket[]>([]);
   const [selectedBedId, setSelectedBedId] = useState<string | undefined>(undefined);
   const [bedSpaceCalculations, setBedSpaceCalculations] = useState<Record<string, any>>({});
   const [selectedVisualCategory, setSelectedVisualCategory] = useState<'all' | 'Orto' | 'Frutteto' | 'Esotici' | 'Aromatiche'>('all');
@@ -304,6 +304,17 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
     };
     loadBeds();
   }, [garden.id, tasks]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void storageProvider.getSeedPackets(garden.id)
+      .then((packets) => { if (!cancelled) setSeedPackets(packets); })
+      .catch((error) => {
+        console.error('Error loading planner seed inventory:', error);
+        if (!cancelled) setSeedPackets([]);
+      });
+    return () => { cancelled = true; };
+  }, [garden.id, storageProvider]);
 
   useEffect(() => {
     if (specificResult) {
@@ -1423,9 +1434,18 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                     
                     {/* Seed Availability */}
                     {(() => {
-                      const availableSeeds = findSeedsForPlant(garden.id, specificResult.name, specificResult.variety);
-                      const expiringSeeds = getExpiringSeeds(garden.id, new Date().getFullYear()).filter(s => 
-                        s.speciesName.toLowerCase() === specificResult.name.toLowerCase()
+                      const plantKey = specificResult.name.toLowerCase();
+                      const varietyKey = specificResult.variety?.toLowerCase();
+                      const availableSeeds = seedPackets.filter((seed) =>
+                        seed.quantityRemaining !== 'Empty' &&
+                        (seed.speciesName.toLowerCase().includes(plantKey) ||
+                          seed.varietyName.toLowerCase().includes(plantKey)) &&
+                        (!varietyKey ||
+                          seed.speciesName.toLowerCase().includes(varietyKey) ||
+                          seed.varietyName.toLowerCase().includes(varietyKey))
+                      );
+                      const expiringSeeds = availableSeeds.filter((seed) =>
+                        seed.expiryYear <= new Date().getFullYear()
                       );
                       
                       if (availableSeeds.length > 0 || expiringSeeds.length > 0) {

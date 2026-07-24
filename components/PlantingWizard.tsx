@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Garden, GrowingLocation } from '../types';
 import { X, ArrowRight, Calendar, Sprout, Sun, Snowflake } from 'lucide-react';
 import { findSeedsForPlant } from '@/services/seedInventoryService';
@@ -43,8 +43,18 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
   const [variety, setVariety] = useState(initialVariety || '');
   const [selectedSeedPacketId, setSelectedSeedPacketId] = useState<string | undefined>(undefined);
   
-  // Trova semi disponibili
-  const availableSeeds = findSeedsForPlant(garden.id, plantName.toUpperCase(), variety);
+  const [availableSeeds, setAvailableSeeds] = useState<SeedPacket[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void findSeedsForPlant(garden.id, plantName.toUpperCase(), variety)
+      .then((seeds) => { if (!cancelled) setAvailableSeeds(seeds); })
+      .catch((error) => {
+        console.error('Error loading matching seeds:', error);
+        if (!cancelled) setAvailableSeeds([]);
+      });
+    return () => { cancelled = true; };
+  }, [garden.id, plantName, variety]);
   
   // Auto-detect season from date
   const detectSeason = (dateStr: string): 'Summer' | 'Winter' => {
@@ -405,5 +415,4 @@ const PlantingWizard: React.FC<PlantingWizardProps> = ({
 };
 
 export default PlantingWizard;
-
 

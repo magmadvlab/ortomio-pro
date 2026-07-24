@@ -20,3 +20,11 @@ test('consumer dashboard uses garden coordinates without a fabricated default', 
   assert.match(dashboard, /activeGarden\.coordinates/)
   assert.match(dashboard, /Dati meteo non disponibili/)
 })
+
+test('seed inventory has no synchronous authoritative cache', () => {
+  const service = source('services/seedInventoryService.ts')
+
+  assert.doesNotMatch(service, /seedPacketCache|getSeedPacketCache|setSeedPacketCache/)
+  assert.match(service, /export const getSeedPackets = .*Promise<SeedPacket\[\]>/s)
+  assert.match(service, /export const findSeedsForPlant = async/)
+})

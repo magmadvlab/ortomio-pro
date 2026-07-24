@@ -1,16 +1,6 @@
 import { SeedPacket, SeedConsumption, SeedAlert, SeedInventoryStats, SeedSearchFilters } from '@/types/seedInventory'
 import { getSupabaseClient } from '@/config/supabase'
 
-const seedPacketCache = new Map<string, SeedPacket[]>()
-
-const setSeedPacketCache = (gardenId: string, packets: SeedPacket[]) => {
-  seedPacketCache.set(gardenId, [...packets])
-}
-
-const getSeedPacketCache = (gardenId: string): SeedPacket[] => {
-  return seedPacketCache.get(gardenId) || []
-}
-
 const normalizeForLookup = (value?: string) => (value || '').trim().toLowerCase()
 
 const getSupabaseOrThrow = () => {
@@ -54,7 +44,6 @@ export class SeedInventoryService {
       if (error) throw error
 
       const packets = data?.map(this.mapFromDatabase) || []
-      setSeedPacketCache(gardenId, packets)
       return packets
     } catch (error) {
       console.error('Error fetching seed packets:', error)
@@ -74,8 +63,6 @@ export class SeedInventoryService {
       if (error) throw error
 
       const mapped = this.mapFromDatabase(data)
-      const cached = getSeedPacketCache(packet.gardenId)
-      setSeedPacketCache(packet.gardenId, [mapped, ...cached.filter((item) => item.id !== mapped.id)])
       return mapped
     } catch (error) {
       console.error('Error adding seed packet:', error)
@@ -96,11 +83,6 @@ export class SeedInventoryService {
       if (error) throw error
 
       const mapped = this.mapFromDatabase(data)
-      const gardenId = mapped.gardenId || updates.gardenId
-      if (gardenId) {
-        const cached = getSeedPacketCache(gardenId)
-        setSeedPacketCache(gardenId, cached.map((item) => item.id === mapped.id ? mapped : item))
-      }
       return mapped
     } catch (error) {
       console.error('Error updating seed packet:', error)
@@ -117,12 +99,6 @@ export class SeedInventoryService {
         .eq('id', id)
 
       if (error) throw error
-      for (const [gardenId, packets] of seedPacketCache.entries()) {
-        const nextPackets = packets.filter((packet) => packet.id !== id)
-        if (nextPackets.length !== packets.length) {
-          setSeedPacketCache(gardenId, nextPackets)
-        }
-      }
     } catch (error) {
       console.error('Error deleting seed packet:', error)
       throw error
@@ -190,7 +166,6 @@ export class SeedInventoryService {
       if (error) throw error
 
       const packets = data?.map(this.mapFromDatabase) || []
-      setSeedPacketCache(gardenId, packets)
       return packets
     } catch (error) {
       console.error('Error fetching available seeds:', error)
@@ -359,36 +334,8 @@ export class SeedInventoryService {
 
 export const seedInventoryService = new SeedInventoryService()
 
-// Export individual functions for backward compatibility.
-// The legacy UI consumes these helpers synchronously, so they read from
-// an in-memory cache and trigger an async refresh in the background.
-export const getSeedPackets = (gardenId: string, filters?: SeedSearchFilters): SeedPacket[] => {
-  void seedInventoryService.getSeedPackets(gardenId, filters).catch(() => undefined)
-  const packets = getSeedPacketCache(gardenId)
-
-  if (!filters) {
-    return packets
-  }
-
-  return packets.filter((packet) => {
-    if (filters.searchTerm) {
-      const haystack = `${packet.varietyName} ${packet.speciesName} ${packet.supplier || ''}`.toLowerCase()
-      if (!haystack.includes(filters.searchTerm.toLowerCase())) {
-        return false
-      }
-    }
-    if (filters.source && filters.source !== 'all' && packet.source !== filters.source) {
-      return false
-    }
-    if (filters.isOpen !== undefined && packet.isOpen !== filters.isOpen) {
-      return false
-    }
-    if (filters.expiryYear && packet.expiryYear !== filters.expiryYear) {
-      return false
-    }
-    return true
-  })
-}
+export const getSeedPackets = (gardenId: string, filters?: SeedSearchFilters): Promise<SeedPacket[]> =>
+  seedInventoryService.getSeedPackets(gardenId, filters)
 
 export const addSeedPacket = (packet: Omit<SeedPacket, 'id'>) => 
   seedInventoryService.addSeedPacket(packet)
@@ -406,33 +353,20 @@ export const updateSeedPacket = (
 export const deleteSeedPacket = (gardenIdOrId: string, maybeId?: string) => 
   seedInventoryService.deleteSeedPacket(maybeId || gardenIdOrId)
 
-export const getExpiringSeeds = (gardenId: string, monthsAheadOrYear?: number): SeedPacket[] => {
-  void seedInventoryService.getExpiringSeeds(gardenId, monthsAheadOrYear).catch(() => undefined)
-  const packets = getSeedPacketCache(gardenId)
-  const currentYear = new Date().getFullYear()
-  const targetYear =
-    monthsAheadOrYear && monthsAheadOrYear > 1900
-      ? monthsAheadOrYear
-      : currentYear + Math.max(0, Math.floor((monthsAheadOrYear ?? 12) / 12))
+export const getExpiringSeeds = (gardenId: string, monthsAhead: number = 12): Promise<SeedPacket[]> =>
+  seedInventoryService.getExpiringSeeds(gardenId, monthsAhead)
 
-  return packets.filter((packet) => packet.expiryYear <= targetYear && packet.quantityRemaining !== 'Empty')
-}
+export const getExpiredSeeds = async (gardenId: string, referenceYear = new Date().getFullYear()): Promise<SeedPacket[]> =>
+  (await seedInventoryService.getSeedPackets(gardenId)).filter((packet) => packet.expiryYear < referenceYear)
 
-export const getExpiredSeeds = (gardenId: string, referenceYear?: number): SeedPacket[] => {
-  const year = referenceYear || new Date().getFullYear()
-  return getSeedPacketCache(gardenId).filter((packet) => packet.expiryYear < year)
-}
+export const getLowStockSeeds = (gardenId: string): Promise<SeedPacket[]> =>
+  seedInventoryService.getLowStockSeeds(gardenId)
 
-export const getLowStockSeeds = (gardenId: string): SeedPacket[] => {
-  void seedInventoryService.getLowStockSeeds(gardenId).catch(() => undefined)
-  return getSeedPacketCache(gardenId).filter((packet) => ['Low', 'Empty'].includes(packet.quantityRemaining))
-}
-
-export const findSeedsForPlant = (gardenId: string, plantName: string, variety?: string): SeedPacket[] => {
+export const findSeedsForPlant = async (gardenId: string, plantName: string, variety?: string): Promise<SeedPacket[]> => {
   const plantKey = normalizeForLookup(plantName)
   const varietyKey = normalizeForLookup(variety)
 
-  return getSeedPacketCache(gardenId).filter((packet) => {
+  return (await seedInventoryService.getSeedPackets(gardenId)).filter((packet) => {
     const nameMatch =
       normalizeForLookup(packet.varietyName).includes(plantKey) ||
       normalizeForLookup(packet.speciesName).includes(plantKey)

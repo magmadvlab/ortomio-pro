@@ -12,7 +12,7 @@
 - [ ] M04 - implementazione locale pronta; migrazione staging e helper seed aperti;
 - [ ] M05 - censimento pronto; 169 esiti correnti da riconciliare nei milestone M10-M15;
 - [ ] M06-M08 - migrazioni, restore e RLS bloccati senza staging;
-- [ ] M09 - convergenza locale verificata; helper seed legacy e certificazione staging aperti;
+- [ ] M09 - convergenza locale verificata; resta la certificazione staging;
 - [ ] M10-M15 - lifecycle notifiche, core, pilot, provider, AI e commerciale incompleti;
 - [ ] M16 - audit finale non iniziato.
 

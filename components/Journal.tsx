@@ -174,16 +174,22 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
   // Trova semi corrispondenti quando cambia il nome della pianta
   useEffect(() => {
+    let cancelled = false;
     if (newTask.plantName && garden) {
-      const matches = findSeedsForPlant(garden.id, newTask.plantName.toUpperCase(), newTask.variety);
-      setMatchingSeeds(matches);
-      // Se c'è un solo match, selezionalo automaticamente
-      if (matches.length === 1 && !newTask.selectedSeedPacketId && newTask.plantingMethod === 'Seed') {
-        setNewTask({ ...newTask, selectedSeedPacketId: matches[0].id });
-      }
+      void findSeedsForPlant(garden.id, newTask.plantName.toUpperCase(), newTask.variety).then((matches) => {
+        if (cancelled) return;
+        setMatchingSeeds(matches);
+        if (matches.length === 1 && !newTask.selectedSeedPacketId && newTask.plantingMethod === 'Seed') {
+          setNewTask((current) => ({ ...current, selectedSeedPacketId: matches[0].id }));
+        }
+      }).catch((error) => {
+        console.error('Error matching seed inventory:', error);
+        if (!cancelled) setMatchingSeeds([]);
+      });
     } else {
       setMatchingSeeds([]);
     }
+    return () => { cancelled = true; };
   }, [newTask.plantName, newTask.variety, newTask.plantingMethod, garden]);
 
   // Trova batch corrispondenti quando cambia il nome della pianta e plantingMethod è Seedling
