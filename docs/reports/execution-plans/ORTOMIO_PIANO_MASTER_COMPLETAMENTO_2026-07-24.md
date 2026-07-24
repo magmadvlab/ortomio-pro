@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M02 completati; M03 e' il prossimo blocco
+- **Stato esecuzione:** M01-M03 completati; M04 e' il prossimo blocco
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -76,7 +76,7 @@ Un blocco passa a completato solo quando:
 
 ### M03 - Creazione zone end-to-end
 
-- **Stato:** `[ ]`
+- **Stato:** `[x]` completato il 24/07/2026
 - **Obiettivo:** completare azienda/garden -> zona con persistenza e ownership.
 - **Perimetro iniziale:** `app/app/garden/zones/page.tsx` e servizi/API collegati.
 - **Attivita':**
@@ -86,6 +86,10 @@ Un blocco passa a completato solo quando:
   - gestire successo, errore, retry e aggiornamento lista;
   - coprire accesso cross-garden negativo.
 - **Criterio di uscita:** una zona puo' essere creata, riletta e usata nei flussi successivi senza scritture ambigue.
+- **Risultato:** sostituito il modal TODO con form validato per rettangolo o area personalizzata; lettura e creazione passano dalla route server `/api/garden/zones`; identita' e garden sono derivati dal controllo autorizzativo server; la lista viene riletta dopo la scrittura e l'errore resta visibile per consentire il retry.
+- **Evidenza:** commit `fed4732` (`feat: complete authorized land zone creation`).
+- **Verifiche:** type-check verde; 5 test M03 verdi; persistenza e sicurezza 24/24; suite release 297/297; lint mirato con 0 errori e 10 warning gia' censiti nel perimetro; build produzione 146 pagine.
+- **Rischio residuo:** la migrazione `20260724120000_land_zones_garden_ownership.sql` e' verificata localmente ma deve ancora essere applicata e provata su staging. Le operazioni legacy di aggiornamento, cambio stato ed eliminazione restano protette dalle RLS rafforzate, ma non sono ancora migrate alla nuova API server.
 
 ### M04 - Persistenza suolo, seed inventory e fallback production
 
@@ -283,13 +287,14 @@ La correzione M02 ha:
 |---|---|---|---|---|
 | 24/07/2026 | M01 / D5 | Completato | `c458bd92a08ad4d947813e65ca6319f7bc184318` | 13 flag morti rimossi; gate locale riallineato |
 | 24/07/2026 | M02 / D14 | Completato | `583902a9` | Dashboard veritiera; lint reale con 0 errori; 2.733 warning registrati |
+| 24/07/2026 | M03 | Completato localmente | `fed4732` | Creazione e rilettura zone autorizzate; applicazione migrazione su staging ancora richiesta |
 
 ## 6. Prossima azione
 
-Avviare M03:
+Avviare M04:
 
-1. ricostruire il contratto dati e le API esistenti per le zone;
-2. sostituire il modal TODO con un form validato;
-3. usare identita' e garden autorizzati lato server;
-4. aggiungere test di persistenza e accesso cross-garden negativo;
+1. ricostruire i contratti di persistenza di `soilStateService.ts` e `seedInventoryService.ts`;
+2. distinguere assenza dati da errore provider;
+3. eliminare fallback mock dai percorsi production;
+4. aggiungere test di errore e isolamento garden;
 5. aggiornare questo registro e creare un commit dedicato.
