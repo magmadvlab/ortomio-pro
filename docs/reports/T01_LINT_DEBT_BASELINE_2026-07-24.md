@@ -55,6 +55,23 @@
 | `@next/next/no-img-element` | 0 | 36 |
 | **Totale** | **0** | **2563** |
 
+## Lotto 3 (24/07/2026, sera) - chiuso
+
+- `components/plants/PlantLifecycleManager.tsx` (24 -> 0): import morti (icone, funzioni mai chiamate) e 2 prop mai lette (`onUpdatePlant`, `onAddHarvest`) rimosse dalla destrutturazione.
+- `components/Planner.tsx` (19 -> 0): import morti (icone, tipi, 2 componenti mai renderizzati `PHCompatibilityChecker`/`FertigationPlanner`, 3 funzioni mai chiamate); `limit` rimosso dalla destrutturazione di `useTier()`; `activeTasksCount`/`tasksLimit`/`checkLimit` rimossi in cascata (calcolavano un valore mai letto altrove); `loadingDailyPlan` ridotto a solo setter; 3 blocchi `catch (fallbackError: any) {}` con binding mai letto convertiti a `catch {}` (chiude anche 3 `no-explicit-any` in bonus); `newTasks` (array costruito e mai popolato ne' letto) rimosso.
+  - **Bug funzionale trovato e sistemato, non solo lint** (su richiesta esplicita dell'utente): i bottoni "☀️ Estive"/"❄️ Invernali" nella sezione "Popolari in questo periodo" costruivano una lista di piante nell'`onClick` e non facevano nulla con essa — bottoni cliccabili senza effetto, stesso pattern del bug Vigneto gia' visto in sessioni precedenti. Le due liste (gia' scritte, non dati finti: sono gli stessi tag statici gia' usati nel fallback invernale esistente) sono state promosse a costanti di modulo (`SUMMER_POPULAR_PLANTS`, `WINTER_POPULAR_PLANTS`); aggiunto uno stato `popularPlantsSeasonOverride` che i due bottoni impostano/togglano (click di nuovo = torna ai suggerimenti automatici) e che la prop `plants` di `PopularPlantsTags` ora rispetta con priorita' sui suggerimenti stagionali automatici.
+- **Verifiche:** type-check verde; `test:release` 228/228; build produzione verde.
+
+## Stato dopo il lotto 3
+
+| Regola | Errori | Warning |
+|---|---:|---:|
+| `@typescript-eslint/no-explicit-any` | 0 | 1273 |
+| `@typescript-eslint/no-unused-vars` | 0 | 1033 |
+| `react-hooks/exhaustive-deps` | 0 | 174 |
+| `@next/next/no-img-element` | 0 | 36 |
+| **Totale** | **0** | **2516** |
+
 ## Prossimo lotto
 
-Nessun file scelto ancora. Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa (vedi lotto 1, `costOptimizationService.ts`)** — poi type-check + `test:release` + build dopo ogni lotto.
+Nessun file scelto ancora. Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa (vedi lotto 1, `costOptimizationService.ts`)**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI (vedi lotto 3, bottoni stagionali morti nel Planner)** — poi type-check + `test:release` + build dopo ogni lotto.

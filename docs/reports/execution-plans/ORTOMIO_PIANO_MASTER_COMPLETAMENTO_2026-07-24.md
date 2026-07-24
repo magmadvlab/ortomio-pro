@@ -425,7 +425,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O42 | M15 | Implementare sospensione e riattivazione | Accessi e dati coerenti |
 | O43 | M15 | Implementare cancellazione, retention e accesso assistenza auditato | Lifecycle di uscita verificato |
 | O44 | M16 | Eseguire audit finale e verbale go/no-go | `deployReady=true` con evidenze oppure no-go motivato |
-| T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici — **in corso 24/07/2026**: 2642 -> 2589 -> 2563 dopo 2 lotti (`docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`); lotto 1 `HomeDashboard.tsx` 49->0, lotto 2 `ContinuousMonitoringDashboard.tsx` 26->0; lotto 1 ha anche fatto scoprire un pannello con dati finti presentati come reali (vedi nota M14 sopra) | Baseline per categoria e trend registrati; zero warning release-blocking |
+| T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici — **in corso 24/07/2026**: 2642 -> 2589 -> 2563 -> 2516 dopo 3 lotti (`docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`); lotto 1 `HomeDashboard.tsx` 49->0 (+ scoperto un pannello con dati finti, vedi nota M14 sopra), lotto 2 `ContinuousMonitoringDashboard.tsx` 26->0, lotto 3 `PlantLifecycleManager.tsx` 24->0 e `Planner.tsx` 19->0 (+ sistemati 2 bottoni stagionali morti nel Planner) | Baseline per categoria e trend registrati; zero warning release-blocking |
 
 ## 6. Verifica trasversale dopo M15
 

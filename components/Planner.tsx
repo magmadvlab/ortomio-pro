@@ -1,16 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { getSeasonalSuggestions, getSpecificPlantDetails, isApiKeyConfigured, checkApiAvailableAsync } from '../services/geminiService';
-import { PlantSuggestion, GeoLocation, SpecificPlantInfo, Garden, GrowingLocation, SeedPacket } from '../types';
-import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Map as MapIcon, Bot, TrendingUp, Camera } from 'lucide-react';
+import { PlantSuggestion, SpecificPlantInfo, Garden, GrowingLocation, SeedPacket } from '../types';
+import { MapPin, Loader2, PlusCircle, Search, Leaf, ArrowRight, Droplets, FlaskConical, Scale, Edit3, Sun, Thermometer, Layers, Clock, Info, CalendarPlus, Settings, Gauge, Sprout, AlertTriangle, CheckCircle, Calendar, Sparkles, Box, LayoutGrid, Flower2, Package, Bot } from 'lucide-react';
 import { getCurrentPositionWithRetry, getDefaultCoordinates } from '../services/geolocationService';
-import { calculateMoonPhase, getMoonPhaseName, isIdealPhaseFor } from '../logic/lunarCalendar';
+import { calculateMoonPhase, isIdealPhaseFor } from '../logic/lunarCalendar';
 import { getSuggestedBatches, calculateStaggeredPlanting } from '../logic/staggeredPlantingEngine';
 import { getAllMasterSheets, getMasterSheetSync } from '../services/plantMasterService';
-import { getAllSpecializedMasterSheets, getMasterSheetsByCropType } from '../data/specializedCropMasterSheets';
-import { checkPHCompatibility } from '../logic/soilPHEngine';
-import PHCompatibilityChecker from './PHCompatibilityChecker';
-import FertigationPlanner from './FertigationPlanner';
+import { getMasterSheetsByCropType } from '../data/specializedCropMasterSheets';
 import VisualGardenPlanner from './VisualGardenPlanner';
 import SpecializedCropForm, { SpecializedCropType } from './SpecializedCropForm';
 import CustomCropForm from './CustomCropForm';
@@ -28,7 +25,6 @@ import { PlantExpectations } from './planner/PlantExpectations'
 import { PopularPlantsTags } from './planner/PopularPlantsTags'
 import { SimplifiedPlantingForm } from './planner/SimplifiedPlantingForm'
 import { AccessoriesSuggestionsSection } from './planner/AccessoriesSuggestionsSection';
-import { getMasterSheet } from '../services/plantMasterService';
 import GeographicFeasibilityCard from './planner/GeographicFeasibilityCard';
 import VarietySelector from './planner/VarietySelector';
 import CultivationSystemSelector from './planner/CultivationSystemSelector';
@@ -160,8 +156,24 @@ const PlantCalendar: React.FC<{ sowing: string, transplant: string, harvest: str
     );
 };
 
+const SUMMER_POPULAR_PLANTS = [
+  { name: 'Pomodoro', emoji: '🍅', id: 'pomodoro' },
+  { name: 'Peperone', emoji: '🫑', id: 'peperone' },
+  { name: 'Zucchina', emoji: '🥒', id: 'zucchina' },
+  { name: 'Melanzana', emoji: '🍆', id: 'melanzana' },
+  { name: 'Peperoncino', emoji: '🌶️', id: 'peperoncino' }
+];
+
+const WINTER_POPULAR_PLANTS = [
+  { name: 'Cavolo', emoji: '🥬', id: 'cavolo' },
+  { name: 'Spinaci', emoji: '🥬', id: 'spinaci' },
+  { name: 'Rucola', emoji: '🥬', id: 'rucola' },
+  { name: 'Lattuga', emoji: '🥬', id: 'lattuga' },
+  { name: 'Ravanelli', emoji: '🔴', id: 'ravanelli' }
+];
+
 const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], onUpdateTask }) => {
-  const { isPro, checkLimit, limit } = useTier();
+  const { isPro } = useTier();
   const [showVisualPlanner, setShowVisualPlanner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<PlantSuggestion[]>([]);
@@ -176,17 +188,14 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
   
   // Director - Piano Giornaliero Intelligente
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null);
-  const [loadingDailyPlan, setLoadingDailyPlan] = useState(false);
-  
-  // Verifica limiti task per Free
-  const activeTasksCount = (tasks || []).filter(t => !t.completed).length;
-  const tasksLimit = checkLimit('maxTasksPerGarden', activeTasksCount);
-  
+  const [, setLoadingDailyPlan] = useState(false);
+
   // Specific search state
   const [searchQuery, setSearchQuery] = useState('');
   const [specificResult, setSpecificResult] = useState<SpecificPlantInfo | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedPopularPlant, setSelectedPopularPlant] = useState<string | null>(null);
+  const [popularPlantsSeasonOverride, setPopularPlantsSeasonOverride] = useState<'summer' | 'winter' | null>(null);
   
   // Planting method state - simplified
   const [plantingMethod, setPlantingMethod] = useState<'now' | 'transplant' | 'later'>('now');
@@ -528,7 +537,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 console.log('Credits insufficienti per Gemini, uso suggerimenti basati su esposizione solare');
                 try {
                   await loadSolarSuggestions();
-                } catch (fallbackError: any) {
+                } catch {
                   setError("Credits insufficienti per i suggerimenti AI.");
                 }
               } else if (errorMsg.includes("insufficient_tier") || errorMsg.includes("unauthorized")) {
@@ -536,7 +545,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 console.log('Tier insufficiente per Gemini, provo fallback a suggerimenti solari');
                 try {
                   await loadSolarSuggestions();
-                } catch (fallbackError: any) {
+                } catch {
                   setError("I suggerimenti AI richiedono un piano PLUS o PRO.");
                 }
               } else {
@@ -544,7 +553,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                 console.log('Errore Gemini, provo fallback a suggerimenti solari:', errorMsg);
                 try {
                   await loadSolarSuggestions();
-                } catch (fallbackError: any) {
+                } catch {
                   setError(`Errore durante il recupero dei suggerimenti: ${errorMsg}`);
                 }
               }
@@ -806,8 +815,6 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
   const handlePlanConfirm = async (plan: ScalingPlan) => {
     // Converti il piano AI in task del giardino
-    const newTasks: any[] = [];
-    
     plan.timeline.forEach((phase) => {
       phase.activities.forEach((activity) => {
         const task = {
@@ -1043,35 +1050,23 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Popolari in questo periodo:</h4>
             <div className="flex gap-3">
-              <button 
-                onClick={() => {
-                  // Mostra piante estive
-                  const summerPlants = [
-                    { name: 'Pomodoro', emoji: '🍅', id: 'pomodoro' },
-                    { name: 'Peperone', emoji: '🫑', id: 'peperone' },
-                    { name: 'Zucchina', emoji: '🥒', id: 'zucchina' },
-                    { name: 'Melanzana', emoji: '🍆', id: 'melanzana' },
-                    { name: 'Peperoncino', emoji: '🌶️', id: 'peperoncino' }
-                  ];
-                  // Aggiorna i suggerimenti
-                }}
-                className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-medium hover:bg-orange-200 transition-colors"
+              <button
+                onClick={() => setPopularPlantsSeasonOverride(prev => prev === 'summer' ? null : 'summer')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  popularPlantsSeasonOverride === 'summer'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                }`}
               >
                 ☀️ Estive
               </button>
-              <button 
-                onClick={() => {
-                  // Mostra piante invernali
-                  const winterPlants = [
-                    { name: 'Cavolo', emoji: '🥬', id: 'cavolo' },
-                    { name: 'Spinaci', emoji: '🥬', id: 'spinaci' },
-                    { name: 'Rucola', emoji: '🥬', id: 'rucola' },
-                    { name: 'Lattuga', emoji: '🥬', id: 'lattuga' },
-                    { name: 'Ravanelli', emoji: '🔴', id: 'ravanelli' }
-                  ];
-                  // Aggiorna i suggerimenti
-                }}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
+              <button
+                onClick={() => setPopularPlantsSeasonOverride(prev => prev === 'winter' ? null : 'winter')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  popularPlantsSeasonOverride === 'winter'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                }`}
               >
                 ❄️ Invernali
               </button>
@@ -1079,7 +1074,11 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
           </div>
           
           <PopularPlantsTags
-            plants={seasonalPlantSuggestions.length > 0 
+            plants={popularPlantsSeasonOverride === 'summer'
+              ? SUMMER_POPULAR_PLANTS
+              : popularPlantsSeasonOverride === 'winter'
+              ? WINTER_POPULAR_PLANTS
+              : seasonalPlantSuggestions.length > 0
               ? seasonalPlantSuggestions.slice(0, 5).map(s => ({
                   name: s.plantName,
                   emoji: s.plantName === 'Pomodoro' ? '🍅' :
@@ -1095,13 +1094,7 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
                   id: s.plantId
                 }))
               : // Fallback per piante invernali se non ci sono suggerimenti stagionali
-                [
-                  { name: 'Cavolo', emoji: '🥬', id: 'cavolo' },
-                  { name: 'Spinaci', emoji: '🥬', id: 'spinaci' },
-                  { name: 'Rucola', emoji: '🥬', id: 'rucola' },
-                  { name: 'Lattuga', emoji: '🥬', id: 'lattuga' },
-                  { name: 'Ravanelli', emoji: '🔴', id: 'ravanelli' }
-                ]
+                WINTER_POPULAR_PLANTS
             }
             selectedPlant={selectedPopularPlant || specificResult?.name}
             onSelect={async (plantName) => {
