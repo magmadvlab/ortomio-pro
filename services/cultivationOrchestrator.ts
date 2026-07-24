@@ -14,6 +14,8 @@
 import { getSupabaseClient } from '../config/supabase';
 import { dailyDiaryService, type DiaryEvent } from './dailyDiaryService';
 import { diaryPredictiveEngine, type CropPrediction, type ActionRecommendation } from './diaryPredictiveEngine';
+import { getPlantFamily } from './plantTaxonomyService';
+import { getArchetypeById } from '../data/archetypes';
 
 // Tipi di giardino supportati
 export type GardenType = 
@@ -24,6 +26,13 @@ export type GardenType =
   | 'Indoor'         // Coltivazione indoor
   | 'Hydroponic'     // Idroponica
   | 'Aquaponic'      // Acquaponica
+  | 'Aeroponic'      // Aeroponica
+  | 'NFT'
+  | 'DWC'
+  | 'EbbFlow'
+  | 'Drip'
+  | 'Wick'
+  | 'Kratky'
   | 'Orchard'        // Frutteto
   | 'Vineyard'       // Vigneto
   | 'OliveGrove';    // Oliveto
@@ -117,13 +126,7 @@ export class CultivationOrchestrator {
       throw new Error('Supabase client not available');
     }
     
-    const { data: garden } = await supabase
-      .from('gardens')
-      .select('garden_type')
-      .eq('id', gardenId)
-      .single();
-    
-    const gardenType = garden?.garden_type as GardenType;
+    const gardenType = await this.resolveGardenType(gardenId);
     const archetypeCategory = this.getArchetypeCategory(archetypeId);
     
     // Cerca materiali disponibili
@@ -169,13 +172,7 @@ export class CultivationOrchestrator {
       throw new Error('Supabase client not available');
     }
     
-    const { data: garden } = await supabase
-      .from('gardens')
-      .select('garden_type')
-      .eq('id', params.gardenId)
-      .single();
-    
-    const gardenType = garden?.garden_type as GardenType;
+    const gardenType = await this.resolveGardenType(params.gardenId);
     const archetypeCategory = this.getArchetypeCategory(params.archetypeId);
     
     // Calcola date stimate
@@ -509,6 +506,20 @@ export class CultivationOrchestrator {
 
     return data?.user_id || null;
   }
+
+  private static async resolveGardenType(gardenId: string): Promise<GardenType> {
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error('Supabase client not available');
+    const { data, error } = await supabase
+      .from('gardens')
+      .select('garden_type')
+      .eq('id', gardenId)
+      .single();
+    if (error || !data?.garden_type) {
+      throw error || new Error(`Garden type unavailable for ${gardenId}`);
+    }
+    return data.garden_type as GardenType;
+  }
   
   private static async saveCultivationPlan(plan: CultivationPlan) {
     const supabase = getSupabaseClient();
@@ -569,11 +580,13 @@ export class CultivationOrchestrator {
       return null;
     }
     
+    const gardenType = await this.resolveGardenType(data.garden_id);
+
     // Converti da database a oggetto CultivationPlan
     return {
       id: data.id,
       gardenId: data.garden_id,
-      gardenType: 'OpenField', // TODO: Ottenere da gardens table
+      gardenType,
       archetypeId: data.archetype_id,
       archetypeCategory: data.archetype_category as ArchetypeCategory,
       plantName: data.plant_name,
@@ -601,6 +614,15 @@ export class CultivationOrchestrator {
     }
 
     const ownerId = await this.resolveGardenOwnerId(plan.gardenId);
+    if (!ownerId) {
+      throw new Error(`Impossibile risolvere user_id per garden ${plan.gardenId}`);
+    }
+    const family =
+      await getPlantFamily(plan.plantName) ||
+      getArchetypeById(plan.archetypeId as Parameters<typeof getArchetypeById>[0])?.botanicalFamily;
+    if (!family) {
+      throw new Error(`Famiglia botanica non risolta per ${plan.plantName}`);
+    }
     
     const { data, error } = await supabase
       .from('custom_crops')
@@ -609,7 +631,7 @@ export class CultivationOrchestrator {
         garden_id: plan.gardenId,
         common_name: plan.plantName,
         scientific_name: plan.varietyName || `${plan.plantName} sp.`,
-        family: 'Unknown', // TODO: Derivare da archetipo
+        family,
         initial_data: {
           cultivation_plan_id: plan.id,
           archetype_id: plan.archetypeId,
