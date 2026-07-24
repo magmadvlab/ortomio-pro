@@ -38,7 +38,8 @@
 - la creazione di un campo salva filari e piante individuali tramite il provider cloud; un errore parziale attiva la compensazione dei record già creati;
 - i piani personalizzati vengono letti dal provider, reidratati dalla scheda master e collegati in modo persistente ai task; un piano mancante fallisce senza aggiornare il task;
 - il componente morto `AdvancedTreeManager`, non importato e composto interamente da alberi, misure, operazioni e rese casuali, e' stato rimosso dal runtime;
-- le voci M11 pianificate scendono da 58 a 40; nessuna voce release resta non classificata.
+- anche `InteractiveTrackingInterface`, non importata e basata su meteo e foto inventati, e' stata rimossa invece di lasciare una falsa superficie operativa;
+- le voci M11 pianificate scendono da 58 a 38; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 

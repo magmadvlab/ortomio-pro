@@ -75,8 +75,6 @@
 "components/shared/PlantFuzzySearch.tsx","11","placeholder","release","accepted","form label or placeholder copy, not simulated operational data","placeholder?: string;"
 "components/SoilInferenceWizard.tsx","32","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Integrare con Gemini Vision per riconoscimento automatico"
 "components/sunExposure/AdvancedSunExposureWizard.tsx","408","placeholder","release","scheduled:M13","external weather or solar provider integration","// Modalità Foto 360° (placeholder - da implementare completamente)"
-"components/tracking/InteractiveTrackingInterface.tsx","208","mock","release","scheduled:M11","core operational lifecycle","// Mock weather data - in real app would fetch from weather API"
-"components/tracking/InteractiveTrackingInterface.tsx","326","mock","release","scheduled:M11","core operational lifecycle","// Mock photo capture - in real app would use camera API"
 "components/treatments/TreatmentDashboardWidget.tsx","72","todo","release","scheduled:M12","agronomic operation pilot","// TODO: Implementare applicazione rapida del prodotto"
 "components/treatments/TreatmentDashboardWidget.tsx","276","todo","release","scheduled:M12","agronomic operation pilot","onEdit={() => {/* TODO: Implementare modifica */}}"
 "components/ui/Select.tsx","32","placeholder","release","accepted","component placeholder property, not simulated data","export function SelectValue({ placeholder }: { placeholder?: string }) {"
