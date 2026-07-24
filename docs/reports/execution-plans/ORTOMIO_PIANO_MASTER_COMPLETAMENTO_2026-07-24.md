@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M05 completati; M06-M08 bloccati; M09-M10 parziali; M11 e' il prossimo blocco locale
+- **Stato esecuzione:** revisione arrivata a M15; M01-M05 completati, M06-M08 bloccati, M09-M15 parziali o bloccati
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -210,7 +210,7 @@ Un blocco passa a completato solo quando:
 
 ### M11 - Core operativo end-to-end
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` baseline locale verificata; giornata staging mancante
 - **Obiettivo:** ricertificare planner -> task -> esecuzione -> diario -> ledger -> outcome.
 - **Attivita':**
   - consolidare stati e transizioni;
@@ -219,10 +219,13 @@ Un blocco passa a completato solo quando:
   - eseguire giornata simulata con ruoli reali;
   - riconciliare manualmente il risultato finale.
 - **Criterio di uscita:** ogni operazione ha un unico stato autorevole e auditabile.
+- **Risultato parziale:** raccolte le prove locali su diario, idempotenza, task/ledger, outcome, timezone ed export; definita la sequenza della giornata simulata.
+- **Evidenza:** commit `078bc55` e `M11_CORE_OPERATIONAL_DAY_2026-07-24.md`.
+- **Residuo:** ruoli reali, riapertura/annullamento uniforme, ricorrenze/DST e riconciliazione staging.
 
 ### M12 - Pilot delle operazioni agronomiche
 
-- **Stato:** `[ ]`
+- **Stato:** `[!]` protocollo pronto; pilot reale non eseguito
 - **Obiettivo:** provare irrigazione, nutrizione, trattamenti e salute su dati/impianti reali.
 - **Attivita':**
   - irrigazione con portata misurata e nessuna auto-attuazione;
@@ -231,10 +234,13 @@ Un blocco passa a completato solo quando:
   - salute con cron, deduplica, task e outcome;
   - approvazione umana per ogni azione operativa.
 - **Criterio di uscita:** almeno un ciclo completo segnale -> decisione -> esecuzione -> outcome.
+- **Risultato parziale:** protocollo e guardrail definiti per irrigazione, nutrizione, trattamenti e salute; test lifecycle locali disponibili.
+- **Evidenza:** commit `a23fefe` e `M12_AGRONOMIC_PILOT_PROTOCOL_2026-07-24.md`.
+- **Blocco:** azienda, mezzi, cataloghi, responsabili e outcome reali non identificati.
 
 ### M13 - Provider esterni
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` Open-Meteo verificato; provider avanzato non configurato
 - **Obiettivo:** validare Open-Meteo e un solo provider avanzato iniziale.
 - **Attivita':**
   - contract test, cache, timeout, retry e SLA Open-Meteo;
@@ -243,10 +249,13 @@ Un blocco passa a completato solo quando:
   - registrare latenza, errori, costi e owner;
   - mantenere kill switch e nessun comando fisico non presidiato.
 - **Criterio di uscita:** integrazione reale osservabile, recuperabile e documentata.
+- **Risultato parziale:** smoke Open-Meteo reale verde con timezone Europe/Rome e serie richieste; Sentinel e ThingsBoard rilevati come non configurati e non chiamati.
+- **Evidenza:** commit `a8b082a` e `M13_PROVIDER_SMOKE_2026-07-24.md`.
+- **Residuo:** contract test periodico, scelta di un provider avanzato, credenziali staging, SLA/costi/owner.
 
 ### M14 - Direttore, regole agronomiche e AI in shadow
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` regressione locale verde; shadow reale mancante
 - **Obiettivo:** misurare utilita' e sicurezza prima dell'uso operativo.
 - **Attivita':**
   - creare dataset regressivo approvato;
@@ -256,10 +265,13 @@ Un blocco passa a completato solo quando:
   - mantenere `insufficient_data` e approvazione umana;
   - definire soglie di rollback.
 - **Criterio di uscita:** report shadow approvato, senza auto-esecuzione critica.
+- **Risultato parziale:** 9/9 test mirati verdi su sei scenari canonici, determinismo, `insufficient_data`, confidenza, deduplica e outcome.
+- **Evidenza:** commit `f94d760` e `M14_AI_SHADOW_VALIDATION_2026-07-24.md`.
+- **Residuo:** dataset reale approvato, periodo shadow, metriche e firma agronomica.
 
 ### M15 - Lifecycle commerciale e ruoli
 
-- **Stato:** `[ ]`
+- **Stato:** `[-]` capability esistenti censite; lifecycle commerciale incompleto
 - **Obiettivo:** rendere il prodotto attivabile e amministrabile per clienti reali.
 - **Attivita':**
   - provisioning azienda;
@@ -269,6 +281,9 @@ Un blocco passa a completato solo quando:
   - fatturazione o procedura amministrativa iniziale;
   - assistenza e accesso amministratore OrtoMio auditato.
 - **Criterio di uscita:** un cliente puo' attraversare l'intero ciclo commerciale senza interventi tecnici non documentati.
+- **Risultato parziale:** registrazione, schema organizzazioni/ruoli/inviti e UI censiti; eliminato il log del token invito.
+- **Evidenza:** commit `19cb061` e `M15_COMMERCIAL_LIFECYCLE_GAPS_2026-07-24.md`.
+- **Residuo:** provisioning transazionale, delivery inviti server-side, licenze/limiti, rinnovo, fatturazione, sospensione, cancellazione e retention.
 
 ### M16 - Audit finale e go/no-go
 
@@ -319,13 +334,28 @@ La correzione M02 ha:
 | 24/07/2026 | M08 | Bloccato dopo preparazione | `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md` | Matrice pronta; prove SQL/API/UI staging mancanti |
 | 24/07/2026 | M09 | Parziale | `270a214` | Cloud esplicito fail-closed; convergenza completa ancora aperta |
 | 24/07/2026 | M10 | Parziale | `2e55ac4` | Preferenze fail-closed; coda e conferma delivery mancanti |
+| 24/07/2026 | M11 | Parziale | `078bc55` | Catena locale censita; giornata con ruoli reali mancante |
+| 24/07/2026 | M12 | Bloccato dopo preparazione | `a23fefe` | Protocollo pilot pronto; nessun ciclo reale |
+| 24/07/2026 | M13 | Parziale | `a8b082a` | Open-Meteo reale verde; provider avanzato assente |
+| 24/07/2026 | M14 | Parziale | `f94d760` | Regressione 9/9; shadow reale non eseguito |
+| 24/07/2026 | M15 | Parziale | `19cb061` | Token invito non loggato; lifecycle commerciale incompleto |
 
-## 6. Prossima azione
+## 6. Verifica trasversale dopo M15
 
-Avviare M11 localmente:
+Eseguita il 24/07/2026 sulla baseline locale:
 
-1. rieseguire e documentare il percorso task -> esecuzione -> diario -> ledger;
-2. verificare transizioni, retry, riapertura e idempotenza;
-3. verificare timezone e ricorrenze;
-4. produrre una matrice delle prove mancanti per la giornata simulata;
-5. mantenere espliciti i residui M09-M10.
+- audit debito release: 202 voci, nessuna voce non classificata;
+- audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
+- suite release: 307/307 test superati;
+- build produzione: completata, 147 pagine generate;
+- rischio remoto invariato: queste prove non sostituiscono staging, restore drill, pilot o provider reali.
+
+## 7. Prossima azione
+
+Riprendere dal primo lavoro locale non bloccato:
+
+1. chiudere M09 eliminando cache autorevoli e bootstrap local storage per utenti autenticati;
+2. implementare la coda delivery M10;
+3. predisporre staging per sbloccare M06-M08 e M11;
+4. identificare azienda pilot e provider avanzato per M12-M14;
+5. progettare e implementare le API commerciali mancanti di M15.
