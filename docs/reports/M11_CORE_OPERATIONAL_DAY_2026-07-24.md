@@ -37,7 +37,8 @@
 - le operazioni rapide su filare richiedono un utente autenticato, caricano le foto sul provider cloud e restituiscono gli ID dei registri unificati persistiti, eliminando il registro solo in memoria;
 - la creazione di un campo salva filari e piante individuali tramite il provider cloud; un errore parziale attiva la compensazione dei record già creati;
 - i piani personalizzati vengono letti dal provider, reidratati dalla scheda master e collegati in modo persistente ai task; un piano mancante fallisce senza aggiornare il task;
-- le voci M11 pianificate scendono da 58 a 41; nessuna voce release resta non classificata.
+- il componente morto `AdvancedTreeManager`, non importato e composto interamente da alberi, misure, operazioni e rese casuali, e' stato rimosso dal runtime;
+- le voci M11 pianificate scendono da 58 a 40; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 
