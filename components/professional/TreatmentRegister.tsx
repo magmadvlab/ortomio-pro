@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Garden } from '@/types'
+import { Garden, TreatmentRecordDB } from '@/types'
 import { TreatmentRegisterForm, TreatmentLog } from './TreatmentRegisterForm'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X } from 'lucide-react'
@@ -16,6 +16,7 @@ export function TreatmentRegister({ garden, limit = 20 }: TreatmentRegisterProps
   const [treatments, setTreatments] = useState<TreatmentLog[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadTreatments()
@@ -24,12 +25,12 @@ export function TreatmentRegister({ garden, limit = 20 }: TreatmentRegisterProps
   const loadTreatments = async () => {
     setLoading(true)
     try {
-      // TODO: Implementare getTreatmentLogs nel storage provider
-      // const logs = await storageProvider.getTreatmentLogs(garden.id)
-      // setTreatments(logs?.slice(0, limit) || [])
-      setTreatments([])
+      setError(null)
+      const records = await storageProvider.getTreatments(garden.id)
+      setTreatments(records.slice(0, limit).map(mapTreatmentRecord))
     } catch (error) {
       console.error('Error loading treatments:', error)
+      setError('Registro trattamenti non disponibile. Riprova.')
       setTreatments([])
     } finally {
       setLoading(false)
@@ -38,14 +39,32 @@ export function TreatmentRegister({ garden, limit = 20 }: TreatmentRegisterProps
 
   const handleSubmit = async (log: TreatmentLog) => {
     try {
-      // TODO: Implementare createTreatmentLog nel storage provider
-      // await storageProvider.createTreatmentLog(log)
-      console.log('Treatment log to save:', log)
-      alert('✅ Trattamento registrato con successo!')
+      setError(null)
+      await storageProvider.createTreatment({
+        garden_id: garden.id,
+        bed_id: log.bedId || undefined,
+        bed_row_id: log.rowId || undefined,
+        crop_name: log.cropName,
+        treatment_date: log.treatmentDate,
+        product_name: log.productName,
+        active_ingredient: log.activeIngredient,
+        dosage: log.dosage,
+        dosage_unit: log.dosageUnit,
+        area_treated: log.areaTreated,
+        method: log.method,
+        reason: log.reason,
+        weather_conditions: log.weatherConditions ? {
+          temp: log.weatherConditions.temperature,
+          wind: log.weatherConditions.windSpeed?.toString(),
+        } : undefined,
+        operator_name: log.operatorName,
+        notes: log.notes,
+      })
       setShowForm(false)
       await loadTreatments()
     } catch (error) {
       console.error('Error saving treatment:', error)
+      setError('Salvataggio del trattamento non riuscito.')
       throw error
     }
   }
@@ -126,9 +145,39 @@ export function TreatmentRegister({ garden, limit = 20 }: TreatmentRegisterProps
           </table>
         </div>
       )}
+      {error && (
+        <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
 
+function mapTreatmentRecord(record: TreatmentRecordDB): TreatmentLog {
+  return {
+    id: record.id,
+    gardenId: record.garden_id || '',
+    bedId: record.bed_id || null,
+    rowId: record.bed_row_id || record.field_row_id || null,
+    cropName: record.crop_name,
+    treatmentDate: record.treatment_date,
+    productName: record.product_name,
+    activeIngredient: record.active_ingredient,
+    dosage: record.dosage || 0,
+    dosageUnit: record.dosage_unit || 'ml',
+    areaTreated: record.area_treated,
+    method: record.method || 'spray',
+    reason: record.reason || 'preventive',
+    weatherConditions: record.weather_conditions ? {
+      temperature: record.weather_conditions.temp,
+      windSpeed: record.weather_conditions.wind
+        ? Number.parseFloat(record.weather_conditions.wind)
+        : undefined,
+    } : undefined,
+    operatorName: record.operator_name,
+    notes: record.notes,
+  }
+}
 
 

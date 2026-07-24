@@ -37,8 +37,6 @@
 "components/prescription/ZoneManagementPanel.tsx","238","todo","release","scheduled:M14","AI or agronomic rule validation","const baseRate = 100; // TODO: Get from prescription map"
 "components/professional/NutrientCalculator.tsx","19","todo","release","scheduled:M12","agronomic or certification pilot evidence","// TODO: Integrate with logic/nutrientEngine.ts"
 "components/professional/NutrientCalculator.tsx","20","placeholder","release","scheduled:M12","agronomic or certification pilot evidence","// Placeholder calculation"
-"components/professional/TreatmentRegister.tsx","27","todo","release","scheduled:M12","agronomic operation pilot","// TODO: Implementare getTreatmentLogs nel storage provider"
-"components/professional/TreatmentRegister.tsx","41","todo","release","scheduled:M12","agronomic operation pilot","// TODO: Implementare createTreatmentLog nel storage provider"
 "components/settings/CultivationSelector.tsx","24","placeholder","release","accepted","form label or placeholder copy, not simulated operational data","placeholder?: string"
 "components/shared/AICreditsWidget.tsx","17","todo","release","scheduled:M15","commercial upgrade and credit lifecycle","// TODO: Replace with useAICredits hook in FASE 5"
 "components/shared/HomeDashboard.tsx","1271","todo","release","scheduled:M12","agronomic operation pilot","{/* TODO: Caricare zone da storage */}"

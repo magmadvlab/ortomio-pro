@@ -25,7 +25,7 @@
 - le ricorrenze mensili mantengono il giorno originario e ripiegano sull'ultimo giorno valido del mese;
 - intervalli non positivi e range invertiti falliscono senza produrre occorrenze;
 - i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
-- test locali aggiornati: type-check verde e persistenza 54/54.
+- test locali aggiornati: type-check verde e persistenza 55/55.
 
 ## Riconciliazione debito core
 
