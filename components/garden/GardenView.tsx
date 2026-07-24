@@ -423,16 +423,13 @@ export function GardenView({
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">Struttura e Layout</h2>
                 <p className="text-gray-600 mt-1">Gestisci aiuole, filari e zone di coltivazione</p>
               </div>
-              <button
-                onClick={() => {
-                  // TODO: Implement zone management
-                  console.log('Manage zones')
-                }}
+              <Link
+                href={`/app/garden/zones?garden=${encodeURIComponent(garden.id)}`}
                 className="flex items-center gap-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Settings size={20} />
                 Gestisci Zone
-              </button>
+              </Link>
             </div>
             
             <BedManager
@@ -533,4 +530,3 @@ export function GardenView({
     </div>
   )
 }
-

@@ -18,7 +18,6 @@
 "components/DiseaseDiagnosis.tsx","32","todo","release","scheduled:M15","commercial upgrade and credit lifecycle","// TODO: Implementare upgrade flow"
 "components/dominance/DominanceDashboard.tsx","93","mock","laboratory","isolated","internal strategic analysis module","// INTERNAL USE ONLY - Mock data for strategic analysis"
 "components/dominance/DominanceDashboard.tsx","624","placeholder","laboratory","isolated","internal strategic analysis module","{/* Placeholder for other tabs */}"
-"components/garden/GardenView.tsx","428","todo","release","scheduled:M11","core operational lifecycle","// TODO: Implement zone management"
 "components/gardens/SizeConfigurationStep.tsx","240","da implementare","release","scheduled:M11","core operational lifecycle","// Per ora lasciamo 0, da implementare quando la config sarà disponibile"
 "components/gardens/SizeConfigurationStep.tsx","246","da implementare","release","scheduled:M11","core operational lifecycle","// Per ora lasciamo 0, da implementare quando la config sarà disponibile"
 "components/harvest/QuickHarvestForm.tsx","105","placeholder","release","scheduled:M12","agronomic operation pilot","// Ottieni emoji pianta (placeholder - da migliorare con mapping reale)"

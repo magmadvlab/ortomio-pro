@@ -42,7 +42,8 @@
 - il duplicato morto `components/SaplingDashboard.tsx` e' stato rimosso; le pagine continuano a usare il dashboard alberelli canonico in `components/seedbank`;
 - la route tecnica `/app/compare` e il dettaglio obsoleto sono stati rimossi: puntavano a route legacy inesistenti e descrivevano come placeholder capability specializzate oggi stabili;
 - la modifica di un'operazione nel ciclo pianta riusa il form esistente e invoca il callback persistente `onUpdateOperation`, invece di limitarsi a un log console;
-- le voci M11 pianificate scendono da 58 a 33; nessuna voce release resta non classificata.
+- la vista struttura dell'orto collega la gestione zone canonica passando esplicitamente l'ID orto; capability gate 10/10;
+- le voci M11 pianificate scendono da 58 a 32; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 
