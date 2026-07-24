@@ -7,7 +7,7 @@
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
 - **Stato esecuzione:** 2 milestone chiuse per la release (M01-M02); 3 baseline/censimenti locali conclusi ma con gate o residui trasferiti (M03-M05); 10 milestone aperte o bloccate (M06-M15); M16 non iniziata
-- **Deploy readiness:** `false`
+- **Deploy readiness (certificazione 1.0):** `false` — non confondere con lo stato di deploy fisico: vedi "Deploy in produzione 24/07/2026" in fondo al documento. Il codice e le migrazioni M03-M09 sono gia' live; la certificazione go/no-go (M16) resta non iniziata.
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -444,3 +444,12 @@ Riprendere dal primo lavoro locale non bloccato:
 3. proseguire M11 e identificare gli owner esterni di M12-M14;
 4. progettare e implementare M15;
 5. eseguire M16 soltanto quando `O01-O43` sono chiusi o formalmente esclusi dalla release.
+
+## 8. Deploy in produzione 24/07/2026 (decisione esplicita, gate O06 non soddisfatto)
+
+Il 24/07/2026, su decisione esplicita dell'utente, il lavoro M01-M09 (branch `agent/completion-roadmap-m01-m09`, commit `2b2afaa`) e' stato portato in produzione senza attendere lo staging previsto da O06:
+
+- **Codice:** fast-forward pulito (`main` era ancestor di `2b2afaa`, nessun conflitto) e push su `origin/main` (`8c37854..2b2afaa`); il deploy Vercel si attiva dall'integrazione GitHub standard su push a `main` e non e' stato verificato direttamente da questa sessione (nessun tool Vercel disponibile).
+- **Database:** le 8 migrazioni nuove sono state applicate direttamente al progetto Supabase di produzione (`qhmujoivfxftlrcrluaj`), in ordine: `create_macerate_logs`, `land_zones_garden_ownership`, `garden_soil_states`, `notification_delivery_lifecycle`, `task_transition_ledger`, `link_custom_plans_to_tasks`, `season_adjustment_decisions`, `archive_completed_garden_tasks`. Verifica pre-applicazione: nessuna riga orfana in `land_zones` (query diretta, 0 risultati) prima di imporre `NOT NULL` su `garden_id`. Verifica post-applicazione: tutte e 8 presenti in `list_migrations`; `get_advisors(security)` non segnala nulla di nuovo oltre un WARN atteso (`transition_garden_task` raggiungibile da `anon` via RPC, ma la funzione stessa richiede `auth.uid()` non nullo e solleva `authentication_required` altrimenti — difesa interna gia' presente, non una falla).
+- **Rischio esplicitamente accettato:** nessuno staging isolato ha mai validato queste migrazioni (O06-O08 restano aperti); nessun restore drill (O10-O12) le copre; se una di queste emergesse come difettosa in produzione, il rollback non e' stato provato.
+- **Non cambia:** il resto del registro O01-O44 (M10-M16) resta nello stato descritto sopra. Questo deploy porta in produzione la convergenza provider M09 e le migrazioni M03/M04, non chiude M06-M08 ne' alcuna milestone successiva.

@@ -2,6 +2,7 @@
 
 - **Aggiornamento:** 24 luglio 2026
 - **Stato:** M01-M02 chiusi per la release; M03-M05 conclusi solo localmente o come censimento; M06-M15 aperti/bloccati; M16 non iniziato
+- **Deploy:** codice M01-M09 e le 8 migrazioni nuove sono in produzione dal 24/07/2026, per decisione esplicita dell'utente e senza staging (gate O06 non soddisfatto) — dettaglio in `ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md` §8
 - **Coda canonica:** `docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`
 
 ## Avanzamento sintetico
