@@ -4,7 +4,6 @@
  */
 
 import { Garden } from '../types';
-import { getWeatherForecast } from './weatherService';
 
 export interface SoilState {
   zoneId: string;
@@ -26,7 +25,14 @@ export async function updateSoilState(
   zoneId: string,
   state: Partial<SoilState>
 ): Promise<void> {
-  // TODO: Implementare salvataggio in database
+  const response = await fetch('/api/garden/soil-state', {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ gardenId, zoneId, state }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body?.error || 'soil_state_update_failed');
 }
 
 /**
@@ -36,8 +42,26 @@ export async function getSoilState(
   gardenId: string,
   zoneId: string
 ): Promise<SoilState | null> {
-  // TODO: Implementare recupero da database
-  return null;
+  const response = await fetch(
+    `/api/garden/soil-state?garden_id=${encodeURIComponent(gardenId)}&zone_id=${encodeURIComponent(zoneId)}`,
+    { credentials: 'include', cache: 'no-store' },
+  );
+  const body = await response.json();
+  if (!response.ok) throw new Error(body?.error || 'soil_state_read_failed');
+  if (!body.state) return null;
+  return {
+    gardenId: body.state.garden_id,
+    zoneId: body.state.zone_id,
+    compaction: Number(body.state.compaction),
+    drainage: body.state.drainage,
+    workableDepth: Number(body.state.workable_depth_cm),
+    lastWorkDate: body.state.last_work_date ? new Date(body.state.last_work_date) : undefined,
+    lastWorkType: body.state.last_work_type || undefined,
+    lastRainDate: body.state.last_rain_date ? new Date(body.state.last_rain_date) : undefined,
+    lastRainAmount: body.state.last_rain_amount_mm === null
+      ? undefined
+      : Number(body.state.last_rain_amount_mm),
+  };
 }
 
 /**
@@ -116,4 +140,3 @@ export async function suggestSoilWork(
 
   return null;
 }
-

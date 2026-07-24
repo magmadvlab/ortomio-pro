@@ -1,50 +1,6 @@
 import { SeedPacket, SeedConsumption, SeedAlert, SeedInventoryStats, SeedSearchFilters } from '@/types/seedInventory'
 import { getSupabaseClient } from '@/config/supabase'
 
-const buildMockPackets = (gardenId: string): SeedPacket[] => [
-  {
-    id: '1',
-    varietyId: 'pomodoro_san_marzano',
-    varietyName: 'Pomodoro San Marzano',
-    speciesName: 'Solanum lycopersicum',
-    purchaseDate: '2024-01-15',
-    expiryYear: 2026,
-    isOpen: false,
-    quantityRemaining: 'High',
-    source: 'purchased',
-    supplier: 'Sementi Dotto',
-    notes: 'Varietà tradizionale napoletana',
-    gardenId,
-  },
-  {
-    id: '2',
-    varietyId: 'basilico_genovese',
-    varietyName: 'Basilico Genovese',
-    speciesName: 'Ocimum basilicum',
-    purchaseDate: '2024-02-10',
-    expiryYear: 2025,
-    isOpen: true,
-    quantityRemaining: 'Medium',
-    source: 'purchased',
-    supplier: 'Franchi Sementi',
-    notes: 'Perfetto per il pesto',
-    gardenId,
-  },
-  {
-    id: '3',
-    varietyId: 'lattuga_canasta',
-    varietyName: 'Lattuga Canasta',
-    speciesName: 'Lactuca sativa',
-    purchaseDate: '2024-03-05',
-    expiryYear: 2025,
-    isOpen: false,
-    quantityRemaining: 'Low',
-    source: 'harvested',
-    notes: 'Semi raccolti dalla pianta madre',
-    gardenId,
-  },
-]
-
 const seedPacketCache = new Map<string, SeedPacket[]>()
 
 const setSeedPacketCache = (gardenId: string, packets: SeedPacket[]) => {
@@ -52,7 +8,7 @@ const setSeedPacketCache = (gardenId: string, packets: SeedPacket[]) => {
 }
 
 const getSeedPacketCache = (gardenId: string): SeedPacket[] => {
-  return seedPacketCache.get(gardenId) || buildMockPackets(gardenId)
+  return seedPacketCache.get(gardenId) || []
 }
 
 const normalizeForLookup = (value?: string) => (value || '').trim().toLowerCase()
@@ -84,14 +40,14 @@ const getSupabaseOrThrow = () => {
   return supabase
 }
 
-class SeedInventoryService {
+export class SeedInventoryService {
+  constructor(private readonly clientFactory: () => ReturnType<typeof getSupabaseOrThrow> = getSupabaseOrThrow) {}
+
   async getSeedPackets(gardenId: string, filters?: SeedSearchFilters): Promise<SeedPacket[]> {
     try {
-      const mockPackets = buildMockPackets(gardenId)
-
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       let query = supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('garden_id', gardenId)
         .order('created_at', { ascending: false })
@@ -114,35 +70,22 @@ class SeedInventoryService {
 
       const { data, error } = await query
 
-      if (error) {
-        console.warn('Database error, using mock data:', error)
-        setSeedPacketCache(gardenId, mockPackets)
-        return mockPackets
-      }
-
-      // Se non ci sono dati nel database, restituisci i mock
-      if (!data || data.length === 0) {
-        setSeedPacketCache(gardenId, mockPackets)
-        return mockPackets
-      }
+      if (error) throw error
 
       const packets = data?.map(this.mapFromDatabase) || []
       setSeedPacketCache(gardenId, packets)
       return packets
     } catch (error) {
       console.error('Error fetching seed packets:', error)
-      // Restituisci dati mock in caso di errore
-      const fallbackPackets = [buildMockPackets(gardenId)[0]]
-      setSeedPacketCache(gardenId, fallbackPackets)
-      return fallbackPackets
+      throw error
     }
   }
 
   async addSeedPacket(packet: Omit<SeedPacket, 'id'>): Promise<SeedPacket> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const { data, error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .insert([this.mapToDatabase(packet)])
         .select()
         .single()
@@ -161,9 +104,9 @@ class SeedInventoryService {
 
   async updateSeedPacket(id: string, updates: Partial<SeedPacket>): Promise<SeedPacket> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const { data, error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .update(this.mapToDatabase(updates))
         .eq('id', id)
         .select()
@@ -186,9 +129,9 @@ class SeedInventoryService {
 
   async deleteSeedPacket(id: string): Promise<void> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const { error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .delete()
         .eq('id', id)
 
@@ -207,7 +150,7 @@ class SeedInventoryService {
 
   async consumeSeeds(consumption: Omit<SeedConsumption, 'id'>): Promise<SeedConsumption> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       // First, record the consumption
       const { data: consumptionData, error: consumptionError } = await supabase
         .from('seed_consumptions')
@@ -248,9 +191,9 @@ class SeedInventoryService {
 
   async getAvailableSeedsForPlant(gardenId: string, plantName: string, variety?: string): Promise<SeedPacket[]> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       let query = supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('garden_id', gardenId)
         .ilike('variety_name', `%${plantName}%`)
@@ -270,17 +213,17 @@ class SeedInventoryService {
       return packets
     } catch (error) {
       console.error('Error fetching available seeds:', error)
-      return []
+      throw error
     }
   }
 
   async getExpiringSeeds(gardenId: string, monthsAhead: number = 12): Promise<SeedPacket[]> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const targetYear = new Date().getFullYear() + Math.floor(monthsAhead / 12)
       
       const { data, error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('garden_id', gardenId)
         .lte('expiry_year', targetYear)
@@ -291,15 +234,15 @@ class SeedInventoryService {
       return data?.map(this.mapFromDatabase) || []
     } catch (error) {
       console.error('Error fetching expiring seeds:', error)
-      return []
+      throw error
     }
   }
 
   async getLowStockSeeds(gardenId: string): Promise<SeedPacket[]> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const { data, error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('garden_id', gardenId)
         .in('quantity_remaining', ['Low', 'Empty'])
@@ -309,15 +252,15 @@ class SeedInventoryService {
       return data?.map(this.mapFromDatabase) || []
     } catch (error) {
       console.error('Error fetching low stock seeds:', error)
-      return []
+      throw error
     }
   }
 
   async getInventoryStats(gardenId: string): Promise<SeedInventoryStats> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       const { data, error } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('garden_id', gardenId)
 
@@ -337,23 +280,16 @@ class SeedInventoryService {
       }
     } catch (error) {
       console.error('Error fetching inventory stats:', error)
-      return {
-        totalPackets: 0,
-        totalVarieties: 0,
-        expiringCount: 0,
-        lowStockCount: 0,
-        expiredCount: 0,
-        recentlyAdded: 0
-      }
+      throw error
     }
   }
 
   private async updateSeedQuantityAfterConsumption(seedPacketId: string, quantityUsed: number): Promise<void> {
     try {
-      const supabase = getSupabaseOrThrow()
+      const supabase = this.clientFactory()
       // Get current packet
       const { data: packet, error: fetchError } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .select('*')
         .eq('id', seedPacketId)
         .single()
@@ -380,7 +316,7 @@ class SeedInventoryService {
 
       // Update the packet
       const { error: updateError } = await supabase
-        .from('seed_packets')
+        .from('seed_inventory')
         .update({ 
           quantity_remaining: newQuantityRemaining,
           is_open: true // Mark as opened when seeds are consumed
