@@ -115,7 +115,6 @@
 "services/costOptimizationService.ts","811","mock","release","scheduled:M14","AI or agronomic rule validation","return 0.75; // Mock value"
 "services/cultivationOrchestrator.ts","576","todo","release","scheduled:M11","core operational lifecycle","gardenType: 'OpenField', // TODO: Ottenere da gardens table"
 "services/cultivationOrchestrator.ts","612","todo","release","scheduled:M11","core operational lifecycle","family: 'Unknown', // TODO: Derivare da archetipo"
-"services/customPlanService.ts","52","placeholder","release","scheduled:M11","core operational lifecycle","// For now, return null (placeholder)"
 "services/droneIntegrationService.ts","764","mock","laboratory","isolated","simulation/lab provider","// Mock garden data"
 "services/droneIntegrationService.ts","778","mock","laboratory","isolated","simulation/lab provider","// Mock tasks"
 "services/freeAdviceService.ts","6","placeholder","release","scheduled:M14","AI or agronomic rule validation","// Placeholder data structure - will be populated by generateAIDatabase script"

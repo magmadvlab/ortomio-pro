@@ -2985,6 +2985,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       operationalStatus: db.operational_status,
       statusReason: db.status_reason,
       statusChangedAt: db.status_changed_at,
+      customPlanId: db.custom_plan_id,
       notes: db.notes,
       nextDueDate: db.next_due_date,
       treatmentProductId: db.treatment_product_id,
@@ -3063,6 +3064,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.operationalStatus !== undefined) db.operational_status = task.operationalStatus;
     if (task.statusReason !== undefined) db.status_reason = task.statusReason;
     if (task.statusChangedAt !== undefined) db.status_changed_at = task.statusChangedAt;
+    if (task.customPlanId !== undefined) db.custom_plan_id = task.customPlanId;
     if (task.notes !== undefined) db.notes = task.notes;
     if (task.nextDueDate !== undefined) db.next_due_date = task.nextDueDate;
     if (task.treatmentProductId !== undefined) db.treatment_product_id = task.treatmentProductId;

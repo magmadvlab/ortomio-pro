@@ -914,6 +914,7 @@ export interface GardenTask {
   operationalStatus?: 'open' | 'in_progress' | 'completed' | 'cancelled';
   statusReason?: string;
   statusChangedAt?: string;
+  customPlanId?: string;
   
   // ============================================
   // PROPRIETÀ RETROCOMPATIBILITÀ PER COMPLETAMENTO

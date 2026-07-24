@@ -6,11 +6,26 @@
 import { CustomPlan } from '../types/customPlan';
 import { PlantMasterSheet } from '../types';
 import { getMasterSheet } from './plantMasterService';
+import type { IStorageProvider } from '../packages/core/storage/interface';
+
+type CustomPlanStorage = Pick<
+  IStorageProvider,
+  'createCustomPlan' | 'getCustomPlan' | 'getUserCustomPlans' | 'updateTask'
+>;
+
+const hydrateCustomPlan = async (plan: CustomPlan): Promise<CustomPlan> => {
+  const baseMasterSheet = await getMasterSheet(plan.baseMasterSheetId);
+  if (!baseMasterSheet) {
+    throw new Error(`Master sheet not found: ${plan.baseMasterSheetId}`);
+  }
+  return { ...baseMasterSheet, ...plan };
+};
 
 /**
  * Create a custom plan from a master sheet
  */
 export const createCustomPlan = async (
+  storageProvider: CustomPlanStorage,
   baseMasterSheetId: string,
   name: string,
   userId: string,
@@ -25,9 +40,8 @@ export const createCustomPlan = async (
     throw new Error(`Master sheet not found: ${baseMasterSheetId}`);
   }
 
-  const customPlan: CustomPlan = {
+  const customPlan: Omit<CustomPlan, 'id' | 'createdAt' | 'updatedAt'> = {
     ...baseMasterSheet,
-    id: crypto.randomUUID(),
     baseMasterSheetId,
     userId,
     gardenId,
@@ -36,43 +50,46 @@ export const createCustomPlan = async (
     overrides,
     customNotes: customNotes || [],
     customMethods: customMethods || [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
     isPublic: false,
   };
 
-  return customPlan;
+  return hydrateCustomPlan(await storageProvider.createCustomPlan(customPlan));
 };
 
 /**
  * Get a custom plan by ID
  */
-export const getCustomPlan = async (planId: string): Promise<CustomPlan | null> => {
-  // This will be implemented by storage provider
-  // For now, return null (placeholder)
-  return null;
+export const getCustomPlan = async (
+  storageProvider: CustomPlanStorage,
+  planId: string
+): Promise<CustomPlan | null> => {
+  const plan = await storageProvider.getCustomPlan(planId);
+  return plan ? hydrateCustomPlan(plan) : null;
 };
 
 /**
  * Get all custom plans for a user
  */
 export const getUserCustomPlans = async (
+  storageProvider: CustomPlanStorage,
   userId: string,
   gardenId?: string
 ): Promise<CustomPlan[]> => {
-  // This will be implemented by storage provider
-  return [];
+  const plans = await storageProvider.getUserCustomPlans(userId, gardenId);
+  return Promise.all(plans.map(hydrateCustomPlan));
 };
 
 /**
  * Apply a custom plan to a task
  */
 export const applyCustomPlanToTask = async (
+  storageProvider: CustomPlanStorage,
   taskId: string,
   planId: string
 ): Promise<void> => {
-  // This will be implemented by storage provider
-  // Store reference to custom plan in task
+  const plan = await storageProvider.getCustomPlan(planId);
+  if (!plan) throw new Error(`Custom plan not found: ${planId}`);
+  await storageProvider.updateTask(taskId, { customPlanId: plan.id });
 };
 
 /**
@@ -109,7 +126,6 @@ export const mergePlanWithMaster = async (customPlan: CustomPlan): Promise<Plant
 
   return merged;
 };
-
 
 
 

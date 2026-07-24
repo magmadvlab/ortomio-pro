@@ -25,7 +25,7 @@
 - le ricorrenze mensili mantengono il giorno originario e ripiegano sull'ultimo giorno valido del mese;
 - intervalli non positivi e range invertiti falliscono senza produrre occorrenze;
 - i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
-- test locali aggiornati: type-check verde e persistenza 36/36.
+- test locali aggiornati: type-check verde e persistenza 39/39.
 
 ## Riconciliazione debito core
 
@@ -36,7 +36,8 @@
 - la condivisione dell'almanacco usa feedback accessibile senza `alert()` e le statistiche zona sommano le piante persistite nei filari;
 - le operazioni rapide su filare richiedono un utente autenticato, caricano le foto sul provider cloud e restituiscono gli ID dei registri unificati persistiti, eliminando il registro solo in memoria;
 - la creazione di un campo salva filari e piante individuali tramite il provider cloud; un errore parziale attiva la compensazione dei record già creati;
-- le voci M11 pianificate scendono da 58 a 42; nessuna voce release resta non classificata.
+- i piani personalizzati vengono letti dal provider, reidratati dalla scheda master e collegati in modo persistente ai task; un piano mancante fallisce senza aggiornare il task;
+- le voci M11 pianificate scendono da 58 a 41; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 
