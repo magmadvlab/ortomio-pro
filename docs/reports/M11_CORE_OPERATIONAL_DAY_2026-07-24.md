@@ -25,7 +25,7 @@
 - le ricorrenze mensili mantengono il giorno originario e ripiegano sull'ultimo giorno valido del mese;
 - intervalli non positivi e range invertiti falliscono senza produrre occorrenze;
 - i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
-- test locali aggiornati: type-check verde e persistenza 44/44.
+- test locali aggiornati: type-check verde e persistenza 45/45.
 
 ## Riconciliazione debito core
 
@@ -43,9 +43,10 @@
 - la route tecnica `/app/compare` e il dettaglio obsoleto sono stati rimossi: puntavano a route legacy inesistenti e descrivevano come placeholder capability specializzate oggi stabili;
 - la modifica di un'operazione nel ciclo pianta riusa il form esistente e invoca il callback persistente `onUpdateOperation`, invece di limitarsi a un log console;
 - la vista struttura dell'orto collega la gestione zone canonica passando esplicitamente l'ID orto; capability gate 10/10;
-- le voci M11 pianificate scendono da 58 a 20; nessuna voce release resta non classificata.
+- le voci M11 pianificate scendono da 58 a 18; nessuna voce release resta non classificata.
 - la Dashboard usa l'inventario fertilizzanti reale, esegue un timer irriguo collegato al log persistente e salva le decisioni di aggiustamento stagionale con RLS proprietario.
 - il vecchio `components/Journal.tsx`, non importato da alcun runtime, e' stato rimosso; `/app/journal` converge gia' sul Diario canonico `/app/diary` e un test impedisce la reintroduzione del duplicato.
+- acquaponica e aeroponica richiedono l'ingombro reale in m² e lo includono nel riepilogo dimensionale, eliminando i due valori fissi a zero.
 
 ## Sequenza da certificare
 

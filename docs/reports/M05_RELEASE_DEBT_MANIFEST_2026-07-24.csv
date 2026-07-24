@@ -15,8 +15,6 @@
 "components/DiseaseDiagnosis.tsx","32","todo","release","scheduled:M15","commercial upgrade and credit lifecycle","// TODO: Implementare upgrade flow"
 "components/dominance/DominanceDashboard.tsx","93","mock","laboratory","isolated","internal strategic analysis module","// INTERNAL USE ONLY - Mock data for strategic analysis"
 "components/dominance/DominanceDashboard.tsx","624","placeholder","laboratory","isolated","internal strategic analysis module","{/* Placeholder for other tabs */}"
-"components/gardens/SizeConfigurationStep.tsx","240","da implementare","release","scheduled:M11","core operational lifecycle","// Per ora lasciamo 0, da implementare quando la config sarà disponibile"
-"components/gardens/SizeConfigurationStep.tsx","246","da implementare","release","scheduled:M11","core operational lifecycle","// Per ora lasciamo 0, da implementare quando la config sarà disponibile"
 "components/harvest/QuickHarvestForm.tsx","105","placeholder","release","scheduled:M12","agronomic operation pilot","// Ottieni emoji pianta (placeholder - da migliorare con mapping reale)"
 "components/harvest/QuickHarvestForm.tsx","117","placeholder","release","scheduled:M12","agronomic operation pilot","// Ottieni zona (placeholder - da migliorare con dati reali)"
 "components/health/HealthAlertSystem.tsx","177","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implementare quando avremo dati da foto AI"

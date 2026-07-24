@@ -16,6 +16,9 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
   const [systemType, setSystemType] = useState<AquaponicSystemType>(
     initialConfig?.systemType || 'MediaBed'
   );
+  const [footprintAreaSqMeters, setFootprintAreaSqMeters] = useState(
+    initialConfig?.footprintAreaSqMeters?.toString() || ''
+  );
   const [tankCapacity, setTankCapacity] = useState(
     initialConfig?.fishTank.capacity?.toString() || '500'
   );
@@ -63,6 +66,7 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
     e.preventDefault();
     const config: AquaponicSystemConfig = {
       systemType,
+      footprintAreaSqMeters: parseFloat(footprintAreaSqMeters),
       fishTank: {
         capacity: parseFloat(tankCapacity),
         fishSpecies: fishSpecies ? fishSpecies.split(',').map(s => s.trim()) : undefined,
@@ -111,6 +115,23 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
           <option value="DWC">DWC</option>
           <option value="Hybrid">Ibrido</option>
         </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Superficie occupata (m²)
+        </label>
+        <input
+          type="number"
+          value={footprintAreaSqMeters}
+          onChange={(e) => setFootprintAreaSqMeters(e.target.value)}
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+          min="0.1"
+          step="0.1"
+          required
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Misura l'ingombro complessivo di vasca, letti di coltivazione e passaggi tecnici.
+        </p>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
@@ -323,7 +344,6 @@ export const AquaponicConfigForm: React.FC<AquaponicConfigFormProps> = ({
     </form>
   );
 };
-
 
 
 

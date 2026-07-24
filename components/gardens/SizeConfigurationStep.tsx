@@ -237,14 +237,14 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
 
   // Calcola area acquaponica quando cambia la configurazione
   useEffect(() => {
-    // Per ora lasciamo 0, da implementare quando la config sarà disponibile
-    setAquaponicAreaSqMeters(0);
+    const area = aquaponicConfig?.footprintAreaSqMeters ?? 0;
+    setAquaponicAreaSqMeters(area > 0 ? area : 0);
   }, [aquaponicConfig]);
 
   // Calcola area aeroponica quando cambia la configurazione
   useEffect(() => {
-    // Per ora lasciamo 0, da implementare quando la config sarà disponibile
-    setAeroponicAreaSqMeters(0);
+    const area = aeroponicConfig?.footprintAreaSqMeters ?? 0;
+    setAeroponicAreaSqMeters(area > 0 ? area : 0);
   }, [aeroponicConfig]);
 
   const handlePotChange = useCallback((count: number, diameter: number, area: number) => {
@@ -697,4 +697,3 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
     </div>
   );
 };
-

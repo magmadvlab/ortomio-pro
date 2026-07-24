@@ -137,6 +137,7 @@ export interface HydroponicSystemConfig {
  */
 export interface AquaponicSystemConfig {
   systemType: AquaponicSystemType;
+  footprintAreaSqMeters: number; // Ingombro reale dichiarato dall'utente
   
   // Vasca pesci
   fishTank: {
@@ -195,6 +196,7 @@ export interface AquaponicSystemConfig {
  */
 export interface AeroponicSystemConfig {
   systemType: AeroponicSystemType;
+  footprintAreaSqMeters: number; // Ingombro reale dichiarato dall'utente
   
   // Nebulizzazione
   misting: {
@@ -295,7 +297,6 @@ export interface AeroponicTaskData {
   phAtPlanting?: number;
   ecAtPlanting?: number;
 }
-
 
 
 

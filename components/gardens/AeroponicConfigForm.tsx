@@ -16,6 +16,9 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
   const [systemType, setSystemType] = useState<AeroponicSystemType>(
     initialConfig?.systemType || 'HighPressure'
   );
+  const [footprintAreaSqMeters, setFootprintAreaSqMeters] = useState(
+    initialConfig?.footprintAreaSqMeters?.toString() || ''
+  );
   const [nozzleCount, setNozzleCount] = useState(
     initialConfig?.misting.nozzleCount?.toString() || '8'
   );
@@ -60,6 +63,7 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
     e.preventDefault();
     const config: AeroponicSystemConfig = {
       systemType,
+      footprintAreaSqMeters: parseFloat(footprintAreaSqMeters),
       misting: {
         nozzleCount: parseInt(nozzleCount),
         nozzleFlowRate: 0.5,
@@ -101,6 +105,23 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
           <option value="LowPressure">Bassa Pressione</option>
           <option value="Ultrasonic">Ultrasonico</option>
         </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Superficie occupata (m²)
+        </label>
+        <input
+          type="number"
+          value={footprintAreaSqMeters}
+          onChange={(e) => setFootprintAreaSqMeters(e.target.value)}
+          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg"
+          min="0.1"
+          step="0.1"
+          required
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Misura l'ingombro complessivo di camere radicali, serbatoio e passaggi tecnici.
+        </p>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
@@ -311,7 +332,6 @@ export const AeroponicConfigForm: React.FC<AeroponicConfigFormProps> = ({
     </form>
   );
 };
-
 
 
 
