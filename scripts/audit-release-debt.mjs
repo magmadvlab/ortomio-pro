@@ -20,7 +20,9 @@ const classifications = [
 ]
 
 const milestoneRules = [
-  { match: /app\/app\/compare\/|components\/Dashboard\.tsx/, milestone: 'M09', reason: 'canonical analytics or dashboard provider convergence' },
+  { match: /app\/app\/compare\/|components\/Dashboard\.tsx|components\/fieldrows\/QuickOperationModal|components\/garden\/GardenView|components\/gardens\/SizeConfigurationStep|services\/geoExportService/, milestone: 'M11', reason: 'core operational lifecycle' },
+  { match: /components\/shared\/HomeDashboard/, milestone: 'M12', reason: 'agronomic operation pilot' },
+  { match: /components\/memory\/PatternView|components\/prescription\/|services\/(?:costOptimization|photoComparison|prescriptionMaps)Service/, milestone: 'M14', reason: 'AI or agronomic rule validation' },
   { match: /DiseaseDiagnosis|AICreditsWidget/, milestone: 'M15', reason: 'commercial upgrade and credit lifecycle' },
   { match: /AlmanaccoIntegration|sunExposure|useWeather/, milestone: 'M13', reason: 'external weather or solar provider integration' },
   { match: /PlannerHealthSuggestions|aiPlanning|aiSuggestions/, milestone: 'M14', reason: 'AI or agronomic rule validation' },

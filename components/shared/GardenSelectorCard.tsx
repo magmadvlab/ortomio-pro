@@ -34,7 +34,7 @@ export function GardenSelectorCard({
       t => !t.completed && t.date === today
     ).length
     
-    // Calcola ore sole medio (placeholder - dovrebbe venire da garden data)
+    // Usa esclusivamente il valore persistito del garden; assenza dati resta assenza dati.
     const avgSunHours = activeGarden.dailySunHours ?? 0
     
     return {
@@ -167,7 +167,6 @@ export function GardenSelectorCard({
     </div>
   )
 }
-
 
 
 

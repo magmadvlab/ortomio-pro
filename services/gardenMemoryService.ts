@@ -7,6 +7,83 @@ import { ZoneMemory, TreeMemory, PlantingRecord, Correlation, LocalPattern, Seas
 import { Garden, GardenTask, HarvestLogData } from '../types';
 import { CustomCrop } from '../types/customCrop';
 import { useStorage } from '../packages/core/hooks/useStorage';
+import { getSupabaseClient } from '@/config/supabase';
+
+type MemoryScope = 'zone' | 'tree';
+
+const memoryEventId = (scope: MemoryScope, scopeId: string) => `garden-memory:${scope}:${scopeId}`;
+
+const getCloudClient = () => {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error('Cloud agronomic memory unavailable');
+  }
+  return client;
+};
+
+const readMemorySnapshot = async <T>(
+  gardenId: string,
+  scope: MemoryScope,
+  scopeId: string
+): Promise<T | null> => {
+  const client = getCloudClient();
+  const { data, error } = await client
+    .from('agronomic_memory_events')
+    .select('payload')
+    .eq('garden_id', gardenId)
+    .eq('id', memoryEventId(scope, scopeId))
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data?.payload as { memory?: T } | null)?.memory ?? null;
+};
+
+const writeMemorySnapshot = async <T>(
+  gardenId: string,
+  scope: MemoryScope,
+  scopeId: string,
+  memory: T
+): Promise<void> => {
+  const client = getCloudClient();
+  const occurredAt = new Date().toISOString();
+  const { error } = await client.from('agronomic_memory_events').upsert({
+    id: memoryEventId(scope, scopeId),
+    garden_id: gardenId,
+    event_type: 'outcome',
+    source_service: 'gardenMemoryService',
+    zone_id: scope === 'zone' ? scopeId : null,
+    plant_id: scope === 'tree' ? scopeId : null,
+    summary: `${scope} memory snapshot`,
+    payload: { memory },
+    occurred_at: occurredAt,
+  }, { onConflict: 'id' });
+
+  if (error) throw error;
+};
+
+const reviveZoneMemory = (memory: ZoneMemory): ZoneMemory => ({
+  ...memory,
+  plantingHistory: memory.plantingHistory.map((record) => ({
+    ...record,
+    date: new Date(record.date),
+    result: {
+      ...record.result,
+      treatments: record.result.treatments.map((treatment) => ({
+        ...treatment,
+        date: new Date(treatment.date),
+      })),
+    },
+  })),
+  patterns: {
+    ...memory.patterns,
+    bestPlantingDate: memory.patterns.bestPlantingDate
+      ? new Date(memory.patterns.bestPlantingDate)
+      : undefined,
+    worstPlantingDate: memory.patterns.worstPlantingDate
+      ? new Date(memory.patterns.worstPlantingDate)
+      : undefined,
+  },
+});
 
 /**
  * Salva contesto completo di una piantagione
@@ -32,12 +109,9 @@ export async function savePlantingContext(
     frosts: number;
   }
 ): Promise<void> {
-  // TODO: Implementare salvataggio in Supabase quando disponibile
-  // Per ora, salva in localStorage come fallback
-  const storageKey = `garden_memory_${gardenId}_zone_${zoneId}`;
-  const existing = localStorage.getItem(storageKey);
+  const existing = await readMemorySnapshot<ZoneMemory>(gardenId, 'zone', zoneId);
   const memory: ZoneMemory = existing
-    ? JSON.parse(existing)
+    ? reviveZoneMemory(existing)
     : {
         zoneId,
         zoneName,
@@ -64,7 +138,7 @@ export async function savePlantingContext(
   };
 
   memory.plantingHistory.push(record);
-  localStorage.setItem(storageKey, JSON.stringify(memory));
+  await writeMemorySnapshot(gardenId, 'zone', zoneId, memory);
 }
 
 /**
@@ -82,11 +156,10 @@ export async function updatePlantingResult(
     treatments?: Array<{ product: string; date: Date; effective: boolean }>;
   }
 ): Promise<void> {
-  const storageKey = `garden_memory_${gardenId}_zone_${zoneId}`;
-  const existing = localStorage.getItem(storageKey);
+  const existing = await readMemorySnapshot<ZoneMemory>(gardenId, 'zone', zoneId);
   if (!existing) return;
 
-  const memory: ZoneMemory = JSON.parse(existing);
+  const memory = reviveZoneMemory(existing);
   const record = memory.plantingHistory.find(
     (r) => r.plant === plant && r.date.getTime() === new Date(date).getTime()
   );
@@ -98,7 +171,7 @@ export async function updatePlantingResult(
       problems: result.problems || [],
       treatments: result.treatments || [],
     };
-    localStorage.setItem(storageKey, JSON.stringify(memory));
+    await writeMemorySnapshot(gardenId, 'zone', zoneId, memory);
   }
 }
 
@@ -106,11 +179,10 @@ export async function updatePlantingResult(
  * Recupera memoria completa di una zona
  */
 export async function getZoneMemory(zoneId: string, gardenId: string): Promise<ZoneMemory | null> {
-  const storageKey = `garden_memory_${gardenId}_zone_${zoneId}`;
-  const existing = localStorage.getItem(storageKey);
+  const existing = await readMemorySnapshot<ZoneMemory>(gardenId, 'zone', zoneId);
   if (!existing) return null;
 
-  const memory: ZoneMemory = JSON.parse(existing);
+  const memory = reviveZoneMemory(existing);
   
   // Calcola pattern da storia se non presenti
   if (memory.plantingHistory.length > 0 && !memory.patterns.bestPlantingDate) {
@@ -268,10 +340,9 @@ export async function saveTreeMemory(
     };
   }
 ): Promise<void> {
-  const storageKey = `garden_memory_${gardenId}_tree_${treeId}`;
-  const existing = localStorage.getItem(storageKey);
+  const existing = await readMemorySnapshot<TreeMemory>(gardenId, 'tree', treeId);
   const treeMemory: TreeMemory = existing
-    ? JSON.parse(existing)
+    ? existing
     : {
         treeId,
         treeName,
@@ -321,17 +392,12 @@ export async function saveTreeMemory(
     });
   }
 
-  localStorage.setItem(storageKey, JSON.stringify(treeMemory));
+  await writeMemorySnapshot(gardenId, 'tree', treeId, treeMemory);
 }
 
 /**
  * Recupera memoria albero
  */
 export async function getTreeMemory(treeId: string, gardenId: string): Promise<TreeMemory | null> {
-  const storageKey = `garden_memory_${gardenId}_tree_${treeId}`;
-  const existing = localStorage.getItem(storageKey);
-  if (!existing) return null;
-
-  return JSON.parse(existing);
+  return readMemorySnapshot<TreeMemory>(gardenId, 'tree', treeId);
 }
-

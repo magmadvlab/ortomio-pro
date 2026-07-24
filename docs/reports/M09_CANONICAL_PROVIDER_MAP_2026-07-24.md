@@ -39,9 +39,11 @@ Verifiche del secondo lotto: type-check verde, persistenza 24/24, audit release 
 
 Il terzo lotto ha eliminato il hook production `hooks/useGarden.ts`, che costruiva sempre `garden-1` con coordinate, suolo ed esposizione fittizi. Semenzaio e widget AI flottante usano ora il `GardenContext` canonico e il relativo `activeGarden`.
 
+Il quarto lotto ha riclassificato tutte le voci impropriamente assegnate a M09 nei proprietari M11, M12 e M14. Le due convergenze reali residue sono state corrette: la dashboard consumer usa le coordinate del garden o dichiara dati meteo indisponibili; `gardenMemoryService` persiste e rilegge snapshot nel ledger canonico `agronomic_memory_events`, senza fallback `localStorage`.
+
+Verifiche del quarto lotto: type-check verde; audit release con 189 voci totali, zero assegnate a M09 e zero non classificate; test di regressione dedicati.
+
 ## Residuo
 
 - rimuovere o rendere non autorevoli gli helper sincroni dell'inventario semi rimasti per compatibilita';
-- verificare i restanti percorsi production assegnati a M09;
-- riclassificare le voci M09 del manifest che appartengono a export, pilot agronomico o AI shadow;
 - applicare e certificare le migrazioni canoniche in staging.

@@ -10,9 +10,6 @@ import { Garden } from '@/types'
 import { Sparkles, Sun, Snowflake, ChefHat, Book, Leaf } from 'lucide-react'
 import Link from 'next/link'
 
-// Placeholder - will be replaced with actual garden coordinates
-const DEFAULT_COORDS = { latitude: 40.5, longitude: 16.5 }
-
 export function ConsumerDashboard() {
   const { storageProvider } = useStorage()
   const [gardens, setGardens] = useState<Garden[]>([])
@@ -70,6 +67,9 @@ export function ConsumerDashboard() {
       </div>
     )
   }
+  const activeGarden = gardens[0]
+  const coordinates = activeGarden.coordinates
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       {/* Header migliorato */}
@@ -85,10 +85,16 @@ export function ConsumerDashboard() {
       <main className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Widget in grid */}
         <div className="grid md:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <WeatherWidget 
-            latitude={DEFAULT_COORDS.latitude}
-            longitude={DEFAULT_COORDS.longitude}
-          />
+          {coordinates ? (
+            <WeatherWidget
+              latitude={coordinates.latitude}
+              longitude={coordinates.longitude}
+            />
+          ) : (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-600">
+              Dati meteo non disponibili: aggiungi le coordinate dell&apos;orto.
+            </div>
+          )}
           <AICreditsWidget />
         </div>
         
@@ -197,4 +203,3 @@ export function ConsumerDashboard() {
     </div>
   )
 }
-
