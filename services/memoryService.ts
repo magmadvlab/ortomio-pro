@@ -4,18 +4,17 @@
  */
 
 import { CustomCrop, CropLearningEvent } from '../types/customCrop';
-import { useStorage } from '../packages/core/hooks/useStorage';
+import type { IStorageProvider } from '../packages/core/storage/interface';
 import { generateSuggestions } from './learningEngine';
 
 /**
  * Registra un evento per una coltura personalizzata nel sistema di memoria
  */
 export const recordCustomCropEvent = async (
+  storageProvider: IStorageProvider,
   customCropId: string,
   event: CropLearningEvent
 ): Promise<void> => {
-  const { storageProvider } = useStorage();
-  
   // Registra l'evento di apprendimento
   await storageProvider.recordLearningEvent({
     ...event,
@@ -30,9 +29,9 @@ export const recordCustomCropEvent = async (
  * Recupera pattern per una coltura personalizzata
  */
 export const getCustomCropPatterns = async (
+  storageProvider: IStorageProvider,
   customCropId: string
 ): Promise<CustomCrop['learned_patterns'] | null> => {
-  const { storageProvider } = useStorage();
   const crop = await storageProvider.getCustomCrop(customCropId);
   
   if (!crop) {
@@ -46,10 +45,10 @@ export const getCustomCropPatterns = async (
  * Suggerisce basandosi sulla memoria esistente per colture personalizzate
  */
 export const suggestBasedOnMemory = async (
+  storageProvider: IStorageProvider,
   customCropId: string,
   operation: 'planting' | 'harvest' | 'work' | 'treatment'
 ): Promise<string | null> => {
-  const { storageProvider } = useStorage();
   const crop = await storageProvider.getCustomCrop(customCropId);
   
   if (!crop) {
@@ -75,4 +74,3 @@ export const suggestBasedOnMemory = async (
       return null;
   }
 };
-

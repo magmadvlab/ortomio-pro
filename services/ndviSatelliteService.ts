@@ -95,7 +95,7 @@ export class NDVISatelliteService {
       };
 
       // Prova Sentinel Hub per dati reali
-      let ndviData = await this.fetchSentinelHubData(request);
+      const ndviData = await this.fetchSentinelHubData(request);
       
       return ndviData;
     } catch (error) {

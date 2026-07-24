@@ -486,8 +486,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
       // Use garden location if available, otherwise browser location
       setLoading(true);
       setError(null);
-      let lat = garden.coordinates?.latitude;
-      let lng = garden.coordinates?.longitude;
+      const lat = garden.coordinates?.latitude;
+      const lng = garden.coordinates?.longitude;
 
       const fetchSugg = async (l: number, ln: number) => {
            try {
@@ -570,8 +570,8 @@ const Planner: React.FC<PlannerProps> = ({ onAddToJournal, garden, tasks = [], o
 
     // Use garden coordinates if available, otherwise use default coordinates
     const defaultCoords = getDefaultCoordinates();
-    let lat = garden.coordinates?.latitude || defaultCoords.latitude;
-    let lng = garden.coordinates?.longitude || defaultCoords.longitude;
+    const lat = garden.coordinates?.latitude || defaultCoords.latitude;
+    const lng = garden.coordinates?.longitude || defaultCoords.longitude;
 
     setSearchLoading(true);
     setSpecificResult(null);

@@ -438,7 +438,7 @@ class CollaborativeAIService {
       )
       
       // Applica aggiustamenti
-      let adjustedParameters = { ...baseParameters }
+      const adjustedParameters = { ...baseParameters }
       
       for (const pattern of relevantPatterns) {
         if (pattern.confidence_level > 0.6) { // Solo pattern con alta confidenza

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { 
   Calendar, 
   TrendingUp, 
@@ -13,25 +13,18 @@ import {
   Leaf,
   Target,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Info
 } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import type { WeatherAlert } from '@/services/weatherService'
+import { calculateDashboardGardenStats } from '@/services/dashboardGardenStatsService'
 
 interface DailyGardenReportProps {
   garden: Garden
   tasks?: GardenTask[]
   weatherAlerts?: WeatherAlert[]
   onTaskClick?: (taskId: string) => void
-}
-
-interface GardenStats {
-  plantsCount: number
-  tasksToday: number
-  tasksOverdue: number
-  healthScore: number
-  wateringNeeded: number
-  harvestReady: number
 }
 
 interface SuggestedTask {
@@ -51,15 +44,12 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
   onTaskClick
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [gardenStats, setGardenStats] = useState<GardenStats>({
-    plantsCount: 0,
-    tasksToday: 0,
-    tasksOverdue: 0,
-    healthScore: 85,
-    wateringNeeded: 0,
-    harvestReady: 0
-  })
   const [suggestedTasks, setSuggestedTasks] = useState<SuggestedTask[]>([])
+  const [suggestionsError, setSuggestionsError] = useState(false)
+  const gardenStats = useMemo(
+    () => calculateDashboardGardenStats(tasks, currentTime),
+    [tasks, currentTime],
+  )
 
   // Update time every minute
   useEffect(() => {
@@ -71,49 +61,14 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
 
   // Calcola statistiche giardino e genera suggerimenti intelligenti
   useEffect(() => {
-    if (!tasks || tasks.length === 0) {
-      setGardenStats({
-        plantsCount: 0,
-        tasksToday: 0,
-        tasksOverdue: 0,
-        healthScore: 85,
-        wateringNeeded: 0,
-        harvestReady: 0
-      })
+    if (tasks.length === 0) {
       setSuggestedTasks([])
+      setSuggestionsError(false)
       return
     }
 
-    const today = new Date().toDateString()
-    const todayTasks = tasks.filter(task => {
-      const taskDate = task.scheduledDate || task.date
-      return taskDate && new Date(taskDate).toDateString() === today && !task.completed
-    })
-    const overdueTasks = tasks.filter(task => {
-      const taskDate = task.scheduledDate || task.date
-      return taskDate && new Date(taskDate) < new Date() && !task.completed
-    })
-
-    // Simula dati dinamici basati su orario e stagione
-    const hour = currentTime.getHours()
-    const month = currentTime.getMonth() + 1
-    
-    // Calcola health score dinamico
-    let healthScore = 85
-    if (overdueTasks.length > 0) healthScore -= overdueTasks.length * 5
-    if (hour >= 6 && hour <= 18) healthScore += 5 // Bonus ore diurne
-    if (month >= 3 && month <= 10) healthScore += 10 // Bonus stagione crescita
-
-    setGardenStats({
-      plantsCount: (tasks || []).filter(t => t.plantName && !t.completed).length || 0,
-      tasksToday: todayTasks.length,
-      tasksOverdue: overdueTasks.length,
-      healthScore: Math.min(100, Math.max(0, healthScore)),
-      wateringNeeded: Math.floor(Math.random() * 3) + (hour > 16 ? 2 : 0), // Più probabile sera
-      harvestReady: Math.floor(Math.random() * 2) + (month >= 6 && month <= 9 ? 1 : 0) // Più probabile estate
-    })
-
     // Usa il servizio di suggerimenti intelligenti
+    setSuggestionsError(false)
     import('../../services/gardenSuggestionsService').then(({ GardenSuggestionsService }) => {
       const smartSuggestions = GardenSuggestionsService.generateSmartSuggestions(
         garden,
@@ -135,20 +90,10 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
       setSuggestedTasks(convertedSuggestions)
     }).catch(error => {
       console.warn('Could not load garden suggestions:', error)
-      // Fallback con suggerimenti semplici
-      setSuggestedTasks([
-        {
-          id: 'simple-check',
-          type: 'optimal',
-          title: 'Controllo giornaliero',
-          description: 'Verifica lo stato delle tue piante e annaffia se necessario',
-          priority: 'medium',
-          estimatedMinutes: 15,
-          icon: '🌱'
-        }
-      ])
+      setSuggestedTasks([])
+      setSuggestionsError(true)
     })
-  }, [garden.id, tasks.length]) // Use stable dependencies
+  }, [garden, tasks, currentTime])
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('it-IT', {
@@ -166,7 +111,8 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
     })
   }
 
-  const getHealthColor = (score: number) => {
+  const getHealthColor = (score: number | null) => {
+    if (score === null) return 'text-gray-600 bg-gray-100'
     if (score >= 80) return 'text-green-600 bg-green-50'
     if (score >= 60) return 'text-yellow-600 bg-yellow-50'
     return 'text-red-600 bg-red-50'
@@ -212,12 +158,12 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
               <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-3">
                 <Clock size={12} className="sm:hidden" />
                 <Clock size={14} className="hidden sm:block" />
-                <span className="truncate">{formatTime(currentTime)} • Report in tempo reale</span>
+                <span className="truncate">{formatTime(currentTime)} • Dati operativi registrati</span>
               </p>
             </div>
           </div>
           <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0 ${getHealthColor(gardenStats.healthScore)}`}>
-            {gardenStats.healthScore}% Salute
+            {gardenStats.healthScore === null ? 'Salute: dati insufficienti' : `${gardenStats.healthScore}% Salute`}
           </div>
         </div>
       </div>
@@ -226,20 +172,20 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
       <div className="p-3 sm:p-4 border-b border-gray-100">
         <div className="grid grid-cols-1 md:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
           <div className="text-center p-3 sm:p-0">
-            <div className="text-base sm:text-lg font-bold text-green-600">{gardenStats.plantsCount}</div>
-            <div className="text-xs text-gray-500">Piante</div>
+            <div className="text-base sm:text-lg font-bold text-green-600">{gardenStats.plantsCount ?? '—'}</div>
+            <div className="text-xs text-gray-500">Piante censite</div>
           </div>
           <div className="text-center p-3 sm:p-0">
             <div className="text-base sm:text-lg font-bold text-blue-600">{gardenStats.tasksToday}</div>
             <div className="text-xs text-gray-500">Task oggi</div>
           </div>
           <div className="text-center p-3 sm:p-0">
-            <div className="text-base sm:text-lg font-bold text-orange-600">{gardenStats.wateringNeeded}</div>
-            <div className="text-xs text-gray-500">Da innaffiare</div>
+            <div className="text-base sm:text-lg font-bold text-orange-600">{gardenStats.openIrrigationTasks}</div>
+            <div className="text-xs text-gray-500">Irrigazioni aperte</div>
           </div>
           <div className="text-center p-3 sm:p-0">
-            <div className="text-base sm:text-lg font-bold text-purple-600">{gardenStats.harvestReady}</div>
-            <div className="text-xs text-gray-500">Da raccogliere</div>
+            <div className="text-base sm:text-lg font-bold text-purple-600">{gardenStats.openHarvestTasks}</div>
+            <div className="text-xs text-gray-500">Raccolte aperte</div>
           </div>
         </div>
       </div>
@@ -287,11 +233,18 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
           ))}
         </div>
 
-        {displayedSuggestions.length === 0 && (
+        {suggestionsError && weatherSuggestions.length === 0 && (
+          <div className="text-center py-4 text-amber-700 bg-amber-50 rounded-lg">
+            <AlertCircle size={24} className="mx-auto mb-2" />
+            <p className="text-sm font-medium">Suggerimenti non disponibili</p>
+            <p className="text-xs mt-1">I dati operativi restano consultabili; riprova più tardi.</p>
+          </div>
+        )}
+
+        {!suggestionsError && displayedSuggestions.length === 0 && (
           <div className="text-center py-4 text-gray-500">
-            <CheckCircle size={20} className="sm:hidden mx-auto mb-2 text-green-500" />
-            <CheckCircle size={24} className="hidden sm:block mx-auto mb-2 text-green-500" />
-            <p className="text-sm">Tutto sotto controllo! 🌱</p>
+            <Info size={24} className="mx-auto mb-2 text-gray-400" />
+            <p className="text-sm">Nessun suggerimento disponibile dai dati registrati.</p>
           </div>
         )}
       </div>

@@ -7,13 +7,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Edit3, Eye, ArrowRight } from 'lucide-react'
-import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from './AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
+import type { Garden } from '@/types'
 
 interface AISuggestionsWidgetProps {
+  garden: Garden
   maxItems?: number
   priorities?: Array<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>
   types?: string[]
@@ -21,48 +22,52 @@ interface AISuggestionsWidgetProps {
 }
 
 export default function AISuggestionsWidget({
+  garden,
   maxItems = 3,
   priorities = ['CRITICAL', 'HIGH'],
   types,
   compact = true
 }: AISuggestionsWidgetProps) {
-  const { activeGarden } = useGarden()
   const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [selectedSuggestion, setSelectedSuggestion] = useState<AISuggestion | null>(null)
   const [transparencyLog, setTransparencyLog] = useState<AITransparencyLog | null>(null)
   const [showTransparency, setShowTransparency] = useState(false)
 
   useEffect(() => {
-    if (activeGarden && user) {
+    if (user) {
       loadSuggestions()
     }
-  }, [activeGarden, user])
+  }, [garden.id, user?.id])
 
   const loadSuggestions = async () => {
-    if (!activeGarden || !user) return
+    if (!user) return
     
     try {
       setLoading(true)
+      setLoadError(false)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         priorities,
         types: types as any,
-        gardenId: activeGarden.id
+        gardenId: garden.id
       })
       
       setSuggestions(suggs.slice(0, maxItems))
     } catch (error) {
       console.error('Error loading suggestions:', error)
+      setSuggestions([])
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
   }
 
   const handleAccept = async (suggestionId: string) => {
-    if (!activeGarden || !user) return
+    if (!user) return
     
     await collaborativeAIService.acceptSuggestion(
       user.id,
@@ -74,7 +79,7 @@ export default function AISuggestionsWidget({
   }
 
   const handleReject = async (suggestionId: string) => {
-    if (!activeGarden || !user) return
+    if (!user) return
     
     const reason = prompt('Perché rifiuti questo suggerimento?')
     if (!reason) return
@@ -116,7 +121,7 @@ export default function AISuggestionsWidget({
     }
   }
 
-  if (!activeGarden || !user) return null
+  if (!user) return null
   
   if (loading) {
     return (
@@ -132,6 +137,20 @@ export default function AISuggestionsWidget({
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 border border-amber-200">
+        <div className="flex items-center gap-3 mb-2">
+          <AlertTriangle className="text-amber-600" size={24} />
+          <h3 className="text-lg font-semibold text-gray-900">Suggerimenti AI non disponibili</h3>
+        </div>
+        <p className="text-sm text-gray-600">
+          Non e' stato possibile leggere i suggerimenti per {garden.name}. Riprova più tardi.
+        </p>
+      </div>
+    )
+  }
+
   if (suggestions.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -141,7 +160,7 @@ export default function AISuggestionsWidget({
         </div>
         <div className="text-center py-4">
           <CheckCircle className="mx-auto h-12 w-12 text-green-400 mb-2" />
-          <p className="text-gray-600 text-sm">Nessun suggerimento urgente al momento</p>
+          <p className="text-gray-600 text-sm">Nessun suggerimento urgente registrato per {garden.name}</p>
         </div>
       </div>
     )

@@ -362,7 +362,7 @@ export async function callAIWithRetry(
       console.log(`🤖 Tentativo AI con provider: ${provider}`);
       
       // Ottimizzazioni specifiche per provider
-      let optimizedOptions = { ...options, provider: provider as any };
+      const optimizedOptions = { ...options, provider: provider as any };
       
       switch (provider) {
         case 'groq':

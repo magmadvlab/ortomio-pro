@@ -223,7 +223,7 @@ export class MachineryIntegrationService {
     format: string
   ): number {
     
-    let baseAccuracy = 100 - (compatibility.gpsAccuracy * 10);
+    const baseAccuracy = 100 - (compatibility.gpsAccuracy * 10);
     
     // Format accuracy impact
     const formatAccuracy = {

@@ -171,15 +171,65 @@ export function WeatherTaskWidget({
 }: WeatherTaskAlertProps) {
   const [count, setCount] = useState(0)
   const [expanded, setExpanded] = useState(false)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   useEffect(() => {
     const checkCount = async () => {
-      if (!garden.coordinates) return
-      const alerts = await checkTomorrowTasksWeather(garden, tasks)
-      setCount(alerts.length)
+      if (!garden.coordinates || tasks.length === 0) {
+        setCount(0)
+        setStatus('ready')
+        return
+      }
+
+      setStatus('loading')
+      try {
+        const alerts = await checkTomorrowTasksWeather(garden, tasks)
+        setCount(alerts.length)
+        setStatus('ready')
+      } catch (error) {
+        console.error('Error checking dashboard weather tasks:', error)
+        setCount(0)
+        setStatus('error')
+      }
     }
     checkCount()
-  }, [garden.id, tasks.length])
+  }, [garden.id, garden.coordinates, tasks])
+
+  if (tasks.length === 0) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <Calendar className="text-gray-500" size={20} />
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900">Verifica meteo in attesa</h4>
+            <p className="text-xs text-gray-600">Aggiungi un task pianificato per valutarne la compatibilità meteo.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <p className="text-sm text-gray-600">Verifica meteo dei task in corso...</p>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="text-amber-600" size={20} />
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900">Verifica meteo non disponibile</h4>
+            <p className="text-xs text-gray-600">Non è possibile confermare la compatibilità dei task in questo momento.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (count === 0) {
     return (

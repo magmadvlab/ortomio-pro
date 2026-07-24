@@ -4,9 +4,10 @@
  * Usa pg_trgm per fuzzy matching su Supabase
  */
 
-import { normalizeText } from '../utils/textNormalizer';
+import { normalizeText, similarity } from '../utils/textNormalizer';
 import { getSupabaseClient } from '../config/supabase';
 import { ArchetypeId } from '../types/archetypes';
+import { plantSynonymsSeed, plantTaxonomySeed } from '../data/plantTaxonomySeed';
 
 /**
  * Risultato della ricerca fuzzy
@@ -180,10 +181,6 @@ function fuzzySearchLocal(
   locale: string,
   archetypeId?: ArchetypeId
 ): FuzzySearchResult[] {
-  // Import dinamico per evitare circular dependencies
-  const { plantTaxonomySeed, plantSynonymsSeed } = require('../data/plantTaxonomySeed');
-  const { similarity } = require('../utils/textNormalizer');
-
   const results: FuzzySearchResult[] = [];
 
   // Cerca nei sinonimi
@@ -247,4 +244,3 @@ function fuzzySearchLocal(
     })
     .slice(0, 3);
 }
-

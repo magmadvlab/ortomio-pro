@@ -37,7 +37,7 @@ export function calculateNextOccurrences(
   const startDate = new Date(task.start_date);
   const occurrences: string[] = [];
   
-  let current = new Date(startDate);
+  const current = new Date(startDate);
   let calculated = 0;
   
   while (calculated < count) {
@@ -145,7 +145,7 @@ export function getRecurringOccurrencesInRange(
   const taskStart = new Date(task.start_date);
   const occurrences: string[] = [];
   
-  let current = new Date(taskStart);
+  const current = new Date(taskStart);
   
   // Avanza fino a startDate se necessario
   while (current < startDate) {

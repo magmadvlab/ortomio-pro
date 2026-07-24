@@ -304,7 +304,7 @@ export default function TimelineComparison({
   // Vista calendario
   const renderCalendarView = () => {
     const months = [];
-    let currentDate = new Date(today);
+    const currentDate = new Date(today);
     
     for (let i = 0; i < 6; i++) {
       months.push({

@@ -293,7 +293,7 @@ function calculateRecurringOccurrences(
   const rangeStartDate = rangeStart ? new Date(rangeStart) : new Date();
   const rangeEndDate = rangeEnd ? new Date(rangeEnd) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 giorni default
   
-  let current = new Date(start);
+  const current = new Date(start);
   let count = 0;
   const maxOccurrences = 100; // Limite sicurezza
   

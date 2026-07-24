@@ -189,7 +189,7 @@ class VineyardBudLoadService {
       const supabase = this.getClientOrThrow()
       
       // Recalculate Ravaz Index if relevant values changed
-      let updateData = this.mapBudLoadToDatabase(updates)
+      const updateData = this.mapBudLoadToDatabase(updates)
       if (updates.grapeYield || updates.pruningWoodWeight) {
         const existing = await supabase
           .from('vineyard_bud_load')

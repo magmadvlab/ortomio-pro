@@ -45,7 +45,7 @@ export const handleTaskCompletion = async (
     
     // Determina il tipo di evento in base al taskType
     let eventType: CropLearningEvent['event_type'] | null = null;
-    let eventData: any = {
+    const eventData: any = {
       date: task.date,
       plantName: task.plantName
     };

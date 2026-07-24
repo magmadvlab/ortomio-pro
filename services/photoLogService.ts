@@ -139,13 +139,12 @@ export class PhotoLogService {
       // Calcola automaticamente indici vegetativi dopo il salvataggio
       try {
         // Recupera zoneId dal task (bedId)
-        let finalZoneId: string | undefined;
         const { data: taskData } = await supabase
           .from('garden_tasks')
           .select('bed_id')
           .eq('id', taskId)
           .single();
-        finalZoneId = taskData?.bed_id;
+        const finalZoneId: string | undefined = taskData?.bed_id;
         
         const photoUrlForIndices = photoUrl || createdLog.photoUrl;
         if (photoUrlForIndices && photoUrlForIndices.startsWith('http')) {
@@ -262,4 +261,3 @@ export class PhotoLogService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   }
 }
-

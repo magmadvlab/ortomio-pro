@@ -195,7 +195,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
       setExtractedVariety(extracted.variety || null);
       
       // Cerca prima con la parola principale se diversa dall'input completo
-      let searchQuery = plantName.trim();
+      const searchQuery = plantName.trim();
       if (mainName && mainName !== plantName.trim().toLowerCase()) {
         // Prova prima con la parola principale
         const region = garden.coordinates ? undefined : undefined;

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -304,7 +304,7 @@ export default async function DocPage({ params }: DocPageProps) {
 export async function generateStaticParams() {
   try {
     const docsDir = join(process.cwd(), 'docs', 'manual');
-    const files = require('fs').readdirSync(docsDir);
+    const files = readdirSync(docsDir);
 
     return files
       .filter((file: string) => file.endsWith('.md') && file !== 'README.md')

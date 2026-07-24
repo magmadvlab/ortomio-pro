@@ -31,7 +31,7 @@ export async function updateStreak(
     
     let newStreak = currentStreak.current;
     let newLongest = currentStreak.longest;
-    let newLastDate = completionDay;
+    const newLastDate = completionDay;
     
     // Se non c'è ultima data, inizia streak
     if (!currentStreak.lastDate) {

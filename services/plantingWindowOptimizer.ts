@@ -55,7 +55,7 @@ function adjustPlantingDateForConditions(
   altitudeMeters?: number,
   plantType: 'early' | 'standard' | 'late' = 'standard'
 ): Date {
-  let adjustedDate = new Date(baseDate);
+  const adjustedDate = new Date(baseDate);
 
   // 1. Applica ritardo altitudine
   if (altitudeMeters && altitudeMeters > 200) {

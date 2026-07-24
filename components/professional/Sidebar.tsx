@@ -20,7 +20,8 @@ export function ProfessionalSidebar() {
     [access],
   )
   const groups = useMemo(() => capabilities.reduce<Record<string, CapabilityDescriptor[]>>((result, item) => {
-    ;(result[item.group] ??= []).push(item)
+    const groupItems = result[item.group] ?? (result[item.group] = [])
+    groupItems.push(item)
     return result
   }, {}), [capabilities])
 
@@ -30,7 +31,11 @@ export function ProfessionalSidebar() {
 
   const toggle = (group: string) => setCollapsed(previous => {
     const next = new Set(previous)
-    next.has(group) ? next.delete(group) : next.add(group)
+    if (next.has(group)) {
+      next.delete(group)
+    } else {
+      next.add(group)
+    }
     localStorage.setItem('ortomio_sidebar_collapsed', JSON.stringify([...next]))
     return next
   })

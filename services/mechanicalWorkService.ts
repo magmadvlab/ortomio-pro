@@ -444,7 +444,7 @@ export async function validateWeatherConditions(
   suggestedDate?: string
 }> {
   const warnings: string[] = []
-  let suitable = true
+  const suitable = true
 
   // Per lavorazioni del suolo, check pioggia
   const soilWorks: WorkType[] = ['Plowing', 'Tilling', 'Harrowing', 'Hoeing']

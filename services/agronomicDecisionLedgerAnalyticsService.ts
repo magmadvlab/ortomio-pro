@@ -18,7 +18,7 @@ import {
 
 type AgronomicDecisionLedgerAnalyticsStorage = Pick<IStorageProvider, 'getUserPreference'>
 
-export interface AgronomicMeasuredOutcome extends AgronomicQueueMeasuredOutcome {}
+export type AgronomicMeasuredOutcome = AgronomicQueueMeasuredOutcome
 
 export interface AgronomicDecisionLedgerProfileSummary {
   profileId: string

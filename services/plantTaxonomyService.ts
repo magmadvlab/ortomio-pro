@@ -7,6 +7,7 @@
 import { getSupabaseClient } from '../config/supabase';
 import { getMasterSheet } from './plantMasterService';
 import { PlantTaxonomy, FunctionalCategory } from '../data/plantTaxonomy';
+import { plantTaxonomySeed } from '../data/plantTaxonomySeed';
 import { ArchetypeId } from '../types/archetypes';
 
 /**
@@ -139,7 +140,6 @@ export async function getPlantFunctionalCategory(plantId: string): Promise<Funct
  */
 function getPlantTaxonomyFromSeed(plantId: string): PlantTaxonomyResult | null {
   try {
-    const { plantTaxonomySeed } = require('../data/plantTaxonomySeed');
     const normalized = plantId.toLowerCase().trim();
     
     const taxonomy = plantTaxonomySeed.find((p: PlantTaxonomy) => 
@@ -279,4 +279,3 @@ function inferTaxonomyFromName(plantId: string): PlantTaxonomyResult | null {
     source: 'inferred'
   };
 }
-

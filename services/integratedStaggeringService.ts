@@ -605,7 +605,7 @@ export class IntegratedStaggeringService {
           const dayData = calendar.get(dateKey);
           
           // Trova processo esistente dello stesso tipo
-          let existingProcess = dayData.processes.find(
+          const existingProcess = dayData.processes.find(
             (p: any) => p.type === scheduledProcess.process.processType
           );
           

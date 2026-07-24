@@ -66,7 +66,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
     setIsSaving(true);
 
     try {
-      let config: any = {
+      const config: any = {
         establishedDate: establishedDate || new Date().toISOString().split('T')[0],
         totalTrees: totalCount ? parseInt(totalCount) : undefined,
         varieties: varieties ? varieties.split(',').map(v => v.trim()).filter(Boolean) : undefined,

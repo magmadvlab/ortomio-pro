@@ -63,7 +63,7 @@ export const getMasterSheet = async (speciesName: string): Promise<PlantMasterSh
  */
 const normalizePlantName = (name: string): string => {
   // Pulizia iniziale: rimuovi virgolette e spazi extra
-  let normalized = name
+  const normalized = name
     .toLowerCase()
     .trim()
     .replace(/^["']|["']$/g, '') // Rimuovi virgolette all'inizio e alla fine

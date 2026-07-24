@@ -1362,7 +1362,7 @@ class AdvancedIrrigationService {
 
   private calculateNextExecutionDate(schedule: any): string {
     const today = new Date()
-    let nextDate = new Date(today)
+    const nextDate = new Date(today)
 
     switch (schedule.schedule_type) {
       case 'daily':

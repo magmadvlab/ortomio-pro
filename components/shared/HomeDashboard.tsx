@@ -563,6 +563,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         {/* AI Suggestions Widget - Suggerimenti urgenti */}
         {activeGarden && (
           <AISuggestionsWidget
+            garden={activeGarden}
             maxItems={3}
             priorities={['CRITICAL', 'HIGH']}
             compact={true}

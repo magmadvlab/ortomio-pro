@@ -17,11 +17,11 @@ import { AddCropWizard } from '@/components/crops/AddCropWizard';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { createAlias } from '../services/aliasService';
 import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';
-import { getSeedPackets, findSeedsForPlant, useSeedForPlanting } from '@/services/seedInventoryService';
+import { getSeedPackets, findSeedsForPlant, useSeedForPlanting as consumeSeedForPlanting } from '@/services/seedInventoryService';
 import { SeedPacket } from '../types';
 import { SeedlingBatch } from '../services/seedlingService';
 import { getAllReadyBatches } from '../services/seedlingBatchHelper';
-import { SaplingBatch, useSaplingForPlanting } from '../services/saplingService';
+import { SaplingBatch, useSaplingForPlanting as consumeSaplingForPlanting } from '../services/saplingService';
 import { determineWasteDisposal } from '../logic/compostEngine';
 
 interface JournalProps {
@@ -256,7 +256,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   };
 
   // Funzione per usare batch di piantine per trapianto
-  const useBatchForPlanting = async (batchId: string, quantity: number): Promise<boolean> => {
+  const consumeBatchForPlanting = async (batchId: string, quantity: number): Promise<boolean> => {
     try {
       const batch = await storageProvider.getSeedlingBatch(batchId);
       if (!batch || (batch.currentQuantity || 0) < quantity) {
@@ -305,7 +305,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
           return;
         }
         
-        const used = await useBatchForPlanting(newTask.selectedBatchId, newTask.quantity);
+        const used = await consumeBatchForPlanting(newTask.selectedBatchId, newTask.quantity);
         if (!used) {
           alert('Le piantine selezionate sono esaurite. Seleziona un altro batch o aggiungi nuove piantine.');
           return;
@@ -327,7 +327,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
           return;
         }
         
-        const used = await useSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
+        const used = await consumeSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
         if (!used) {
           alert('Gli alberelli selezionati sono esauriti. Seleziona un altro batch o aggiungi nuovi alberelli.');
           return;
@@ -349,7 +349,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
-      const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+      const used = consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
       if (!used) {
         alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
         return;
@@ -450,7 +450,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
           return;
         }
         
-        const used = await useBatchForPlanting(newTask.selectedBatchId, newTask.quantity);
+        const used = await consumeBatchForPlanting(newTask.selectedBatchId, newTask.quantity);
         if (!used) {
           alert('Le piantine selezionate sono esaurite.');
           return;
@@ -472,7 +472,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
           return;
         }
         
-        const used = await useSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
+        const used = await consumeSaplingForPlanting(storageProvider, newTask.selectedBatchId, newTask.quantity);
         if (!used) {
           alert('Gli alberelli selezionati sono esauriti.');
           return;
@@ -494,7 +494,7 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
-      const used = useSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+      const used = consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
       if (!used) {
         alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
         return;

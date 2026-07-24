@@ -19,7 +19,7 @@
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "check": "npm run type-check && npm run build",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint": "eslint --no-ignore app components services lib hooks config --ext .ts,.tsx,.js,.jsx",
     "pre-deploy": "node scripts/pre-deploy-check.js",
     "pre-deploy:fast": "node scripts/pre-deploy-check.js --skip-build",
     "pre-commit": "npm run pre-deploy",

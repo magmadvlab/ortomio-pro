@@ -128,7 +128,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
       // Apply date filter
       if (filterPeriod !== 'all') {
         const now = new Date();
-        let startDate = new Date();
+        const startDate = new Date();
         
         switch (filterPeriod) {
           case 'week':
