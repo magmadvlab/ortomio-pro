@@ -6,6 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
 import { accessErrorResponse, requireGardenAccess, requireUser } from '@/lib/auth.server';
+import {
+  calculateOperationalOccurrences,
+  parseOperationalDate,
+  parseOperationalRangeEnd,
+} from '@/lib/calendar/romeRecurrence';
 
 // GET /api/calendar/tasks?start_date=&end_date=
 export async function GET(request: NextRequest) {
@@ -21,14 +26,6 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id)
       .order('start_date', { ascending: true });
-    
-    if (startDate) {
-      query = query.gte('start_date', startDate);
-    }
-    
-    if (endDate) {
-      query = query.lte('start_date', endDate);
-    }
     
     const { data, error } = await query;
     
@@ -250,12 +247,18 @@ async function expandRecurringTasks(
   const expanded: any[] = [];
   
   for (const task of tasks) {
-    expanded.push(task);
+    const taskInstant = parseOperationalDate(task.start_date).getTime();
+    const rangeStartInstant = startDate ? parseOperationalDate(startDate).getTime() : null;
+    const rangeEndInstant = endDate ? parseOperationalRangeEnd(endDate).getTime() : null;
+    const baseInRange =
+      (rangeStartInstant === null || taskInstant >= rangeStartInstant) &&
+      (rangeEndInstant === null || taskInstant <= rangeEndInstant);
+    if (baseInRange) expanded.push(task);
     
     // Se task è ricorrente, calcola prossime occorrenze
     if (task.recurring && task.recurring_pattern) {
       const pattern = task.recurring_pattern;
-      const occurrences = calculateRecurringOccurrences(
+      const occurrences = calculateOperationalOccurrences(
         task.start_date,
         pattern,
         startDate,
@@ -264,6 +267,7 @@ async function expandRecurringTasks(
       
       // Crea task virtuali per ogni occorrenza
       for (const occDate of occurrences) {
+        if (parseOperationalDate(occDate).getTime() === taskInstant) continue;
         expanded.push({
           ...task,
           id: `${task.id}_${occDate}`,
@@ -276,46 +280,4 @@ async function expandRecurringTasks(
   }
   
   return expanded;
-}
-
-/**
- * Calcola occorrenze ricorrenti
- */
-function calculateRecurringOccurrences(
-  startDate: string,
-  pattern: { type: 'daily' | 'weekly' | 'monthly'; interval: number; endDate?: string },
-  rangeStart?: string | null,
-  rangeEnd?: string | null
-): string[] {
-  const occurrences: string[] = [];
-  const start = new Date(startDate);
-  const end = pattern.endDate ? new Date(pattern.endDate) : null;
-  const rangeStartDate = rangeStart ? new Date(rangeStart) : new Date();
-  const rangeEndDate = rangeEnd ? new Date(rangeEnd) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000); // 90 giorni default
-  
-  const current = new Date(start);
-  let count = 0;
-  const maxOccurrences = 100; // Limite sicurezza
-  
-  while (count < maxOccurrences) {
-    if (end && current > end) break;
-    if (current > rangeEndDate) break;
-    
-    if (current >= rangeStartDate) {
-      occurrences.push(current.toISOString());
-    }
-    
-    // Incrementa data in base al pattern
-    if (pattern.type === 'daily') {
-      current.setDate(current.getDate() + pattern.interval);
-    } else if (pattern.type === 'weekly') {
-      current.setDate(current.getDate() + (7 * pattern.interval));
-    } else if (pattern.type === 'monthly') {
-      current.setMonth(current.getMonth() + pattern.interval);
-    }
-    
-    count++;
-  }
-  
-  return occurrences;
 }

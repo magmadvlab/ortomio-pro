@@ -14,7 +14,7 @@
 - [ ] M06-M08 - migrazioni, restore e RLS bloccati senza staging;
 - [ ] M09 - convergenza locale verificata; resta la certificazione staging;
 - [ ] M10 - lifecycle locale pronto; consegna/webhook provider da certificare in staging;
-- [ ] M11-M15 - `O25` chiuso localmente; DST, giornata reale, pilot, provider, AI e commerciale incompleti;
+- [ ] M11-M15 - `O25-O26` chiusi localmente; giornata reale, pilot, provider, AI e commerciale incompleti;
 - [ ] M16 - audit finale non iniziato.
 
 ## Regola

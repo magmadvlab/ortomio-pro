@@ -18,6 +18,15 @@
 - il replay della stessa richiesta e' innocuo, mentre il riuso discordante della chiave viene rifiutato;
 - test locali: type-check verde e persistenza 29/29.
 
+## Ricorrenze e cambio ora
+
+- il calendario operativo usa esplicitamente `Europe/Rome`, senza dipendere dalla timezone del processo;
+- ricorrenze giornaliere e settimanali conservano l'ora locale attraverso entrambi i cambi DST;
+- le ricorrenze mensili mantengono il giorno originario e ripiegano sull'ultimo giorno valido del mese;
+- intervalli non positivi e range invertiti falliscono senza produrre occorrenze;
+- i task ricorrenti iniziati prima del range richiesto vengono inclusi, mentre l'istanza iniziale non viene duplicata;
+- test locali aggiornati: type-check verde e persistenza 33/33.
+
 ## Sequenza da certificare
 
 1. Responsabile crea piano e task.
@@ -32,8 +41,7 @@
 ## Gap
 
 - giornata simulata con utenti e ruoli reali non eseguita;
-- ricorrenze e passaggio ora legale Europe/Rome non certificati end-to-end;
 - il decision ledger conserva ancora una migrazione da preference cache, residuo M09;
 - migrazioni P3-P5 non applicate sullo schema candidato.
 
-La parte locale `O25` e' completata. M11 resta parziale finche' ricorrenze/DST e la sequenza completa non vengono eseguite e riconciliate su staging.
+Le parti locali `O25-O26` sono completate. M11 resta parziale finche' la sequenza completa non viene eseguita e riconciliata su staging.
