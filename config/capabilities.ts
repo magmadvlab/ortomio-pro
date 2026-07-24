@@ -110,7 +110,6 @@ export const CAPABILITIES: CapabilityDescriptor[] = [
 ]
 
 export const TECHNICAL_ROUTES = [
-  { route: '/app/compare', classification: 'contextual', canonicalEntry: '/app/analytics' },
   { route: '/app/reports', classification: 'technical', canonicalEntry: '/app/export' },
   { route: '/app/zones', classification: 'legacy-alias', canonicalEntry: '/app/garden/zones' },
   { route: '/app/pianifica', classification: 'legacy-alias', canonicalEntry: '/app/planner' },

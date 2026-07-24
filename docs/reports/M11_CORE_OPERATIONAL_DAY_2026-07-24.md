@@ -40,7 +40,8 @@
 - il componente morto `AdvancedTreeManager`, non importato e composto interamente da alberi, misure, operazioni e rese casuali, e' stato rimosso dal runtime;
 - anche `InteractiveTrackingInterface`, non importata e basata su meteo e foto inventati, e' stata rimossa invece di lasciare una falsa superficie operativa;
 - il duplicato morto `components/SaplingDashboard.tsx` e' stato rimosso; le pagine continuano a usare il dashboard alberelli canonico in `components/seedbank`;
-- le voci M11 pianificate scendono da 58 a 37; nessuna voce release resta non classificata.
+- la route tecnica `/app/compare` e il dettaglio obsoleto sono stati rimossi: puntavano a route legacy inesistenti e descrivevano come placeholder capability specializzate oggi stabili;
+- le voci M11 pianificate scendono da 58 a 34; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 
