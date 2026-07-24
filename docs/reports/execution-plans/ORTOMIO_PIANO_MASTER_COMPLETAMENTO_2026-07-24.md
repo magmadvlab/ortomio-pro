@@ -72,7 +72,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
 | M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09; seed interamente asincroni | Certificazione staging (`O18`) |
 | M10 | `[L]` locale | Coda, scheduler, deduplica, retry, dead-letter, rate limit, webhook e metriche | Consegna provider reale in staging (`O23`) |
-| M11 | `[-]` parziale | Baseline core e protocollo giornata | Transizioni, ruoli, DST e prova staging (`O25-O28`) |
+| M11 | `[-]` parziale | Baseline core, transizioni auditabili e protocollo giornata | Ruoli, DST e prova staging (`O26-O28`) |
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
 | M13 | `[-]` parziale | Smoke Open-Meteo reale | Provider avanzato e gestione operativa (`O31-O33`) |
 | M14 | `[-]` parziale | Regressioni locali 9/9 | Dataset, periodo shadow, metriche e firma (`O34-O37`) |
@@ -255,9 +255,9 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - eseguire giornata simulata con ruoli reali;
   - riconciliare manualmente il risultato finale.
 - **Criterio di uscita:** ogni operazione ha un unico stato autorevole e auditabile.
-- **Risultato parziale:** raccolte le prove locali su diario, idempotenza, task/ledger, outcome, timezone ed export; definita la sequenza della giornata simulata.
-- **Evidenza:** commit `078bc55` e `M11_CORE_OPERATIONAL_DAY_2026-07-24.md`.
-- **Residuo:** ruoli reali, riapertura/annullamento uniforme, ricorrenze/DST e riconciliazione staging.
+- **Risultato parziale:** raccolte le prove locali su diario, task/ledger, outcome, timezone ed export; definita la sequenza della giornata simulata; `O25` completato con stati espliciti, motivazione obbligatoria, row lock, controllo owner e ledger idempotente.
+- **Evidenza:** commit `078bc55`, avanzamento PR `#48` e `M11_CORE_OPERATIONAL_DAY_2026-07-24.md`.
+- **Residuo:** ruoli reali, ricorrenze/DST e riconciliazione staging (`O26-O28`).
 
 ### M12 - Pilot delle operazioni agronomiche
 
@@ -380,6 +380,7 @@ La correzione M02 ha:
 | 24/07/2026 | M09 locale | Gate verde | avanzamento PR `#48` | Type-check; persistenza 27/27; release 314/314; build 147 pagine; resta O18 staging |
 | 24/07/2026 | M10 / O19-O22, O24 | Completato localmente | avanzamento PR `#48` | Lifecycle delivery persistente e operabile; resta O23 provider staging |
 | 24/07/2026 | M10 locale | Gate verde | avanzamento PR `#48` | Type-check; rollout 13/13; release 318/318; build 149 pagine; zero voci M10 |
+| 24/07/2026 | M11 / O25 | Completato localmente | avanzamento PR `#48` | Riapertura e annullamento uniformi e auditabili; type-check e persistenza 29/29 |
 
 ## 5.1 Registro unico del lavoro aperto
 
@@ -403,7 +404,6 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O15 | M08 | Rieseguire Security Advisor | Nessun finding release-blocking aperto |
 | O18 | M09 | Certificare reader/writer canonici in staging | Stato ricostruibile per ogni dominio prioritario |
 | O23 | M10 | Registrare provider message ID e webhook delivery | Stato finale confermato dal provider |
-| O25 | M11 | Uniformare riapertura, annullamento e motivazione | Transizioni auditabili per tutti i task |
 | O26 | M11 | Verificare ricorrenze, timezone e DST | Casi Europe/Rome verdi |
 | O27 | M11 | Eseguire giornata completa con ruoli reali | Planner-outcome completato senza interventi fuori flusso |
 | O28 | M11 | Riconciliare ledger e risultato su staging | Stato finale unico e ricostruibile |

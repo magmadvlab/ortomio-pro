@@ -9,6 +9,15 @@
 - export: timezone canonica `Europe/Rome`;
 - comandi fisici: retry limitato, timeout e dead letter.
 
+## Transizioni task uniformi
+
+- `garden_tasks.operational_status` esplicita `open`, `in_progress`, `completed` e `cancelled`;
+- riapertura e annullamento richiedono un motivo sia nel client sia nella funzione database;
+- `transition_garden_task` serializza la transizione con row lock, verifica il proprietario e limita le transizioni ammesse;
+- ogni cambio produce un evento persistente con attore, stato precedente/successivo, motivo e chiave di idempotenza per utente;
+- il replay della stessa richiesta e' innocuo, mentre il riuso discordante della chiave viene rifiutato;
+- test locali: type-check verde e persistenza 29/29.
+
 ## Sequenza da certificare
 
 1. Responsabile crea piano e task.
@@ -23,9 +32,8 @@
 ## Gap
 
 - giornata simulata con utenti e ruoli reali non eseguita;
-- riapertura e annullamento non coperti in modo uniforme per tutti i task;
 - ricorrenze e passaggio ora legale Europe/Rome non certificati end-to-end;
 - il decision ledger conserva ancora una migrazione da preference cache, residuo M09;
 - migrazioni P3-P5 non applicate sullo schema candidato.
 
-M11 resta parziale finche' la sequenza non viene eseguita e riconciliata su staging.
+La parte locale `O25` e' completata. M11 resta parziale finche' ricorrenze/DST e la sequenza completa non vengono eseguite e riconciliate su staging.

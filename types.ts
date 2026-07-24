@@ -911,6 +911,9 @@ export interface GardenTask {
   expectedTransplantDate?: string; // If started from seed
   moonPhase?: MoonPhase; // Fase lunare al momento della semina/trapianto
   completed: boolean;
+  operationalStatus?: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  statusReason?: string;
+  statusChangedAt?: string;
   
   // ============================================
   // PROPRIETÀ RETROCOMPATIBILITÀ PER COMPLETAMENTO

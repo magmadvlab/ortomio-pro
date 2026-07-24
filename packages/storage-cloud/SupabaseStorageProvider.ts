@@ -2982,6 +2982,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
       expectedTransplantDate: db.expected_transplant_date,
       moonPhase: db.moon_phase,
       completed: db.completed,
+      operationalStatus: db.operational_status,
+      statusReason: db.status_reason,
+      statusChangedAt: db.status_changed_at,
       notes: db.notes,
       nextDueDate: db.next_due_date,
       treatmentProductId: db.treatment_product_id,
@@ -3057,6 +3060,9 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (task.expectedTransplantDate !== undefined) db.expected_transplant_date = task.expectedTransplantDate;
     if (task.moonPhase !== undefined) db.moon_phase = task.moonPhase;
     if (task.completed !== undefined) db.completed = task.completed;
+    if (task.operationalStatus !== undefined) db.operational_status = task.operationalStatus;
+    if (task.statusReason !== undefined) db.status_reason = task.statusReason;
+    if (task.statusChangedAt !== undefined) db.status_changed_at = task.statusChangedAt;
     if (task.notes !== undefined) db.notes = task.notes;
     if (task.nextDueDate !== undefined) db.next_due_date = task.nextDueDate;
     if (task.treatmentProductId !== undefined) db.treatment_product_id = task.treatmentProductId;
