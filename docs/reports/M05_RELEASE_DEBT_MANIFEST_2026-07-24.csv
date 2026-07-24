@@ -131,7 +131,4 @@
 "services/satelliteDataService.ts","112","todo","release","scheduled:M13","external provider integration","// TODO: Integrare con Open-Meteo Historical Weather API o servizio equivalente"
 "services/satelliteDataService.ts","113","mock","release","scheduled:M13","external provider integration","// Per ora, mock"
 "services/unifiedCertificationsService.ts","164","mock","release","scheduled:M12","agronomic or certification pilot evidence","// Mock implementation - in real app, this would come from audit logs"
-"services/unifiedPlantTrackingService.ts","294","todo","release","scheduled:M11","core operational lifecycle","// TODO: Salva nel database"
-"services/unifiedPlantTrackingService.ts","355","todo","release","scheduled:M11","core operational lifecycle","plantName: 'Pomodoro', // TODO: Get from plant data"
-"services/unifiedPlantTrackingService.ts","369","todo","release","scheduled:M11","core operational lifecycle","survivalRate: 1.0, // TODO: Calculate based on plant status"
 "services/weatherProviderAdapter.ts","177","todo","release","scheduled:M13","external provider integration","// TODO: Implementare chiamata a servizio custom usando base_url da config"
