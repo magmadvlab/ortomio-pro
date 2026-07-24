@@ -1,12 +1,13 @@
 # OrtoMio Pro - Piano master di completamento
 
-- **Versione:** 1.0
+- **Versione:** 1.1
 - **Data di apertura:** 24 luglio 2026
 - **Repository:** `magmadvlab/ortomio-pro`
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** revisione arrivata a M15; M01-M05 completati, M06-M08 bloccati, M09-M15 parziali o bloccati
+- **Stato esecuzione:** 2 milestone chiuse per la release (M01-M02); 3 baseline/censimenti locali conclusi ma con gate o residui trasferiti (M03-M05); 10 milestone aperte o bloccate (M06-M15); M16 non iniziata
+- **Deploy readiness:** `false`
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -30,7 +31,8 @@ Uno stato puo' essere:
 
 - `[ ]` non iniziato;
 - `[-]` in corso;
-- `[x]` completato e verificato;
+- `[L]` implementazione o preparazione locale conclusa, ma gate release ancora aperto;
+- `[x]` completato e verificato per la release, senza residui del perimetro nascosti o trasferiti;
 - `[!]` bloccato da decisione, autorizzazione o sistema esterno.
 
 Un blocco passa a completato solo quando:
@@ -44,6 +46,40 @@ Un blocco passa a completato solo quando:
 7. il rischio residuo e' dichiarato.
 
 `localReady` non equivale a `deployReady`. Nessun test locale sostituisce staging, restore drill, provider reale o pilot.
+
+### Regole anti-riapertura
+
+Per evitare che il lavoro sembri concluso e ricompaia in seguito:
+
+1. ogni residuo ha un solo milestone proprietario e resta visibile nel registro aperti;
+2. un residuo trasferito non viene contato due volte, ma il milestone originario indica dove e' stato trasferito;
+3. `[L]` non conta come milestone chiusa per la release;
+4. una nuova scoperta deve aggiornare nello stesso commit il milestone, il registro aperti e il riepilogo numerico;
+5. una voce puo' essere rimossa dal registro soltanto con evidenza e criterio di uscita soddisfatto;
+6. percentuali non supportate da un inventario atomico non devono essere usate.
+
+## 2.1 Quadro reale al 24 luglio 2026
+
+| Blocco | Stato release | Fatto | Resta da chiudere |
+|---|---|---|---|
+| M01 | `[x]` chiuso | Feature flag morti rimossi e gate riallineato | Nulla nel perimetro M01 |
+| M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
+| M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
+| M04 | `[L]` locale | Suolo persistente e seed senza fallback mock | Migrazione staging; helper seed trasferiti a M09 (`O03-O04`) |
+| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 173 voci correnti assegnate a M09-M15 (`O05`) |
+| M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
+| M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
+| M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
+| M09 | `[-]` in corso | Cloud fail-closed; seed confermati; quattro fallback rimossi | Helper legacy, 47 voci, staging (`O16-O18`) |
+| M10 | `[-]` parziale | Preferenze fail-closed e `sentAt` corretto | Intero lifecycle delivery (`O19-O24`) |
+| M11 | `[-]` parziale | Baseline core e protocollo giornata | Transizioni, ruoli, DST e prova staging (`O25-O28`) |
+| M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
+| M13 | `[-]` parziale | Smoke Open-Meteo reale | Provider avanzato e gestione operativa (`O31-O33`) |
+| M14 | `[-]` parziale | Regressioni locali 9/9 | Dataset, periodo shadow, metriche e firma (`O34-O37`) |
+| M15 | `[-]` parziale | Capability censite; token invito non loggato | Lifecycle commerciale completo (`O38-O43`) |
+| M16 | `[ ]` non iniziato | — | Audit finale e decisione go/no-go (`O44`) |
+
+Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la release soltanto **M01 e M02**. M03-M05 hanno prodotto risultati locali utili, ma non autorizzano a considerarli conclusi ai fini della release commerciale.
 
 ## 3. Piano sequenziale
 
@@ -76,7 +112,7 @@ Un blocco passa a completato solo quando:
 
 ### M03 - Creazione zone end-to-end
 
-- **Stato:** `[x]` completato il 24/07/2026
+- **Stato:** `[L]` implementazione locale completata il 24/07/2026; gate release aperto
 - **Obiettivo:** completare azienda/garden -> zona con persistenza e ownership.
 - **Perimetro iniziale:** `app/app/garden/zones/page.tsx` e servizi/API collegati.
 - **Attivita':**
@@ -93,7 +129,7 @@ Un blocco passa a completato solo quando:
 
 ### M04 - Persistenza suolo, seed inventory e fallback production
 
-- **Stato:** `[x]` completato il 24/07/2026
+- **Stato:** `[L]` implementazione locale completata il 24/07/2026; gate release aperto
 - **Obiettivo:** eliminare provider non autorevoli nei primi servizi operativi identificati.
 - **Perimetro iniziale:** `soilStateService.ts`, `seedInventoryService.ts`, servizi collegati.
 - **Attivita':**
@@ -110,7 +146,7 @@ Un blocco passa a completato solo quando:
 
 ### M05 - Censimento e chiusura TODO, FIXME e mock della release 1.0
 
-- **Stato:** `[x]` censimento completato il 24/07/2026
+- **Stato:** `[L]` censimento completato il 24/07/2026; correzioni trasferite e ancora aperte
 - **Obiettivo:** classificare tutto il debito raggiungibile, senza correggere indiscriminatamente codice fuori perimetro.
 - **Attivita':**
   - generare manifest versionato per file, route, capability e raggiungibilita';
@@ -119,10 +155,10 @@ Un blocco passa a completato solo quando:
   - isolare demo e laboratorio;
   - eliminare codice morto solo con prova di assenza chiamanti.
 - **Criterio di uscita:** nessun TODO/mock non classificato nei percorsi commerciali.
-- **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
+- **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; baseline iniziale di 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
 - **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
-- **Verifiche:** `npm run audit:release-debt` verde; 52 voci assegnate a M09, 12 a M10, 43 a M11, 28 a M12, 20 a M13, 21 a M14 e 7 a M15; 10 placeholder UI accettati; 10 riferimenti sviluppo/laboratorio isolati.
-- **Rischio residuo:** il censimento non equivale alla correzione delle 183 voci pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari.
+- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 193 voci totali: 47 assegnate a M09, 12 a M10, 39 a M11, 28 a M12, 20 a M13, 21 a M14 e 6 a M15; 10 accettate; 10 isolate come sviluppo/laboratorio.
+- **Rischio residuo:** il censimento non equivale alla correzione delle 173 voci correnti pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M09-M15.
 
 ### M06 - Riconciliazione completa delle migrazioni
 
@@ -189,7 +225,7 @@ Un blocco passa a completato solo quando:
   - aggiungere test di parita' e idempotenza.
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
 - **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi; trattamenti, lavori meccanici, supporto ed esposizione solare falliscono esplicitamente senza database invece di simulare dati o successo.
-- **Evidenza:** commit `270a214`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
+- **Evidenza:** commit `270a214`, `bd2ed53`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
 - **Residuo:** helper cache sementi legacy, 47 voci M09 da verificare o riclassificare e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
@@ -314,7 +350,7 @@ La correzione M02 ha:
 - corretto 42 errori bloccanti, incluse violazioni delle regole Hooks;
 - lasciato visibili 2.733 warning storici.
 
-**Stato:** chiuso per gli errori bloccanti nel commit `583902a9`. La riduzione e classificazione dei warning prosegue in M05.
+**Stato:** il gate errori e' chiuso nel commit `583902a9`; i 2.733 warning non risultano atomizzati dal manifest M05 e restano debito trasversale `T01`. Non sono un gate bloccante gia' dimostrato, ma non devono essere descritti come eliminati o interamente classificati.
 
 ### File generato fuori perimetro
 
@@ -328,7 +364,7 @@ La correzione M02 ha:
 | 24/07/2026 | M02 / D14 | Completato | `583902a9` | Dashboard veritiera; lint reale con 0 errori; 2.733 warning registrati |
 | 24/07/2026 | M03 | Completato localmente | `fed4732` | Creazione e rilettura zone autorizzate; applicazione migrazione su staging ancora richiesta |
 | 24/07/2026 | M04 | Completato localmente | `83aeef7` | Stato suolo persistente; inventario sementi senza fallback simulati |
-| 24/07/2026 | M05 | Censimento completato | `aac8046` | 203 voci classificate; nessun TODO/mock release senza destinazione |
+| 24/07/2026 | M05 | Censimento baseline completato | `aac8046` | 203 voci iniziali classificate; il totale corrente e' aggiornato nella sezione M05 |
 | 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
 | 24/07/2026 | M07 | Bloccato dopo preparazione | `769a052` | Script e template pronti; RPO/RTO e restore remoto non misurati |
 | 24/07/2026 | M08 | Bloccato dopo preparazione | `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md` | Matrice pronta; prove SQL/API/UI staging mancanti |
@@ -340,11 +376,63 @@ La correzione M02 ha:
 | 24/07/2026 | M14 | Parziale | `f94d760` | Regressione 9/9; shadow reale non eseguito |
 | 24/07/2026 | M15 | Parziale | `19cb061` | Token invito non loggato; lifecycle commerciale incompleto |
 
+## 5.1 Registro unico del lavoro aperto
+
+Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: una nuova scoperta aggiunge una riga; non rinumera o nasconde le precedenti.
+
+| ID | Owner | Deliverable aperto | Condizione di chiusura |
+|---|---|---|---|
+| O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
+| O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
+| O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
+| O04 | M09 | Eliminare o rendere non autorevoli gli helper sincroni seed legacy | Tutti i consumer usano il reader asincrono |
+| O05 | M05 | Riconciliare gli esiti delle 173 voci correnti trasferite a M09-M15 | Manifest finale senza voce `scheduled` irrisolta |
+| O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
+| O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
+| O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
+| O09 | M06 | Applicare e verificare i batch di migrazioni | Audit post-batch verde e rollback disponibile |
+| O10 | M07 | Eseguire backup e restore drill reale | Restore completo ripetibile |
+| O11 | M07 | Provare ripristino selettivo di un cliente | Dati cliente riconciliati |
+| O12 | M07 | Misurare e approvare RPO/RTO | Valori registrati nel runbook |
+| O13 | M08 | Eseguire matrice isolamento SQL/API/UI con due clienti | Tutti i negativi attesi risultano negati |
+| O14 | M08 | Certificare storage, cron, export, cache e admin | Nessun percorso cross-tenant |
+| O15 | M08 | Rieseguire Security Advisor | Nessun finding release-blocking aperto |
+| O16 | M09 | Verificare o riclassificare le 47 voci M09 residue | Ogni voce corretta, rimossa o assegnata senza duplicazione |
+| O17 | M09 | Eliminare altri fallback locali o successi simulati production | Audit mirato e test fail-closed verdi |
+| O18 | M09 | Certificare reader/writer canonici in staging | Stato ricostruibile per ogni dominio prioritario |
+| O19 | M10 | Implementare coda notifiche persistente | Evento accodato e auditabile |
+| O20 | M10 | Implementare scheduler e deduplica/soppressione | Nessun doppio invio nel caso provato |
+| O21 | M10 | Implementare retry con backoff | Retry osservabile e limitato |
+| O22 | M10 | Implementare dead-letter e procedura recupero | Fallimenti terminali ispezionabili |
+| O23 | M10 | Registrare provider message ID e webhook delivery | Stato finale confermato dal provider |
+| O24 | M10 | Aggiungere metriche, alert e runbook | Delivery lifecycle operabile |
+| O25 | M11 | Uniformare riapertura, annullamento e motivazione | Transizioni auditabili per tutti i task |
+| O26 | M11 | Verificare ricorrenze, timezone e DST | Casi Europe/Rome verdi |
+| O27 | M11 | Eseguire giornata completa con ruoli reali | Planner-outcome completato senza interventi fuori flusso |
+| O28 | M11 | Riconciliare ledger e risultato su staging | Stato finale unico e ricostruibile |
+| O29 | M12 | Identificare azienda, dataset, mezzi, cataloghi e responsabile pilot | Input pilot approvati |
+| O30 | M12 | Eseguire ciclo agronomico reale con approvazione umana | Segnale-decisione-esecuzione-outcome documentato |
+| O31 | M13 | Scegliere Sentinel oppure ThingsBoard e assegnare owner | Decisione e perimetro registrati |
+| O32 | M13 | Configurare credenziali e smoke staging | Provider reale osservabile |
+| O33 | M13 | Definire SLA, costi, monitoraggio e kill switch | Runbook provider approvato |
+| O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
+| O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
+| O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
+| O37 | M14 | Ottenere revisione agronomica firmata | Report shadow approvato |
+| O38 | M15 | Rendere transazionale il provisioning azienda | Cliente attivato senza intervento DB manuale |
+| O39 | M15 | Implementare delivery inviti server-side e ruoli | Invito consegnato, accettato e auditato |
+| O40 | M15 | Implementare licenze, piani e limiti | Enforcement verificato |
+| O41 | M15 | Implementare rinnovo e fatturazione/procedura iniziale | Ciclo economico documentato |
+| O42 | M15 | Implementare sospensione e riattivazione | Accessi e dati coerenti |
+| O43 | M15 | Implementare cancellazione, retention e accesso assistenza auditato | Lifecycle di uscita verificato |
+| O44 | M16 | Eseguire audit finale e verbale go/no-go | `deployReady=true` con evidenze oppure no-go motivato |
+| T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici | Baseline per categoria e trend registrati; zero warning release-blocking |
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
 
-- audit debito release: 202 voci, nessuna voce non classificata;
+- audit debito release corrente: 193 voci, di cui 173 pianificate, 10 accettate e 10 isolate; nessuna voce release non classificata;
 - audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
 - suite release: 307/307 test superati;
 - build produzione: completata, 147 pagine generate;
@@ -354,8 +442,9 @@ Eseguita il 24/07/2026 sulla baseline locale:
 
 Riprendere dal primo lavoro locale non bloccato:
 
-1. chiudere M09 eliminando cache autorevoli e bootstrap local storage per utenti autenticati;
-2. implementare la coda delivery M10;
-3. predisporre staging per sbloccare M06-M08 e M11;
-4. identificare azienda pilot e provider avanzato per M12-M14;
-5. progettare e implementare le API commerciali mancanti di M15.
+1. completare `O16-O17` di M09, uniche attività locali prioritarie gia' in corso;
+2. predisporre staging (`O06`) per sbloccare M03-M04 e M06-M08;
+3. implementare M10 (`O19-O24`);
+4. proseguire M11 e identificare gli owner esterni di M12-M14;
+5. progettare e implementare M15;
+6. eseguire M16 soltanto quando `O01-O43` sono chiusi o formalmente esclusi dalla release.
