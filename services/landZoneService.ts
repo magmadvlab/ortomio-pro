@@ -159,16 +159,18 @@ export async function updateLandZone(
   updates: Partial<Omit<LandZone, 'id' | 'garden_id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<LandZone> {
   try {
-    const supabase = getLandZoneSupabaseClient()
-    const { data, error } = await supabase
-      .from('land_zones')
-      .update(updates)
-      .eq('id', zoneId)
-      .select()
-      .single()
+    const zone = await getLandZone(zoneId)
+    if (!zone) throw new Error('zone_not_found')
 
-    if (error) throw error
-    return data
+    const response = await fetch('/api/garden/zones', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gardenId: zone.garden_id, zoneId, updates }),
+    })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body?.error || 'zone_update_failed')
+    return body.zone
   } catch (error) {
     console.error('Error updating land zone:', error)
     throw error
@@ -180,13 +182,19 @@ export async function updateLandZone(
  */
 export async function deleteLandZone(zoneId: string): Promise<void> {
   try {
-    const supabase = getLandZoneSupabaseClient()
-    const { error } = await supabase
-      .from('land_zones')
-      .delete()
-      .eq('id', zoneId)
+    const zone = await getLandZone(zoneId)
+    if (!zone) throw new Error('zone_not_found')
 
-    if (error) throw error
+    const response = await fetch('/api/garden/zones', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gardenId: zone.garden_id, zoneId }),
+    })
+    if (!response.ok) {
+      const body = await response.json()
+      throw new Error(body?.error || 'zone_deletion_failed')
+    }
   } catch (error) {
     console.error('Error deleting land zone:', error)
     throw error

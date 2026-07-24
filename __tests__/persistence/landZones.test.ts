@@ -6,7 +6,9 @@ import { AccessError } from '@/lib/auth.server'
 import { validateLandZoneInput } from '@/lib/land-zones'
 import {
   handleCreateLandZone,
+  handleDeleteLandZone,
   handleGetLandZones,
+  handleUpdateLandZone,
 } from '@/app/api/garden/zones/route'
 
 const request = (path: string, init?: RequestInit) =>
@@ -120,6 +122,145 @@ test('authorized creation derives user and garden server-side', async () => {
   assert.equal(inserted!.user_id, 'user-1')
   assert.equal(inserted!.area_hectares, 0.05)
   assert.equal('userId' in inserted!, false)
+})
+
+test('update and delete are hidden before touching the database when garden access is denied', async () => {
+  let databaseTouched = false
+  const dependencies = {
+    requireGardenAccessFn: async () => {
+      throw new AccessError('not_found', 404)
+    },
+    getSupabaseClientFn: () => {
+      databaseTouched = true
+      return {} as never
+    },
+  }
+
+  const updateResponse = await handleUpdateLandZone(
+    request('/api/garden/zones', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        gardenId: 'other-garden',
+        zoneId: 'zone-1',
+        updates: { current_status: 'resting' },
+      }),
+    }),
+    dependencies,
+  )
+  assert.equal(updateResponse.status, 404)
+
+  const deleteResponse = await handleDeleteLandZone(
+    request('/api/garden/zones', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gardenId: 'other-garden', zoneId: 'zone-1' }),
+    }),
+    dependencies,
+  )
+  assert.equal(deleteResponse.status, 404)
+  assert.equal(databaseTouched, false)
+})
+
+test('update rejects a zone that does not belong to the authorized garden', async () => {
+  const supabase = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        }),
+      }),
+    }),
+  }
+
+  const response = await handleUpdateLandZone(
+    request('/api/garden/zones', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        gardenId: 'garden-1',
+        zoneId: 'zone-from-another-garden',
+        updates: { current_status: 'resting' },
+      }),
+    }),
+    {
+      requireGardenAccessFn: async () => ({
+        user: { id: 'user-1' },
+        garden: { id: 'garden-1' },
+      }) as never,
+      getSupabaseClientFn: () => supabase as never,
+    },
+  )
+
+  assert.equal(response.status, 404)
+})
+
+test('update only writes whitelisted fields scoped to the owned zone and garden', async () => {
+  const updatedZone = { id: 'zone-1', garden_id: 'garden-1', current_status: 'resting' }
+  let ownershipChecked = false
+  let updatePayload: Record<string, unknown> | null = null
+  let filteredZoneId = ''
+  let filteredGardenId = ''
+  const supabase = {
+    from: (table: string) => {
+      assert.equal(table, 'land_zones')
+      return {
+        select: () => ({
+          eq: (column: string, value: string) => {
+            assert.equal(column, 'id')
+            assert.equal(value, 'zone-1')
+            return {
+              eq: (gardenColumn: string, gardenValue: string) => {
+                assert.equal(gardenColumn, 'garden_id')
+                assert.equal(gardenValue, 'garden-1')
+                ownershipChecked = true
+                return { maybeSingle: async () => ({ data: { id: 'zone-1' }, error: null }) }
+              },
+            }
+          },
+        }),
+        update: (value: Record<string, unknown>) => {
+          updatePayload = value
+          const chain = {
+            eq: (column: string, eqValue: string) => {
+              if (column === 'id') filteredZoneId = eqValue
+              if (column === 'garden_id') filteredGardenId = eqValue
+              return chain
+            },
+            select: () => ({ single: async () => ({ data: updatedZone, error: null }) }),
+          }
+          return chain
+        },
+      }
+    },
+  }
+
+  const response = await handleUpdateLandZone(
+    request('/api/garden/zones', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        gardenId: 'garden-1',
+        zoneId: 'zone-1',
+        updates: { current_status: 'resting', garden_id: 'attacker-garden', user_id: 'attacker' },
+      }),
+    }),
+    {
+      requireGardenAccessFn: async () => ({
+        user: { id: 'user-1' },
+        garden: { id: 'garden-1' },
+      }) as never,
+      getSupabaseClientFn: () => supabase as never,
+    },
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(ownershipChecked, true)
+  assert.deepEqual(updatePayload, { current_status: 'resting' })
+  assert.equal(filteredZoneId, 'zone-1')
+  assert.equal(filteredGardenId, 'garden-1')
 })
 
 test('authorized zones can be re-read only through their garden scope', async () => {
