@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M05 completati; M06 bloccato in attesa di staging; preparazione M07 in corso
+- **Stato esecuzione:** M01-M05 completati; M06-M07 bloccati in attesa di staging; preparazione M08 in corso
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -148,7 +148,7 @@ Un blocco passa a completato solo quando:
 
 ### M07 - Staging, backup, restore e rollback
 
-- **Stato:** `[ ]`
+- **Stato:** `[!]` strumenti pronti; drill staging bloccato
 - **Obiettivo:** dimostrare recuperabilita' prima di ulteriori dati cliente.
 - **Attivita':**
   - predisporre target isolato o procedura equivalente autorizzata;
@@ -158,6 +158,9 @@ Un blocco passa a completato solo quando:
   - misurare RPO/RTO;
   - allegare comandi, esiti e procedura incident.
 - **Criterio di uscita:** restore riuscito e ripetibile con evidenza.
+- **Risultato parziale:** backup custom con controllo versione, validazione archivio e checksum SHA-256; restore con autorizzazione esplicita, target separato, verifica checksum, `--exit-on-error` e controllo schema finale; template RPO/RTO predisposto.
+- **Evidenza:** commit `769a052` (`chore: harden backup and restore drill`) e `M07_BACKUP_RESTORE_DRILL_2026-07-24.md`.
+- **Blocco:** nessun source/target staging isolato e nessuno snapshot provider identificato; il drill non e' stato eseguito sul progetto collegato.
 
 ### M08 - Certificazione multi-cliente e RLS
 
@@ -303,13 +306,14 @@ La correzione M02 ha:
 | 24/07/2026 | M04 | Completato localmente | `83aeef7` | Stato suolo persistente; inventario sementi senza fallback simulati |
 | 24/07/2026 | M05 | Censimento completato | `aac8046` | 203 voci classificate; nessun TODO/mock release senza destinazione |
 | 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
+| 24/07/2026 | M07 | Bloccato dopo preparazione | `769a052` | Script e template pronti; RPO/RTO e restore remoto non misurati |
 
 ## 6. Prossima azione
 
-Preparare M07 senza operare sul database collegato:
+Preparare M08 senza mutare il database collegato:
 
-1. consolidare gli script backup/restore e i controlli target;
-2. definire evidenze, RPO/RTO e procedura incident;
-3. predisporre il comando di restore drill per staging;
-4. mantenere M06 e M07 bloccati finche' non esiste un target isolato;
-5. proseguire poi sui blocchi locali indipendenti, registrando la dipendenza.
+1. consolidare fixture e matrice multi-cliente;
+2. coprire accessi negativi API e servizi localmente;
+3. predisporre query RLS transazionali per staging;
+4. mantenere il gate remoto bloccato fino al restore drill;
+5. proseguire sui blocchi locali indipendenti, registrando la dipendenza.
