@@ -57,8 +57,6 @@ export default function IrrigationPage() {
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [showConfigWizard, setShowConfigWizard] = useState(false)
   const [editingSystem, setEditingSystem] = useState<IrrigationSystem | null>(null)
-  const [irrigationConfigs, setIrrigationConfigs] = useState<IrrigationConfig[]>([])
-  const [showAnalytics, setShowAnalytics] = useState(false)
   const [zones, setZones] = useState<IrrigationZone[]>([])
   const [selectedZoneId, setSelectedZoneId] = useState('all')
   const [systems, setSystems] = useState<IrrigationSystem[]>([])
@@ -666,13 +664,6 @@ export default function IrrigationPage() {
         />
       )}
 
-      {/* Analytics Modal */}
-      {showAnalytics && (
-        <IrrigationAnalyticsModal
-          onClose={() => setShowAnalytics(false)}
-          irrigationConfigs={irrigationConfigs}
-        />
-      )}
     </div>
   )
 }
@@ -1152,20 +1143,25 @@ function IrrigationAnalyticsModal({ onClose, irrigationConfigs }: IrrigationAnal
     }
   }
 
-  // Mock analytics data
+  const totalScheduledMinutes = irrigationConfigs.reduce(
+    (total, config) => total + (config.schedule.duration * config.schedule.times.length),
+    0
+  )
   const analyticsData = {
-    totalWaterUsed: 1250, // liters this month
-    efficiency: 87, // percentage
-    costSavings: 45, // euros saved
-    avgDuration: 28, // minutes per session
-    systemHealth: 92, // percentage
-    weeklyUsage: [120, 135, 98, 156, 142, 178, 165], // last 7 days
-    monthlyTrend: [980, 1120, 1250], // last 3 months
-    zoneEfficiency: irrigationConfigs.map((config, index) => ({
+    totalWaterUsed: 0,
+    efficiency: 0,
+    costSavings: 0,
+    avgDuration: irrigationConfigs.length > 0
+      ? Math.round(totalScheduledMinutes / irrigationConfigs.length)
+      : 0,
+    systemHealth: 0,
+    weeklyUsage: [0, 0, 0, 0, 0, 0, 0],
+    monthlyTrend: [0, 0, 0],
+    zoneEfficiency: irrigationConfigs.map((config) => ({
       name: config.sectionName || config.fieldRowName || config.zoneName || config.gardenName,
-      efficiency: 85 + Math.random() * 15,
-      waterUsed: 200 + Math.random() * 300,
-      sessions: 15 + Math.floor(Math.random() * 10)
+      efficiency: 0,
+      waterUsed: 0,
+      sessions: config.schedule.times.length
     }))
   }
 

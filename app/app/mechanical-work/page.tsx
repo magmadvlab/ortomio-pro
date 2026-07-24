@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Tractor, Calendar, MapPin, Settings, Plus, BarChart3, X, ArrowLeft, ArrowRight, Wrench, Cog, Clock } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden } from '@/types'
+import { Garden, type MechanicalWorkRecord } from '@/types'
 import LocationSelector from '@/components/shared/LocationSelector'
 import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
 import { MechanicalWorkLogForm } from '@/components/mechanicalWork/MechanicalWorkLogForm'
@@ -70,6 +70,7 @@ function MechanicalWorkContent() {
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showExecutionForm, setShowExecutionForm] = useState(false)
   const [mechanicalConfigs, setMechanicalConfigs] = useState<MechanicalWorkConfig[]>([])
+  const [mechanicalWorks, setMechanicalWorks] = useState<MechanicalWorkRecord[]>([])
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
   const [executionInitialData, setExecutionInitialData] = useState<Partial<MechanicalWorkLog> | undefined>(undefined)
@@ -83,7 +84,6 @@ function MechanicalWorkContent() {
         if (loadedGardens.length > 0) {
           setActiveGarden(loadedGardens[0])
         }
-        // Load existing configs and equipment
         loadMechanicalConfigs()
         loadEquipment()
       } catch (error) {
@@ -92,6 +92,20 @@ function MechanicalWorkContent() {
     }
     loadGardens()
   }, [storageProvider])
+
+  useEffect(() => {
+    if (!activeGarden) {
+      setMechanicalWorks([])
+      return
+    }
+
+    storageProvider.getMechanicalWorks(activeGarden.id)
+      .then(setMechanicalWorks)
+      .catch((error) => {
+        console.error('Error loading mechanical works:', error)
+        setMechanicalWorks([])
+      })
+  }, [activeGarden, storageProvider])
 
   useEffect(() => {
     if (!activeGarden) {
@@ -121,7 +135,6 @@ function MechanicalWorkContent() {
 
   const loadMechanicalConfigs = async () => {
     try {
-      // Simulate loading mechanical work configs from storage
       const configs: MechanicalWorkConfig[] = []
       setMechanicalConfigs(configs)
     } catch (error) {
@@ -131,30 +144,7 @@ function MechanicalWorkContent() {
 
   const loadEquipment = async () => {
     try {
-      // Simulate loading equipment from storage
-      const equipmentList: Equipment[] = [
-        {
-          id: '1',
-          name: 'Trattore John Deere 5055E',
-          type: 'tractor',
-          brand: 'John Deere',
-          model: '5055E',
-          power: 55,
-          fuelType: 'diesel',
-          fuelConsumption: 8.5,
-          maintenanceDate: '2024-03-15'
-        },
-        {
-          id: '2',
-          name: 'Motozappa Honda FG110',
-          type: 'cultivator',
-          brand: 'Honda',
-          model: 'FG110',
-          power: 4,
-          fuelType: 'gasoline',
-          fuelConsumption: 1.2
-        }
-      ]
+      const equipmentList: Equipment[] = []
       setEquipment(equipmentList)
     } catch (error) {
       console.error('Error loading equipment:', error)
@@ -178,7 +168,7 @@ function MechanicalWorkContent() {
         )
       : deduplicatedNotes.join(' | ') || undefined
 
-    await storageProvider.createMechanicalWork({
+    const createdWork = await storageProvider.createMechanicalWork({
       garden_id: activeGarden.id,
       bed_id: log.bedIds?.[0],
       bed_row_id: log.rowIds?.[0],
@@ -200,6 +190,7 @@ function MechanicalWorkContent() {
       operator_name: log.operatorName,
       notes: mergedNotes,
     })
+    setMechanicalWorks((current) => [createdWork, ...current])
 
     await finalizeTaskExecutionPostAction({
       storageProvider,
@@ -257,7 +248,7 @@ function MechanicalWorkContent() {
               <Tractor className="text-green-600" size={20} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{mechanicalConfigs.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{mechanicalWorks.length}</p>
               <p className="text-sm text-gray-600">Lavorazioni</p>
             </div>
           </div>
@@ -281,7 +272,7 @@ function MechanicalWorkContent() {
               <Calendar className="text-purple-600" size={20} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">3</p>
+              <p className="text-2xl font-bold text-gray-900">{mechanicalConfigs.length}</p>
               <p className="text-sm text-gray-600">Programmate</p>
             </div>
           </div>
@@ -293,8 +284,10 @@ function MechanicalWorkContent() {
               <BarChart3 className="text-orange-600" size={20} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">24h</p>
-              <p className="text-sm text-gray-600">Ore Lavoro</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {Math.round(mechanicalWorks.reduce((total, work) => total + work.area_m2, 0))} m²
+              </p>
+              <p className="text-sm text-gray-600">Superficie lavorata</p>
             </div>
           </div>
         </div>
@@ -654,8 +647,8 @@ function MechanicalWorkContent() {
       {showAnalytics && (
         <MechanicalAnalyticsModal
           onClose={() => setShowAnalytics(false)}
-          mechanicalConfigs={mechanicalConfigs}
           equipment={equipment}
+          mechanicalWorks={mechanicalWorks}
         />
       )}
 
@@ -1359,40 +1352,63 @@ function EquipmentModal({ onClose, onSave }: EquipmentModalProps) {
 // Mechanical Analytics Modal Component
 interface MechanicalAnalyticsModalProps {
   onClose: () => void
-  mechanicalConfigs: MechanicalWorkConfig[]
   equipment: Equipment[]
+  mechanicalWorks: MechanicalWorkRecord[]
 }
 
-function MechanicalAnalyticsModal({ onClose, mechanicalConfigs, equipment }: MechanicalAnalyticsModalProps) {
+function MechanicalAnalyticsModal({ onClose, equipment, mechanicalWorks }: MechanicalAnalyticsModalProps) {
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose()
     }
   }
 
-  // Mock analytics data
+  const operationsByType = Object.entries(
+    mechanicalWorks.reduce<Record<string, { count: number; cost: number }>>((totals, work) => {
+      const current = totals[work.work_type] || { count: 0, cost: 0 }
+      totals[work.work_type] = {
+        count: current.count + 1,
+        cost: current.cost + (work.work_metadata?.standardCost || 0),
+      }
+      return totals
+    }, {})
+  ).map(([type, totals]) => ({
+    type,
+    count: totals.count,
+    hours: 0,
+    cost: totals.cost,
+  }))
+  const weeklyOperations = Array.from({ length: 7 }, (_, dayOffset) => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    date.setDate(date.getDate() - (6 - dayOffset))
+    return mechanicalWorks.filter((work) => {
+      const workDate = new Date(work.work_date)
+      workDate.setHours(0, 0, 0, 0)
+      return workDate.getTime() === date.getTime()
+    }).length
+  })
+  const currentMonth = new Date().toISOString().slice(0, 7)
   const analyticsData = {
-    totalOperations: 18,
-    totalHours: 45,
-    fuelConsumed: 156, // liters
-    costThisMonth: 280, // euros
-    efficiency: 88, // percentage
-    operationsByType: [
-      { type: 'Lavorazione', count: 8, hours: 18, cost: 120 },
-      { type: 'Potatura', count: 5, hours: 12, cost: 80 },
-      { type: 'Sfalcio', count: 3, hours: 8, cost: 50 },
-      { type: 'Raccolta', count: 2, hours: 7, cost: 30 }
-    ],
-    equipmentUsage: equipment.map((item, index) => ({
+    totalOperations: mechanicalWorks.length,
+    totalArea: mechanicalWorks.reduce((total, work) => total + work.area_m2, 0),
+    costThisMonth: mechanicalWorks
+      .filter((work) => work.work_date.slice(0, 7) === currentMonth)
+      .reduce((total, work) => total + (work.work_metadata?.standardCost || 0), 0),
+    equipmentTypes: new Set(
+      mechanicalWorks.map((work) => work.equipment_type).filter(Boolean)
+    ).size,
+    operationsByType,
+    equipmentUsage: equipment.map((item) => ({
       name: item.name,
       type: item.type,
-      hours: 8 + Math.random() * 15,
-      fuelUsed: 20 + Math.random() * 40,
-      operations: 2 + Math.floor(Math.random() * 6),
-      efficiency: 80 + Math.random() * 20
+      hours: 0,
+      fuelUsed: 0,
+      operations: mechanicalWorks.filter((work) => work.equipment_type === item.type).length,
+      efficiency: 0
     })),
-    monthlyTrend: [220, 245, 280], // last 3 months costs
-    weeklyHours: [6, 8, 5, 9, 7, 4, 6] // last 7 days
+    monthlyTrend: [0, 0, 0],
+    weeklyHours: weeklyOperations
   }
 
   return (
@@ -1436,8 +1452,8 @@ function MechanicalAnalyticsModal({ onClose, mechanicalConfigs, equipment }: Mec
               <div className="flex items-center gap-3">
                 <Clock className="text-blue-600" size={24} />
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">{analyticsData.totalHours}h</p>
-                  <p className="text-sm text-blue-700">Ore Lavoro</p>
+                  <p className="text-2xl font-bold text-blue-900">{Math.round(analyticsData.totalArea)} m²</p>
+                  <p className="text-sm text-blue-700">Superficie lavorata</p>
                 </div>
               </div>
             </div>
@@ -1446,8 +1462,8 @@ function MechanicalAnalyticsModal({ onClose, mechanicalConfigs, equipment }: Mec
               <div className="flex items-center gap-3">
                 <BarChart3 className="text-purple-600" size={24} />
                 <div>
-                  <p className="text-2xl font-bold text-purple-900">{analyticsData.efficiency}%</p>
-                  <p className="text-sm text-purple-700">Efficienza</p>
+                  <p className="text-2xl font-bold text-purple-900">{analyticsData.equipmentTypes}</p>
+                  <p className="text-sm text-purple-700">Tipi attrezzatura</p>
                 </div>
               </div>
             </div>
@@ -1515,47 +1531,27 @@ function MechanicalAnalyticsModal({ onClose, mechanicalConfigs, equipment }: Mec
 
           {/* Weekly Hours Chart */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Ore Lavoro Settimanali</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Lavorazioni negli ultimi 7 giorni</h3>
             <div className="flex items-end justify-between h-40 gap-2">
               {analyticsData.weeklyHours.map((hours, index) => (
                 <div key={index} className="flex flex-col items-center flex-1">
                   <div 
                     className="bg-green-500 rounded-t w-full transition-all duration-500"
-                    style={{ height: `${(hours / Math.max(...analyticsData.weeklyHours)) * 100}%` }}
+                    style={{
+                      height: `${Math.max(...analyticsData.weeklyHours) > 0
+                        ? (hours / Math.max(...analyticsData.weeklyHours)) * 100
+                        : 0}%`
+                    }}
                   ></div>
                   <p className="text-xs text-gray-600 mt-2">
                     {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][index]}
                   </p>
-                  <p className="text-xs font-medium text-gray-800">{hours}h</p>
+                  <p className="text-xs font-medium text-gray-800">{hours}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Recommendations */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-4">💡 Raccomandazioni AI</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Considera la manutenzione preventiva per le attrezzature con più di 50 ore di utilizzo
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Ottimizza i percorsi di lavorazione per ridurre il consumo di carburante del 15%
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Programma le lavorazioni nelle ore più fresche per migliorare l'efficienza operativa
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

@@ -21,7 +21,7 @@
 
 I test lifecycle verificano unita' e range, retry/dead-letter, separazione volume pianificato/misurato, adattamento pioggia senza task fittizi e stock modificato solo dopo esecuzione confermata.
 
-Il runtime delle lavorazioni meccaniche converge sullo storage provider durevole; il vecchio CRUD con sequenze e statistiche simulate e' stato rimosso. Il widget zone irrigue legge impianti, zone e aiuole dal provider, normalizza il meteo e persiste le nuove zone senza `localStorage`. Il registro trattamenti professionale legge e crea i record canonici, mostrando gli errori senza dichiarare salvataggi fittizi. Il raccolto rapido risolve icona botanica e posizione dai record reali. Type-check verde, persistenza 56/56; le voci sorgente M12 scendono da 29 a 14.
+Il runtime delle lavorazioni meccaniche converge sullo storage provider durevole; il vecchio CRUD con sequenze e statistiche simulate e' stato rimosso. Anche dashboard e report delle lavorazioni leggono ora i record canonici, senza macchinari o indicatori casuali precaricati. Nutrizione usa un solo percorso analytics canonico; il modal legacy e' stato rimosso. Il widget zone irrigue legge impianti, zone e aiuole dal provider, normalizza il meteo e persiste le nuove zone senza `localStorage`. Il registro trattamenti professionale legge e crea i record canonici, mostrando gli errori senza dichiarare salvataggi fittizi. Il raccolto rapido risolve icona botanica e posizione dai record reali. Type-check verde, persistenza 56/56; le voci sorgente M12 scendono da 29 a 11.
 
 ## Blocco
 

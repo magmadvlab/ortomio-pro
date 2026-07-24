@@ -53,8 +53,6 @@ export default function NutritionPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'products' | 'treatments' | 'schedule' | 'analytics' | 'inventory'>('dashboard')
-  const [showAnalytics, setShowAnalytics] = useState(false)
-  const [treatmentConfigs, setTreatmentConfigs] = useState<TreatmentConfig[]>([])
   const [plannerLaunchRequest, setPlannerLaunchRequest] = useState<TreatmentPlannerLaunchRequest | null>(null)
   const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
   const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
@@ -68,7 +66,6 @@ export default function NutritionPage() {
           const resolved = await resolveGardenContext(storageProvider, loadedGardens[0].id).catch(() => null)
           setActiveGarden(resolved?.garden || loadedGardens[0])
         }
-        loadTreatmentConfigs()
       } catch (error) {
         console.error('Error loading gardens:', error)
       }
@@ -101,16 +98,6 @@ export default function NutritionPage() {
     setConsumedLaunchSignature(context.sourceTaskId)
   }, [activeGarden, searchParams, consumedLaunchSignature])
   
-  const loadTreatmentConfigs = async () => {
-    try {
-      // Simulate loading treatment configs from storage
-      const configs: TreatmentConfig[] = []
-      setTreatmentConfigs(configs)
-    } catch (error) {
-      console.error('Error loading treatment configs:', error)
-    }
-  }
-
   // Navigation handlers for Professional Dashboard
   const handleNavigateToProducts = () => {
     setActiveTab('products')
@@ -134,7 +121,6 @@ export default function NutritionPage() {
 
   const handleNavigateToAnalytics = () => {
     setActiveTab('analytics')
-    setShowAnalytics(true)
   }
 
   const handleNavigateToInventory = () => {
@@ -373,13 +359,6 @@ export default function NutritionPage() {
         </div>
       )}
 
-      {/* Analytics Modal */}
-      {showAnalytics && (
-        <TreatmentAnalyticsModal
-          onClose={() => setShowAnalytics(false)}
-          treatmentConfigs={treatmentConfigs}
-        />
-      )}
     </div>
   )
 }
@@ -779,201 +758,6 @@ function TreatmentConfigWizard({ gardens, onClose, onSave }: TreatmentConfigWiza
           >
             {step === 'schedule' ? 'Salva Trattamento' : 'Avanti'}
             {step !== 'schedule' && <ArrowRight size={16} />}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Treatment Analytics Modal Component
-interface TreatmentAnalyticsModalProps {
-  onClose: () => void
-  treatmentConfigs: TreatmentConfig[]
-}
-
-function TreatmentAnalyticsModal({ onClose, treatmentConfigs }: TreatmentAnalyticsModalProps) {
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose()
-    }
-  }
-
-  // Mock analytics data
-  const analyticsData = {
-    totalTreatments: 24,
-    activeTreatments: 8,
-    costThisMonth: 156,
-    efficiency: 91,
-    treatmentsByType: [
-      { type: 'Fertilizzante', count: 12, cost: 89 },
-      { type: 'Fungicida', count: 6, cost: 45 },
-      { type: 'Pesticida', count: 4, cost: 22 },
-      { type: 'Biologico', count: 2, cost: 0 }
-    ],
-    monthlyTrend: [120, 145, 156], // last 3 months
-    effectiveness: treatmentConfigs.map((config, index) => ({
-      name: config.sectionName || config.fieldRowName || config.zoneName || config.gardenName,
-      product: config.productName,
-      effectiveness: 85 + Math.random() * 15,
-      applications: 3 + Math.floor(Math.random() * 5),
-      cost: 15 + Math.random() * 30
-    }))
-  }
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
-    >
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Analytics Trattamenti</h2>
-            <p className="text-sm text-gray-600">Analisi efficacia e costi dei trattamenti</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              <div className="flex items-center gap-3">
-                <FlaskConical className="text-green-600" size={24} />
-                <div>
-                  <p className="text-2xl font-bold text-green-900">{analyticsData.totalTreatments}</p>
-                  <p className="text-sm text-green-700">Trattamenti Totali</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <div className="flex items-center gap-3">
-                <Calendar className="text-blue-600" size={24} />
-                <div>
-                  <p className="text-2xl font-bold text-blue-900">{analyticsData.activeTreatments}</p>
-                  <p className="text-sm text-blue-700">Attivi</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <div className="flex items-center gap-3">
-                <BarChart3 className="text-purple-600" size={24} />
-                <div>
-                  <p className="text-2xl font-bold text-purple-900">{analyticsData.efficiency}%</p>
-                  <p className="text-sm text-purple-700">Efficacia</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-              <div className="flex items-center gap-3">
-                <span className="text-orange-600 text-2xl">€</span>
-                <div>
-                  <p className="text-2xl font-bold text-orange-900">{analyticsData.costThisMonth}</p>
-                  <p className="text-sm text-orange-700">Costo Mensile</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Treatment Types Chart */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Trattamenti per Tipo</h3>
-            <div className="space-y-4">
-              {analyticsData.treatmentsByType.map((treatment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{treatment.type}</h4>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                      <span>🧪 {treatment.count} applicazioni</span>
-                      <span>💰 €{treatment.cost}</span>
-                    </div>
-                  </div>
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full"
-                      style={{ width: `${(treatment.count / Math.max(...analyticsData.treatmentsByType.map(t => t.count))) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Treatment Effectiveness */}
-          {analyticsData.effectiveness.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Efficacia per Area</h3>
-              <div className="space-y-4">
-                {analyticsData.effectiveness.map((area, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{area.name}</h4>
-                      <p className="text-sm text-gray-600">{area.product}</p>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                        <span>🔄 {area.applications} applicazioni</span>
-                        <span>💰 €{Math.round(area.cost)}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-green-600">{Math.round(area.effectiveness)}%</div>
-                      <div className="text-xs text-gray-500">efficacia</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-4">💡 Raccomandazioni AI</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Considera l'uso di trattamenti biologici per ridurre i costi del 25% mantenendo l'efficacia
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Ottimizza la frequenza dei trattamenti fungicidi basandoti sulle condizioni meteorologiche
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <p className="text-sm text-green-800">
-                  Programma i trattamenti fogliari nelle ore più fresche per massimizzare l'assorbimento
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 bg-gray-50 px-6 py-4 flex justify-between">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            Chiudi
-          </button>
-          <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-            Esporta Report
           </button>
         </div>
       </div>
