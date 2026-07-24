@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M04 completati; M05 e' il prossimo blocco
+- **Stato esecuzione:** M01-M05 completati; M06 e' il prossimo blocco
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -110,7 +110,7 @@ Un blocco passa a completato solo quando:
 
 ### M05 - Censimento e chiusura TODO, FIXME e mock della release 1.0
 
-- **Stato:** `[ ]`
+- **Stato:** `[x]` censimento completato il 24/07/2026
 - **Obiettivo:** classificare tutto il debito raggiungibile, senza correggere indiscriminatamente codice fuori perimetro.
 - **Attivita':**
   - generare manifest versionato per file, route, capability e raggiungibilita';
@@ -119,6 +119,10 @@ Un blocco passa a completato solo quando:
   - isolare demo e laboratorio;
   - eliminare codice morto solo con prova di assenza chiamanti.
 - **Criterio di uscita:** nessun TODO/mock non classificato nei percorsi commerciali.
+- **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
+- **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
+- **Verifiche:** `npm run audit:release-debt` verde; 52 voci assegnate a M09, 12 a M10, 43 a M11, 28 a M12, 20 a M13, 21 a M14 e 7 a M15; 10 placeholder UI accettati; 10 riferimenti sviluppo/laboratorio isolati.
+- **Rischio residuo:** il censimento non equivale alla correzione delle 183 voci pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari.
 
 ### M06 - Riconciliazione completa delle migrazioni
 
@@ -293,13 +297,14 @@ La correzione M02 ha:
 | 24/07/2026 | M02 / D14 | Completato | `583902a9` | Dashboard veritiera; lint reale con 0 errori; 2.733 warning registrati |
 | 24/07/2026 | M03 | Completato localmente | `fed4732` | Creazione e rilettura zone autorizzate; applicazione migrazione su staging ancora richiesta |
 | 24/07/2026 | M04 | Completato localmente | `83aeef7` | Stato suolo persistente; inventario sementi senza fallback simulati |
+| 24/07/2026 | M05 | Censimento completato | `aac8046` | 203 voci classificate; nessun TODO/mock release senza destinazione |
 
 ## 6. Prossima azione
 
-Avviare M05:
+Avviare M06:
 
-1. generare un manifest versionato di TODO, FIXME, mock e placeholder;
-2. classificare le occorrenze per raggiungibilita' e maturita';
-3. correggere o nascondere quelle nei percorsi release;
-4. isolare esplicitamente demo, laboratorio e legacy;
+1. inventariare history remota e file locali senza applicare migrazioni;
+2. classificare duplicati, file speciali, drift e dipendenze;
+3. produrre lotti ordinati con preflight e rollback;
+4. aggiungere un controllo riproducibile sulla riconciliazione;
 5. aggiornare questo registro e creare un commit dedicato.
