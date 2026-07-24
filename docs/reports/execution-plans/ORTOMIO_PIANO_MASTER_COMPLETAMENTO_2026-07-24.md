@@ -305,6 +305,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Risultato parziale:** 9/9 test mirati verdi su sei scenari canonici, determinismo, `insufficient_data`, confidenza, deduplica e outcome.
 - **Evidenza:** commit `f94d760` e `M14_AI_SHADOW_VALIDATION_2026-07-24.md`.
 - **Residuo:** dataset reale approvato, periodo shadow, metriche e firma agronomica.
+- **Mitigazione interinale 24/07/2026 (scoperta durante T01, non un nuovo item di debito):** `services/costOptimizationService.ts` era gia' censito nel manifest M05 (12 voci `mock`, `scheduled:M14`) ma non aveva alcun avviso visibile in UI — il pannello `CostOptimizationPanel.tsx`, raggiungibile da produzione (`/app/prescription-maps`), presentava costo/resa/impatto/efficienza come calcoli reali quando sono in realta' valori hardcoded (algoritmo genetico che non evolve nulla, commenti "// Mock value" nel sorgente). Aggiunto un banner esplicito nel pannello ("Valori dimostrativi... non usarli per decisioni operative") come mitigazione immediata; il motore stesso resta non implementato, la chiusura reale e' ancora M14/O34-O37.
 
 ### M15 - Lifecycle commerciale e ruoli
 

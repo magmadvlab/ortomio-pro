@@ -192,6 +192,13 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
           </button>
         </div>
 
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-start gap-3">
+          <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+          <p className="text-sm text-amber-800">
+            <strong>Valori dimostrativi.</strong> Questo pannello mostra un flusso di ottimizzazione simulato: i numeri di costo, resa, impatto ambientale ed efficienza non sono calcolati sui dati reali del tuo orto e non riflettono un vero algoritmo di ottimizzazione. Non usarli per decisioni operative.
+          </p>
+        </div>
+
         <div className="flex h-[calc(90vh-80px)]">
           {/* Left Panel - Configuration */}
           <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
