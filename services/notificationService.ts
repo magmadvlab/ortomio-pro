@@ -83,9 +83,9 @@ async function checkUserPreferences(
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      // Errore diverso da "not found", logga e procedi
+      // Senza preferenze autorevoli non inviare: evitare consegne non consentite.
       console.error('Error fetching notification preferences:', error);
-      return true; // Default: invia notifica
+      return false;
     }
 
     if (!preferences) {
@@ -123,7 +123,7 @@ async function checkUserPreferences(
     }
   } catch (error) {
     console.error('Error checking user preferences:', error);
-    return true; // Default: invia notifica in caso di errore
+    return false;
   }
 }
 
@@ -331,5 +331,4 @@ export function createWeatherAlertNotification(
     },
   };
 }
-
 
