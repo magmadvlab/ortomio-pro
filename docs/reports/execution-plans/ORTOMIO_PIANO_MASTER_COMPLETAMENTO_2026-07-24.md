@@ -66,11 +66,11 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback mock | Migrazione staging; helper seed trasferiti a M09 (`O03-O04`) |
-| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 173 voci correnti assegnate a M09-M15 (`O05`) |
+| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 172 voci correnti assegnate a M09-M15 (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
 | M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
-| M09 | `[-]` in corso | Cloud fail-closed; seed confermati; quattro fallback rimossi | Helper legacy, 47 voci, staging (`O16-O18`) |
+| M09 | `[-]` in corso | Cloud fail-closed; seed confermati; quattro fallback e garden mock rimossi | Helper legacy, 46 voci, staging (`O16-O18`) |
 | M10 | `[-]` parziale | Preferenze fail-closed e `sentAt` corretto | Intero lifecycle delivery (`O19-O24`) |
 | M11 | `[-]` parziale | Baseline core e protocollo giornata | Transizioni, ruoli, DST e prova staging (`O25-O28`) |
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
@@ -157,8 +157,8 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Criterio di uscita:** nessun TODO/mock non classificato nei percorsi commerciali.
 - **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; baseline iniziale di 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
 - **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
-- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 193 voci totali: 47 assegnate a M09, 12 a M10, 39 a M11, 28 a M12, 20 a M13, 21 a M14 e 6 a M15; 10 accettate; 10 isolate come sviluppo/laboratorio.
-- **Rischio residuo:** il censimento non equivale alla correzione delle 173 voci correnti pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M09-M15.
+- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 192 voci totali: 46 assegnate a M09, 12 a M10, 39 a M11, 28 a M12, 20 a M13, 21 a M14 e 6 a M15; 10 accettate; 10 isolate come sviluppo/laboratorio.
+- **Rischio residuo:** il censimento non equivale alla correzione delle 172 voci correnti pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M09-M15.
 
 ### M06 - Riconciliazione completa delle migrazioni
 
@@ -226,7 +226,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
 - **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi; trattamenti, lavori meccanici, supporto ed esposizione solare falliscono esplicitamente senza database invece di simulare dati o successo.
 - **Evidenza:** commit `270a214`, `bd2ed53`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
-- **Residuo:** helper cache sementi legacy, 47 voci M09 da verificare o riclassificare e certificazione staging.
+- **Residuo:** helper cache sementi legacy, 46 voci M09 da verificare o riclassificare e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
 
@@ -386,7 +386,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
 | O04 | M09 | Eliminare o rendere non autorevoli gli helper sincroni seed legacy | Tutti i consumer usano il reader asincrono |
-| O05 | M05 | Riconciliare gli esiti delle 173 voci correnti trasferite a M09-M15 | Manifest finale senza voce `scheduled` irrisolta |
+| O05 | M05 | Riconciliare gli esiti delle 172 voci correnti trasferite a M09-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
 | O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
@@ -397,7 +397,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O13 | M08 | Eseguire matrice isolamento SQL/API/UI con due clienti | Tutti i negativi attesi risultano negati |
 | O14 | M08 | Certificare storage, cron, export, cache e admin | Nessun percorso cross-tenant |
 | O15 | M08 | Rieseguire Security Advisor | Nessun finding release-blocking aperto |
-| O16 | M09 | Verificare o riclassificare le 47 voci M09 residue | Ogni voce corretta, rimossa o assegnata senza duplicazione |
+| O16 | M09 | Verificare o riclassificare le 46 voci M09 residue | Ogni voce corretta, rimossa o assegnata senza duplicazione |
 | O17 | M09 | Eliminare altri fallback locali o successi simulati production | Audit mirato e test fail-closed verdi |
 | O18 | M09 | Certificare reader/writer canonici in staging | Stato ricostruibile per ogni dominio prioritario |
 | O19 | M10 | Implementare coda notifiche persistente | Evento accodato e auditabile |
@@ -432,7 +432,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 Eseguita il 24/07/2026 sulla baseline locale:
 
-- audit debito release corrente: 193 voci, di cui 173 pianificate, 10 accettate e 10 isolate; nessuna voce release non classificata;
+- audit debito release corrente: 192 voci, di cui 172 pianificate, 10 accettate e 10 isolate; nessuna voce release non classificata;
 - audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
 - suite release: 307/307 test superati;
 - build produzione: completata, 147 pagine generate;

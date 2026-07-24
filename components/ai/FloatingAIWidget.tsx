@@ -3,12 +3,12 @@
 import React, { useState } from 'react'
 import { Bot, Sparkles, X, MessageCircle } from 'lucide-react'
 import AIPlanningWizard from './AIPlanningWizard'
-import { useGarden } from '@/hooks/useGarden'
+import { useGarden } from '@/packages/core/hooks/useGarden'
 
 export default function FloatingAIWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [showWizard, setShowWizard] = useState(false)
-  const { currentGarden } = useGarden()
+  const { activeGarden: currentGarden } = useGarden()
 
   const handlePlanGenerated = (plan: any) => {
     setShowWizard(false)

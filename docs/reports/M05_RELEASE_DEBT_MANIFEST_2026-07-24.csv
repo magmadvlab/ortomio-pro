@@ -96,7 +96,6 @@
 "components/treatments/TreatmentDashboardWidget.tsx","276","todo","release","scheduled:M12","agronomic operation pilot","onEdit={() => {/* TODO: Implementare modifica */}}"
 "components/ui/Select.tsx","32","placeholder","release","accepted","component placeholder property, not simulated data","export function SelectValue({ placeholder }: { placeholder?: string }) {"
 "components/ui/Select.tsx","33","placeholder","release","accepted","component placeholder property, not simulated data","return <>{placeholder}</>"
-"hooks/useGarden.ts","8","mock","release","scheduled:M09","canonical provider convergence","// Mock data per testing - in produzione collegare al database"
 "hooks/useWeather.ts","21","todo","release","scheduled:M13","external weather or solar provider integration","// TODO: Get user location from profile/context"
 "lib/auth-bypass.ts","137","mock","development","isolated","bypass guarded against production","* Mock user object per sviluppo locale (SOLO se bypass attivo)"
 "lib/auth-bypass.ts","141","mock","development","isolated","bypass guarded against production","throw new Error('SECURITY_ERROR: Mock user not available in production');"

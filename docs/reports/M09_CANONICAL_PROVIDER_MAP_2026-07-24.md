@@ -37,6 +37,8 @@ Un secondo lotto ha reso fail-closed anche le route production di trattamenti, l
 
 Verifiche del secondo lotto: type-check verde, persistenza 24/24, audit release con 193 voci totali, 47 assegnate a M09 e zero non classificate, build produzione 147 pagine.
 
+Il terzo lotto ha eliminato il hook production `hooks/useGarden.ts`, che costruiva sempre `garden-1` con coordinate, suolo ed esposizione fittizi. Semenzaio e widget AI flottante usano ora il `GardenContext` canonico e il relativo `activeGarden`.
+
 ## Residuo
 
 - rimuovere o rendere non autorevoli gli helper sincroni dell'inventario semi rimasti per compatibilita';

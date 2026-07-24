@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useGarden } from '@/hooks/useGarden'
+import { useGarden } from '@/packages/core/hooks/useGarden'
 import { ArrowLeft, Sprout, Package, TreePine } from 'lucide-react'
 import SeedInventory from '@/components/seedbank/SeedInventory'
 import SeedlingDashboard from '@/components/seedling/SeedlingDashboard'
@@ -12,7 +12,7 @@ import PlantingScheduler from '@/components/seedling/PlantingScheduler'
 function SemenzaioPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { currentGarden } = useGarden()
+  const { activeGarden: currentGarden } = useGarden()
   
   const [activeTab, setActiveTab] = useState<'seeds' | 'seedlings' | 'saplings'>('seedlings')
   const [loading, setLoading] = useState(true)
