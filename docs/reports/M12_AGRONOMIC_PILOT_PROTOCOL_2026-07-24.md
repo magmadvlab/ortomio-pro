@@ -21,6 +21,8 @@
 
 I test lifecycle verificano unita' e range, retry/dead-letter, separazione volume pianificato/misurato, adattamento pioggia senza task fittizi e stock modificato solo dopo esecuzione confermata.
 
+Il runtime delle lavorazioni meccaniche converge sullo storage provider durevole; il vecchio CRUD con sequenze e statistiche simulate e' stato rimosso. Type-check verde, persistenza 53/53; le voci sorgente M12 scendono da 29 a 21.
+
 ## Blocco
 
 M12 richiede azienda pilota, attrezzatura, cataloghi e responsabili identificati. Nessun ciclo reale e' stato eseguito in questa sessione.
