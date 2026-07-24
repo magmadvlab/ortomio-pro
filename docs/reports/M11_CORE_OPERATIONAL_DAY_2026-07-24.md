@@ -39,7 +39,8 @@
 - i piani personalizzati vengono letti dal provider, reidratati dalla scheda master e collegati in modo persistente ai task; un piano mancante fallisce senza aggiornare il task;
 - il componente morto `AdvancedTreeManager`, non importato e composto interamente da alberi, misure, operazioni e rese casuali, e' stato rimosso dal runtime;
 - anche `InteractiveTrackingInterface`, non importata e basata su meteo e foto inventati, e' stata rimossa invece di lasciare una falsa superficie operativa;
-- le voci M11 pianificate scendono da 58 a 38; nessuna voce release resta non classificata.
+- il duplicato morto `components/SaplingDashboard.tsx` e' stato rimosso; le pagine continuano a usare il dashboard alberelli canonico in `components/seedbank`;
+- le voci M11 pianificate scendono da 58 a 37; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 
