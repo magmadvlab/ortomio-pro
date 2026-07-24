@@ -615,8 +615,9 @@ export const createInvitation = async (
     throw new Error(`Failed to create invitation: ${error.message}`);
   }
 
-  // TODO: Send email invitation
-  console.log(`Invitation created for ${email} - Token: ${invitation.token}`);
+  // La consegna dell'invito richiede un provider server-side dedicato.
+  // Non esporre mai token o indirizzi completi nei log applicativi.
+  console.info('Organization invitation persisted; delivery pending provider configuration');
 
   return {
     id: data.id,
