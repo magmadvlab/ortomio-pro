@@ -23,7 +23,7 @@ interface SeasonAnalysisViewProps {
   garden: Garden;
   year: number;
   season: 'Summer' | 'Winter';
-  onAdjustmentsAccepted?: (adjustments: SeasonAnalysis['nextYearAdjustments']) => void;
+  onAdjustmentsAccepted?: (adjustments: SeasonAnalysis['nextYearAdjustments']) => void | Promise<void>;
 }
 
 const SeasonAnalysisView: React.FC<SeasonAnalysisViewProps> = ({
@@ -34,6 +34,8 @@ const SeasonAnalysisView: React.FC<SeasonAnalysisViewProps> = ({
 }) => {
   const [analysis, setAnalysis] = useState<SeasonAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acceptingAdjustments, setAcceptingAdjustments] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'successes' | 'failures' | 'insights' | 'adjustments'>('overview');
 
   useEffect(() => {
@@ -52,10 +54,19 @@ const SeasonAnalysisView: React.FC<SeasonAnalysisViewProps> = ({
     }
   };
 
-  const handleAcceptAdjustments = () => {
+  const handleAcceptAdjustments = async () => {
     if (analysis && onAdjustmentsAccepted) {
-      onAdjustmentsAccepted(analysis.nextYearAdjustments);
-      setAnalysis({ ...analysis, userReviewed: true });
+      setAcceptingAdjustments(true);
+      setAcceptError(null);
+      try {
+        await onAdjustmentsAccepted(analysis.nextYearAdjustments);
+        setAnalysis({ ...analysis, userReviewed: true });
+      } catch (error) {
+        console.error('Error saving season adjustments:', error);
+        setAcceptError('Salvataggio non riuscito. Riprova senza perdere gli aggiustamenti.');
+      } finally {
+        setAcceptingAdjustments(false);
+      }
     }
   };
 
@@ -109,12 +120,18 @@ const SeasonAnalysisView: React.FC<SeasonAnalysisViewProps> = ({
         {!analysis.userReviewed && (
           <button
             onClick={handleAcceptAdjustments}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+            disabled={acceptingAdjustments}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:cursor-wait disabled:opacity-60"
           >
-            Accetta Aggiustamenti
+            {acceptingAdjustments ? 'Salvataggio…' : 'Accetta Aggiustamenti'}
           </button>
         )}
       </div>
+      {acceptError && (
+        <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {acceptError}
+        </p>
+      )}
 
       {/* Statistiche Generali */}
       {analysis.statistics && (
@@ -449,4 +466,3 @@ const AdjustmentsTab: React.FC<{
 };
 
 export default SeasonAnalysisView;
-

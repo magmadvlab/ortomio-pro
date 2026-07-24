@@ -22,6 +22,7 @@ import { directorService } from '@/services/directorService';
 import { DailyPlan } from '../types';
 import { useTier } from '../packages/core/hooks/useTier';
 import { suggestFertilizerProduct, FertilizerRecommendation } from '../logic/fertilizerEngine';
+import { allFertilizers, type FertilizerProduct } from '../data/fertilizers';
 import TierBadge from './TierBadge';
 import LimitIndicator from './LimitIndicator';
 import SeasonAnalysisView from './analysis/SeasonAnalysisView';
@@ -33,6 +34,7 @@ import { IrrigationZone } from '../types/irrigation';
 import { normalizeGeoCoordinates } from '../utils/coordinates';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { executeWateringLogThroughUnifiedService } from '../services/operationExecutionBridgeService';
+import { saveSeasonAdjustmentDecision } from '../services/seasonAdjustmentDecisionService';
 
 interface DashboardProps {
   tasks: GardenTask[];
@@ -116,6 +118,12 @@ const Dashboard: React.FC<DashboardProps> = ({
   
   // Fertilizer Engine - Prodotti concreti per nutrient tasks
   const [fertilizerRecsForNutrients, setFertilizerRecsForNutrients] = useState<Map<string, FertilizerRecommendation | null>>(new Map());
+  const [availableFertilizers, setAvailableFertilizers] = useState<FertilizerProduct[]>([]);
+  const [wateringTimer, setWateringTimer] = useState<{
+    zoneId?: string;
+    endsAt: number;
+    remainingSeconds: number;
+  } | null>(null);
 
   // Season Analysis State
   const [showSeasonAnalysis, setShowSeasonAnalysis] = useState(false);
@@ -132,6 +140,31 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [currentSeason, setCurrentSeason] = useState<string>('');
   const [shouldShowSeasonAnalysis, setShouldShowSeasonAnalysis] = useState(false);
   
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeGardenId) {
+      setAvailableFertilizers([]);
+      return;
+    }
+    storageProvider.getFertilizerInventory(activeGardenId)
+      .then(items => {
+        if (cancelled) return;
+        const stocked = items
+          .filter(item => item.quantity > 0)
+          .map(item => allFertilizers.find(product =>
+            product.id === item.product_id ||
+            product.name.toLowerCase() === item.product_name.toLowerCase()
+          ))
+          .filter((product): product is FertilizerProduct => Boolean(product));
+        setAvailableFertilizers(stocked);
+      })
+      .catch(error => {
+        console.error('Error loading fertilizer inventory:', error);
+        if (!cancelled) setAvailableFertilizers([]);
+      });
+    return () => { cancelled = true; };
+  }, [activeGardenId, storageProvider]);
+
   useEffect(() => {
     setMounted(true);
     const now = new Date();
@@ -373,7 +406,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   elementFocus,
                   activeGarden.soilType,
                   'top_dressing',
-                  undefined // availableProducts - TODO: caricare da inventario
+                  availableFertilizers
                 );
                 
                 if (fertilizerRec) {
@@ -392,7 +425,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         console.error('Error generating daily plan:', error);
         setLoadingPlan(false);
       });
-  }, [activeGarden, tasks, activeGardenId]);
+  }, [activeGarden, tasks, activeGardenId, availableFertilizers]);
 
   const handleLifecycleResponse = (task: GardenTask, response: boolean, advice: LifecycleAdvice) => {
     const updatedTask: GardenTask = {
@@ -562,6 +595,38 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     }
   }, [storageProvider, activeGarden?.id]);
+
+  useEffect(() => {
+    if (!wateringTimer) return;
+    const tick = () => {
+      const remainingSeconds = Math.max(0, Math.ceil((wateringTimer.endsAt - Date.now()) / 1000));
+      if (remainingSeconds === 0) {
+        const zoneId = wateringTimer.zoneId;
+        setWateringTimer(null);
+        handleMarkWateringDone(zoneId).catch(error => {
+          console.error('Unable to open watering completion log:', error);
+        });
+      } else {
+        setWateringTimer(current => current ? { ...current, remainingSeconds } : null);
+      }
+    };
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [wateringTimer?.endsAt, wateringTimer?.zoneId, handleMarkWateringDone]);
+
+  const startWateringTimer = (zoneId: string | undefined, durationMinutes: number) => {
+    if (!zoneId) {
+      console.error('Unable to start watering timer: irrigation zone is missing');
+      return;
+    }
+    const seconds = Math.max(1, Math.round(durationMinutes * 60));
+    setWateringTimer({
+      zoneId,
+      endsAt: Date.now() + seconds * 1000,
+      remainingSeconds: seconds,
+    });
+  };
 
   return (
     <>
@@ -1095,13 +1160,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {!showLitersOnly && (
                         <div className="mt-3 flex gap-3">
                           <button
-                            onClick={() => {
-                              // TODO: Implementare timer
-                              alert('Timer non ancora implementato');
-                            }}
+                            onClick={() => startWateringTimer(task.zoneId, task.durationMinutes)}
                             className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-3"
                           >
-                            ⏱️ Avvia Timer
+                            {wateringTimer?.zoneId === task.zoneId
+                              ? `⏱️ ${Math.floor(wateringTimer.remainingSeconds / 60)}:${String(wateringTimer.remainingSeconds % 60).padStart(2, '0')}`
+                              : '⏱️ Avvia Timer'}
                           </button>
                           <button
                             onClick={() => handleMarkWateringDone(task.zoneId)}
@@ -1509,10 +1573,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                 garden={activeGarden}
                 year={mounted ? currentYear : new Date().getFullYear()}
                 season={mounted && currentSeason ? (currentSeason === 'Summer' ? 'Summer' : 'Winter') : 'Summer'}
-                onAdjustmentsAccepted={(adjustments) => {
-                  console.log('Aggiustamenti accettati:', adjustments);
-                  // TODO: Salvare aggiustamenti accettati
-                }}
+                onAdjustmentsAccepted={(adjustments) =>
+                  saveSeasonAdjustmentDecision(
+                    activeGarden.id,
+                    mounted ? currentYear : new Date().getFullYear(),
+                    mounted && currentSeason === 'Winter' ? 'Winter' : 'Summer',
+                    adjustments
+                  )
+                }
               />
             </div>
           )}
