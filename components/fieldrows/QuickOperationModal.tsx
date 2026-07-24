@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react'
 import { Garden } from '@/types'
 import { GardenPlant } from '@/types/individualPlant'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import { useAuth } from '@/packages/core/hooks/useAuth'
 import { 
   FieldRowConfiguration
 } from '@/services/integratedFieldOperationsService'
@@ -52,6 +53,7 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
   onOperationComplete
 }) => {
   const { storageProvider } = useStorage()
+  const { user } = useAuth()
   const operationContextService = createOperationContextService()
   
   // State
@@ -182,10 +184,23 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
       alert('Filare non trovato')
       return
     }
+    if (!user) {
+      alert('Sessione non disponibile: accedi di nuovo prima di registrare l’operazione.')
+      return
+    }
     
     setLoading(true)
     
     try {
+      const evidenceId = `quick-operation-${crypto.randomUUID()}`
+      const photoUrls = operationData.photos.length > 0
+        ? await Promise.all(operationData.photos.map(file => {
+            if (!storageProvider.uploadPhoto) {
+              throw new Error('Upload foto non disponibile sul provider cloud attivo')
+            }
+            return storageProvider.uploadPhoto(file, evidenceId, garden.id)
+          }))
+        : []
       const [latitude, longitude] = garden.coordinates
         ? [garden.coordinates.latitude, garden.coordinates.longitude]
         : [undefined, undefined]
@@ -242,6 +257,8 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
 
       const notes = [
         operationData.notes || undefined,
+        `Esecutore: ${user.id}`,
+        photoUrls.length > 0 ? `Evidenze fotografiche:\n${photoUrls.join('\n')}` : undefined,
         `Filare: ${fieldRow.name}`,
         operationType === 'fertilization'
           ? `Dose/pianta: ${operationData.dosagePerPlant} g | Metodo: ${operationData.applicationMethod}`
@@ -297,79 +314,12 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
         fieldRowsAffected: unifiedResponse.rowsAffected || 1,
         totalAmount: quantity,
         operationIds: [...unifiedResponse.rowOperationIds, ...unifiedResponse.plantOperationIds],
-        errors: unifiedResponse.errors
+        errors: unifiedResponse.errors,
+        executedBy: user.id,
+        photoUrls
       }
       
       if (result.success) {
-        // Salva foto se presenti
-        if (operationData.photos.length > 0) {
-          // TODO: Implementare upload foto
-          console.log('📸 Foto da salvare:', operationData.photos.length)
-        }
-        
-        // Crea registro operazione dettagliato
-        const operationRecord = {
-          id: `quick_op_${Date.now()}`,
-          type: operationType,
-          fieldRowId,
-          fieldRowName: fieldRow.name,
-          gardenId: garden.id,
-          gardenName: garden.name,
-          
-          // Data e ora
-          executedAt: `${operationData.date}T${operationData.time}:00`,
-          executedBy: 'user', // TODO: Implementare utente corrente
-          
-          // Dettagli operazione
-          details: {
-            fertilization: operationType === 'fertilization' ? {
-              type: operationData.fertilizerType,
-              dosagePerPlant: operationData.dosagePerPlant,
-              totalDosage,
-              applicationMethod: operationData.applicationMethod
-            } : undefined,
-            
-            treatment: operationType === 'treatment' ? {
-              productName: operationData.productName,
-              activeIngredient: operationData.activeIngredient,
-              concentration: operationData.concentration,
-              treatmentType: operationData.treatmentType,
-              applicationMethod: operationData.applicationMethod
-            } : undefined,
-            
-            cultivation: operationType === 'cultivation' ? {
-              type: operationData.cultivationType,
-              tools: operationData.tools
-            } : undefined
-          },
-          
-          // Condizioni meteo
-          weatherConditions: {
-            temperature: operationData.temperature,
-            humidity: operationData.humidity,
-            windSpeed: operationData.windSpeed,
-            condition: operationData.weatherCondition,
-            source: weatherData ? 'api' : 'manual'
-          },
-          
-          // Risultati
-          results: {
-            plantsAffected: result.plantsAffected,
-            fieldRowsAffected: result.fieldRowsAffected,
-            totalAmount: result.totalAmount,
-            estimatedCost
-          },
-          
-          // Note e foto
-          notes: operationData.notes,
-          photosCount: operationData.photos.length,
-          
-          createdAt: new Date().toISOString()
-        }
-        
-        // Salva registro (TODO: implementare storage)
-        console.log('📋 Registro operazione creato:', operationRecord)
-        
         alert(`✅ ${getOperationTitle()} completata!\n\n` +
               `📊 Risultati:\n` +
               `• ${result.plantsAffected} piante trattate\n` +
