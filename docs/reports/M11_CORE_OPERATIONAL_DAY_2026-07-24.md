@@ -32,7 +32,8 @@
 - la dashboard consumer carica i task reali dell'orto e riattiva il widget ricette sui raccolti effettivi;
 - gli alias creati dal wizard colture registrano l'utente autenticato;
 - tre occorrenze `placeholder` di soli label/prop UI sono classificate esplicitamente come accettate;
-- le voci M11 pianificate scendono da 58 a 52; nessuna voce release resta non classificata.
+- gli alert salute creano task persistenti collegati e non duplicabili dalla UI; il conteggio attenzione deriva dai task trattamento aperti;
+- le voci M11 pianificate scendono da 58 a 50; nessuna voce release resta non classificata.
 
 ## Sequenza da certificare
 

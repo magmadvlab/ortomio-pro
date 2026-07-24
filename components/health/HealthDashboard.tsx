@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
 import { HealthAlert } from '@/types/healthAlert'
 import { HealthAlertSystem } from './HealthAlertSystem'
-import { PlantHealthStatus } from './PlantHealthStatus'
 import { QuickDiagnosis } from './QuickDiagnosis'
 import { AlertCard } from './AlertCard'
 import { AlertTriangle, Heart, Camera, Sparkles, Activity } from 'lucide-react'
@@ -23,6 +22,39 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [weather, setWeather] = useState<{ temp: number; rainMm: number; condition: string } | null>(null)
   const { storageProvider } = useStorage()
+
+  const handlePlanAlert = async (alert: HealthAlert) => {
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Rome',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+    const affectedPlants = Array.isArray(alert.metadata?.affectedPlants)
+      ? alert.metadata.affectedPlants
+      : []
+    const task = await storageProvider.createTask({
+      gardenId: garden.id,
+      plantName: affectedPlants[0] || 'Orto',
+      taskType: alert.alertType === 'water' ? 'Irrigation' : 'Treatment',
+      date: today,
+      scheduledDate: today,
+      schedulingType: 'Scheduled',
+      completed: false,
+      operationalStatus: 'open',
+      notes: [
+        `[health-alert:${alert.id}] ${alert.title}`,
+        alert.message,
+        alert.recommendation,
+      ].filter(Boolean).join('\n'),
+    })
+    if ('updateHealthAlert' in storageProvider) {
+      await storageProvider.updateHealthAlert(alert.id, {
+        metadata: { ...(alert.metadata || {}), plannedTaskId: task.id },
+      })
+    }
+    await loadHealthAlerts()
+  }
 
   // Carica health alerts dal database
   const loadHealthAlerts = async () => {
@@ -203,10 +235,11 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
                   key={alert.id}
                   alert={alert}
                   onResolve={() => handleResolveAlert(alert.id)}
-                  onPlanTask={() => {
-                    // TODO: Aprire modal pianifica task collegato all'alert
-                    console.log('Plan task for alert:', alert.id)
-                  }}
+                  onPlanTask={alert.metadata?.plannedTaskId ? undefined : () =>
+                    handlePlanAlert(alert).catch(error => {
+                      console.error('Failed to plan task from health alert:', error)
+                    })
+                  }
                   onIgnore={() => handleResolveAlert(alert.id)}
                 />
               ))}
@@ -356,4 +389,3 @@ export function HealthDashboard({ garden, tasks }: HealthDashboardProps) {
     </div>
   )
 }
-

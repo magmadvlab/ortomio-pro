@@ -31,8 +31,6 @@
 "components/harvest/QuickHarvestForm.tsx","105","placeholder","release","scheduled:M12","agronomic operation pilot","// Ottieni emoji pianta (placeholder - da migliorare con mapping reale)"
 "components/harvest/QuickHarvestForm.tsx","117","placeholder","release","scheduled:M12","agronomic operation pilot","// Ottieni zona (placeholder - da migliorare con dati reali)"
 "components/health/HealthAlertSystem.tsx","177","todo","release","scheduled:M14","AI or agronomic rule validation","// TODO: Implementare quando avremo dati da foto AI"
-"components/health/HealthDashboard.tsx","207","todo","release","scheduled:M11","core operational lifecycle","// TODO: Aprire modal pianifica task collegato all'alert"
-"components/health/PlantHealthStatus.tsx","22","todo","release","scheduled:M11","core operational lifecycle","const needsAttentionCount = 0 // TODO: Calcolare da sintomi/foto"
 "components/irrigation/IrrigationZonesWidget.tsx","29","todo","release","scheduled:M12","agronomic operation pilot","// TODO: Implementare getIrrigationSystems e getIrrigationZones nello storage provider"
 "components/irrigation/IrrigationZonesWidget.tsx","70","todo","release","scheduled:M12","agronomic operation pilot","// TODO: Implementare createIrrigationZone nello storage provider"
 "components/irrigation/IrrigationZonesWidget.tsx","210","todo","release","scheduled:M12","agronomic operation pilot","beds={[]} // TODO: Caricare beds da storage"

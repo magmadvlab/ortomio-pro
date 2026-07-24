@@ -16,10 +16,19 @@ export function PlantHealthStatus({ garden, tasks }: PlantHealthStatusProps) {
       t => !t.completed && (t.taskType === 'Sowing' || t.taskType === 'Transplant')
     )
     
-    // Per ora consideriamo tutte le piante sane
-    // In futuro potremmo analizzare foto o sintomi
-    const healthyCount = activePlants.length
-    const needsAttentionCount = 0 // TODO: Calcolare da sintomi/foto
+    const plantsNeedingAttention = new Set(
+      tasks
+        .filter(task =>
+          !task.completed &&
+          task.taskType === 'Treatment' &&
+          task.notes?.includes('[health-alert:')
+        )
+        .map(task => task.plantName)
+    )
+    const needsAttentionCount = activePlants.filter(task =>
+      plantsNeedingAttention.has(task.plantName)
+    ).length
+    const healthyCount = Math.max(0, activePlants.length - needsAttentionCount)
     
     return {
       healthy: healthyCount,
@@ -94,7 +103,6 @@ export function PlantHealthStatus({ garden, tasks }: PlantHealthStatusProps) {
     </div>
   )
 }
-
 
 
 
