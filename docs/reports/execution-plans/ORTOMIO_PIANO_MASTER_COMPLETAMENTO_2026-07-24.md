@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M03 completati; M04 e' il prossimo blocco
+- **Stato esecuzione:** M01-M04 completati; M05 e' il prossimo blocco
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -93,7 +93,7 @@ Un blocco passa a completato solo quando:
 
 ### M04 - Persistenza suolo, seed inventory e fallback production
 
-- **Stato:** `[ ]`
+- **Stato:** `[x]` completato il 24/07/2026
 - **Obiettivo:** eliminare provider non autorevoli nei primi servizi operativi identificati.
 - **Perimetro iniziale:** `soilStateService.ts`, `seedInventoryService.ts`, servizi collegati.
 - **Attivita':**
@@ -103,6 +103,10 @@ Un blocco passa a completato solo quando:
   - mantenere eventuali dataset demo solo in modalità esplicitamente demo;
   - aggiungere test di errore e isolamento garden.
 - **Criterio di uscita:** nessun errore DB viene trasformato silenziosamente in dato operativo simulato.
+- **Risultato:** `soilStateService` legge e salva tramite API server autorizzata per garden e zona; aggiunta persistenza `garden_soil_states` con vincoli fisici e RLS; `seedInventoryService` usa la tabella canonica `seed_inventory`; rimossi pacchetti demo e fallback che trasformavano errore o inventario vuoto in dati simulati.
+- **Evidenza:** commit `83aeef7` (`fix: persist soil state and remove seed fallbacks`).
+- **Verifiche:** type-check verde; 4 test M04 verdi; suite release 301/301; lint mirato con 0 errori e 2 warning legacy nel seed mapper; build produzione 147 pagine.
+- **Rischio residuo:** la migrazione `20260724130000_garden_soil_states.sql` deve essere applicata e provata su staging. Gli helper sincroni legacy dell'inventario mantengono una cache solo di dati gia' letti e saranno ricondotti al reader asincrono canonico in M09.
 
 ### M05 - Censimento e chiusura TODO, FIXME e mock della release 1.0
 
@@ -288,13 +292,14 @@ La correzione M02 ha:
 | 24/07/2026 | M01 / D5 | Completato | `c458bd92a08ad4d947813e65ca6319f7bc184318` | 13 flag morti rimossi; gate locale riallineato |
 | 24/07/2026 | M02 / D14 | Completato | `583902a9` | Dashboard veritiera; lint reale con 0 errori; 2.733 warning registrati |
 | 24/07/2026 | M03 | Completato localmente | `fed4732` | Creazione e rilettura zone autorizzate; applicazione migrazione su staging ancora richiesta |
+| 24/07/2026 | M04 | Completato localmente | `83aeef7` | Stato suolo persistente; inventario sementi senza fallback simulati |
 
 ## 6. Prossima azione
 
-Avviare M04:
+Avviare M05:
 
-1. ricostruire i contratti di persistenza di `soilStateService.ts` e `seedInventoryService.ts`;
-2. distinguere assenza dati da errore provider;
-3. eliminare fallback mock dai percorsi production;
-4. aggiungere test di errore e isolamento garden;
+1. generare un manifest versionato di TODO, FIXME, mock e placeholder;
+2. classificare le occorrenze per raggiungibilita' e maturita';
+3. correggere o nascondere quelle nei percorsi release;
+4. isolare esplicitamente demo, laboratorio e legacy;
 5. aggiornare questo registro e creare un commit dedicato.
