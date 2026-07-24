@@ -1,19 +1,19 @@
 # Tasks
 
-- **Aggiornamento:** 17 luglio 2026
-- **Stato:** baseline locale P0-P9 completata; rollout remoto bloccato
-- **Coda canonica:** `docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md`
+- **Aggiornamento:** 24 luglio 2026
+- **Stato:** M01/D5 completato; M02 dashboard senza dati fittizi e' il prossimo blocco
+- **Coda canonica:** `docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`
 
-## Gate remoto successivo
+## Avanzamento sintetico
 
-- [ ] predisporre staging isolato e snapshot del target;
-- [ ] provare restore sul target autorizzato;
-- [ ] applicare P1-P8 e verificare drift/RLS cross-tenant;
-- [ ] rieseguire Security Advisor;
-- [ ] eseguire smoke Sentinel e ThingsBoard senza comandi fisici;
-- [ ] eseguire shadow mode e pilot su un solo garden;
-- [ ] registrare rollback o attivazione progressiva tramite readiness Admin.
+- [x] M01 - consolidamento feature flag e chiusura D5 (`c458bd9`);
+- [ ] M02 - dashboard senza dati fittizi;
+- [ ] M03 - creazione zone end-to-end;
+- [ ] M04 - persistenza suolo e seed inventory;
+- [ ] M05 - classificazione TODO/mock release 1.0;
+- [ ] M06 - riconciliazione migrazioni;
+- [ ] M07-M16 - staging, sicurezza, core, pilot, provider, commerciale e go/no-go.
 
 ## Regola
 
-Nessun nuovo piano parziale deve essere creato nella root. Un residuo applicativo entra nel piano canonico; un'attivita futura separata deve avere owner, stato e criterio di uscita.
+Il piano master e' l'unica coda operativa corrente. Ogni blocco deve essere aggiornato con stato, verifiche, commit/evidenza e rischio residuo prima di iniziare quello successivo.

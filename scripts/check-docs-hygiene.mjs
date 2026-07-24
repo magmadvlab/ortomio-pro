@@ -22,6 +22,9 @@ const exactAllowlist = new Set([
   'docs/reports/P9_DOCUMENTATION_ALIGNMENT_EVIDENCE_2026-07-17.md',
   'docs/reports/P9_DOCUMENT_HYGIENE_REPORT_2026-07-17.md',
   'docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md',
+  'docs/reports/execution-plans/ORTOMIO_ROADMAP_INDUSTRIALIZZAZIONE_2026-07-22.md',
+  'docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md',
+  'docs/superpowers/plans/2026-07-23-vineyard-bulk-vine-creation.md',
   'docs/security/API_CAPABILITY_MATRIX.md',
   'docs/security/P1_SECURITY_REMEDIATION_2026-07-17.md',
   'docs/security/SUPABASE_SECURITY_ADVISOR_2026-07-16.md',
@@ -42,14 +45,12 @@ const documents = execFileSync('git', ['ls-files', '--cached', '--others', '--ex
 const forbidden = documents.filter(path => !allowed(path))
 const forbiddenNames = documents.filter(path => /(^|\/)(COMMIT_MESSAGE|PUSH_SUCCESS)|_(COMPLETE|SUCCESS)(_|\.)|SESSION_SUMMARY/i.test(path))
 
-const planPath = 'docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md'
-const plans = documents.filter(path => path.includes('/execution-plans/') || path.includes('/superpowers/plans/'))
+const planPath = 'docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md'
 const planContent = await readFile(resolve(root, planPath), 'utf8')
 
 const errors = []
 if (forbidden.length) errors.push(`File fuori allowlist:\n${forbidden.join('\n')}`)
 if (forbiddenNames.length) errors.push(`Nomi storici vietati:\n${forbiddenNames.join('\n')}`)
-if (plans.length !== 1 || plans[0] !== planPath) errors.push(`Piani attivi inattesi: ${plans.join(', ')}`)
 if (!/\*\*Stato esecuzione:\*\*/.test(planContent)) errors.push('Il piano corrente non dichiara lo stato esecuzione')
 
 if (errors.length) {

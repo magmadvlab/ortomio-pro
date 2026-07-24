@@ -2728,7 +2728,7 @@ NDVI usa ora il servizio Statistical autenticato e salva provider, intervallo, g
 
 ## 56. Piano esecutivo definitivo
 
-Il piano operativo dettagliato e mantenuto in [`docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md`](./docs/reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md). Le sezioni seguenti ne riassumono la sequenza; il documento esecutivo contiene task, file, test, migrazioni, rollout, registro evidenze e la fase finale obbligatoria di aggiornamento manuale/masterdoc.
+Il piano operativo corrente e mantenuto in [`docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`](./docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md). Il piano del 16 luglio, la roadmap del 22 luglio e i piani di singola feature restano evidenze storiche e di progettazione, non code operative concorrenti. Le sezioni seguenti riassumono la sequenza; il piano master contiene stato, criteri di uscita, verifiche, commit e rischio residuo per ogni blocco.
 
 ### 56.0 Consuntivo P0-P8
 
