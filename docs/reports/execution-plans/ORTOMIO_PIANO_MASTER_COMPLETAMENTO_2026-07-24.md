@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01-M05 completati; M06 e' il prossimo blocco
+- **Stato esecuzione:** M01-M05 completati; M06 bloccato in attesa di staging; preparazione M07 in corso
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -126,7 +126,7 @@ Un blocco passa a completato solo quando:
 
 ### M06 - Riconciliazione completa delle migrazioni
 
-- **Stato:** `[ ]`
+- **Stato:** `[!]` inventario completato; applicazione bloccata
 - **Obiettivo:** allineare repository e schema remoto senza applicazioni cieche.
 - **Baseline nota:** 40 migrazioni remote tracciate; 79 file locali da riconciliare.
 - **Casi speciali:**
@@ -141,6 +141,10 @@ Un blocco passa a completato solo quando:
   - classificare drift, mancante o obsoleto;
   - produrre verifica post-lotto e rollback applicabile.
 - **Criterio di uscita:** nessun file o record remoto privo di classificazione e schema coerente con la history.
+- **Risultato parziale:** snapshot read-only della history remota e manifest locale prodotti; 119 file SQL attivi, 40 versioni remote, 39 file gia' applicati, 74 file in preflight, 6 file coinvolti in timestamp duplicati, 3 file speciali e un record remoto orfano.
+- **Evidenza:** commit `95c324f` (`chore: inventory migration reconciliation blockers`), `M06_MIGRATION_RECONCILIATION_2026-07-24.csv` e `M06_MIGRATION_RUNBOOK_2026-07-24.md`.
+- **Blocco:** manca un target staging isolato con snapshot/restore. Il dump schema read-only via CLI non e' stato eseguito perche' Docker Desktop non e' attivo. Nessun `db push` e nessuna riparazione della history sono autorizzati sul progetto collegato.
+- **Condizione di ripresa:** staging disponibile, dump schema acquisito, duplicati rinumerati consapevolmente e migrazione orfana ricostruita.
 
 ### M07 - Staging, backup, restore e rollback
 
@@ -298,13 +302,14 @@ La correzione M02 ha:
 | 24/07/2026 | M03 | Completato localmente | `fed4732` | Creazione e rilettura zone autorizzate; applicazione migrazione su staging ancora richiesta |
 | 24/07/2026 | M04 | Completato localmente | `83aeef7` | Stato suolo persistente; inventario sementi senza fallback simulati |
 | 24/07/2026 | M05 | Censimento completato | `aac8046` | 203 voci classificate; nessun TODO/mock release senza destinazione |
+| 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
 
 ## 6. Prossima azione
 
-Avviare M06:
+Preparare M07 senza operare sul database collegato:
 
-1. inventariare history remota e file locali senza applicare migrazioni;
-2. classificare duplicati, file speciali, drift e dipendenze;
-3. produrre lotti ordinati con preflight e rollback;
-4. aggiungere un controllo riproducibile sulla riconciliazione;
-5. aggiornare questo registro e creare un commit dedicato.
+1. consolidare gli script backup/restore e i controlli target;
+2. definire evidenze, RPO/RTO e procedura incident;
+3. predisporre il comando di restore drill per staging;
+4. mantenere M06 e M07 bloccati finche' non esiste un target isolato;
+5. proseguire poi sui blocchi locali indipendenti, registrando la dipendenza.
