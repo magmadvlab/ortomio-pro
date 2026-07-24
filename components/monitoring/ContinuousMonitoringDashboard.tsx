@@ -18,32 +18,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Droplets,
   Leaf,
-  Thermometer,
-  Zap,
   Bell,
-  BellOff,
   Settings,
-  TrendingUp,
-  TrendingDown,
-  Eye,
-  EyeOff,
-  Play,
-  Pause,
-  RefreshCw,
-  Filter,
   Search,
   BarChart3,
-  MapPin,
-  Calendar,
-  User,
   AlertCircle,
-  Info,
-  X,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink
+  X
 } from 'lucide-react'
 import { Garden } from '@/types'
 import { GardenPlant } from '@/types/individualPlant'
@@ -70,20 +51,17 @@ interface ContinuousMonitoringDashboardProps {
 
 export default function ContinuousMonitoringDashboard({
   garden,
-  plants,
   onNavigate,
-  onCreateTask,
-  onUpdatePlant
+  onCreateTask
 }: ContinuousMonitoringDashboardProps) {
   const { user } = useAuth()
   const [monitoringService, setMonitoringService] = useState<ContinuousMonitoringService | null>(null)
-  const [isMonitoring, setIsMonitoring] = useState(false)
+  const [isMonitoring] = useState(false)
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([])
   const [plantStatuses, setPlantStatuses] = useState<PlantHealthStatus[]>([])
   const [notifications, setNotifications] = useState<IntelligentNotification[]>([])
   const [stats, setStats] = useState<any>(null)
-  const [selectedAlert, setSelectedAlert] = useState<MonitoringAlert | null>(null)
-  const [selectedPlant, setSelectedPlant] = useState<PlantHealthStatus | null>(null)
+  const [, setSelectedPlant] = useState<PlantHealthStatus | null>(null)
   const [viewMode, setViewMode] = useState<'overview' | 'alerts' | 'plants' | 'notifications'>('overview')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -129,19 +107,6 @@ export default function ContinuousMonitoringDashboard({
 
     return () => clearInterval(interval)
   }, [monitoringService, user])
-
-  const handleStartMonitoring = () => {
-    if (monitoringService) {
-      setIsMonitoring(monitoringService.start())
-    }
-  }
-
-  const handleStopMonitoring = () => {
-    if (monitoringService) {
-      monitoringService.stop()
-      setIsMonitoring(false)
-    }
-  }
 
   const handleResolveAlert = (alertId: string) => {
     if (monitoringService) {
