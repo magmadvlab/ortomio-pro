@@ -188,9 +188,9 @@ Un blocco passa a completato solo quando:
   - rendere i writer critici fail-closed;
   - aggiungere test di parita' e idempotenza.
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
-- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; test dedicati verdi.
-- **Evidenza:** commit `270a214` e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
-- **Residuo:** helper cache sementi, bootstrap `StorageContext`, 52 voci M09 del manifest e certificazione staging.
+- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi.
+- **Evidenza:** commit `270a214`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
+- **Residuo:** helper cache sementi legacy, fallback/successi simulati nei restanti percorsi production, riclassificazione delle voci M09 e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
 
@@ -332,7 +332,7 @@ La correzione M02 ha:
 | 24/07/2026 | M06 | Bloccato dopo inventario | `95c324f` | `safeToApply=false`: staging e restore richiesti prima di ogni applicazione |
 | 24/07/2026 | M07 | Bloccato dopo preparazione | `769a052` | Script e template pronti; RPO/RTO e restore remoto non misurati |
 | 24/07/2026 | M08 | Bloccato dopo preparazione | `M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md` | Matrice pronta; prove SQL/API/UI staging mancanti |
-| 24/07/2026 | M09 | Parziale | `270a214` | Cloud esplicito fail-closed; convergenza completa ancora aperta |
+| 24/07/2026 | M09 | Parziale | `270a214` + avanzamento locale successivo | Cloud e consumer autenticati fail-closed; sementi confermate dal backend; convergenza completa ancora aperta |
 | 24/07/2026 | M10 | Parziale | `2e55ac4` | Preferenze fail-closed; coda e conferma delivery mancanti |
 | 24/07/2026 | M11 | Parziale | `078bc55` | Catena locale censita; giornata con ruoli reali mancante |
 | 24/07/2026 | M12 | Bloccato dopo preparazione | `a23fefe` | Protocollo pilot pronto; nessun ciclo reale |

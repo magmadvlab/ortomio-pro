@@ -17,7 +17,7 @@ import { AddCropWizard } from '@/components/crops/AddCropWizard';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { createAlias } from '../services/aliasService';
 import { searchCropWithFuzzy, SearchResult } from '../services/fuzzySearchService';
-import { getSeedPackets, findSeedsForPlant, useSeedForPlanting as consumeSeedForPlanting } from '@/services/seedInventoryService';
+import { seedInventoryService, findSeedsForPlant, useSeedForPlanting as consumeSeedForPlanting } from '@/services/seedInventoryService';
 import { SeedPacket } from '../types';
 import { SeedlingBatch } from '../services/seedlingService';
 import { getAllReadyBatches } from '../services/seedlingBatchHelper';
@@ -131,8 +131,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
   
   useEffect(() => {
     if (garden) {
-      const seeds = getSeedPackets(garden.id);
-      setAvailableSeeds(seeds);
+      const loadSeeds = async () => {
+        try {
+          const seeds = await seedInventoryService.getSeedPackets(garden.id);
+          setAvailableSeeds(seeds);
+        } catch (error) {
+          console.error('Error loading seed inventory:', error);
+          setAvailableSeeds([]);
+        }
+      };
+      loadSeeds();
       
       // Carica batch di piantine
       const loadBatches = async () => {
@@ -349,9 +357,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
-      const used = consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
-      if (!used) {
-        alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+      try {
+        const used = await consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+        if (!used) {
+          alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+          return;
+        }
+        setAvailableSeeds(await seedInventoryService.getSeedPackets(garden.id));
+      } catch (error) {
+        console.error('Error consuming seed packet:', error);
+        alert('Impossibile confermare il consumo dei semi. Nessuna operazione è stata confermata.');
         return;
       }
     }
@@ -494,9 +509,16 @@ const Journal: React.FC<JournalProps> = ({ tasks, garden, onToggleTask, onAddTas
 
     // Se è stata selezionata una banca dei semi, usa i semi e aggiorna la quantità
     if (newTask.selectedSeedPacketId && garden && newTask.plantingMethod === 'Seed') {
-      const used = consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
-      if (!used) {
-        alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+      try {
+        const used = await consumeSeedForPlanting(garden.id, newTask.selectedSeedPacketId, newTask.quantity);
+        if (!used) {
+          alert('I semi selezionati sono esauriti. Seleziona un altro pacchetto o aggiungi nuovi semi alla banca.');
+          return;
+        }
+        setAvailableSeeds(await seedInventoryService.getSeedPackets(garden.id));
+      } catch (error) {
+        console.error('Error consuming seed packet:', error);
+        alert('Impossibile confermare il consumo dei semi. Nessuna operazione è stata confermata.');
         return;
       }
     }

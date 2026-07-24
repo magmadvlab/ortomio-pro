@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { IStorageProvider } from '../storage/interface';
-import { getDefaultStorageProvider, getSupabaseStorageProvider, getLocalStorageProvider } from '../storage/factory';
+import { getSupabaseStorageProvider, getLocalStorageProvider } from '../storage/factory';
 import { getSupabaseClient } from '@/config/supabase';
 import { isBypassActive } from '@/lib/auth-bypass';
 
@@ -28,18 +28,21 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
   children, 
   initialProvider 
 }) => {
-  // Se initialProvider è fornito, usalo (per compatibilità)
-  // Altrimenti inizia con LocalStorageProvider per evitare problemi di timing
-  // e poi fa switch automatico basato su auth
-  // SEMPRE inizia con LocalStorageProvider per evitare problemi di timing
   const [storageProvider, setStorageProvider] = useState<IStorageProvider>(
-    () => getLocalStorageProvider()
+    () => initialProvider ?? getLocalStorageProvider()
   );
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(Boolean(initialProvider));
   const [error, setError] = useState<string | null>(null);
   
   // Verifica autenticazione Supabase direttamente (senza hook)
   useEffect(() => {
+    if (initialProvider) {
+      setStorageProvider(initialProvider);
+      setIsInitialized(true);
+      setError(null);
+      return;
+    }
+
     const checkAuthAndSwitch = async () => {
       try {
         setIsInitialized(false);
@@ -51,9 +54,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
           if (supabaseProvider) {
             setStorageProvider(supabaseProvider);
           } else {
-            // Fallback a LocalStorage se Supabase non disponibile
-            console.warn('Supabase not available, falling back to LocalStorage');
-            setStorageProvider(getLocalStorageProvider());
+            throw new Error('Supabase non disponibile durante il bypass autenticato');
           }
           setIsInitialized(true);
           setError(null);
@@ -69,9 +70,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
             const { data: { session } } = await supabase.auth.getSession();
             isAuthenticated = !!session?.user;
           } catch (authError) {
-            // Se c'è un errore nel check auth, usa LocalStorage
-            console.warn('Auth check failed, using LocalStorage:', authError);
-            isAuthenticated = false;
+            throw new Error('Impossibile verificare la sessione cloud', { cause: authError });
           }
         }
         
@@ -80,9 +79,8 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
           const supabaseProvider = getSupabaseStorageProvider();
           if (supabaseProvider && storageProvider !== supabaseProvider) {
             setStorageProvider(supabaseProvider);
-          } else if (!supabaseProvider && storageProvider?.constructor.name !== 'LocalStorageProvider') {
-            // Fallback a LocalStorage se Supabase non disponibile
-            setStorageProvider(getLocalStorageProvider());
+          } else if (!supabaseProvider) {
+            throw new Error('Sessione autenticata senza provider cloud disponibile');
           }
         } else {
           // Utente non autenticato: usa LocalStorageProvider (già impostato)
@@ -98,8 +96,6 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
         setError(errorMessage);
         setIsInitialized(true);
         console.error('Storage provider switch error:', err);
-        // Fallback a LocalStorage in caso di errore
-        setStorageProvider(getLocalStorageProvider());
       }
     };
     
@@ -124,7 +120,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
         }
       }
     }
-  }, []);
+  }, [initialProvider]);
 
   // Test connection quando il provider cambia e gestisci errori di auth
   useEffect(() => {
@@ -139,15 +135,6 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         
-        // Se è un errore di autenticazione e stiamo usando SupabaseStorageProvider,
-        // fallback a LocalStorageProvider
-        if (errorMessage.includes('not authenticated')) {
-          console.warn('User not authenticated, switching to LocalStorageProvider');
-          setStorageProvider(getLocalStorageProvider());
-          setError(null);
-          return;
-        }
-        
         setError(errorMessage);
         console.error('Storage provider test error:', err);
       }
@@ -155,6 +142,25 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({
 
     testConnection();
   }, [storageProvider, isInitialized]);
+
+  if (!isInitialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-600">
+        Connessione ai dati in corso…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div role="alert" className="flex min-h-screen items-center justify-center bg-gray-50 px-6 text-center">
+        <div>
+          <p className="font-medium text-red-700">Archivio dati non disponibile</p>
+          <p className="mt-2 text-sm text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <StorageContext.Provider value={{ storageProvider, isInitialized, error }}>
@@ -174,7 +180,6 @@ export const useStorage = (): StorageContextType => {
   }
   return context;
 };
-
 
 
 

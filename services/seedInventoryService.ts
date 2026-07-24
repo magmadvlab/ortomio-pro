@@ -13,25 +13,6 @@ const getSeedPacketCache = (gardenId: string): SeedPacket[] => {
 
 const normalizeForLookup = (value?: string) => (value || '').trim().toLowerCase()
 
-const deriveQuantityRemaining = (packet: SeedPacket, currentQuantity: number): SeedPacket['quantityRemaining'] => {
-  const exact =
-    packet.quantityExact ??
-    packet.quantityMax ??
-    packet.initialQuantity ??
-    packet.currentQuantity
-
-  if (currentQuantity <= 0) return 'Empty'
-  if (exact && exact > 0) {
-    const ratio = currentQuantity / exact
-    if (ratio <= 0.2) return 'Low'
-    if (ratio <= 0.5) return 'Medium'
-    return 'High'
-  }
-  if (currentQuantity <= 5) return 'Low'
-  if (currentQuantity <= 20) return 'Medium'
-  return 'High'
-}
-
 const getSupabaseOrThrow = () => {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -472,8 +453,13 @@ export const findSeedsForPlant = (gardenId: string, plantName: string, variety?:
   })
 }
 
-export const useSeedForPlanting = (gardenId: string, seedPacketId: string, quantity: number): boolean => {
-  const packets = getSeedPacketCache(gardenId)
+export const useSeedForPlanting = async (
+  gardenId: string,
+  seedPacketId: string,
+  quantity: number,
+  service: Pick<SeedInventoryService, 'getSeedPackets' | 'consumeSeeds'> = seedInventoryService,
+): Promise<boolean> => {
+  const packets = await service.getSeedPackets(gardenId)
   const packet = packets.find((item) => item.id === seedPacketId)
 
   if (!packet) {
@@ -490,22 +476,7 @@ export const useSeedForPlanting = (gardenId: string, seedPacketId: string, quant
     return false
   }
 
-  const nextQuantity = currentQuantity === null ? null : Math.max(0, currentQuantity - quantity)
-  const updatedPacket: SeedPacket = {
-    ...packet,
-    currentQuantity: nextQuantity ?? packet.currentQuantity,
-    quantityRemaining: nextQuantity === null
-      ? packet.quantityRemaining
-      : deriveQuantityRemaining(packet, nextQuantity),
-    isOpen: true,
-  }
-
-  setSeedPacketCache(
-    gardenId,
-    packets.map((item) => item.id === seedPacketId ? updatedPacket : item)
-  )
-
-  void seedInventoryService.consumeSeeds({
+  await service.consumeSeeds({
     seedPacketId,
     plantName: packet.speciesName || packet.varietyName,
     variety: packet.varietyName,
@@ -513,10 +484,9 @@ export const useSeedForPlanting = (gardenId: string, seedPacketId: string, quant
     date: new Date().toISOString().slice(0, 10),
     purpose: 'sowing',
     gardenId,
-  }).catch((error) => {
-    console.error('Error persisting seed consumption:', error)
   })
 
+  await service.getSeedPackets(gardenId)
   return true
 }
 
