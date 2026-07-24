@@ -1,13 +1,13 @@
 # Tasks
 
 - **Aggiornamento:** 24 luglio 2026
-- **Stato:** M01/D5 completato; M02 dashboard senza dati fittizi e' il prossimo blocco
+- **Stato:** M01-M02 completati; M03 creazione zone end-to-end e' il prossimo blocco
 - **Coda canonica:** `docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`
 
 ## Avanzamento sintetico
 
 - [x] M01 - consolidamento feature flag e chiusura D5 (`c458bd9`);
-- [ ] M02 - dashboard senza dati fittizi;
+- [x] M02 - dashboard senza dati fittizi e lint reale (`583902a`);
 - [ ] M03 - creazione zone end-to-end;
 - [ ] M04 - persistenza suolo e seed inventory;
 - [ ] M05 - classificazione TODO/mock release 1.0;

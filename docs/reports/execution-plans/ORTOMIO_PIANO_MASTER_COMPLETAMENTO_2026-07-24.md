@@ -6,7 +6,7 @@
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** M01 completato; M02 e' il prossimo blocco
+- **Stato esecuzione:** M01-M02 completati; M03 e' il prossimo blocco
 - **Coda canonica:** questo documento
 
 ## 1. Scopo
@@ -58,7 +58,7 @@ Un blocco passa a completato solo quando:
 
 ### M02 - Dashboard senza dati fittizi
 
-- **Stato:** `[ ]`
+- **Stato:** `[x]` completato il 24/07/2026
 - **Obiettivo:** rimuovere valori casuali o non fondati dai percorsi dashboard production.
 - **Perimetro iniziale:** `components/garden/DailyGardenReport.tsx`, empty state della dashboard e stato garden duplicato in `AISuggestionsWidget`.
 - **Attivita':**
@@ -69,6 +69,10 @@ Un blocco passa a completato solo quando:
   - fare usare ai widget lo stesso garden autorevole della pagina;
   - aggiungere test di regressione per zero dati e dati parziali.
 - **Criterio di uscita:** nessun dato simulato viene presentato come misura reale nella dashboard.
+- **Risultato:** salute e inventario piante senza fonte sono mostrati come `dati insufficienti`; irrigazioni e raccolte derivano soltanto da task persistiti aperti; rimossi fallback di suggerimento inventati; garden AI passato dal padre; stati vuoto/errore meteo distinti.
+- **Evidenza:** commit `583902a9` (`fix: make dashboard data truthful and restore lint gate`).
+- **Verifiche:** type-check verde; lint reale con 0 errori e 2.733 warning censiti; capability test 9/9; suite release 288/288; build produzione 145 pagine.
+- **Rischio residuo:** il conteggio piante resta `dati insufficienti` finche' la dashboard non riceve un inventario autorevole. I warning lint sono debito visibile da classificare in M05.
 
 ### M03 - Creazione zone end-to-end
 
@@ -254,20 +258,20 @@ Un blocco passa a completato solo quando:
 
 ## 4. Questioni trasversali aperte
 
-### D14 - Lint non realmente eseguibile
+### D14 - Lint reale
 
-Il 24/07/2026 `npm run lint` ha avviato ESLint ma ha terminato con:
+Il 24/07/2026 `npm run lint` inizialmente avviava ESLint ma terminava con:
 
 `You are linting ".", but all of the files matching the glob pattern "." are ignored.`
 
-Lo stato precedente "lint riattivato" non e' quindi sufficiente. La correzione deve:
+La correzione M02 ha:
 
-- rendere esplicito il perimetro lintato;
-- produrre almeno un controllo reale sui file applicativi;
-- entrare nel gate CI/release;
-- distinguere errori bloccanti e warning esistenti.
+- reso esplicito il perimetro `app components services lib hooks config`;
+- aggirato in modo dichiarato l'ignore ereditato dal percorso worktree;
+- corretto 42 errori bloccanti, incluse violazioni delle regole Hooks;
+- lasciato visibili 2.733 warning storici.
 
-Questa voce va chiusa durante M02, prima di dichiarare verde il relativo commit.
+**Stato:** chiuso per gli errori bloccanti nel commit `583902a9`. La riduzione e classificazione dei warning prosegue in M05.
 
 ### File generato fuori perimetro
 
@@ -278,15 +282,14 @@ Questa voce va chiusa durante M02, prima di dichiarare verde il relativo commit.
 | Data | Blocco | Stato | Evidenza | Note |
 |---|---|---|---|---|
 | 24/07/2026 | M01 / D5 | Completato | `c458bd92a08ad4d947813e65ca6319f7bc184318` | 13 flag morti rimossi; gate locale riallineato |
-| 24/07/2026 | D14 | Riaperto | output `npm run lint` | ESLint ignora il target `.` |
+| 24/07/2026 | M02 / D14 | Completato | `583902a9` | Dashboard veritiera; lint reale con 0 errori; 2.733 warning registrati |
 
 ## 6. Prossima azione
 
-Avviare M02:
+Avviare M03:
 
-1. ricostruire i dati disponibili alla dashboard;
-2. definire il contratto `valore reale | dati insufficienti | errore`;
-3. rimuovere salute, irrigazione e raccolta casuali;
-4. aggiungere empty state e test;
-5. correggere il lint reale;
-6. aggiornare questo registro e creare un commit dedicato.
+1. ricostruire il contratto dati e le API esistenti per le zone;
+2. sostituire il modal TODO con un form validato;
+3. usare identita' e garden autorizzati lato server;
+4. aggiungere test di persistenza e accesso cross-garden negativo;
+5. aggiornare questo registro e creare un commit dedicato.
