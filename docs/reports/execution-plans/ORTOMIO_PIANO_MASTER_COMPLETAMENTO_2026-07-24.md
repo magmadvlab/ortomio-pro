@@ -66,7 +66,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
-| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 125 voci correnti assegnate a M11-M15 (`O05`) |
+| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 119 voci correnti assegnate a M11-M15 (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
 | M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
@@ -157,7 +157,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Criterio di uscita:** nessun TODO/mock non classificato nei percorsi commerciali.
 - **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; baseline iniziale di 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
 - **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
-- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 148 voci totali: 15 assegnate a M11, 29 a M12, 27 a M13, 48 a M14 e 6 a M15; 13 accettate; 10 isolate come sviluppo/laboratorio; zero assegnate a M09-M10.
+- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 142 voci totali: 9 assegnate a M11, 29 a M12, 27 a M13, 48 a M14 e 6 a M15; 13 accettate; 10 isolate come sviluppo/laboratorio; zero assegnate a M09-M10.
 - **Rischio residuo:** il censimento non equivale alla correzione delle 169 voci correnti pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M10-M15.
 
 ### M06 - Riconciliazione completa delle migrazioni
@@ -392,7 +392,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
 | O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
-| O05 | M05 | Riconciliare gli esiti delle 125 voci correnti trasferite a M11-M15 | Manifest finale senza voce `scheduled` irrisolta |
+| O05 | M05 | Riconciliare gli esiti delle 119 voci correnti trasferite a M11-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
 | O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
@@ -429,7 +429,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 Eseguita il 24/07/2026 sulla baseline locale:
 
-- audit debito release corrente: 148 voci, di cui 125 pianificate, 13 accettate e 10 isolate; nessuna voce release non classificata;
+- audit debito release corrente: 142 voci, di cui 119 pianificate, 13 accettate e 10 isolate; nessuna voce release non classificata;
 - audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
 - suite release: 307/307 test superati;
 - build produzione: completata, 147 pagine generate;

@@ -59,6 +59,7 @@ export interface ISOXMLTask {
  */
 export class GeoExportService {
   private storageProvider: any;
+  private generatedFiles = new Map<string, ArrayBuffer>();
 
   constructor(storageProvider: any) {
     this.storageProvider = storageProvider;
@@ -563,17 +564,9 @@ export class GeoExportService {
     zones: PrescriptionZone[],
     config: ExportConfiguration
   ): Promise<ShapefileComponents> {
-    // Simplified shapefile generation
-    // In production, would use proper shapefile library
-    
-    const shp = new ArrayBuffer(100); // Placeholder geometry data
-    const shx = new ArrayBuffer(100); // Placeholder index data
-    const dbf = new ArrayBuffer(1000); // Placeholder attribute data
-    
-    const prj = this.getProjectionString(config.coordinateSystem, config.utmZone);
-    const cpg = config.shapefileOptions?.encoding === 'UTF-8' ? 'UTF-8' : undefined;
-    
-    return { shp, shx, dbf, prj, cpg };
+    throw new Error(
+      `Shapefile export requires an audited binary encoder (${zones.length} zones, ${config.coordinateSystem})`
+    );
   }
 
   private generateKMLDocument(
@@ -670,22 +663,80 @@ export class GeoExportService {
   }
 
   private async createZipArchive(files: Record<string, ArrayBuffer>): Promise<ArrayBuffer> {
-    // Simplified ZIP creation
-    // In production, would use proper ZIP library
-    const totalSize = Object.values(files).reduce((sum, buffer) => sum + buffer.byteLength, 0);
-    return new ArrayBuffer(totalSize + 1000); // Placeholder with overhead
+    const encoder = new TextEncoder();
+    const localChunks: Uint8Array[] = [];
+    const centralChunks: Uint8Array[] = [];
+    let offset = 0;
+    for (const [name, buffer] of Object.entries(files)) {
+      const nameBytes = encoder.encode(name);
+      const bytes = new Uint8Array(buffer);
+      const crc = this.crc32(bytes);
+      const local = new Uint8Array(30 + nameBytes.length + bytes.length);
+      const localView = new DataView(local.buffer);
+      localView.setUint32(0, 0x04034b50, true);
+      localView.setUint16(4, 20, true);
+      localView.setUint16(6, 0x0800, true);
+      localView.setUint32(14, crc, true);
+      localView.setUint32(18, bytes.length, true);
+      localView.setUint32(22, bytes.length, true);
+      localView.setUint16(26, nameBytes.length, true);
+      local.set(nameBytes, 30);
+      local.set(bytes, 30 + nameBytes.length);
+      localChunks.push(local);
+
+      const central = new Uint8Array(46 + nameBytes.length);
+      const centralView = new DataView(central.buffer);
+      centralView.setUint32(0, 0x02014b50, true);
+      centralView.setUint16(4, 20, true);
+      centralView.setUint16(6, 20, true);
+      centralView.setUint16(8, 0x0800, true);
+      centralView.setUint32(16, crc, true);
+      centralView.setUint32(20, bytes.length, true);
+      centralView.setUint32(24, bytes.length, true);
+      centralView.setUint16(28, nameBytes.length, true);
+      centralView.setUint32(42, offset, true);
+      central.set(nameBytes, 46);
+      centralChunks.push(central);
+      offset += local.length;
+    }
+    const centralSize = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const end = new Uint8Array(22);
+    const endView = new DataView(end.buffer);
+    endView.setUint32(0, 0x06054b50, true);
+    endView.setUint16(8, centralChunks.length, true);
+    endView.setUint16(10, centralChunks.length, true);
+    endView.setUint32(12, centralSize, true);
+    endView.setUint32(16, offset, true);
+    const result = new Uint8Array(offset + centralSize + end.length);
+    let cursor = 0;
+    for (const chunk of [...localChunks, ...centralChunks, end]) {
+      result.set(chunk, cursor);
+      cursor += chunk.length;
+    }
+    return result.buffer;
   }
 
   private async saveToStorage(fileName: string, buffer: ArrayBuffer): Promise<string> {
-    // Save to storage provider
-    // For now, return mock path
-    return `/exports/${fileName}`;
+    const filePath = `/exports/${this.sanitizeFileName(fileName)}`;
+    this.generatedFiles.set(filePath, buffer.slice(0));
+    return filePath;
   }
 
   private async generateDownloadUrl(filePath: string): Promise<string> {
-    // Generate temporary download URL
-    // For now, return mock URL
-    return `https://ortomio.com/downloads${filePath}?expires=${Date.now() + 3600000}`;
+    const buffer = this.generatedFiles.get(filePath);
+    if (!buffer) throw new Error(`Generated export not found: ${filePath}`);
+    return URL.createObjectURL(new Blob([buffer], { type: 'application/octet-stream' }));
+  }
+
+  private crc32(bytes: Uint8Array): number {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit += 1) {
+        crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
   }
 
   private sanitizeFileName(name: string): string {
