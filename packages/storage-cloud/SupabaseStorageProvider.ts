@@ -4544,7 +4544,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('compost_logs')
       .select('*')
       .eq('garden_id', gardenId)
-      .order('date', { ascending: false });
+      .order('start_date', { ascending: false });
     if (error) throw error;
     return (data || []) as any;
   }

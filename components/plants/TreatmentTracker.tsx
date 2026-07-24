@@ -7,8 +7,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { Bug, Camera, CheckCircle, AlertTriangle, TrendingUp, Calendar } from 'lucide-react'
-import { TreatmentTracking } from '@/types/plantMonitoring'
-import { treatmentTrackingService } from '@/services/plantMonitoringService'
+import { PlantPhoto, TreatmentTracking } from '@/types/plantMonitoring'
+import { plantPhotoService, treatmentTrackingService } from '@/services/plantMonitoringService'
 
 interface TreatmentTrackerProps {
   plantId: string
@@ -27,6 +27,7 @@ export default function TreatmentTracker({
   const [effectiveness, setEffectiveness] = useState<any>(null)
   const [showStartModal, setShowStartModal] = useState(false)
   const [selectedTreatment, setSelectedTreatment] = useState<TreatmentTracking | null>(null)
+  const [photosById, setPhotosById] = useState<Record<string, PlantPhoto>>({})
 
   useEffect(() => {
     loadTreatmentData()
@@ -34,13 +35,15 @@ export default function TreatmentTracker({
 
   const loadTreatmentData = async () => {
     try {
-      const [active, eff] = await Promise.all([
+      const [active, eff, photos] = await Promise.all([
         treatmentTrackingService.getActiveTreatments(plantId, fieldRowId),
-        treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId)
+        treatmentTrackingService.calculateTreatmentEffectiveness(plantId, fieldRowId),
+        plantPhotoService.getPlantPhotos(plantId, fieldRowId),
       ])
       
       setActiveTreatments(active)
       setEffectiveness(eff)
+      setPhotosById(Object.fromEntries(photos.map((photo) => [photo.id, photo])))
     } catch (error) {
       console.error('Error loading treatment data:', error)
     }
@@ -264,12 +267,19 @@ export default function TreatmentTracker({
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Prima del Trattamento</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {selectedTreatment.beforePhotos.map((photoId, index) => (
-                      <div key={photoId} className="aspect-square bg-gray-200 rounded-lg">
-                        {/* TODO: Caricare foto reale */}
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <Camera size={32} />
-                        </div>
+                    {selectedTreatment.beforePhotos.map((photoId) => (
+                      <div key={photoId} className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                        {photosById[photoId]?.url ? (
+                          <img
+                            src={photosById[photoId].thumbnailUrl || photosById[photoId].url}
+                            alt={`Prima del trattamento ${selectedTreatment.issue.name}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs px-2 text-center">
+                            Foto non disponibile
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -280,10 +290,18 @@ export default function TreatmentTracker({
                     {selectedTreatment.afterPhotos.map((after, index) => (
                       <div key={after.photoId} className="bg-gray-50 rounded-lg p-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-16 h-16 bg-gray-200 rounded">
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <Camera size={20} />
-                            </div>
+                          <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
+                            {photosById[after.photoId]?.url ? (
+                              <img
+                                src={photosById[after.photoId].thumbnailUrl || photosById[after.photoId].url}
+                                alt={`Dopo il trattamento ${selectedTreatment.issue.name}`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                                <Camera size={20} />
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-medium">+{after.daysAfterTreatment} giorni</p>

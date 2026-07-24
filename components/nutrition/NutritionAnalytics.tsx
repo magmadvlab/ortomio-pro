@@ -74,8 +74,28 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
   }
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export analytics data')
+    if (!analyticsData) {
+      return
+    }
+
+    const payload = {
+      garden: {
+        id: garden.id,
+        name: garden.name,
+      },
+      period: timePeriod,
+      exportedAt: new Date().toISOString(),
+      analytics: analyticsData,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `analytics-nutrizione-${garden.id}-${timePeriod}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
   }
 
   const getPeriodLabel = (period: TimePeriod) => {

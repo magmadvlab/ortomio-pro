@@ -3,6 +3,8 @@
  * Gestisce preparati naturali: macerati, decotti, infusi
  */
 
+import { getSupabaseClient } from '@/config/supabase'
+
 export type MacerateType = 'ortica' | 'aglio' | 'equiseto' | 'tanaceto' | 'consolida';
 
 export interface MacerateRecipe {
@@ -161,20 +163,42 @@ export async function trackMacerateProduction(
   gardenId: string,
   macerateLog: Omit<MacerateLog, 'id' | 'createdAt'>
 ): Promise<MacerateLog> {
-  // TODO: Implementare salvataggio in Supabase
-  const storageKey = `macerate_logs_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  const logs: MacerateLog[] = stored ? JSON.parse(stored) : [];
-
-  const newLog: MacerateLog = {
-    id: `macerate_${Date.now()}`,
-    ...macerateLog,
-    createdAt: new Date(),
-  };
-
-  logs.push(newLog);
-  localStorage.setItem(storageKey, JSON.stringify(logs));
-
-  return newLog;
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Database non disponibile: impossibile registrare il preparato.')
+  }
+  const { data: authData, error: authError } = await supabase.auth.getUser()
+  if (authError || !authData.user) {
+    throw authError || new Error('Autenticazione richiesta per registrare il preparato.')
+  }
+  const { data, error } = await supabase
+    .from('macerate_logs')
+    .insert({
+      user_id: authData.user.id,
+      garden_id: gardenId,
+      macerate_type: macerateLog.type,
+      start_date: macerateLog.startDate.toISOString(),
+      materials: macerateLog.materials,
+      preparation_time_days: macerateLog.preparationTime,
+      quantity_produced: macerateLog.quantityProduced,
+      unit: macerateLog.unit,
+      notes: macerateLog.notes,
+    })
+    .select('*')
+    .single()
+  if (error) {
+    throw error
+  }
+  return {
+    id: data.id,
+    gardenId: data.garden_id,
+    type: data.macerate_type,
+    startDate: new Date(data.start_date),
+    materials: data.materials,
+    preparationTime: data.preparation_time_days,
+    quantityProduced: data.quantity_produced,
+    unit: data.unit,
+    notes: data.notes ?? undefined,
+    createdAt: new Date(data.created_at),
+  }
 }
-

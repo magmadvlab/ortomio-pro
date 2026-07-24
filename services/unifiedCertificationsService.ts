@@ -160,28 +160,6 @@ class UnifiedCertificationsService {
     return deadlines.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
   }
 
-  private async getRecentActivities(gardenId: string): Promise<CertificationActivity[]> {
-    // Mock implementation - in real app, this would come from audit logs
-    return [
-      {
-        id: '1',
-        certificationType: 'GLOBALGAP',
-        activity: 'Completata checklist autocontrollo AF 2.2',
-        date: new Date().toISOString(),
-        user: 'Sistema',
-        status: 'SUCCESS'
-      },
-      {
-        id: '2',
-        certificationType: 'HACCP',
-        activity: 'Aggiornato piano HACCP',
-        date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        user: 'Admin',
-        status: 'SUCCESS'
-      }
-    ]
-  }
-
   // ===== HACCP MANAGEMENT =====
 
   async createHACCPSystem(gardenId: string, data: Partial<HACCPSystem>): Promise<HACCPSystem> {

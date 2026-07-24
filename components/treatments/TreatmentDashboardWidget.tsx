@@ -39,7 +39,7 @@ export default function TreatmentDashboardWidget({
 }: TreatmentDashboardWidgetProps) {
   const { productCards, recentlyUsed, fertilizers, treatments, loading } = useProductCards(garden.id);
   const [showWizard, setShowWizard] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductCard | null>(null);
+  const [wizardProduct, setWizardProduct] = useState<ProductCard | null>(null);
 
   // Filtra task di trattamenti e fertilizzanti
   const treatmentTasks = (tasks || []).filter(task => 
@@ -68,9 +68,9 @@ export default function TreatmentDashboardWidget({
     }).length
   };
 
-  const handleUseProduct = async (product: ProductCard) => {
-    // TODO: Implementare applicazione rapida del prodotto
-    console.log('Using product:', product.name);
+  const handleUseProduct = (product: ProductCard) => {
+    setWizardProduct(product);
+    setShowWizard(true);
   };
 
   if (loading) {
@@ -261,31 +261,12 @@ export default function TreatmentDashboardWidget({
         <SmartTreatmentWizard
           garden={garden}
           onCreateTasks={onCreateTasks}
-          onClose={() => setShowWizard(false)}
+          initialProduct={wizardProduct}
+          onClose={() => {
+            setShowWizard(false)
+            setWizardProduct(null)
+          }}
         />
-      )}
-
-      {/* Modal Scheda Prodotto */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <ProductCardView
-                product={selectedProduct}
-                onUse={handleUseProduct}
-                onEdit={() => {/* TODO: Implementare modifica */}}
-              />
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={() => setSelectedProduct(null)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Chiudi
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
     </>
   );

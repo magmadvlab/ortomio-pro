@@ -1268,7 +1268,6 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               </button>
             </div>
             <div className="p-4">
-              {/* TODO: Caricare zone da storage */}
               <IrrigationZoneManager
                 garden={activeGarden}
               />

@@ -129,8 +129,7 @@ export class IntegratedTreatmentService {
       productCard,
       tasks,
       totalQuantity,
-      applicationSchedule,
-      totalCost: undefined // TODO: integrare con prezzi prodotti
+      applicationSchedule
     };
   }
 

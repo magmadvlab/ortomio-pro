@@ -66,7 +66,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M02 | `[x]` chiuso | Dashboard senza dati inventati; lint eseguibile | Debito warning separato in `T01` |
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
-| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 92 voci correnti assegnate a M12-M15; M11 locale azzerato (`O05`) |
+| M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci | 81 voci correnti assegnate a M13-M15; M11-M12 locali azzerati (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
 | M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
@@ -157,7 +157,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Criterio di uscita:** nessun TODO/mock non classificato nei percorsi commerciali.
 - **Risultato:** introdotto un audit riproducibile e il manifest `M05_RELEASE_DEBT_MANIFEST_2026-07-24.csv`; baseline iniziale di 203 occorrenze tecniche classificate, zero voci release non classificate. Le voci non innocue sono assegnate ai blocchi M09-M15 che ne possiedono la chiusura funzionale.
 - **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
-- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 115 voci totali: zero assegnate a M11, 11 a M12, 27 a M13, 48 a M14 e 6 a M15; 13 accettate; 10 isolate come sviluppo/laboratorio; zero assegnate a M09-M10.
+- **Verifiche correnti:** `npm run audit:release-debt` verde il 24/07/2026; 104 voci totali: zero assegnate a M09-M12, 27 a M13, 48 a M14 e 6 a M15; 13 accettate; 10 isolate come sviluppo/laboratorio.
 - **Rischio residuo:** il censimento non equivale alla correzione delle 169 voci correnti pianificate. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M10-M15.
 
 ### M06 - Riconciliazione completa delle migrazioni
@@ -270,8 +270,8 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - salute con cron, deduplica, task e outcome;
   - approvazione umana per ogni azione operativa.
 - **Criterio di uscita:** almeno un ciclo completo segnale -> decisione -> esecuzione -> outcome.
-- **Risultato parziale:** protocollo e guardrail definiti per irrigazione, nutrizione, trattamenti e salute; test lifecycle locali disponibili.
-- **Evidenza:** commit `a23fefe` e `M12_AGRONOMIC_PILOT_PROTOCOL_2026-07-24.md`.
+- **Risultato parziale:** protocollo e guardrail definiti; debito software M12 azzerato. Analytics, export, foto, calcolo nutrizionale, preparati, compost e registri convergono su motori o persistenza canonici.
+- **Evidenza:** commit `a23fefe`, avanzamento PR `#48` e `M12_AGRONOMIC_PILOT_PROTOCOL_2026-07-24.md`.
 - **Blocco:** azienda, mezzi, cataloghi, responsabili e outcome reali non identificati.
 
 ### M13 - Provider esterni
@@ -392,7 +392,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O01 | M03 | Applicare e provare la migrazione ownership zone in staging | Create/read e accesso cross-garden verdi sullo schema candidato |
 | O02 | M03 | Migrare update, cambio stato ed eliminazione zone legacy alla API canonica | Nessuna mutazione production parallela |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
-| O05 | M05 | Riconciliare gli esiti delle 92 voci correnti trasferite a M12-M15 | Manifest finale senza voce `scheduled` irrisolta |
+| O05 | M05 | Riconciliare gli esiti delle 81 voci correnti trasferite a M13-M15 | Manifest finale senza voce `scheduled` irrisolta |
 | O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
 | O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
@@ -429,9 +429,9 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 Eseguita il 24/07/2026 sulla baseline locale:
 
-- audit debito release corrente: 115 voci, di cui 92 pianificate, 13 accettate e 10 isolate; nessuna voce release non classificata;
+- audit debito release corrente: 104 voci, di cui 81 pianificate, 13 accettate e 10 isolate; nessuna voce release non classificata e zero voci M09-M12;
 - audit migrazioni: `safeToApply=false`, coerente con il blocco M06;
-- suite release: 307/307 test superati;
+- suite release: 350/350 test superati;
 - build produzione: completata, 147 pagine generate;
 - rischio remoto invariato: queste prove non sostituiscono staging, restore drill, pilot o provider reali.
 

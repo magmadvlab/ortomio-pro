@@ -10,11 +10,11 @@
 - [x] M02 - dashboard senza dati fittizi e lint reale (`583902a`);
 - [ ] M03 - implementazione locale pronta; migrazione staging e API legacy aperte;
 - [ ] M04 - implementazione locale pronta; migrazione staging e helper seed aperti;
-- [ ] M05 - censimento pronto; 92 esiti correnti da riconciliare nei milestone M12-M15; M11 locale azzerato;
+- [ ] M05 - censimento pronto; 81 esiti correnti da riconciliare nei milestone M13-M15; M11-M12 locali azzerati;
 - [ ] M06-M08 - migrazioni, restore e RLS bloccati senza staging;
 - [ ] M09 - convergenza locale verificata; resta la certificazione staging;
 - [ ] M10 - lifecycle locale pronto; consegna/webhook provider da certificare in staging;
-- [ ] M11-M15 - `O25-O26` chiusi localmente; giornata reale, pilot, provider, AI e commerciale incompleti;
+- [ ] M11-M15 - debito locale M11-M12 azzerato; giornata reale, pilot, provider, AI e commerciale incompleti;
 - [ ] M16 - audit finale non iniziato.
 
 ## Regola

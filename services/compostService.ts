@@ -3,6 +3,10 @@
  * Gestisce autoproduzione compost: tradizionale, lombrico, bokashi
  */
 
+import { createStorageProvider } from '@/packages/core/storage/factory'
+import type { IStorageProvider } from '@/packages/core/storage/interface'
+import type { CompostLogDB } from '@/types'
+
 export interface CompostMaterial {
   name: string;
   type: 'green' | 'brown'; // Verde = azoto, Marrone = carbonio
@@ -214,42 +218,47 @@ export function getCompostInstructions(
  */
 export async function trackCompostProduction(
   gardenId: string,
-  compostLog: Omit<CompostLog, 'id' | 'createdAt' | 'updatedAt'>
+  compostLog: Omit<CompostLog, 'id' | 'createdAt' | 'updatedAt'>,
+  storageProvider: Pick<IStorageProvider, 'createCompostLog'> = createStorageProvider('cloud')
 ): Promise<CompostLog> {
-  // TODO: Implementare salvataggio in Supabase
-  // Per ora, salva in localStorage
-  const storageKey = `compost_logs_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  const logs: CompostLog[] = stored ? JSON.parse(stored) : [];
-
-  const newLog: CompostLog = {
-    id: `compost_${Date.now()}`,
-    ...compostLog,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  logs.push(newLog);
-  localStorage.setItem(storageKey, JSON.stringify(logs));
-
-  return newLog;
+  const persisted = await storageProvider.createCompostLog({
+    garden_id: gardenId,
+    compost_type: compostLog.compostType,
+    start_date: compostLog.startDate.toISOString(),
+    materials: compostLog.materials,
+    cn_ratio: compostLog.cnRatio,
+    maturity_date: compostLog.maturityDate?.toISOString(),
+    quantity_produced: compostLog.quantityProduced,
+    unit: compostLog.unit,
+    notes: compostLog.notes,
+  })
+  return mapCompostLog(persisted)
 }
 
 /**
  * Recupera log compost
  */
-export async function getCompostLogs(gardenId: string): Promise<CompostLog[]> {
-  const storageKey = `compost_logs_${gardenId}`;
-  const stored = localStorage.getItem(storageKey);
-  if (stored) {
-    return JSON.parse(stored).map((log: any) => ({
-      ...log,
-      startDate: new Date(log.startDate),
-      maturityDate: log.maturityDate ? new Date(log.maturityDate) : undefined,
-      createdAt: new Date(log.createdAt),
-      updatedAt: new Date(log.updatedAt),
-    }));
-  }
-  return [];
+export async function getCompostLogs(
+  gardenId: string,
+  storageProvider: Pick<IStorageProvider, 'getCompostLogs'> = createStorageProvider('cloud')
+): Promise<CompostLog[]> {
+  const logs = await storageProvider.getCompostLogs(gardenId)
+  return logs.map(mapCompostLog)
 }
 
+function mapCompostLog(log: CompostLogDB): CompostLog {
+  return {
+    id: log.id,
+    gardenId: log.garden_id,
+    compostType: log.compost_type,
+    startDate: new Date(log.start_date),
+    materials: log.materials,
+    cnRatio: log.cn_ratio ?? undefined,
+    maturityDate: log.maturity_date ? new Date(log.maturity_date) : undefined,
+    quantityProduced: log.quantity_produced ?? undefined,
+    unit: log.unit,
+    notes: log.notes ?? undefined,
+    createdAt: new Date(log.created_at),
+    updatedAt: new Date(log.updated_at),
+  }
+}

@@ -33,6 +33,7 @@ interface SmartTreatmentWizardProps {
   garden: Garden;
   onCreateTasks: (tasks: GardenTask[]) => Promise<void>;
   onClose: () => void;
+  initialProduct?: ProductCard | null;
 }
 
 type WizardStep = 'search' | 'product' | 'area' | 'schedule' | 'review' | 'complete';
@@ -40,25 +41,26 @@ type WizardStep = 'search' | 'product' | 'area' | 'schedule' | 'review' | 'compl
 export default function SmartTreatmentWizard({ 
   garden, 
   onCreateTasks, 
-  onClose 
+  onClose,
+  initialProduct = null,
 }: SmartTreatmentWizardProps) {
   const { productCards, addProductCard, loading: cardsLoading } = useProductCards(garden.id);
   const { user } = useAuth();
   
   // Wizard state
-  const [currentStep, setCurrentStep] = useState<WizardStep>('search');
+  const [currentStep, setCurrentStep] = useState<WizardStep>(initialProduct ? 'product' : 'search');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Form data
   const [searchData, setSearchData] = useState({
-    productName: '',
-    type: 'fertilizer' as 'fertilizer' | 'treatment',
+    productName: initialProduct?.name || '',
+    type: initialProduct?.type || 'fertilizer' as 'fertilizer' | 'treatment',
     diseaseContext: '',
     plantContext: ''
   });
   
-  const [selectedProduct, setSelectedProduct] = useState<ProductCard | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductCard | null>(initialProduct);
   
   const [areaData, setAreaData] = useState({
     type: 'field' as 'field' | 'rows' | 'individual_plants',
