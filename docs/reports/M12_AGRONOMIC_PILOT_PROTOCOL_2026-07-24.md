@@ -21,7 +21,7 @@
 
 I test lifecycle verificano unita' e range, retry/dead-letter, separazione volume pianificato/misurato, adattamento pioggia senza task fittizi e stock modificato solo dopo esecuzione confermata.
 
-Il runtime delle lavorazioni meccaniche converge sullo storage provider durevole; il vecchio CRUD con sequenze e statistiche simulate e' stato rimosso. Type-check verde, persistenza 53/53; le voci sorgente M12 scendono da 29 a 21.
+Il runtime delle lavorazioni meccaniche converge sullo storage provider durevole; il vecchio CRUD con sequenze e statistiche simulate e' stato rimosso. Il widget zone irrigue legge impianti, zone e aiuole dal provider, normalizza il meteo e persiste le nuove zone senza `localStorage`. Type-check verde, persistenza 54/54; le voci sorgente M12 scendono da 29 a 18.
 
 ## Blocco
 

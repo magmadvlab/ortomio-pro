@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { IrrigationZone, IrrigationSchedule } from '@/types/irrigation';
-import { Garden } from '@/types';
+import { Garden, GardenBed } from '@/types';
 import { calculateZoneIrrigationSchedule } from '@/services/irrigationService';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { Droplets, Clock, AlertCircle, CheckCircle, Plus, ChevronRight } from 'lucide-react';
 import { IrrigationZoneWizard } from './IrrigationZoneWizard';
-import { getWeatherForecast } from '@/services/weatherService';
+import { getWeatherForecast, type WeatherForecast } from '@/services/weatherService';
 
 interface IrrigationZonesWidgetProps {
   garden: Garden;
@@ -21,62 +21,83 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
   const [schedules, setSchedules] = useState<IrrigationSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
-  const [weather, setWeather] = useState<any>(null);
+  const [weather, setWeather] = useState<WeatherForecast | null>(null);
+  const [beds, setBeds] = useState<GardenBed[]>([]);
+  const [systemId, setSystemId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // TODO: Implementare getIrrigationSystems e getIrrigationZones nello storage provider
-        // Per ora usiamo localStorage come fallback
-        const stored = localStorage.getItem(`irrigationZones_${garden.id}`);
-        if (stored) {
-          const zonesData = JSON.parse(stored);
-          setZones(zonesData);
-          
-          // Calcola schedule per ogni zona
-          if (garden.coordinates) {
-            const forecast = await getWeatherForecast(
+        setError(null);
+        const [systems, gardenBeds] = await Promise.all([
+          storageProvider.getIrrigationSystems(garden.id),
+          storageProvider.getGardenBeds(garden.id),
+        ]);
+        const activeSystem = systems[0];
+        setSystemId(activeSystem?.id || null);
+        setBeds(gardenBeds);
+        const zonesData = activeSystem
+          ? await storageProvider.getIrrigationZones(activeSystem.id, garden.id)
+          : [];
+        setZones(zonesData);
+        const rawForecast = garden.coordinates
+          ? (await getWeatherForecast(
               garden.coordinates.latitude,
               garden.coordinates.longitude
-            );
-            setWeather(forecast);
-          }
-          
-          const schedulesPromises = zonesData.map(async (zone: IrrigationZone) => {
-            return await calculateZoneIrrigationSchedule(
+            ))[0]
+          : null;
+        const forecast: WeatherForecast | null = rawForecast ? {
+          ...rawForecast,
+          date: rawForecast.date instanceof Date
+            ? rawForecast.date.toISOString().slice(0, 10)
+            : String(rawForecast.date),
+          tempMin: rawForecast.tempMin ?? rawForecast.temp_min ?? 0,
+          tempMax: rawForecast.tempMax ?? rawForecast.temp_max ?? 0,
+          rainMm: rawForecast.rainMm ?? rawForecast.precipitation ?? 0,
+          windSpeed: rawForecast.windSpeed ?? rawForecast.wind_speed ?? 0,
+          humidity: rawForecast.humidity ?? 0,
+        } : null;
+        setWeather(forecast);
+        const schedulesData = await Promise.all(
+          zonesData.map((zone: IrrigationZone) =>
+            calculateZoneIrrigationSchedule(
               zone,
               zone.plantTaskIds ?? [],
               tasks,
               garden,
-              weather
-            );
-          });
-          
-          const schedulesData = await Promise.all(schedulesPromises);
-          setSchedules(schedulesData.filter(s => s.litersNeeded > 0));
-        }
+              forecast
+            )
+          )
+        );
+        setSchedules(schedulesData.filter(s => (s.litersNeeded ?? 0) > 0));
       } catch (error) {
         console.error('Error loading irrigation zones:', error);
+        setError('Zone irrigue non disponibili. Verifica la connessione e riprova.');
       } finally {
         setLoading(false);
       }
     };
     
     loadData();
-  }, [garden.id, tasks, weather]);
+  }, [garden, tasks, storageProvider]);
 
   const handleZoneCreate = async (zone: IrrigationZone) => {
     try {
-      // TODO: Implementare createIrrigationZone nello storage provider
-      const updated = [...zones, zone];
-      localStorage.setItem(`irrigationZones_${garden.id}`, JSON.stringify(updated));
+      if (!systemId) throw new Error('Create an irrigation system before adding zones');
+      const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...zoneInput } = zone;
+      const created = await storageProvider.createIrrigationZone({
+        ...zoneInput,
+        systemId,
+      });
+      const updated = [...zones, created];
       setZones(updated);
       setShowWizard(false);
       
       // Ricalcola schedule
       const schedule = await calculateZoneIrrigationSchedule(
-        zone,
-        zone.plantTaskIds ?? [],
+        created,
+        created.plantTaskIds ?? [],
         tasks,
         garden,
         weather
@@ -86,6 +107,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
       }
     } catch (error) {
       console.error('Error creating zone:', error);
+      setError(error instanceof Error ? error.message : 'Creazione zona non riuscita');
     }
   };
 
@@ -122,7 +144,7 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
               </div>
             </div>
             <button
-              onClick={() => setShowWizard(true)}
+              onClick={() => systemId ? setShowWizard(true) : onOpenManager?.()}
               className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center gap-3"
             >
               <Plus size={16} />
@@ -133,7 +155,9 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
           {zones.length === 0 ? (
             <div className="mt-4">
               <p className="text-sm opacity-90">
-                Nessuna zona configurata. Crea una zona per iniziare!
+                {error || (systemId
+                  ? 'Nessuna zona configurata. Crea una zona per iniziare!'
+                  : 'Configura prima un impianto irriguo dal gestore.')}
               </p>
             </div>
           ) : (
@@ -204,11 +228,11 @@ export function IrrigationZonesWidget({ garden, tasks, onOpenManager }: Irrigati
         <Droplets size={120} className="absolute -right-4 -bottom-10 text-white opacity-10" />
       </div>
 
-      {showWizard && (
+      {showWizard && systemId && (
         <IrrigationZoneWizard
           garden={garden}
-          beds={[]} // TODO: Caricare beds da storage
-          systemId={garden.id} // Per ora 1 sistema = 1 giardino
+          beds={beds}
+          systemId={systemId}
           onComplete={handleZoneCreate}
           onCancel={() => setShowWizard(false)}
         />
