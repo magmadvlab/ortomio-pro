@@ -1,7 +1,7 @@
 # Ripristino pianificazione ambientale (esposizione solare + finestre di semina + successione colturale)
 
 - **Data:** 25 luglio 2026
-- **Stato:** approvato, in attesa di piano di implementazione
+- **Stato:** implementato 25/07/2026 — vedi `docs/superpowers/plans/2026-07-25-environmental-planning-restoration.md` per il piano eseguito. Verifica visiva in browser non effettuata (nessun `.claude/launch.json` in questo worktree, come dichiarato nella sezione 8 della spec).
 - **Origine:** durante T01 (debito lint), verificando 6 candidati "codice morto" a zero importer segnalati dall'utente come possibili doppioni, è emerso che l'intera catena "finestre di semina ottimali + suggerimenti di successione" era raggiungibile solo tramite `components/Dashboard.tsx`, sostituito da `components/shared/HomeDashboard.tsx` senza ereditare queste funzionalità.
 
 ## 1. Problema
