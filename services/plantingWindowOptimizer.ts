@@ -4,21 +4,12 @@
  */
 
 import { SeasonalSunWindow, GardenClassification } from './seasonalSunWindows';
-import { PlantSuggestionForWindow } from './seasonalPlantSuggestions';
-import { PlantMasterSheet } from '../types';
 import { getMasterSheetById } from '../data/plantMasterSheets';
 import { calculateDailySunHours, Obstacle3D } from './preciseSunCalculator';
 import { Garden } from '../types';
-import {
-  calculateSoilWarmingDelay,
-  adjustDateForSoilType,
-} from '../utils/soilTemperatureUtils';
-import {
-  calculateAltitudePlantingDelay,
-  adjustPlantingDates,
-} from '../utils/altitudeUtils';
+import { calculateSoilWarmingDelay } from '../utils/soilTemperatureUtils';
+import { calculateAltitudePlantingDelay } from '../utils/altitudeUtils';
 import { HistoricalWeatherData } from './historicalWeatherService';
-import { getMasterSheet } from '../services/plantMasterService';
 
 export interface PlantingWindow {
   category: 'Estivo' | 'Primaverile' | 'Autunnale' | 'FogliaEstiva';
