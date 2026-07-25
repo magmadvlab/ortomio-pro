@@ -68,7 +68,9 @@ test('checkEmptySpaceOpportunity reports the removed plant name distinct from th
   const suggestion = checkEmptySpaceOpportunity(harvestTask, allMasterSheets, garden(), new Date('2026-04-01T12:00:00+02:00'))
 
   assert.ok(suggestion, 'expected a succession suggestion for a Solanaceae harvest task')
-  assert.equal(suggestion!.removedPlantName, 'Pomodoro')
+  // Master sheet data stores commonName uppercase (verified empirically: 'POMODORO')
+  assert.equal(suggestion!.removedPlantName, 'POMODORO')
+  assert.equal(suggestion!.plant.commonName, 'ZUCCHINA')
   assert.notEqual(suggestion!.removedPlantName, suggestion!.plant.commonName)
 })
 

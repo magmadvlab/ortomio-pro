@@ -4,6 +4,7 @@ import { getSeasonForDate, getNextSeason, Season } from '../utils/seasonalAdjust
 
 export interface SuccessionSuggestion {
   plant: PlantMasterSheet;
+  removedPlantName: string;
   reason: string;
   startSowingDate: Date;
   transplantDate: Date;
@@ -133,6 +134,7 @@ export const checkEmptySpaceOpportunity = (
   
   return {
     plant: suggestion,
+    removedPlantName: removedPlant.commonName,
     reason: `Hai liberato uno spazio! È il momento perfetto per mettere ${suggestion.commonName.toLowerCase()}. Essendo di una famiglia diversa (${suggestion.family}), sfrutterà nutrienti diversi e romperà il ciclo delle malattie.`,
     startSowingDate: startSowing,
     transplantDate: transplantDate,
