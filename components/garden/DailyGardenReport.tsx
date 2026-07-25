@@ -1,17 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { 
-  Calendar, 
-  TrendingUp, 
-  AlertCircle, 
-  CheckCircle, 
-  Clock, 
-  Droplets, 
-  Sun, 
-  Thermometer,
-  Leaf,
-  Target,
+import {
+  Calendar,
+  AlertCircle,
+  Clock,
   ArrowRight,
   Sparkles,
   Info
