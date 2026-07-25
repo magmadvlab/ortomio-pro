@@ -10,23 +10,15 @@
 
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   BookOpen,
   Calendar,
-  TrendingUp,
-  Filter,
-  Search,
   Plus,
-  Eye,
   Camera,
   BarChart3,
-  MessageSquare,
-  Clock,
-  Target,
   Leaf,
   Activity,
-  FileText,
   Download
 } from 'lucide-react'
 import { TimelineView } from '@/components/garden/TimelineView'
@@ -35,13 +27,24 @@ import { PlantLifecycleTimeline } from '@/components/planner/PlantLifecycleTimel
 import DiaryPlannerIntegration from './DiaryPlannerIntegration'
 import { createOperationalDiaryService } from '@/services/operationalDiaryService'
 import type { DiaryEvent } from '@/types/diary'
+import type { Garden, GardenTask } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import QuickEventModal, { type QuickEvent } from './QuickEventModal'
 
+interface DiaryPhoto {
+  id: string
+  url: string
+  date: Date
+  plantName?: string
+  notes?: string
+}
+
+type DiaryEventWithPlant = DiaryEvent & { plantName?: string }
+
 interface UnifiedTimelineDiaryProps {
   gardenId: string
-  garden?: any
-  tasks?: any[]
+  garden: Garden
+  tasks?: GardenTask[]
 }
 
 export default function UnifiedTimelineDiary({ 
@@ -53,7 +56,7 @@ export default function UnifiedTimelineDiary({
   const diaryService = useMemo(() => createOperationalDiaryService(storageProvider), [storageProvider])
   const [activeView, setActiveView] = useState<'timeline' | 'photos' | 'lifecycle' | 'analytics'>('timeline')
   const [entries, setEntries] = useState<DiaryEvent[]>([])
-  const [photos, setPhotos] = useState<any[]>([])
+  const [photos, setPhotos] = useState<DiaryPhoto[]>([])
   const [loading, setLoading] = useState(true)
   const [showQuickEvent, setShowQuickEvent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,11 +66,7 @@ export default function UnifiedTimelineDiary({
     plantName: 'all'
   })
 
-  useEffect(() => {
-    loadDiaryData()
-  }, [gardenId, filters])
-
-  const loadDiaryData = async () => {
+  const loadDiaryData = useCallback(async () => {
     setLoading(true)
     try {
       // Carica entries dal servizio esistente
@@ -87,20 +86,24 @@ export default function UnifiedTimelineDiary({
             id: `${entry.id}-${photoUrl}`,
             url: photoUrl,
             date: new Date(entry.date),
-            plantName: (entry as any).plantName || entry.operationData?.plantName,
+            plantName: (entry as DiaryEventWithPlant).plantName || entry.operationData?.plantName,
             notes: entry.title
           }))
         )
-      
+
       setPhotos(photoEntries)
-      
+
     } catch (error) {
       console.error('Error loading diary data:', error)
       setError(error instanceof Error ? error.message : 'Diario non disponibile')
     } finally {
       setLoading(false)
     }
-  }
+  }, [diaryService, gardenId, filters])
+
+  useEffect(() => {
+    loadDiaryData()
+  }, [loadDiaryData])
 
   const saveQuickEvent = async (event: QuickEvent) => {
     const type = event.type === 'action' ? 'operation' : event.type === 'weather_event' ? 'weather' : event.type
@@ -155,13 +158,13 @@ export default function UnifiedTimelineDiary({
       .filter(entry => entry.type === 'operation')
       .map(entry => ({
         id: entry.id,
-        plantName: (entry as any).plantName || entry.operationData?.plantName || 'Generico',
+        plantName: (entry as DiaryEventWithPlant).plantName || entry.operationData?.plantName || 'Generico',
         taskType: mapCategoryToTaskType(entry.category),
         date: entry.date,
         completed: entry.performance ? entry.performance.effectiveness > 80 : false,
         variety: '',
         description: entry.description
-      })) as any
+      })) as unknown as GardenTask[]
   }
 
   const mapCategoryToTaskType = (category: string) => {
@@ -179,7 +182,7 @@ export default function UnifiedTimelineDiary({
 
   // Ottieni piante uniche per lifecycle timeline
   const getUniqueePlants = () => {
-    const plants = [...new Set(entries.map(e => (e as any).plantName || e.operationData?.plantName).filter(Boolean))]
+    const plants = [...new Set(entries.map(e => (e as DiaryEventWithPlant).plantName || e.operationData?.plantName).filter((p): p is string => Boolean(p)))]
     return plants.slice(0, 3) // Mostra solo le prime 3 piante
   }
 
@@ -276,7 +279,7 @@ export default function UnifiedTimelineDiary({
                       <p className="text-sm font-medium text-gray-900">{entry.title}</p>
                       <p className="text-xs text-gray-500">
                         {new Date(entry.date).toLocaleDateString('it-IT')}
-                        {(entry as any).plantName || entry.operationData?.plantName && ` • ${(entry as any).plantName || entry.operationData?.plantName}`}
+                        {(entry as DiaryEventWithPlant).plantName || (entry.operationData?.plantName && ` • ${entry.operationData.plantName}`)}
                       </p>
                     </div>
                   </div>
@@ -326,7 +329,7 @@ export default function UnifiedTimelineDiary({
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setActiveView(key as any)}
+              onClick={() => setActiveView(key as 'timeline' | 'photos' | 'lifecycle' | 'analytics')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeView === key
                   ? 'bg-green-100 text-green-700 border border-green-200'
