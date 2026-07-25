@@ -94,6 +94,28 @@ Prima di scegliere i file: applicata la nuova regola del cluster morto — contr
 | `@next/next/no-img-element` | 0 | 36 |
 | **Totale** | **0** | **2496** |
 
+## Lotto 5 (24/07/2026, sera) - chiuso
+
+`services/aiPredictiveEngine.ts` (13 -> 5), confermato raggiungibile da `/app/ai-predictions` prima di aprirlo.
+
+- Import morto `Garden` rimosso.
+- **Gap algoritmico reale trovato (non fake, ma incompleto):** `optimizeWaterUsage()` calcolava `et0` (evapotranspirazione) e `soilWaterCapacity`, entrambi scartati subito dopo — la formula finale usa solo fabbisogno idrico piante e precipitazioni previste, ignorando suolo ed evapotranspirazione nonostante il commento sopra la funzione elencasse entrambi come fattori considerati. Diverso dal caso `costOptimizationService.ts`: qui i numeri usati sono reali, solo la copertura è più stretta di quanto dichiarato. Rimossa la computazione morta e i due metodi privati che l'alimentavano (`calculateEvapotranspiration`, `calculateSoilWaterCapacity`, rimasti orfani), corretto il commento per non promettere piu' di quanto la formula fa; `soil` rimosso dalla firma del metodo e dal chiamante.
+- `getDiseaseRules(plantId)`: `plantId` mai usato, la tabella regole malattie e' statica per ogni pianta — ma il commento nel codice lo dichiara gia' onestamente ("Simplified disease rules - in production, this would be ML models"), quindi non e' stato trattato come i casi precedenti. Parametro rimosso, chiamata aggiornata.
+- `analyzeWeatherFactors`/`analyzeRiskFactors`: parametro `rule: any` mai usato in nessuna delle due, rimosso da firme e chiamata.
+- `calculateYieldFactors`/`calculateQualityScore`: `tasks`/`factors` mai usati nei rispettivi corpi, rimossi da firme e chiamate. **Errore intercettato dal type-check**: la prima rimozione aveva tolto l'argomento dalla chiamata ma non dalla firma della funzione (arieta' 5 vs 4) — `tsc --noEmit` l'ha bloccato subito, corretto prima di procedere.
+- **Non toccato deliberatamente:** `optimizeLaborSchedule`/`optimizeEnergyUsage` (righe 824-834) restituiscono `null` con commento esplicito "Not implemented in this version" — stub onesti, non fake data. I loro parametri (`tasks`, `weather`, `plants`) restano non rimossi per documentare quali dati servira' l'implementazione futura; il file chiude quindi a 5 warning residui, non 0.
+- **Verifiche:** type-check verde (dopo la correzione dell'arieta'); `test:release` 228/228; build produzione verde.
+
+## Stato dopo il lotto 5
+
+| Regola | Errori | Warning |
+|---|---:|---:|
+| `@typescript-eslint/no-explicit-any` | 0 | 1271 |
+| `@typescript-eslint/no-unused-vars` | 0 | 1005 |
+| `react-hooks/exhaustive-deps` | 0 | 174 |
+| `@next/next/no-img-element` | 0 | 36 |
+| **Totale** | **0** | **2486** |
+
 ## Prossimo lotto
 
-Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, **saltare `costOptimizationService.ts` e l'intero cluster "AI Planner"** (`Planner.tsx`, `PlannerWithAI.tsx`, `AIPlanningWizard.tsx`, `PlanPreviewModal.tsx`, `PlannerSuggestions.tsx`, `PlannerSearch.tsx`, `FloatingAIWidget.tsx`, `VisualGardenPlanner.tsx`) e altri file gia' scartati per irraggiungibilita' (`ListView.tsx`, `AnnualPlanner.tsx`) salvo nuova prova contraria — **verificare con grep la raggiungibilita' di ogni file candidato prima di aprirlo**, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI** — poi type-check + `test:release` + build dopo ogni lotto.
+Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, **saltare `costOptimizationService.ts` e l'intero cluster "AI Planner"** (`Planner.tsx`, `PlannerWithAI.tsx`, `AIPlanningWizard.tsx`, `PlanPreviewModal.tsx`, `PlannerSuggestions.tsx`, `PlannerSearch.tsx`, `FloatingAIWidget.tsx`, `VisualGardenPlanner.tsx`) e altri file gia' scartati per irraggiungibilita' (`ListView.tsx`, `AnnualPlanner.tsx`) salvo nuova prova contraria — **verificare con grep la raggiungibilita' di ogni file candidato prima di aprirlo**, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa, e distinguere uno stub onesto (commento esplicito "non implementato", `return null`) da uno disonesto (dati finti spacciati per calcolati) — solo il secondo va segnalato/fermato**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI**; **quando si rimuove un argomento da una chiamata, rimuoverlo anche dalla firma della funzione nello stesso momento — `tsc --noEmit` lo becca comunque, ma prima di quel controllo, non dopo** — poi type-check + `test:release` + build dopo ogni lotto.

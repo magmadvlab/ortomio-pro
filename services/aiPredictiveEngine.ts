@@ -3,7 +3,7 @@
  * Sistema di intelligenza artificiale predittiva per dominanza mercato
  */
 
-import { GardenTask, Garden } from '@/types'
+import { GardenTask } from '@/types'
 import { createStorageProvider } from '@/packages/core/storage/factory'
 import {
   buildAgronomicQualityLearningAdjustment,
@@ -195,7 +195,7 @@ class AIPredictiveEngine {
     const predictions: DiseasePredicition[] = []
     
     // Common disease patterns based on conditions
-    const diseaseRules = this.getDiseaseRules(plant.plantId)
+    const diseaseRules = this.getDiseaseRules()
     
     for (const rule of diseaseRules) {
       const probability = this.calculateDiseaseProbability(rule, weather, soil, plant)
@@ -212,8 +212,8 @@ class AIPredictiveEngine {
           preventiveMeasures: rule.preventiveMeasures,
           treatments: rule.treatments,
           confidence: rule.confidence,
-          weatherFactors: this.analyzeWeatherFactors(weather, rule),
-          riskFactors: this.analyzeRiskFactors(soil, plant, rule)
+          weatherFactors: this.analyzeWeatherFactors(weather),
+          riskFactors: this.analyzeRiskFactors(soil, plant)
         })
       }
     }
@@ -270,7 +270,7 @@ class AIPredictiveEngine {
     if (!baseYield) return null
     
     // Calculate factors affecting yield
-    const factors = this.calculateYieldFactors(plantType, plants, weather, soil, tasks)
+    const factors = this.calculateYieldFactors(plantType, plants, weather, soil)
     
     // Apply factors to base yield
     let adjustedYield = baseYield
@@ -287,7 +287,7 @@ class AIPredictiveEngine {
     const harvestWindow = this.calculateHarvestWindow(plantType, weather, plants, referenceDate)
     
     // Quality score based on conditions
-    const qualityScore = this.calculateQualityScore(plants, weather, soil, factors)
+    const qualityScore = this.calculateQualityScore(plants, weather, soil)
     const qualityBenchmark = this.buildQualityBenchmark(qualityScore, qualityAdjustment)
     
     return {
@@ -321,7 +321,7 @@ class AIPredictiveEngine {
     const optimizations: ResourceOptimization[] = []
     
     // Water optimization
-    const waterOpt = await this.optimizeWaterUsage(weatherData, soilData, plantHealthData, tasks, referenceDate)
+    const waterOpt = await this.optimizeWaterUsage(weatherData, plantHealthData, tasks, referenceDate)
     if (waterOpt) optimizations.push(waterOpt)
     
     // Fertilizer optimization
@@ -341,24 +341,18 @@ class AIPredictiveEngine {
   
   private async optimizeWaterUsage(
     weather: WeatherData,
-    soil: SoilData,
     plants: PlantHealthData[],
     tasks: GardenTask[],
     referenceDate: Date
   ): Promise<ResourceOptimization | null> {
     // Calculate current water usage
     const currentUsage = this.calculateCurrentWaterUsage(tasks)
-    
-    // Calculate optimal water usage based on:
-    // - Soil moisture
-    // - Weather forecast
-    // - Plant water needs
-    // - Evapotranspiration
-    
-    const et0 = this.calculateEvapotranspiration(weather)
+
+    // Calculate optimal water usage based on plant water needs and precipitation
+    // forecast. Does not currently factor in soil moisture or evapotranspiration.
+
     const plantWaterNeeds = this.calculatePlantWaterNeeds(plants, weather)
-    const soilWaterCapacity = this.calculateSoilWaterCapacity(soil)
-    
+
     // Factor in precipitation forecast
     const forecastPrecipitation = weather.precipitation.forecast15Days.reduce((sum, p) => sum + p, 0)
     
@@ -393,7 +387,7 @@ class AIPredictiveEngine {
   
   // ===== UTILITY METHODS =====
   
-  private getDiseaseRules(plantId: string): any[] {
+  private getDiseaseRules(): any[] {
     // Simplified disease rules - in production, this would be ML models
     return [
       {
@@ -453,7 +447,7 @@ class AIPredictiveEngine {
     return 'LOW'
   }
   
-  private analyzeWeatherFactors(weather: WeatherData, rule: any): WeatherFactor[] {
+  private analyzeWeatherFactors(weather: WeatherData): WeatherFactor[] {
     return [
       {
         factor: 'Umidità',
@@ -470,7 +464,7 @@ class AIPredictiveEngine {
     ]
   }
   
-  private analyzeRiskFactors(soil: SoilData, plant: PlantHealthData, rule: any): RiskFactor[] {
+  private analyzeRiskFactors(soil: SoilData, plant: PlantHealthData): RiskFactor[] {
     return [
       {
         factor: 'Salute pianta',
@@ -519,8 +513,7 @@ class AIPredictiveEngine {
     plantType: string,
     plants: PlantHealthData[],
     weather: WeatherData,
-    soil: SoilData,
-    tasks: GardenTask[]
+    soil: SoilData
   ): YieldFactor[] {
     const factors: YieldFactor[] = []
     
@@ -573,8 +566,7 @@ class AIPredictiveEngine {
   private calculateQualityScore(
     plants: PlantHealthData[],
     weather: WeatherData,
-    soil: SoilData,
-    factors: YieldFactor[]
+    soil: SoilData
   ): number {
     let score = 75 // Base quality score
     
@@ -750,21 +742,11 @@ class AIPredictiveEngine {
       .reduce((sum, task) => sum + (typeof task.quantity === 'number' ? task.quantity : 0), 0)
   }
   
-  private calculateEvapotranspiration(weather: WeatherData): number {
-    // Simplified ET0 calculation
-    return weather.temperature.current * 0.1 + weather.windSpeed * 0.05
-  }
-  
   private calculatePlantWaterNeeds(plants: PlantHealthData[], weather: WeatherData): number {
     // Simplified water needs calculation
     return plants.length * 2 * (1 + weather.temperature.current * 0.02)
   }
-  
-  private calculateSoilWaterCapacity(soil: SoilData): number {
-    // Simplified soil water capacity
-    return 100 - soil.moisture
-  }
-  
+
   private generateWaterSchedule(optimalUsage: number, weather: WeatherData, plants: PlantHealthData[], referenceDate: Date): OptimizationSchedule[] {
     const schedule: OptimizationSchedule[] = []
     const dailyAmount = optimalUsage / 7 // Weekly distribution
