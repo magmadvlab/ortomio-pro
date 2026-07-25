@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  HarvestSchedule, 
-  TreeHarvestRecord, 
-  HarvestType, 
-  HarvestMethod, 
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  HarvestSchedule,
+  TreeHarvestRecord,
+  HarvestType,
+  HarvestMethod,
   TargetMarket,
-  QualityClass,
   ScheduleStatus
 } from '@/types/orchard'
 import { orchardService } from '@/services/orchardService'
@@ -17,25 +16,20 @@ import {
   resolveAdaptiveQualityPricingBenchmark,
   type AdaptiveQualityPricingBenchmark,
 } from '@/services/adaptiveMarketPricingService'
-import { 
-  Calendar, 
-  Plus, 
-  TrendingUp, 
-  Package, 
-  DollarSign, 
-  Scale, 
-  CheckCircle, 
-  AlertTriangle,
+import {
+  Calendar,
+  Plus,
+  Package,
+  DollarSign,
+  Scale,
+  CheckCircle,
   Play,
   Pause,
   X,
   Edit,
   Eye,
   Filter,
-  Download,
-  BarChart3,
   Truck,
-  Star,
   Clock
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -62,11 +56,7 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [filterStatus, setFilterStatus] = useState<ScheduleStatus | 'all'>('all')
 
-  useEffect(() => {
-    loadSchedules()
-  }, [orchardId])
-
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       setLoading(true)
       const schedulesData = await orchardService.getHarvestSchedules(orchardId)
@@ -76,7 +66,11 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
     } finally {
       setLoading(false)
     }
-  }
+  }, [orchardId])
+
+  useEffect(() => {
+    loadSchedules()
+  }, [loadSchedules])
 
   const getStatusColor = (status: ScheduleStatus) => {
     switch (status) {
@@ -106,18 +100,6 @@ export default function HarvestManager({ orchardId, gardenId }: HarvestManagerPr
       case 'thinning': return '🌿'
       case 'sampling': return '🔬'
       case 'quality_test': return '⚗️'
-      default: return '📦'
-    }
-  }
-
-  const getMarketIcon = (market: TargetMarket) => {
-    switch (market) {
-      case 'fresh': return '🍃'
-      case 'processing': return '🏭'
-      case 'export': return '🌍'
-      case 'local': return '🏪'
-      case 'premium': return '⭐'
-      case 'organic': return '🌱'
       default: return '📦'
     }
   }
@@ -804,9 +786,9 @@ interface HarvestScheduleDetailModalProps {
   onUpdate: (schedule: HarvestSchedule) => void
 }
 
-function HarvestScheduleDetailModal({ schedule, gardenId, onClose, onUpdate }: HarvestScheduleDetailModalProps) {
+function HarvestScheduleDetailModal({ schedule, gardenId, onClose }: HarvestScheduleDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'progress' | 'records' | 'quality'>('details')
-  const [records, setRecords] = useState<TreeHarvestRecord[]>([])
+  const [records] = useState<TreeHarvestRecord[]>([])
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -880,7 +862,7 @@ function HarvestScheduleDetailModal({ schedule, gardenId, onClose, onUpdate }: H
             <HarvestQualityTab schedule={schedule} gardenId={gardenId} />
           )}
           {activeTab === 'records' && (
-            <HarvestRecordsTab schedule={schedule} records={records} />
+            <HarvestRecordsTab records={records} />
           )}
         </div>
       </div>
@@ -1198,7 +1180,7 @@ function HarvestQualityTab({ schedule, gardenId }: { schedule: HarvestSchedule; 
 }
 
 // Harvest Records Tab
-function HarvestRecordsTab({ schedule, records }: { schedule: HarvestSchedule; records: TreeHarvestRecord[] }) {
+function HarvestRecordsTab({ records }: { records: TreeHarvestRecord[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
