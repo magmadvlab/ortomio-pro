@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Garden, GardenType, StructureConfig } from '../types';
-import { getCurrentPositionWithRetry, getCurrentPositionForceRefresh, getCurrentPositionWithAccuracy, getDefaultCoordinates } from '../services/geolocationService';
+import { getCurrentPositionForceRefresh, getCurrentPositionWithAccuracy, getDefaultCoordinates } from '../services/geolocationService';
 import { getGeoClimateInfo } from '../services/geoClimateService';
 import { analyzeSunExposure, analyzeAspectDirection, analyzePanoramic360, fileToBase64 } from '../services/photoAnalysisService';
-import { convertToSqMeters, convertFromSqMeters, AreaUnit } from '../utils/areaConverter';
+import { convertFromSqMeters, AreaUnit } from '../utils/areaConverter';
 import { MapPin, ArrowRight, ArrowLeft, Loader2, CheckCircle, Mountain, Sun, Wind, Home, Camera, Upload, X, Shovel, Info, Grid } from 'lucide-react';
 import { ObstacleManager } from './sunExposure/ObstacleManager';
 import { Obstacle3D } from '../services/preciseSunCalculator';
@@ -15,7 +15,6 @@ import { AdvancedSunExposureWizard } from './sunExposure/AdvancedSunExposureWiza
 import { GreenhouseConfig } from '../types/greenhouse';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '../types/indoorGrowing';
 import { useTier } from '../packages/core/hooks/useTier';
-import { ProFeatureGate } from './shared/ProFeatureGate';
 import { getDeviceHeadingOnce } from '../hooks/useDeviceOrientation';
 import { readEXIF, calculateNorthOffsetFromEXIF } from '../services/exifReader';
 import { CompassCalibrator } from './sunExposure/CompassCalibrator';
@@ -110,9 +109,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   const [estimatedHoursFromVisual, setEstimatedHoursFromVisual] = useState<number | undefined>();
   
   // Photo Analysis (Pro Feature)
-  const [noonPhoto, setNoonPhoto] = useState<File | null>(null);
+  const [, setNoonPhoto] = useState<File | null>(null);
   const [noonPhotoPreview, setNoonPhotoPreview] = useState<string | null>(null);
-  const [horizonPhoto, setHorizonPhoto] = useState<File | null>(null);
+  const [, setHorizonPhoto] = useState<File | null>(null);
   const [horizonPhotoPreview, setHorizonPhotoPreview] = useState<string | null>(null);
   const [panoramicPhoto, setPanoramicPhoto] = useState<File | null>(null);
   const [panoramicPhotoPreview, setPanoramicPhotoPreview] = useState<string | null>(null);
@@ -1269,23 +1268,62 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 )}
               </div>
 
-              {/* Advanced Sun Exposure Wizard */}
+              {/* Esposizione Solare - modalità semplice (visiva) o avanzata */}
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-3 mb-2">
-                  <Sun size={16} />
-                  Esposizione Solare
-                </label>
-                <AdvancedSunExposureWizard
-                  latitude={parseFloat(latitude) || 0}
-                  longitude={parseFloat(longitude) || 0}
-                  onComplete={(data) => {
-                    // Aggiorna tutti gli stati con i dati del wizard
-                    setDailySunHours(data.dailySunHours.toString());
-                    setSunExposure(data.sunExposure);
-                    setAspectDirection(data.aspectDirection || '');
-                    setObstacles(data.obstacles);
-                  }}
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-3">
+                    <Sun size={16} />
+                    Esposizione Solare
+                  </label>
+                  <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setUseVisualInput(true)}
+                      className={`px-3 py-1 font-medium ${
+                        useVisualInput ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Semplice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUseVisualInput(false)}
+                      className={`px-3 py-1 font-medium ${
+                        !useVisualInput ? 'bg-green-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Avanzata
+                    </button>
+                  </div>
+                </div>
+
+                {useVisualInput ? (
+                  <VisualSunInput
+                    value={visualSunInput}
+                    estimatedHours={estimatedHoursFromVisual}
+                    onChange={(data) => {
+                      setVisualSunInput(data);
+                      const hours = convertVisualInputToSunHours(
+                        data,
+                        parseFloat(latitude) || undefined,
+                        parseFloat(longitude) || undefined
+                      );
+                      setEstimatedHoursFromVisual(hours);
+                    }}
+                  />
+                ) : (
+                  <AdvancedSunExposureWizard
+                    latitude={parseFloat(latitude) || 0}
+                    longitude={parseFloat(longitude) || 0}
+                    onComplete={(data) => {
+                      // Aggiorna tutti gli stati con i dati del wizard
+                      setDailySunHours(data.dailySunHours.toString());
+                      setSunExposure(data.sunExposure);
+                      setAspectDirection(data.aspectDirection || '');
+                      setObstacles(data.obstacles);
+                    }}
+                  />
+                )}
               </div>
 
               <div>
