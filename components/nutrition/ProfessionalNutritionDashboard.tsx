@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  FlaskConical, 
-  Leaf, 
-  TrendingUp, 
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  FlaskConical,
+  Leaf,
+  TrendingUp,
   AlertTriangle,
   Calendar,
   Package,
@@ -21,15 +21,7 @@ import {
   Activity
 } from 'lucide-react'
 import { Garden } from '@/types'
-import { 
-  NutritionDashboardData,
-  NutritionTreatment,
-  NutritionSchedule,
-  ProductInventory,
-  EffectivenessAlert,
-  FertilizerProduct,
-  TreatmentProduct
-} from '@/types/nutrition'
+import { NutritionDashboardData } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
 import { format, isToday, isTomorrow, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -56,11 +48,7 @@ export default function ProfessionalNutritionDashboard({
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [garden.id])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -72,7 +60,11 @@ export default function ProfessionalNutritionDashboard({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   const handleRefresh = async () => {
     try {

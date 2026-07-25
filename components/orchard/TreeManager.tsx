@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { OrchardConfiguration, OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
 import type { FieldRow, FieldRowOrdering, FieldRowAxis } from '@/types/fieldRow'
 import { FIELD_ROW_ORDERING_OPTIONS } from '@/types/fieldRow'
@@ -9,23 +9,18 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { createUnifiedOperationsService } from '@/services/unifiedOperationsService'
 import { createOperationContextService } from '@/services/operationContextService'
 import { AppModal } from '@/components/shared/AppModal'
-import { 
-  TreePine, 
-  Plus, 
-  Search, 
-  Filter, 
-  Camera, 
-  MapPin, 
-  Calendar, 
+import {
+  TreePine,
+  Plus,
+  Search,
+  Filter,
+  Camera,
+  MapPin,
+  Calendar,
   AlertTriangle,
   CheckCircle,
-  Eye,
   Edit,
-  Trash2,
-  Download,
   Upload,
-  QrCode,
-  Ruler,
   Activity,
   TrendingUp,
   X,
@@ -65,14 +60,6 @@ export default function TreeManager({
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid')
 
   useEffect(() => {
-    loadTrees()
-  }, [orchardId, gardenId, storageProvider])
-
-  useEffect(() => {
-    applyFilters()
-  }, [trees, searchTerm, filters])
-
-  useEffect(() => {
     if (!initialSelectedTreeId || trees.length === 0) return
 
     const treeToFocus = trees.find(tree => tree.id === initialSelectedTreeId)
@@ -85,7 +72,7 @@ export default function TreeManager({
     onInitialTreeHandled?.()
   }, [initialSelectedTreeId, trees, onInitialTreeHandled, onTreeSelect])
 
-  const loadTrees = async () => {
+  const loadTrees = useCallback(async () => {
     try {
       setLoading(true)
       const fieldRowsPromise = storageProvider?.getFieldRows
@@ -106,9 +93,9 @@ export default function TreeManager({
     } finally {
       setLoading(false)
     }
-  }
+  }, [orchardId, gardenId, storageProvider])
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...trees]
 
     // Search term
@@ -150,7 +137,15 @@ export default function TreeManager({
     }
 
     setFilteredTrees(filtered)
-  }
+  }, [trees, searchTerm, filters])
+
+  useEffect(() => {
+    loadTrees()
+  }, [loadTrees])
+
+  useEffect(() => {
+    applyFilters()
+  }, [applyFilters])
 
   const getHealthStatusColor = (status: TreeHealthStatus) => {
     switch (status) {
@@ -764,8 +759,6 @@ export default function TreeManager({
       {/* Add Tree Modal */}
       {showAddModal && (
         <AddTreeModal
-          orchardId={orchardId}
-          gardenId={gardenId}
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddTree}
         />
@@ -1163,7 +1156,7 @@ interface TreeDetailModalProps {
 
 function TreeDetailModal({ tree, onClose, onUpdate }: TreeDetailModalProps) {
   const [photos, setPhotos] = useState<TreePhoto[]>([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'info' | 'photos' | 'history'>('info')
 
   useEffect(() => {
@@ -1243,7 +1236,7 @@ function TreeDetailModal({ tree, onClose, onUpdate }: TreeDetailModalProps) {
             <TreeInfoTab tree={tree} onUpdate={onUpdate} />
           )}
           {activeTab === 'photos' && (
-            <TreePhotosTab tree={tree} photos={photos} onPhotosUpdate={setPhotos} />
+            <TreePhotosTab photos={photos} />
           )}
           {activeTab === 'history' && (
             <TreeHistoryTab tree={tree} />
@@ -1506,11 +1499,7 @@ function TreeInfoTab({ tree, onUpdate }: { tree: OrchardTree; onUpdate: (tree: O
 }
 
 // Tree Photos Tab Component
-function TreePhotosTab({ tree, photos, onPhotosUpdate }: { 
-  tree: OrchardTree; 
-  photos: TreePhoto[]; 
-  onPhotosUpdate: (photos: TreePhoto[]) => void 
-}) {
+function TreePhotosTab({ photos }: { photos: TreePhoto[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -2502,13 +2491,11 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
 
 // Add Tree Modal Component
 interface AddTreeModalProps {
-  orchardId: string
-  gardenId: string
   onClose: () => void
   onAdd: (tree: Partial<OrchardTree>) => void
 }
 
-function AddTreeModal({ orchardId, gardenId, onClose, onAdd }: AddTreeModalProps) {
+function AddTreeModal({ onClose, onAdd }: AddTreeModalProps) {
   const [formData, setFormData] = useState<Partial<OrchardTree>>({
     treeNumber: '',
     variety: '',

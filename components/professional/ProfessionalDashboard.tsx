@@ -6,25 +6,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp, 
-  Droplets, 
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Droplets,
   Thermometer,
-  Wind,
-  Sun,
   Moon,
   Activity,
   BarChart3,
-  Settings,
   Calendar,
-  MapPin,
-  Leaf,
   Shield,
   Zap,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
   Eye,
