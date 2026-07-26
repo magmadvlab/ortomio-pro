@@ -1,22 +1,18 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   MapPin, 
   Plus, 
   Edit3, 
   Trash2, 
   Settings, 
-  Droplets,
   AlertCircle,
-  CheckCircle,
   X,
-  Save,
-  Eye,
-  Activity
+  Save
 } from 'lucide-react'
 import { Garden } from '@/types'
-import { IrrigationZone, IrrigationSystem } from '@/types/irrigation'
+import { IrrigationZone } from '@/types/irrigation'
 import { advancedIrrigationService } from '@/services/advancedIrrigationService'
 
 interface IrrigationZoneManagerProps {
@@ -65,11 +61,7 @@ export default function IrrigationZoneManager({
   const [saving, setSaving] = useState(false)
   const [selectedZone, setSelectedZone] = useState<IrrigationZone | null>(null)
 
-  useEffect(() => {
-    loadZones()
-  }, [garden.id])
-
-  const loadZones = async () => {
+  const loadZones = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -81,7 +73,11 @@ export default function IrrigationZoneManager({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    loadZones()
+  }, [loadZones])
 
   const handleCreateZone = () => {
     setEditingZone(null)
@@ -459,7 +455,7 @@ export default function IrrigationZoneManager({
                     </label>
                     <select
                       value={formData.soilType}
-                      onChange={(e) => setFormData(prev => ({ ...prev, soilType: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, soilType: e.target.value as ZoneFormData['soilType'] }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="clay">Argilloso</option>
@@ -475,7 +471,7 @@ export default function IrrigationZoneManager({
                     </label>
                     <select
                       value={formData.sunExposure}
-                      onChange={(e) => setFormData(prev => ({ ...prev, sunExposure: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, sunExposure: e.target.value as ZoneFormData['sunExposure'] }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="full">Pieno Sole</option>
@@ -490,7 +486,7 @@ export default function IrrigationZoneManager({
                     </label>
                     <select
                       value={formData.drainageQuality}
-                      onChange={(e) => setFormData(prev => ({ ...prev, drainageQuality: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, drainageQuality: e.target.value as ZoneFormData['drainageQuality'] }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="excellent">Eccellente</option>
@@ -506,7 +502,7 @@ export default function IrrigationZoneManager({
                     </label>
                     <select
                       value={formData.waterRetention}
-                      onChange={(e) => setFormData(prev => ({ ...prev, waterRetention: e.target.value as any }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, waterRetention: e.target.value as ZoneFormData['waterRetention'] }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="high">Alta</option>

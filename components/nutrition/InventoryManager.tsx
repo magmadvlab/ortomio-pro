@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Package, 
   Plus, 
@@ -8,16 +8,12 @@ import {
   Search, 
   Filter, 
   Edit, 
-  Trash2, 
-  Eye,
   AlertTriangle,
   CheckCircle,
   TrendingDown,
   TrendingUp,
-  Calendar,
   DollarSign,
   BarChart3,
-  RefreshCw,
   Download,
   ShoppingCart,
   Warehouse,
@@ -42,6 +38,18 @@ interface InventoryManagerProps {
 
 type ViewMode = 'inventory' | 'movements' | 'alerts'
 type StockLevel = 'all' | 'low' | 'empty' | 'expiring'
+type StockStatus = {
+  status: 'empty' | 'low' | 'medium' | 'good'
+  color: string
+  label: string
+  priority: 'critical' | 'high' | 'medium' | 'low'
+}
+type ExpiryStatus = {
+  status: 'expired' | 'expiring' | 'warning'
+  color: string
+  label: string
+  days: number
+}
 
 export default function InventoryManager({ garden }: InventoryManagerProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('inventory')
@@ -59,11 +67,7 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     notes?: string
   } | null>(null)
 
-  useEffect(() => {
-    loadInventoryData()
-  }, [garden.id])
-
-  const loadInventoryData = async () => {
+  const loadInventoryData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -85,7 +89,11 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    void loadInventoryData()
+  }, [loadInventoryData])
 
   const handleStockUpdate = async (productId: string, quantity: number, type: 'purchase' | 'usage' | 'adjustment', notes?: string) => {
     try {
@@ -141,7 +149,7 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     URL.revokeObjectURL(url)
   }
 
-  const getStockStatus = (item: ProductInventory) => {
+  const getStockStatus = (item: ProductInventory): StockStatus => {
     const stock = item.currentStock
     const minStock = item.minimumStock
     
@@ -156,7 +164,7 @@ export default function InventoryManager({ garden }: InventoryManagerProps) {
     }
   }
 
-  const getExpiryStatus = (expiryDate?: string) => {
+  const getExpiryStatus = (expiryDate?: string): ExpiryStatus | null => {
     if (!expiryDate) return null
     
     const daysToExpiry = differenceInDays(parseISO(expiryDate), new Date())
@@ -420,8 +428,8 @@ interface InventoryViewProps {
     product: ProductInventory | null,
     defaults?: { movementType?: 'purchase' | 'usage' | 'adjustment'; notes?: string }
   ) => void
-  getStockStatus: (item: ProductInventory) => any
-  getExpiryStatus: (expiryDate?: string) => any
+  getStockStatus: (item: ProductInventory) => StockStatus
+  getExpiryStatus: (expiryDate?: string) => ExpiryStatus | null
 }
 
 function InventoryView({ inventory, onStockUpdate, onOpenStockModal, getStockStatus, getExpiryStatus }: InventoryViewProps) {
@@ -616,8 +624,8 @@ interface AlertsViewProps {
     product: ProductInventory | null,
     defaults?: { movementType?: 'purchase' | 'usage' | 'adjustment'; notes?: string }
   ) => void
-  getStockStatus: (item: ProductInventory) => any
-  getExpiryStatus: (expiryDate?: string) => any
+  getStockStatus: (item: ProductInventory) => StockStatus
+  getExpiryStatus: (expiryDate?: string) => ExpiryStatus | null
 }
 
 function AlertsView({ inventory, onManageAlert, getStockStatus, getExpiryStatus }: AlertsViewProps) {
@@ -813,7 +821,7 @@ function StockUpdateModal({ products, selectedProduct, defaults, onClose, onUpda
             </label>
             <select
               value={movementType}
-              onChange={(e) => setMovementType(e.target.value as any)}
+              onChange={(e) => setMovementType(e.target.value as typeof movementType)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
             >
               <option value="purchase">Carico (Acquisto)</option>

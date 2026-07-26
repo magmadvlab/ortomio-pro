@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { GardenPlant, BulkRowOperation } from '../../types/individualPlant';
 import { 
   X, 
@@ -11,11 +12,7 @@ import {
   Zap, 
   Scissors, 
   Camera, 
-  Upload, 
-  AlertTriangle,
-  CheckCircle,
-  Users,
-  Target
+  Upload
 } from 'lucide-react';
 
 interface BulkOperationModalProps {
@@ -140,7 +137,7 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
 
     try {
       const operation: BulkRowOperation = {
-        operationType: operationType as any,
+        operationType,
         operationDate: new Date().toISOString().split('T')[0],
         quantityPerPlant: parseFloat(formData.quantityPerPlant) || undefined,
         unit: formData.unit || undefined,
@@ -288,7 +285,6 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
             <h4 className="font-semibold text-gray-900 mb-3">Strategia Foto</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {(['none', 'sample', 'problems', 'all'] as const).map((strategy) => {
-                const strategyInfo = getPhotoStrategy();
                 const isRecommended = strategy === 'sample' && selectedPlants.length > 20 && selectedPlants.length <= 500;
                 
                 return (
@@ -369,9 +365,12 @@ const BulkOperationModal: React.FC<BulkOperationModalProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     {photos.map((photo, index) => (
                       <div key={index} className="relative">
-                        <img
+                        <Image
                           src={URL.createObjectURL(photo)}
                           alt={`Foto ${index + 1}`}
+                          width={160}
+                          height={80}
+                          unoptimized
                           className="w-full h-20 object-cover rounded-lg"
                         />
                         <button

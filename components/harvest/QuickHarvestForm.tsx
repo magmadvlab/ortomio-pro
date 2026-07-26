@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
+import Image from 'next/image'
 import { GardenTask, HarvestLogData, Garden } from '@/types'
-import { X, Camera, Minus, Plus } from 'lucide-react'
+import { X } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import TaskExecutionEvidenceContract from '@/components/shared/TaskExecutionEvidenceContract'
@@ -12,6 +13,7 @@ import TaskExecutionQuickNotes from '@/components/shared/TaskExecutionQuickNotes
 import { mergeTaskExecutionQuickPayloadNotes } from '@/services/taskExecutionQuickPayloadService'
 import { getPlantTaxonomy } from '@/services/plantTaxonomyService'
 import { getArchetypeById } from '@/data/archetypes'
+import { IStorageProvider } from '@/packages/core/storage/interface'
 
 interface QuickHarvestFormProps {
   task: GardenTask
@@ -19,7 +21,7 @@ interface QuickHarvestFormProps {
   onSkip: () => void
 }
 
-async function resolveTaskLocation(storageProvider: any, task: GardenTask): Promise<string> {
+async function resolveTaskLocation(storageProvider: IStorageProvider, task: GardenTask): Promise<string> {
   if (task.rowId) {
     const gardenRow = await storageProvider.getGardenRow?.(task.rowId)
     if (gardenRow?.name) return gardenRow.name
@@ -381,7 +383,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                 <div className="text-sm text-gray-500">
                   <select
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value as any)}
+                    onChange={(e) => setUnit(e.target.value as typeof unit)}
                     className="bg-transparent border-none text-gray-500 focus:outline-none cursor-pointer"
                   >
                     <option value="kg">kg</option>
@@ -412,7 +414,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setQuality(option.value as any)}
+                  onClick={() => setQuality(option.value as typeof quality)}
                   className={`flex-1 p-3 bg-gray-50 border-2 rounded-xl text-center transition-all ${
                     quality === option.value
                       ? 'bg-green-50 border-green-500'
@@ -597,7 +599,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                   </label>
                   <select
                     value={strawberryHarvestType}
-                    onChange={(e) => setStrawberryHarvestType(e.target.value as any)}
+                    onChange={(e) => setStrawberryHarvestType(e.target.value as typeof strawberryHarvestType)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
                   >
                     <option value="FirstFlush">Prima Fioritura</option>
@@ -612,7 +614,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                   </label>
                   <select
                     value={strawberryBerrySize}
-                    onChange={(e) => setStrawberryBerrySize(e.target.value as any)}
+                    onChange={(e) => setStrawberryBerrySize(e.target.value as typeof strawberryBerrySize)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
                   >
                     <option value="Small">Piccola</option>
@@ -736,7 +738,7 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
                   </label>
                   <select
                     value={strawberryMulchingCondition}
-                    onChange={(e) => setStrawberryMulchingCondition(e.target.value as any)}
+                    onChange={(e) => setStrawberryMulchingCondition(e.target.value as typeof strawberryMulchingCondition)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-500"
                   >
                     <option value="Good">Buono</option>
@@ -755,7 +757,14 @@ export function QuickHarvestForm({ task, onHarvest, onSkip }: QuickHarvestFormPr
             </label>
             {photo ? (
               <div className="relative">
-                <img src={photo} alt="Preview" className="w-full h-48 object-cover rounded-xl border-2 border-gray-200" />
+                <Image
+                  src={photo}
+                  alt="Preview"
+                  width={640}
+                  height={192}
+                  unoptimized
+                  className="w-full h-48 object-cover rounded-xl border-2 border-gray-200"
+                />
                 <button
                   type="button"
                   onClick={() => setPhoto(null)}
