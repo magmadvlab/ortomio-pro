@@ -472,6 +472,10 @@ Il lotto 19 porta `components/nutrition/TreatmentPlanner.tsx`, vivo in `/app/nut
 
 Il lotto 20 porta `components/irrigation/WateringLogForm.tsx`, vivo in `/app/irrigation`, da 21 warning a zero: compatibilita' irrigue legacy tipizzate, metodo log allineato alla union reale, callback di calcolo stabilizzate e stato/import/prop non usati rimossi dal corpo. Baseline globale verificata: **0 errori, 2.078 warning** (`2.099 -> 2.078`); lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 21 (26/07/2026)
+
+Il lotto 21 porta `components/plants/PlantDetailModal.tsx`, vivo tramite `SmartPlantManager`, da 20 warning a zero: operazioni, sorgenti e tab tipizzati, foto migrate a `next/image` e loader stabilizzato. Corretto anche il caricamento operazioni filare, che ometteva il `gardenId` richiesto dal provider e poteva fallire silenziosamente. Baseline globale verificata: **0 errori, 2.058 warning** (`2.078 -> 2.058`); lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

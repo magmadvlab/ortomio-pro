@@ -263,3 +263,18 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 erro
 | Warning | 2078 |
 | Riduzione lotto | 21 |
 | Riduzione dalla baseline operativa 2642 | 564 |
+
+## Lotto 21 (26/07/2026) - chiuso
+
+`components/plants/PlantDetailModal.tsx`, confermato vivo tramite `SmartPlantManager`, e' stato portato da 20 warning a zero. I campi gia' presenti in `PlantOperation` sostituiscono i cast `any`, i tab sono tipizzati con la union locale e le foto usano `next/image`. Il loader e' stabilizzato con `useCallback`.
+
+La tipizzazione ha inoltre corretto un difetto reale: `getFieldRowOperations` veniva chiamato con il solo `fieldRowId`, mentre il contratto richiede anche `gardenId`; l'errore poteva essere assorbito dal `catch` e nascondere le operazioni del filare. La chiamata ora passa entrambi gli identificativi. Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 errori e 2.058 warning** (`2.078 -> 2.058`).
+
+## Stato dopo il lotto 21
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2058 |
+| Riduzione lotto | 20 |
+| Riduzione dalla baseline operativa 2642 | 584 |
