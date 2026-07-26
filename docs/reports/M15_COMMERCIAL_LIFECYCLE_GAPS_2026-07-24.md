@@ -21,7 +21,7 @@ Il token di invito non viene piu' scritto nei log insieme all'indirizzo email. L
 | ruoli amministratore/responsabile/operatore | schema presente, E2E non certificato |
 | piano/licenza e limiti | superato: decisione prodotto single-PRO, nessun piano o limite commerciale |
 | rinnovo e fatturazione | implementato localmente come procedura amministrativa single-PRO; migrazione e prova staging aperte |
-| sospensione | assente |
+| sospensione | implementata localmente con revoca/ripristino accessi e audit; migrazione e prova staging aperte |
 | cancellazione/esportazione/retention | assente |
 | audit amministrativo | parziale |
 
@@ -83,3 +83,18 @@ Il ciclo economico della versione unica PRO e' stato implementato come procedura
 - gli eventi `BillingProfileSubmitted`, `InvoiceIssued`, `PaymentRecorded` e `ContractRenewed` costituiscono la traccia di audit.
 
 O41 e' quindi completato localmente. Resta `[L]`, non `[x]`, finche' la migrazione non viene applicata nello staging isolato e un ciclo emissione-pagamento-rinnovo non viene provato su due aziende. O42 e O43 restano separati: sospensione/riattivazione e cancellazione/retention non sono dichiarati implementati da questa base.
+
+## Avanzamento O42 - 26/07/2026
+
+La sospensione non e' un semplice flag commerciale:
+
+- soltanto un amministratore OrtoMio autenticato puo' sospendere o riattivare tramite `PATCH /api/organizations/billing`;
+- la transazione salva lo stato commerciale precedente e l'elenco esatto delle membership e chiavi API attive;
+- sospensione, membership e chiavi API vengono aggiornate atomicamente;
+- le funzioni RLS usate da Owner e membri negano l'accesso alle risorse organizzative quando lo stato e' `Suspended` o `Cancelled`;
+- le policy delle chiavi API impediscono al cliente sospeso di riattivarle direttamente;
+- il flusso inviti rifiuta esplicitamente un'organizzazione disabilitata prima del bypass Owner;
+- la riattivazione ripristina soltanto membership e chiavi catturate nello snapshot, senza riattivare elementi gia' disabilitati in precedenza;
+- lo stato commerciale precedente viene ripristinato e gli eventi `OrganizationSuspended` e `OrganizationReactivated` restano auditati con attore, motivo e timestamp.
+
+O42 e' completato localmente. Resta `[L]`, non `[x]`, finche' migrazioni e scenari sospensione/riattivazione non vengono provati sullo staging isolato con due aziende e sessioni reali.

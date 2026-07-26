@@ -28,6 +28,14 @@ async function requireInvitationManager(
     .eq('id', organizationId)
     .maybeSingle()
   if (!organization) throw new AccessError('not_found', 404)
+  const { data: commercialAccount } = await supabase
+    .from('organization_commercial_accounts')
+    .select('status')
+    .eq('organization_id', organizationId)
+    .maybeSingle()
+  if (commercialAccount?.status === 'Suspended' || commercialAccount?.status === 'Cancelled') {
+    throw new AccessError('organization_access_disabled', 423)
+  }
   if (organization.owner_id === userId) return organization
 
   const { data: membership } = await supabase

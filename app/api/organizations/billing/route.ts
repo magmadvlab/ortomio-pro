@@ -197,6 +197,34 @@ export async function handleAdminBillingAction(
       return NextResponse.json({ account: data })
     }
 
+    if (action === 'suspend_organization') {
+      const organizationId = text(body?.organizationId)
+      const reason = text(body?.reason)
+      if (!organizationId || !reason) {
+        return NextResponse.json({ error: 'invalid_suspension' }, { status: 400 })
+      }
+      const { data, error } = await supabase.rpc('suspend_pro_organization', {
+        p_organization_id: organizationId,
+        p_actor_id: user.id,
+        p_reason: reason,
+      })
+      if (error || !data) throw error ?? new Error('organization_suspension_failed')
+      return NextResponse.json({ account: data })
+    }
+
+    if (action === 'reactivate_organization') {
+      const organizationId = text(body?.organizationId)
+      if (!organizationId) {
+        return NextResponse.json({ error: 'invalid_reactivation' }, { status: 400 })
+      }
+      const { data, error } = await supabase.rpc('reactivate_pro_organization', {
+        p_organization_id: organizationId,
+        p_actor_id: user.id,
+      })
+      if (error || !data) throw error ?? new Error('organization_reactivation_failed')
+      return NextResponse.json({ account: data })
+    }
+
     return NextResponse.json({ error: 'unsupported_billing_action' }, { status: 400 })
   } catch (error) {
     const access = accessErrorResponse(error)

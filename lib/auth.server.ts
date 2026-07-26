@@ -20,11 +20,12 @@ export type AccessErrorCode =
   | 'invalid_cron_request'
   | 'replayed_cron_request'
   | 'unauthorized_device'
+  | 'organization_access_disabled'
 
 export class AccessError extends Error {
   constructor(
     public readonly code: AccessErrorCode,
-    public readonly status: 401 | 403 | 404 | 409,
+    public readonly status: 401 | 403 | 404 | 409 | 423,
   ) {
     super(code)
     this.name = 'AccessError'
