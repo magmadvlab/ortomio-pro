@@ -248,3 +248,18 @@ La tipizzazione ha reso espliciti anche i default dei campi obbligatori nei payl
 | Warning | 2099 |
 | Riduzione lotto | 32 |
 | Riduzione dalla baseline operativa 2642 | 543 |
+
+## Lotto 20 (26/07/2026) - chiuso
+
+`components/irrigation/WateringLogForm.tsx`, confermato vivo dalla route `/app/irrigation`, e' stato portato da 21 warning a zero. Rimossi import, destrutturazioni e stato inutilizzati; `FieldRow`, `WateringLog['method']` e un tipo di compatibilita' esplicito sostituiscono gli `any` usati per le varianti legacy della configurazione irrigua. I calcoli di portata, configurazione e durata sono stabilizzati con `useCallback`, chiudendo le dipendenze dei memo senza alterare le formule.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 errori e 2.078 warning** (`2.099 -> 2.078`).
+
+## Stato dopo il lotto 20
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2078 |
+| Riduzione lotto | 21 |
+| Riduzione dalla baseline operativa 2642 | 564 |

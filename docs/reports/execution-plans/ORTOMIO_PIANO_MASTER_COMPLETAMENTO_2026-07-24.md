@@ -468,6 +468,10 @@ Il lotto 18 porta `components/settings/GardenEditModal.tsx`, vivo in `/app/setti
 
 Il lotto 19 porta `components/nutrition/TreatmentPlanner.tsx`, vivo in `/app/nutrition`, da 32 warning a zero: form trattamento/programmazione tipizzato, union reali sui select, loader stabilizzato e import morti rimossi. I payload hanno ora default obbligatori espliciti e gli update senza ID vengono rifiutati. Baseline globale verificata: **0 errori, 2.099 warning** (`2.131 -> 2.099`); lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 20 (26/07/2026)
+
+Il lotto 20 porta `components/irrigation/WateringLogForm.tsx`, vivo in `/app/irrigation`, da 21 warning a zero: compatibilita' irrigue legacy tipizzate, metodo log allineato alla union reale, callback di calcolo stabilizzate e stato/import/prop non usati rimossi dal corpo. Baseline globale verificata: **0 errori, 2.078 warning** (`2.099 -> 2.078`); lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
