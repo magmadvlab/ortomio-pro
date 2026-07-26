@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { VineyardVine, VineSearchCriteria, VineHealthStatus, VineVigorLevel, VineProductivityStatus } from '@/types/vineyard'
+import React, { useCallback, useState, useEffect } from 'react'
+import { VineyardVine, VineSearchCriteria, VineHealthStatus, VineVigorLevel } from '@/types/vineyard'
+import type { PlantOperation } from '@/types/individualPlant'
 import type { FieldRow, FieldRowOrdering, FieldRowAxis } from '@/types/fieldRow'
 import { FIELD_ROW_ORDERING_OPTIONS } from '@/types/fieldRow'
 import { vineyardService } from '@/services/vineyardService'
@@ -16,9 +17,7 @@ import {
   Filter,
   MapPin,
   Calendar,
-  Camera,
   Trash2,
-  Eye,
   AlertCircle,
   CheckCircle,
   TrendingUp,
@@ -27,8 +26,6 @@ import {
   Target,
   Droplets,
   Scissors,
-  Info,
-  QrCode,
   BarChart3,
   Upload,
   X
@@ -57,7 +54,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
   const operationContextService = createOperationContextService()
   const [detailTab, setDetailTab] = useState<'info' | 'history'>('info')
   const [operationsLoading, setOperationsLoading] = useState(false)
-  const [vineOperations, setVineOperations] = useState<any[]>([])
+  const [vineOperations, setVineOperations] = useState<PlantOperation[]>([])
   const [activeOperationTab, setActiveOperationTab] = useState<'all' | 'watering' | 'fertilizing' | 'treatment' | 'work'>('all')
   const [showQuickEntry, setShowQuickEntry] = useState(false)
   const [entryMode, setEntryMode] = useState<'manual' | 'iot'>('manual')
@@ -82,19 +79,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
   })
 
   useEffect(() => {
-    loadVines()
-  }, [vineyardId])
-
-  useEffect(() => {
-    applyFilters()
-  }, [vines, searchTerm, filters])
-
-  useEffect(() => {
-    if (!selectedVine?.id) return
-    loadVineOperations(selectedVine.id)
-  }, [selectedVine?.id])
-
-  useEffect(() => {
     if (entryType === 'watering') {
       setEntryUnit('L')
       return
@@ -110,7 +94,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     setEntryUnit('sessione')
   }, [entryType])
 
-  const loadVines = async () => {
+  const loadVines = useCallback(async () => {
     try {
       setLoading(true)
       const fieldRowsPromise = storageProvider?.getFieldRows
@@ -131,7 +115,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, gardenId, storageProvider, vineyardId])
 
   const handleCreateVine = async (data: {
     vineNumber: string
@@ -319,7 +303,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     }
   }
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...vines]
 
     // Filtro per testo di ricerca
@@ -361,7 +345,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     }
 
     setFilteredVines(filtered)
-  }
+  }, [filters, searchTerm, vines])
 
   const getHealthStatusIcon = (status: VineHealthStatus) => {
     switch (status) {
@@ -394,18 +378,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
       case 'normal': return <Activity className="text-green-600" size={16} />
       case 'high': return <TrendingUp className="text-blue-600" size={16} />
       case 'excessive': return <TrendingUp className="text-purple-600" size={16} />
-      default: return <Activity className="text-gray-400" size={16} />
-    }
-  }
-
-  const getProductivityIcon = (status: VineProductivityStatus) => {
-    switch (status) {
-      case 'young': return <Target className="text-blue-600" size={16} />
-      case 'establishing': return <TrendingUp className="text-green-600" size={16} />
-      case 'productive': return <CheckCircle className="text-green-600" size={16} />
-      case 'peak': return <BarChart3 className="text-purple-600" size={16} />
-      case 'declining': return <TrendingDown className="text-orange-600" size={16} />
-      case 'senescent': return <TrendingDown className="text-red-600" size={16} />
       default: return <Activity className="text-gray-400" size={16} />
     }
   }
@@ -467,7 +439,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
       : parsedDate.toLocaleDateString('it-IT')
   }
 
-  const getSourceBadge = (operation: any) => {
+  const getSourceBadge = (operation: PlantOperation) => {
     const sourceType = operation?.sourceType
       || (operation?.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
       || (operation?.parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
@@ -498,18 +470,31 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     return 'Intervento'
   }
 
-  const loadVineOperations = async (vineId: string) => {
+  const loadVineOperations = useCallback(async (vineId: string) => {
     try {
       setOperationsLoading(true)
       const operations = await storageProvider?.getPlantOperations?.(vineId) || []
-      setVineOperations(operations)
+      setVineOperations(operations as PlantOperation[])
     } catch (error) {
       console.error('Error loading vine operations:', error)
       setVineOperations([])
     } finally {
       setOperationsLoading(false)
     }
-  }
+  }, [storageProvider])
+
+  useEffect(() => {
+    void loadVines()
+  }, [loadVines])
+
+  useEffect(() => {
+    applyFilters()
+  }, [applyFilters])
+
+  useEffect(() => {
+    if (!selectedVine?.id) return
+    void loadVineOperations(selectedVine.id)
+  }, [loadVineOperations, selectedVine?.id])
 
   const registerVineOperation = async () => {
     if (!selectedVine) return
@@ -564,14 +549,10 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
         ? await operationContextService.getOperationContext(coordinates.latitude, coordinates.longitude, validTimestamp)
         : undefined
 
-      const operationDetails: Record<string, any> = {
-        durationMinutes: normalizedDuration,
-        subtype: normalizedSubtype || undefined,
-      }
-
       const composedNotes = [
         normalizedNotes || undefined,
         normalizedDuration !== undefined ? `Durata ${normalizedDuration} min` : undefined,
+        normalizedSubtype ? `Tipo ${normalizedSubtype}` : undefined,
       ].filter(Boolean).join(' | ') || undefined
 
       const result = await unifiedOperationsService.executeUnifiedOperation({
@@ -584,13 +565,12 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
         quantity: normalizedQuantity,
         unit: entryUnit.trim() || undefined,
         productName: normalizedProduct || undefined,
+        durationMinutes: normalizedDuration,
         notes: composedNotes,
         sourceType: entryMode,
         actorType: entryMode,
         propagateToPlants: false,
-        contextSnapshot: context
-          ? ({ ...context, operationDetails } as any)
-          : ({ timestamp: validTimestamp.toISOString(), operationDetails } as any),
+        contextSnapshot: context,
         weatherConditions: context
           ? ({
               temp: context.weather.temperature,
@@ -599,7 +579,7 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
               condition: context.weather.condition,
               precipitation: context.weather.precipitation,
               pressure: context.weather.pressure,
-            } as any)
+            })
           : undefined,
         geoSnapshot: {
           latitude: coordinates?.latitude,
@@ -1431,11 +1411,13 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
                     <div className="space-y-3">
                       {filteredOperations.map((operation) => {
                         const sourceBadge = getSourceBadge(operation)
-                        const details = operation.operationContext?.operationDetails || {}
-                        const duration = parseNumber(details.durationMinutes ?? operation.duration ?? operation.durationMinutes)
+                        const duration = parseNumber(operation.duration)
                         const weather = operation.weatherConditions || operation.operationContext?.weather
+                        const weatherTemperature = weather && 'temp' in weather
+                          ? weather.temp
+                          : weather?.temperature
                         const weatherText = weather
-                          ? `${weather.temp ?? weather.temperature ?? 'N/D'}°C • UR ${weather.humidity ?? 'N/D'}%`
+                          ? `${weatherTemperature ?? 'N/D'}°C • UR ${weather.humidity ?? 'N/D'}%`
                           : undefined
 
                         return (
@@ -1462,9 +1444,6 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
                                     )}
                                     {operation.productName && (
                                       <div>Prodotto: {operation.productName}</div>
-                                    )}
-                                    {details.subtype && (
-                                      <div>Tipo: {details.subtype}</div>
                                     )}
                                     {weatherText && (
                                       <div>Meteo: {weatherText}</div>

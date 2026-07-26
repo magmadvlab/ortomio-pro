@@ -278,3 +278,22 @@ La tipizzazione ha inoltre corretto un difetto reale: `getFieldRowOperations` ve
 | Warning | 2058 |
 | Riduzione lotto | 20 |
 | Riduzione dalla baseline operativa 2642 | 584 |
+
+## Lotto 22 (26/07/2026) - chiuso
+
+`components/vineyard/VineManager.tsx`, confermato vivo dalla route `/app/vineyard`, e' stato portato da 14 warning a zero. Import e helper morti sono stati rimossi; operazioni vite e badge sorgente usano `PlantOperation`; i loader e i filtri sono stabilizzati con `useCallback`.
+
+La registrazione rapida ora usa i campi ufficiali `durationMinutes`, `contextSnapshot` e `weatherConditions` del servizio unificato. Durata e sottotipo restano anche nelle note leggibili, evitando il precedente oggetto `operationDetails` non previsto dal contratto persistito e i relativi cast.
+
+Durante la selezione `components/garden/ListView.tsx` e' stato nuovamente confermato senza importer ed e' rimasto intatto come candidato codice morto; `components/orchard/TreeManager.tsx` e' vivo ma i 18 warning residui coinvolgono il contratto storico condiviso `operationContext`, quindi non sono stati mascherati con cast e restano rinviati a un intervento dedicato.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 errori e 2.044 warning** (`2.058 -> 2.044`).
+
+## Stato dopo il lotto 22
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2044 |
+| Riduzione lotto | 14 |
+| Riduzione dalla baseline operativa 2642 | 598 |
