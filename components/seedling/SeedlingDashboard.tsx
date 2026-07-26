@@ -82,6 +82,8 @@ export default function SeedlingDashboard({
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [savingCreate, setSavingCreate] = useState(false);
   const createFormRef = useRef<HTMLDivElement>(null);
+  const plantSelectRef = useRef<HTMLSelectElement>(null);
+  const [createError, setCreateError] = useState('');
   const [createForm, setCreateForm] = useState({
     source: 'home' as 'home' | 'nursery',
     plantName: plantName || '',
@@ -353,11 +355,13 @@ export default function SeedlingDashboard({
 
   const handleCreateBatch = async () => {
     if (!createForm.plantName) {
-      alert('Seleziona una pianta per creare il batch');
+      setCreateError('Seleziona la pianta: è il campo obbligatorio che manca per creare il batch.');
+      plantSelectRef.current?.focus();
       return;
     }
 
     try {
+      setCreateError('');
       setSavingCreate(true);
 
       const created =
@@ -411,6 +415,7 @@ export default function SeedlingDashboard({
   };
 
   const openCreateForm = () => {
+    setCreateError('');
     setShowCreateForm(true);
   };
 
@@ -743,11 +748,21 @@ export default function SeedlingDashboard({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Pianta</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pianta <span className="text-red-600" aria-hidden="true">*</span>
+                </label>
                 <select
+                  ref={plantSelectRef}
                   value={createForm.plantName}
-                  onChange={(e) => setCreateForm((current) => ({ ...current, plantName: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-md text-sm"
+                  onChange={(e) => {
+                    setCreateForm((current) => ({ ...current, plantName: e.target.value }));
+                    if (e.target.value) setCreateError('');
+                  }}
+                  aria-invalid={Boolean(createError)}
+                  aria-describedby={createError ? 'seedling-create-error' : undefined}
+                  className={`w-full px-4 py-3 border rounded-md text-sm ${
+                    createError ? 'border-red-500 ring-1 ring-red-500' : ''
+                  }`}
                 >
                   <option value="">Seleziona pianta</option>
                   {masterSheets.map((sheet) => (
@@ -852,11 +867,24 @@ export default function SeedlingDashboard({
               </>
             )}
 
+            {createError && (
+              <p id="seedling-create-error" role="alert" className="text-sm font-medium text-red-700">
+                {createError}
+              </p>
+            )}
+
             <div className="flex gap-3 mt-4">
-              <Button onClick={() => setShowCreateForm(false)} variant="outline" disabled={savingCreate}>
+              <Button
+                onClick={() => {
+                  setCreateError('');
+                  setShowCreateForm(false);
+                }}
+                variant="outline"
+                disabled={savingCreate}
+              >
                 Annulla
               </Button>
-              <Button onClick={handleCreateBatch} disabled={savingCreate || !createForm.plantName}>
+              <Button onClick={handleCreateBatch} disabled={savingCreate}>
                 {savingCreate ? 'Salvataggio...' : createForm.source === 'home' ? 'Crea Batch' : 'Aggiungi Piantine'}
               </Button>
             </div>
