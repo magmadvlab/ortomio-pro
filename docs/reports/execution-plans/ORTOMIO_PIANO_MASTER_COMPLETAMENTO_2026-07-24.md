@@ -480,6 +480,10 @@ Il lotto 21 porta `components/plants/PlantDetailModal.tsx`, vivo tramite `SmartP
 
 Il lotto 22 porta `components/vineyard/VineManager.tsx`, vivo in `/app/vineyard`, da 14 warning a zero: operazioni tipizzate con `PlantOperation`, callback stabilizzate, import/helper morti rimossi e registrazione rapida allineata ai campi persistiti ufficiali del servizio unificato. Baseline globale verificata: **0 errori, 2.044 warning** (`2.058 -> 2.044`); lint mirato, type-check e diff-check verdi. `components/garden/ListView.tsx` e' stato confermato senza importer ed e' rimasto intatto come candidato codice morto; i 18 warning di `TreeManager.tsx` restano esplicitamente rinviati perche' coinvolgono il contratto condiviso storico `operationContext`.
 
+### Aggiornamento T01 - lotto 23 (26/07/2026)
+
+Il lotto 23 porta `components/plants/SmartPlantManager.tsx`, vivo in quattro route, da 13 warning a zero: mapping e statistiche tipizzati, callback stabilizzate e gestione errori esplicita. Chiuso anche il bottone “Aggiorna Salute”, prima collegato a un modal inesistente e ora instradato al flusso bulk implementato; rimosso il falso comando “Operazione Unificata”, che non eseguiva nulla e mostrava soltanto un avviso di sviluppo. Aggiunta copertura regressiva dedicata. Baseline globale verificata: **0 errori, 2.031 warning** (`2.044 -> 2.031`); capability test 18/18, lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
