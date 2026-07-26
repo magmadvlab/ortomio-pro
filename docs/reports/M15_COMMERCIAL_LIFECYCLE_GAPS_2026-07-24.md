@@ -17,7 +17,7 @@ Il token di invito non viene piu' scritto nei log insieme all'indirizzo email. L
 | Fase | Stato |
 |---|---|
 | provisioning azienda transazionale | implementato localmente; migrazione e prova E2E staging aperte |
-| invio e accettazione invito server-side | incompleto |
+| invio e accettazione invito server-side | implementato localmente; provider e prova E2E staging aperti |
 | ruoli amministratore/responsabile/operatore | schema presente, E2E non certificato |
 | piano/licenza e limiti | assente |
 | rinnovo e fatturazione | assente |
@@ -39,3 +39,18 @@ Il provisioning non scrive piu' direttamente `organizations` dal client:
 - la UI usa esclusivamente la route server e rilegge poi lo stato organizzazione esistente.
 
 Evidenza locale: lint mirato senza errori, type-check verde, test mirati O38/M15 4/4 e build produzione 148 pagine. O38 resta `[L]` e non `[x]` finche' la migrazione non viene applicata e provata sullo staging isolato richiesto da M06.
+
+## Avanzamento O39 - 26/07/2026
+
+Il flusso inviti e' stato spostato dal browser al server:
+
+- `POST /api/organizations/invitations` autorizza soltanto Owner/Administrator, valida che il ruolo appartenga all'organizzazione e non restituisce il token;
+- la delivery usa Resend esclusivamente lato server e registra stato, provider, message ID, timestamp o errore;
+- `GET /api/organizations/invitations` non seleziona ne' espone token;
+- `/accept-invitation` porta il destinatario al flusso reale di accettazione;
+- `PATCH /api/organizations/invitations` deriva ID ed email dalla sessione autenticata;
+- `accept_organization_invitation` verifica destinatario e scadenza, poi attiva membership e invito nella stessa transazione.
+
+Configurazione richiesta: `RESEND_API_KEY`, `ORGANIZATION_INVITATION_FROM` e `NEXT_PUBLIC_SITE_URL`, documentate in `.env.production.example`.
+
+Evidenza locale: test mirati M15/O38/O39 6/6, type-check verde e build produzione 150 pagine. O39 resta `[L]`, non `[x]`: la migrazione, la consegna provider e l'accettazione con due utenti reali devono essere provate sullo staging isolato.

@@ -693,7 +693,7 @@ function InviteMemberModal({
         return
       }
 
-      await createInvitation(organizationId, email, roleId, userId)
+      await createInvitation(organizationId, email, roleId)
       onSave()
     } catch (error) {
       console.error('Error creating invitation:', error)
