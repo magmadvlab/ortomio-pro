@@ -75,3 +75,6 @@ REVOKE ALL ON FUNCTION public.accept_organization_invitation(uuid, uuid, text)
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_organization_invitation(uuid, uuid, text)
   TO service_role;
+
+REVOKE INSERT, UPDATE, DELETE ON public.organization_invitations
+  FROM anon, authenticated;
