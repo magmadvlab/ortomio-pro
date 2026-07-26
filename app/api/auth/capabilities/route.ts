@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { accessErrorResponse, getSupabaseClient, getUserProfile, requireUser } from '@/lib/auth.server'
 import { getEnabledFeatures, type FeatureFlag } from '@/config/features'
 
-const normalizeTier = (tier: unknown) => {
-  if (tier === 'FREE') return 'FREE'
-  if (tier === 'PLUS' || tier === 'PRO_CONSUMER') return 'PLUS'
-  return 'PRO'
-}
-
 export async function GET(request: NextRequest) {
   try {
     const user = await requireUser(request)
@@ -26,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       role: profile?.role === 'admin' || profile?.is_superadmin ? 'admin' : 'user',
-      tier: normalizeTier(profile?.tier),
+      tier: 'PRO',
       providers: {
         supabase: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
         sentinel: Boolean((process.env.SENTINEL_HUB_CLIENT_ID || process.env.SH_CLIENT_ID) && (process.env.SENTINEL_HUB_CLIENT_SECRET || process.env.SH_CLIENT_SECRET)),

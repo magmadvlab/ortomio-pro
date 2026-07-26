@@ -76,7 +76,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
 | M13 | `[-]` parziale | Smoke Open-Meteo reale | Provider avanzato e gestione operativa (`O31-O33`) |
 | M14 | `[-]` parziale | Regressioni locali 9/9 | Dataset, periodo shadow, metriche e firma (`O34-O37`) |
-| M15 | `[-]` parziale | O38 provisioning e O39 inviti/accettazione completati localmente | Prove staging O38-O39 e lifecycle commerciale `O40-O43` |
+| M15 | `[-]` parziale | O38-O39 completati localmente; O40 chiuso con modello unico PRO senza piani/limiti | Prove staging O38-O39 e lifecycle commerciale `O41-O43` |
 | M16 | `[ ]` non iniziato | — | Audit finale e decisione go/no-go (`O44`) |
 
 Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la release soltanto **M01 e M02**. M03-M05 hanno prodotto risultati locali utili, ma non autorizzano a considerarli conclusi ai fini della release commerciale.
@@ -330,7 +330,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - fatturazione o procedura amministrativa iniziale;
   - assistenza e accesso amministratore OrtoMio auditato.
 - **Criterio di uscita:** un cliente puo' attraversare l'intero ciclo commerciale senza interventi tecnici non documentati.
-- **Risultato parziale:** registrazione, schema organizzazioni/ruoli/inviti e UI censiti; eliminato il log del token invito. Il 26/07/2026 O38 e' stato completato localmente: la UI passa da `POST /api/organizations/provision`, l'owner deriva dalla sessione server e la RPC `provision_organization` crea organizzazione, ruoli e membership Owner in una sola transazione. O39 e' stato completato localmente subito dopo: creazione/lista inviti server-side senza esposizione token, delivery Resend tracciata, pagina di accettazione e RPC atomica vincolata all'email autenticata. Test mirati M15/O38/O39 6/6, type-check e build produzione 150 pagine verdi; restano configurazione provider e prove E2E staging prima dello stato `[x]`.
+- **Risultato parziale:** registrazione, schema organizzazioni/ruoli/inviti e UI censiti; eliminato il log del token invito. Il 26/07/2026 O38 e' stato completato localmente: la UI passa da `POST /api/organizations/provision`, l'owner deriva dalla sessione server e la RPC `provision_organization` crea organizzazione, ruoli e membership Owner in una sola transazione. O39 e' stato completato localmente subito dopo: creazione/lista inviti server-side senza esposizione token, delivery Resend tracciata, pagina di accettazione e RPC atomica vincolata all'email autenticata. O40 e' stato chiuso per decisione prodotto esplicita: esiste una sola versione PRO senza piani o limiti commerciali; i gate server e UI legacy sono stati resi inerti/rimossi. Restano configurazione provider e prove E2E staging prima dello stato `[x]`.
 - **Evidenza:** commit `19cb061` e `M15_COMMERCIAL_LIFECYCLE_GAPS_2026-07-24.md`.
 - **Residuo:** provisioning transazionale, delivery inviti server-side, licenze/limiti, rinnovo, fatturazione, sospensione, cancellazione e retention.
 
@@ -431,7 +431,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O37 | M14 | Ottenere revisione agronomica firmata | Report shadow approvato |
 | O38 | M15 | **Implementazione locale completata 26/07/2026:** provisioning transazionale tramite API server e RPC; resta applicazione/prova staging | Cliente attivato senza intervento DB manuale |
 | O39 | M15 | **Implementazione locale completata 26/07/2026:** API server, delivery tracciata e accettazione atomica; restano provider configurato e prova E2E staging | Invito consegnato, accettato e auditato |
-| O40 | M15 | Implementare licenze, piani e limiti | Enforcement verificato |
+| O40 | M15 | ~~Implementare licenze, piani e limiti~~ **Chiuso 26/07/2026 per decisione prodotto:** unica versione PRO, nessun piano/limite commerciale; gate legacy rimossi | Contratto single-PRO verificato, nessuna capability nascosta per tier |
 | O41 | M15 | Implementare rinnovo e fatturazione/procedura iniziale | Ciclo economico documentato |
 | O42 | M15 | Implementare sospensione e riattivazione | Accessi e dati coerenti |
 | O43 | M15 | Implementare cancellazione, retention e accesso assistenza auditato | Lifecycle di uscita verificato |

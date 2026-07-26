@@ -807,8 +807,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
           .from('profiles')
           .upsert({
             id: userId,
-            tier: 'FREE',
-            ai_credits_total: 3,
+            tier: 'PRO',
+            ai_credits_total: 200,
             ai_credits_used: 0,
           }, {
             onConflict: 'id',

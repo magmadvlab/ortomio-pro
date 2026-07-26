@@ -12,7 +12,7 @@ import { CapabilityBadge, CapabilityIconView } from '@/components/capabilities/C
 export function FreeSidebar() {
   const pathname = usePathname()
   const { access } = useCapabilities()
-  const items = useMemo(() => getVisibleCapabilities({ ...access, tier: 'FREE' }, 'desktop', getEnabledFeaturesForAccess(access)).filter(item => item.route), [access])
+  const items = useMemo(() => getVisibleCapabilities({ ...access, tier: 'PRO' }, 'desktop', getEnabledFeaturesForAccess(access)).filter(item => item.route), [access])
   return <aside className="hidden min-h-screen w-64 border-r bg-white p-4 lg:block">
     <h2 className="mb-5 text-lg font-bold text-green-900">OrtoMio</h2>
     <nav className="space-y-1">{items.map(item => <Link key={item.id} href={item.route!} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${pathname === item.route ? 'bg-green-100 font-semibold' : 'hover:bg-gray-50'}`}>
