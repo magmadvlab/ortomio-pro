@@ -13,47 +13,27 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Droplets,
   Leaf,
   Bug,
   Scissors,
   Calendar,
-  Clock,
-  TrendingUp,
-  TrendingDown,
   Plus,
   Edit3,
   Trash2,
-  Eye,
   AlertTriangle,
-  CheckCircle,
   Activity,
   BarChart3,
-  MapPin,
-  Camera,
   FileText,
-  Zap,
   Settings,
-  Filter,
   Search,
-  Download,
-  Upload,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
   X,
-  Save,
   Calculator,
-  Target,
-  Award,
-  Thermometer,
-  Sun,
-  CloudRain
+  Award
 } from 'lucide-react'
 import { GardenPlant, PlantOperation, PlantHarvest } from '@/types/individualPlant'
-import { calculateResourceNeeds, analyzeFieldPerformance } from '@/services/individualPlantService'
 
 interface PlantLifecycleManagerProps {
   plant: GardenPlant
@@ -180,11 +160,9 @@ export default function PlantLifecycleManager({
   plant,
   operations,
   harvests,
-  onUpdatePlant,
   onAddOperation,
   onUpdateOperation,
   onDeleteOperation,
-  onAddHarvest,
   onClose
 }: PlantLifecycleManagerProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'schedule' | 'analytics' | 'settings'>('overview')

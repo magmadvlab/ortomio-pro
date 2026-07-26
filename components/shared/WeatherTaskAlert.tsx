@@ -1,15 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { CloudRain, Wind, Thermometer, AlertTriangle, Calendar, Check, X } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { CloudRain, AlertTriangle, Calendar, Check, X } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import {
   checkTomorrowTasksWeather,
-  RescheduleNotification,
-  rescheduleTasksBasedOnWeather
+  RescheduleNotification
 } from '@/services/weatherAwareTaskScheduler'
-import { format } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 interface WeatherTaskAlertProps {
   garden: Garden
@@ -25,28 +22,24 @@ export function WeatherTaskAlert({
   autoCheck = true
 }: WeatherTaskAlertProps) {
   const [notifications, setNotifications] = useState<RescheduleNotification[]>([])
-  const [loading, setLoading] = useState(false)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
-  // Check automatico al mount
-  useEffect(() => {
-    if (autoCheck && garden.coordinates) {
-      checkWeather()
-    }
-  }, [garden.id, tasks.length])
-
-  const checkWeather = async () => {
-    setLoading(true)
+  const checkWeather = useCallback(async () => {
     try {
       // Controlla task di domani
       const tomorrowAlerts = await checkTomorrowTasksWeather(garden, tasks)
       setNotifications(tomorrowAlerts)
     } catch (error) {
       console.error('Error checking weather for tasks:', error)
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [garden, tasks])
+
+  // Check automatico al mount
+  useEffect(() => {
+    if (autoCheck && garden.coordinates) {
+      checkWeather()
+    }
+  }, [autoCheck, garden.coordinates, checkWeather])
 
   const handleReschedule = async (taskId: string, newDate: string) => {
     if (!onTaskUpdate) return
@@ -193,7 +186,7 @@ export function WeatherTaskWidget({
       }
     }
     checkCount()
-  }, [garden.id, garden.coordinates, tasks])
+  }, [garden, tasks])
 
   if (tasks.length === 0) {
     return (

@@ -9,6 +9,7 @@ import {
   ExportConfiguration,
   MachineryCompatibility
 } from '../types/prescriptionMaps';
+import type { IStorageProvider } from '../packages/core/storage/interface';
 
 export interface ExportResult {
   success: boolean;
@@ -57,11 +58,16 @@ export interface ISOXMLTask {
 /**
  * GEO EXPORT SERVICE
  */
+type GeoExportStorageProvider = Pick<
+  IStorageProvider,
+  'createPrescriptionMapExportRecord' | 'updatePrescriptionMap'
+>;
+
 export class GeoExportService {
-  private storageProvider: any;
+  private storageProvider: GeoExportStorageProvider;
   private generatedFiles = new Map<string, ArrayBuffer>();
 
-  constructor(storageProvider: any) {
+  constructor(storageProvider: GeoExportStorageProvider) {
     this.storageProvider = storageProvider;
   }
 
@@ -264,7 +270,7 @@ export class GeoExportService {
     const fileName = `${this.sanitizeFileName(prescriptionMap.name)}_TASKDATA.zip`;
     
     try {
-      const isoxmlTask = this.generateISOXMLTask(prescriptionMap, zones, config);
+      const isoxmlTask = this.generateISOXMLTask(prescriptionMap, zones);
       
       // Create TASKDATA structure
       const taskDataFiles = {
@@ -470,10 +476,7 @@ export class GeoExportService {
       
       const recommendations: string[] = [];
       const warnings: string[] = [];
-      
-      // General format compatibility
-      const formatCompatibility = this.getFormatCompatibility(format);
-      
+
       if (compatibility) {
         const isCompatible = compatibility.supportedFormats[format as keyof typeof compatibility.supportedFormats];
         
@@ -522,7 +525,7 @@ export class GeoExportService {
         warnings
       };
       
-    } catch (error) {
+    } catch {
       return {
         compatible: false,
         compatibility: null,
@@ -583,7 +586,7 @@ export class GeoExportService {
     
     const styles = this.generateKMLStyles(config);
     
-    const placemarks = zones.map(zone => this.generateKMLPlacemark(zone, config));
+    const placemarks = zones.map(zone => this.generateKMLPlacemark(zone));
     
     const footer = `  </Document>
 </kml>`;
@@ -592,9 +595,8 @@ export class GeoExportService {
   }
 
   private generateKMLStyles(config: ExportConfiguration): string {
-    const colorScheme = config.kmlOptions?.colorScheme || 'default';
-    
-    // Generate color styles based on scheme
+    // Fixed style for now; config.kmlOptions.colorScheme is not yet honored
+    void config;
     return `
     <Style id="zone_style">
       <PolyStyle>
@@ -608,7 +610,7 @@ export class GeoExportService {
     </Style>`;
   }
 
-  private generateKMLPlacemark(zone: PrescriptionZone, config: ExportConfiguration): string {
+  private generateKMLPlacemark(zone: PrescriptionZone): string {
     const coordinates = zone.geometry.coordinates[0]
       .map(coord => `${coord[0]},${coord[1]},0`)
       .join(' ');
@@ -634,8 +636,7 @@ export class GeoExportService {
 
   private generateISOXMLTask(
     prescriptionMap: PrescriptionMap,
-    zones: PrescriptionZone[],
-    config: ExportConfiguration
+    zones: PrescriptionZone[]
   ): ISOXMLTask {
     
     const taskData = `<?xml version="1.0" encoding="UTF-8"?>
@@ -871,7 +872,7 @@ export class GeoExportService {
  * UTILITY FUNCTIONS
  */
 
-export const createGeoExportService = (storageProvider: any) => {
+export const createGeoExportService = (storageProvider: GeoExportStorageProvider) => {
   return new GeoExportService(storageProvider);
 };
 

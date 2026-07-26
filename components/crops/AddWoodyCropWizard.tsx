@@ -62,7 +62,6 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
   const [trainingSystem, setTrainingSystem] = useState<'Guyot' | 'Cordon' | 'Pergola' | 'Alberello'>('Guyot');
   const [varietyTypeOlive, setVarietyTypeOlive] = useState<'Oil' | 'Table' | 'Dual-purpose'>(getInitialVarietyTypeOlive());
   const [varietyTypeVine, setVarietyTypeVine] = useState<'Wine' | 'Table'>(getInitialVarietyTypeVine());
-  const [treeType, setTreeType] = useState<'Pome' | 'Stone' | 'Citrus' | 'Nut' | 'Berry'>('Pome');
   
   // Rileva frutteto/oliveto/vigneto quando si seleziona il tipo
   useEffect(() => {
@@ -101,7 +100,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
     };
     
     checkExisting();
-  }, [cropType, garden.id, storageProvider]);
+  }, [cropType, garden.id, garden.orchardConfig, garden.oliveGroveConfig, garden.vineyardConfig, storageProvider]);
 
   const getAvailableVarieties = () => {
     if (cropType === 'FruitTree') {
@@ -146,7 +145,6 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
     };
 
     if (cropType === 'FruitTree') {
-      const fruitTreeData = selectedVarietyData as FruitTreeCrop;
       const task: GardenTask = {
         ...baseTask,
         fruitTreeData: {
@@ -172,7 +170,6 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
       await storageProvider.createTask(task);
       onComplete(task);
     } else if (cropType === 'Vine') {
-      const vineData = selectedVarietyData as VineCrop;
       const task: GardenTask = {
         ...baseTask,
         vineData: {
@@ -214,7 +211,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
       <CreateOrchardWizard
         garden={garden}
         orchardType={cropType === 'FruitTree' ? 'orchard' : cropType === 'Olive' ? 'oliveGrove' : 'vineyard'}
-        onComplete={(config) => {
+        onComplete={() => {
           setShowOrchardWizard(false);
           // Ricarica garden per avere config aggiornata
           storageProvider.getGarden(garden.id).then(updatedGarden => {

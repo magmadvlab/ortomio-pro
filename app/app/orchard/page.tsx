@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
@@ -17,12 +17,11 @@ import HarvestManager from '@/components/orchard/HarvestManager'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { 
-  TreePine, 
-  ArrowLeft, 
-  Settings, 
-  Scissors, 
-  Calendar, 
+import {
+  TreePine,
+  ArrowLeft,
+  Scissors,
+  Calendar,
   BarChart3,
   Users,
   Eye,
@@ -46,27 +45,27 @@ export default function OrchardPage() {
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadGardens()
-  }, [storageProvider])
-
-  const loadGardens = async () => {
+  const loadGardens = useCallback(async () => {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
       // Filtra solo i gardens di tipo Frutteto
       const gardensList = allGardens.filter(g => g.gardenType === 'Orchard')
       setGardens(gardensList)
-      
-      if (gardensList.length > 0 && !selectedGardenId) {
-        setSelectedGardenId(gardensList[0].id)
+
+      if (gardensList.length > 0) {
+        setSelectedGardenId(prev => prev || gardensList[0].id)
       }
     } catch (error) {
       console.error('Error loading gardens:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [storageProvider])
+
+  useEffect(() => {
+    loadGardens()
+  }, [loadGardens])
 
   const handleCreateOrchard = () => {
     setShowWizard(true)
@@ -84,7 +83,7 @@ export default function OrchardPage() {
     setViewMode('trees')
   }
 
-  const handleWizardComplete = (orchardId: string) => {
+  const handleWizardComplete = () => {
     setShowWizard(false)
     // Reload orchards and select the new one
     loadGardens()
@@ -358,11 +357,7 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
     emitterFlowRateLph: '2',
   })
 
-  useEffect(() => {
-    loadTrees()
-  }, [orchardId, gardenId, storageProvider])
-
-  const loadTrees = async () => {
+  const loadTrees = useCallback(async () => {
     try {
       setLoading(true)
       const fieldRowsPromise = storageProvider?.getFieldRows
@@ -383,7 +378,11 @@ function OrchardRowsView({ orchard, orchardId, gardenId, onOrchardUpdate, onNavi
     } finally {
       setLoading(false)
     }
-  }
+  }, [orchardId, gardenId, storageProvider])
+
+  useEffect(() => {
+    loadTrees()
+  }, [loadTrees])
 
   const formatRowOrderingLabel = (ordering?: FieldRow['rowOrdering']) => {
     switch (ordering) {

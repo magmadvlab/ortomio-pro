@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown,
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  BarChart3,
+  TrendingUp,
   Calendar,
   DollarSign,
   Target,
@@ -12,7 +11,6 @@ import {
   AlertTriangle,
   Download,
   RefreshCw,
-  Filter,
   Eye,
   PieChart,
   Activity,
@@ -21,15 +19,11 @@ import {
   Droplets,
 } from 'lucide-react'
 import { Garden } from '@/types'
-import { 
+import {
   NutritionAnalytics as NutritionAnalyticsType,
-  TreatmentTypeAnalytics,
-  MonthlyTrend,
   AnalyticsRecommendation
 } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 interface NutritionAnalyticsProps {
   garden: Garden
@@ -46,11 +40,7 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
   const [activeView, setActiveView] = useState<AnalyticsView>('overview')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadAnalytics()
-  }, [garden.id, timePeriod])
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -62,7 +52,11 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id, timePeriod])
+
+  useEffect(() => {
+    loadAnalytics()
+  }, [loadAnalytics])
 
   const handleRefresh = async () => {
     try {
@@ -96,16 +90,6 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
     anchor.download = `analytics-nutrizione-${garden.id}-${timePeriod}.json`
     anchor.click()
     URL.revokeObjectURL(url)
-  }
-
-  const getPeriodLabel = (period: TimePeriod) => {
-    switch (period) {
-      case 'week': return 'Ultima settimana'
-      case 'month': return 'Ultimo mese'
-      case 'quarter': return 'Ultimo trimestre'
-      case 'year': return 'Ultimo anno'
-      default: return 'Periodo'
-    }
   }
 
   const getRecommendationIcon = (type: string) => {
@@ -252,7 +236,7 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
 
         <div className="p-6">
           {activeView === 'overview' && (
-            <OverviewAnalytics analyticsData={analyticsData} timePeriod={timePeriod} />
+            <OverviewAnalytics analyticsData={analyticsData} />
           )}
           
           {activeView === 'treatments' && (
@@ -296,10 +280,9 @@ export default function NutritionAnalytics({ garden }: NutritionAnalyticsProps) 
 // Overview Analytics Component
 interface OverviewAnalyticsProps {
   analyticsData: NutritionAnalyticsType
-  timePeriod: TimePeriod
 }
 
-function OverviewAnalytics({ analyticsData, timePeriod }: OverviewAnalyticsProps) {
+function OverviewAnalytics({ analyticsData }: OverviewAnalyticsProps) {
   const adaptiveTarget = analyticsData.adaptiveThresholds?.effectivenessTargetPercent ?? 70
 
   return (

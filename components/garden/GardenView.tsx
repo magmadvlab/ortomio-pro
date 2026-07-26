@@ -15,6 +15,7 @@ import UnifiedTimelineDiary from '../diary/UnifiedTimelineDiary'
 import DailyGardenReport from './DailyGardenReport'
 import ProfessionalDashboard from '../professional/ProfessionalDashboard'
 import Link from 'next/link'
+import { EnvironmentalPlanningSection } from '@/components/sunExposure/EnvironmentalPlanningSection'
 
 interface GardenViewProps {
   garden: Garden
@@ -207,6 +208,8 @@ export function GardenView({
                 </Link>
               </div>
             </div>
+
+            <EnvironmentalPlanningSection garden={garden} tasks={tasks} />
 
             <CalendarTabView
               garden={garden}

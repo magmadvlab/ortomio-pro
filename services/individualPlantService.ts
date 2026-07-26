@@ -373,7 +373,7 @@ export const analyzeFieldPerformance = (
 /**
  * EXPORT PRINCIPALE
  */
-export default {
+const individualPlantService = {
   plantCalculations,
   generatePlantCode,
   calculateFieldConfiguration,
@@ -382,3 +382,5 @@ export default {
   calculateResourceNeeds,
   analyzeFieldPerformance
 };
+
+export default individualPlantService;

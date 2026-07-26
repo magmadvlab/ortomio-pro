@@ -1,29 +1,24 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { VineyardConfiguration, VineyardDashboardData, VineyardAlert, VineyardTask } from '@/types/vineyard'
+import React, { useState, useEffect, useCallback } from 'react'
+import { VineyardConfiguration, VineyardDashboardData } from '@/types/vineyard'
 import { vineyardService } from '@/services/vineyardService'
-import { 
-  Grape, 
-  Plus, 
-  Calendar, 
-  AlertTriangle, 
-  CheckCircle, 
-  TrendingUp, 
-  Activity, 
-  Scissors, 
+import {
+  Grape,
+  Plus,
+  Calendar,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  Activity,
+  Scissors,
   Droplets,
-  Bug,
-  Thermometer,
   Eye,
   Settings,
-  BarChart3,
-  MapPin,
   Clock,
   Target,
   Leaf,
   Wine,
-  Users,
   Zap
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -41,30 +36,30 @@ export default function VineyardDashboard({ gardenId, onCreateVineyard, onSelect
   const [loading, setLoading] = useState(true)
   const [selectedVineyardId, setSelectedVineyardId] = useState<string>('')
 
-  useEffect(() => {
-    loadData()
-  }, [gardenId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [vineyardsData, dashData] = await Promise.all([
         vineyardService.getVineyardConfigurations(gardenId),
         vineyardService.getVineyardDashboardData(gardenId)
       ])
-      
+
       setVineyards(vineyardsData)
       setDashboardData(dashData)
-      
-      if (vineyardsData.length > 0 && !selectedVineyardId) {
-        setSelectedVineyardId(vineyardsData[0].id)
+
+      if (vineyardsData.length > 0) {
+        setSelectedVineyardId(prev => prev || vineyardsData[0].id)
       }
     } catch (error) {
       console.error('Error loading vineyard data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [gardenId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const getVineyardTypeIcon = (type: string) => {
     switch (type) {

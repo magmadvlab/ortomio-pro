@@ -1,34 +1,29 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  PruningSchedule, 
-  TreePruningRecord, 
-  PruningType, 
-  PruningIntensity, 
-  PruningObjective, 
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  PruningSchedule,
+  TreePruningRecord,
+  PruningType,
+  PruningIntensity,
+  PruningObjective,
   PruningTechnique,
-  TreeSelectionCriteria,
   ScheduleStatus
 } from '@/types/orchard'
 import { orchardService } from '@/services/orchardService'
-import { 
-  Scissors, 
-  Plus, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Target, 
-  CheckCircle, 
-  AlertTriangle,
+import {
+  Scissors,
+  Plus,
+  Calendar,
+  Clock,
+  Target,
+  CheckCircle,
   Play,
   Pause,
   X,
   Edit,
   Eye,
-  Filter,
-  Download,
-  BarChart3
+  Filter
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -38,7 +33,7 @@ interface PruningManagerProps {
   gardenId: string
 }
 
-export default function PruningManager({ orchardId, gardenId }: PruningManagerProps) {
+export default function PruningManager({ orchardId }: PruningManagerProps) {
   const [schedules, setSchedules] = useState<PruningSchedule[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -46,11 +41,7 @@ export default function PruningManager({ orchardId, gardenId }: PruningManagerPr
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [filterStatus, setFilterStatus] = useState<ScheduleStatus | 'all'>('all')
 
-  useEffect(() => {
-    loadSchedules()
-  }, [orchardId])
-
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       setLoading(true)
       const schedulesData = await orchardService.getPruningSchedules(orchardId)
@@ -60,7 +51,11 @@ export default function PruningManager({ orchardId, gardenId }: PruningManagerPr
     } finally {
       setLoading(false)
     }
-  }
+  }, [orchardId])
+
+  useEffect(() => {
+    loadSchedules()
+  }, [loadSchedules])
 
   const getStatusColor = (status: ScheduleStatus) => {
     switch (status) {
@@ -673,10 +668,9 @@ interface PruningScheduleDetailModalProps {
   onUpdate: (schedule: PruningSchedule) => void
 }
 
-function PruningScheduleDetailModal({ schedule, onClose, onUpdate }: PruningScheduleDetailModalProps) {
+function PruningScheduleDetailModal({ schedule, onClose }: PruningScheduleDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'details' | 'progress' | 'records'>('details')
-  const [records, setRecords] = useState<TreePruningRecord[]>([])
-  const [loading, setLoading] = useState(false)
+  const [records] = useState<TreePruningRecord[]>([])
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -743,7 +737,7 @@ function PruningScheduleDetailModal({ schedule, onClose, onUpdate }: PruningSche
             <ScheduleProgressTab schedule={schedule} />
           )}
           {activeTab === 'records' && (
-            <ScheduleRecordsTab schedule={schedule} records={records} />
+            <ScheduleRecordsTab records={records} />
           )}
         </div>
       </div>
@@ -919,7 +913,7 @@ function ScheduleProgressTab({ schedule }: { schedule: PruningSchedule }) {
 }
 
 // Schedule Records Tab
-function ScheduleRecordsTab({ schedule, records }: { schedule: PruningSchedule; records: TreePruningRecord[] }) {
+function ScheduleRecordsTab({ records }: { records: TreePruningRecord[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

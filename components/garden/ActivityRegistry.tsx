@@ -4,17 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { 
-  Calendar, 
-  Filter, 
-  Search, 
-  Download, 
-  Eye, 
-  Edit3, 
-  Trash2,
+import {
+  Search,
+  Download,
+  Eye,
   Clock,
   MapPin,
-  User,
   Camera,
   FileText,
   TrendingUp,
@@ -22,13 +17,10 @@ import {
   Activity,
   Leaf,
   Droplets,
-  Scissors,
   Package,
   Bug,
   Thermometer,
-  X,
-  ChefHat,
-  Sparkles
+  X
 } from 'lucide-react'
 import { GardenTask } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
@@ -84,7 +76,6 @@ export default function ActivityRegistry({
   tasks = [],
   gardenId,
   storageProvider,
-  onTaskUpdate,
   onExportData
 }: ActivityRegistryProps) {
   const [activities, setActivities] = useState<ActivityRecord[]>([])

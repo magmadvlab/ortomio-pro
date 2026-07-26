@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     
-    let query = supabase
+    const query = supabase
       .from('calendar_tasks')
       .select('*')
       .eq('user_id', user.id)

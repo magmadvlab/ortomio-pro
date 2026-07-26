@@ -314,9 +314,7 @@ export const getSpecificPlantDetails = async (query: string, lat: number, lng: n
     }
     return convertMasterSheetToSpecificInfo(
       masterGuide.masterSheet,
-      varietyName,
-      lat,
-      lng
+      varietyName
     );
   }
 

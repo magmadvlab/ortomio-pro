@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SeedlingBatch } from '../services/seedlingService';
-import { Garden, PlantMasterSheet } from '../types';
-import { createSeedlingBatch, createPurchasedSeedlingBatch, getSeedlingTimeline, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
+import { Garden } from '../types';
+import { createSeedlingBatch, createPurchasedSeedlingBatch, shouldStartHardening, isReadyToTransplant, addPhotoToLog, updateSurvivalCount, updateBatchPhase } from '../services/seedlingService';
 import { calculateSeedlingTimeline } from '../logic/seedlingTimelineEngine';
 import { getAllMasterSheets } from '../services/plantMasterService';
-import { Sprout, Calendar, Camera, AlertCircle, CheckCircle, Clock, TrendingUp, Upload, X, ArrowRight, Eye } from 'lucide-react';
+import { Sprout, Camera, AlertCircle, CheckCircle, Clock, ArrowRight, Eye } from 'lucide-react';
 import { useTier } from '../packages/core/hooks/useTier';
 import UpgradePrompt from './UpgradePrompt';
 import TransplantToOrchardModal from './vivaio/TransplantToOrchardModal';
@@ -17,7 +17,7 @@ interface SeedlingManagerProps {
 }
 
 const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBatchUpdate, onBatchCreate }) => {
-  const { can, isPro, checkLimit, limit } = useTier();
+  const { isPro, checkLimit, limit } = useTier();
   const [isCreating, setIsCreating] = useState(false);
   const [isCreatingPurchased, setIsCreatingPurchased] = useState(false);
   const [newBatch, setNewBatch] = useState({
@@ -25,7 +25,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
     variety: '',
     sowingDate: new Date().toISOString().split('T')[0],
     quantity: 10,
-    location: 'Indoor' as const
+    location: 'Indoor' as 'Indoor' | 'Greenhouse' | 'ColdFrame'
   });
   const [newPurchasedBatch, setNewPurchasedBatch] = useState({
     plantName: '',
@@ -35,7 +35,6 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
     nurseryName: '',
     notes: ''
   });
-  const [selectedBatch, setSelectedBatch] = useState<SeedlingBatch | null>(null);
   const [showTransplantModal, setShowTransplantModal] = useState(false);
   const [batchToTransplant, setBatchToTransplant] = useState<SeedlingBatch | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
@@ -128,10 +127,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         const updated = addPhotoToLog(batch, base64);
         onBatchUpdate(updated);
         setUploadingPhoto(null);
-        
-        // Feedback visivo migliorato
-        const successMessage = '📸 Foto aggiunta con successo!';
-        
+
         // Mostra feedback temporaneo
         const feedbackElement = document.createElement('div');
         feedbackElement.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2';
@@ -296,7 +292,7 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
                 <select
                   className="w-full p-3 border rounded-lg text-sm sm:text-base"
                   value={newBatch.location}
-                  onChange={(e) => setNewBatch({ ...newBatch, location: e.target.value as any })}
+                  onChange={(e) => setNewBatch({ ...newBatch, location: e.target.value as 'Indoor' | 'Greenhouse' | 'ColdFrame' })}
                 >
                   <option value="Indoor">Indoor</option>
                   <option value="Greenhouse">Serra</option>
@@ -421,7 +417,6 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
           </div>
         ) : (
           batches.map(batch => {
-            const timeline = getSeedlingTimeline(batch);
             const detailedTimeline = calculateSeedlingTimeline(batch, garden);
             const hardeningCheck = shouldStartHardening(batch, garden);
             const transplantCheck = isReadyToTransplant(batch, garden);

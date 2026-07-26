@@ -9,10 +9,10 @@ import { calculateRootDepthForArchetype } from '../../logic/rootDepthCalculator'
 import { searchCropWithFuzzy, SearchResult } from '../../services/fuzzySearchService';
 import { extractMainPlantName, suggestArchetypeFromKeywords } from '../../services/plantNameExtractor';
 import { searchArchetypesByExample } from '../../services/archetypeService';
-import { X, ArrowRight, ArrowLeft, Search, Loader2, Info } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, Loader2, Info } from 'lucide-react';
 import { InfoTooltip } from '../shared/InfoTooltip';
 import { getMasterSheetSync } from '../../services/plantMasterService';
-import { parseSpacing, getCropType, calculateOrchardLayout, calculateVineyardLayout, calculateOliveLayout, calculateMaxPlants, suggestOptimalLayout, getMasterSheetForPlant, Spacing } from '../../logic/gardenLayoutEngine';
+import { parseSpacing, getCropType, calculateOrchardLayout, calculateVineyardLayout, calculateMaxPlants, suggestOptimalLayout, getMasterSheetForPlant, Spacing } from '../../logic/gardenLayoutEngine';
 
 interface AddCropWizardProps {
   garden: Garden;
@@ -34,8 +34,7 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
   const { storageProvider } = useStorage();
   const { user } = useAuth();
   const [step, setStep] = useState<WizardStep>('method');
-  const [loading, setLoading] = useState(false);
-  
+
   // Step 0: Metodo di coltivazione
   const [cultivationMethod, setCultivationMethod] = useState<'seed' | 'seedling' | null>(null);
   
@@ -710,8 +709,6 @@ export const AddCropWizard: React.FC<AddCropWizardProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const cropType = detectedWoodyArchetype === 'L1' ? 'Vine' : 
-                                          detectedWoodyArchetype === 'L2' ? 'Olive' : 'FruitTree';
                           setShowWoodyWizard(true);
                         }}
                         className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"

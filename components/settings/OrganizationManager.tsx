@@ -6,22 +6,16 @@ import {
   Users,
   Shield,
   Plus,
-  Edit2,
   Trash2,
   Mail,
   UserPlus,
-  MapPin,
-  Check,
-  X,
   AlertCircle
 } from 'lucide-react'
 import {
   Organization,
   OrganizationMember,
   Role,
-  GardenAssignment,
-  OrganizationInvitation,
-  SYSTEM_ROLES
+  OrganizationInvitation
 } from '@/types/organization'
 import {
   getUserOrganizations,
@@ -30,10 +24,7 @@ import {
   getOrganizationRoles,
   createInvitation,
   getPendingInvitations,
-  removeMember,
-  updateMemberRole,
-  assignGarden,
-  getMemberGardenAssignments
+  removeMember
 } from '@/services/organizationService'
 import { getSupabaseClient } from '@/config/supabase'
 
@@ -423,7 +414,7 @@ function MembersTab({
 }
 
 // Roles Tab Component
-function RolesTab({ roles, onRefresh }: { roles: Role[]; onRefresh: () => void }) {
+function RolesTab({ roles }: { roles: Role[]; onRefresh: () => void }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">{roles.length} ruoli configurati</p>
@@ -464,8 +455,7 @@ function RolesTab({ roles, onRefresh }: { roles: Role[]; onRefresh: () => void }
 
 // Invitations Tab Component
 function InvitationsTab({
-  invitations,
-  onRefresh
+  invitations
 }: {
   invitations: OrganizationInvitation[]
   onRefresh: () => void

@@ -1,32 +1,24 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  Droplets, 
-  MapPin, 
-  Settings, 
-  BarChart3, 
-  Clock, 
-  Play, 
-  Pause, 
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  Droplets,
+  MapPin,
+  Settings,
+  BarChart3,
+  Clock,
+  Play,
+  Pause,
   AlertTriangle,
-  TrendingUp,
   Activity,
   Zap,
   Plus,
   RefreshCw
 } from 'lucide-react'
 import { Garden } from '@/types'
-import { 
-  IrrigationDashboardData, 
-  IrrigationZone, 
-  IrrigationLog, 
-  IrrigationSchedule,
-  IrrigationAlert,
-  SystemStatus
-} from '@/types/irrigation'
+import { IrrigationDashboardData } from '@/types/irrigation'
 import { advancedIrrigationService } from '@/services/advancedIrrigationService'
-import { format, isToday, isTomorrow, parseISO } from 'date-fns'
+import { format, isToday, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 interface ProfessionalIrrigationDashboardProps {
@@ -49,11 +41,7 @@ export default function ProfessionalIrrigationDashboard({
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [garden.id])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -61,10 +49,10 @@ export default function ProfessionalIrrigationDashboard({
       setDashboardData(data)
     } catch (err) {
       console.error('Error loading dashboard data:', err)
-      
+
       // Check if it's a table not found error
       if (err && typeof err === 'object' && 'message' in err) {
-        const errorMessage = (err as any).message
+        const errorMessage = (err as { message?: string }).message
         if (errorMessage?.includes('relation') && errorMessage?.includes('does not exist')) {
           setError('Sistema di irrigazione non ancora configurato. Eseguire le migrazioni del database.')
         } else {
@@ -76,7 +64,11 @@ export default function ProfessionalIrrigationDashboard({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   const handleRefresh = async () => {
     try {

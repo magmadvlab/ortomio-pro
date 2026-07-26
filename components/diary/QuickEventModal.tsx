@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Calendar, Clock, MapPin, Camera, FileText, AlertTriangle, CheckCircle, Leaf, Bug, Droplets, Zap } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, AlertTriangle, CheckCircle, Droplets, Zap } from 'lucide-react'
 
 interface QuickEventModalProps {
   isOpen: boolean
@@ -22,7 +22,7 @@ export interface QuickEvent {
   tags?: string[]
 }
 
-export default function QuickEventModal({ isOpen, onClose, onSave, gardenId }: QuickEventModalProps) {
+export default function QuickEventModal({ isOpen, onClose, onSave }: QuickEventModalProps) {
   const [event, setEvent] = useState<QuickEvent>({
     type: 'observation',
     title: '',

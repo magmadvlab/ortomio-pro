@@ -5,7 +5,7 @@ import { Garden, GardenTask } from '@/types'
 import { getMasterSheetSync } from '@/services/plantMasterService'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { GanttChart, Calendar as CalendarIcon } from 'lucide-react'
+import { GanttChart } from 'lucide-react'
 
 interface TimelineViewProps {
   garden: Garden
@@ -13,7 +13,7 @@ interface TimelineViewProps {
   onUpdateTask: (task: GardenTask) => void
 }
 
-export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps) {
+export function TimelineView({ tasks }: TimelineViewProps) {
   // Filter tasks to show in timeline (Sowing, Transplant, Harvest)
   const timelineTasks = useMemo(() => {
     if (!tasks || tasks.length === 0) return []
@@ -126,7 +126,6 @@ export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps)
   }
   
   const getTaskLabel = (task: GardenTask) => {
-    const master = getMasterSheetSync(task.plantName)
     const variety = task.variety ? ` (${task.variety})` : ''
     
     switch (task.taskType) {
@@ -245,7 +244,7 @@ export function TimelineView({ garden, tasks, onUpdateTask }: TimelineViewProps)
                 
                 {/* Task Bars */}
                 <div className="ml-32 relative h-12">
-                  {plantTasks.map((task, taskIdx) => {
+                  {plantTasks.map((task) => {
                     const { left, width } = getTaskPosition(task)
                     const color = getTaskColor(task)
                     
