@@ -1,12 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   RefreshCw,
-  TrendingUp,
   AlertTriangle,
   CheckCircle,
-  Calendar,
   Leaf,
   Target,
   Info,
@@ -18,7 +16,7 @@ import {
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { cropRotationService, isVirtualCropRotationPlanId } from '@/services/cropRotationService'
-import { CropRotationHistory, CropRotationPlan, SuggestedCrop } from '@/types/activeAIAdvice'
+import { CropRotationHistory, CropRotationPlan } from '@/types/activeAIAdvice'
 import type { FieldRow } from '@/types/fieldRow'
 
 export default function CropRotationPlanner() {
@@ -35,36 +33,24 @@ export default function CropRotationPlanner() {
   const [selectedZoneId, setSelectedZoneId] = useState('')
   const [selectedFieldRowId, setSelectedFieldRowId] = useState('')
 
-  useEffect(() => {
-    if (activeGarden) {
-      loadFieldRows()
-    }
-  }, [activeGarden?.id])
-
-  useEffect(() => {
-    if (activeGarden?.id) {
-      loadData(selectedFieldRowId || undefined)
-    }
-  }, [activeGarden?.id, selectedFieldRowId, selectedZoneId])
-
-  const loadFieldRows = async () => {
+  const loadFieldRows = useCallback(async () => {
     if (!activeGarden) return
     try {
       const rows = storageProvider.getFieldRows
         ? await storageProvider.getFieldRows(activeGarden.id).catch(() => [])
         : []
       setFieldRows(rows || [])
-      setAvailableZoneIds(Array.from(new Set((rows || []).map((row: any) => row.zoneId).filter(Boolean))))
+      setAvailableZoneIds(Array.from(new Set((rows || []).flatMap((row) => row.zoneId ? [row.zoneId] : []))))
       setSelectedFieldRowId((current) => current || rows?.[0]?.id || '')
-      setSelectedZoneId((current) => current || (rows || []).find((row: any) => row.zoneId)?.zoneId || '')
+      setSelectedZoneId((current) => current || (rows || []).find((row) => row.zoneId)?.zoneId || '')
     } catch (error) {
       console.error('Error loading field rows for rotation planner:', error)
       setFieldRows([])
       setAvailableZoneIds([])
     }
-  }
+  }, [activeGarden, storageProvider])
 
-  const loadData = async (fieldRowId?: string) => {
+  const loadData = useCallback(async (fieldRowId?: string) => {
     if (!activeGarden) return
     
     try {
@@ -72,7 +58,7 @@ export default function CropRotationPlanner() {
       const scopedRowId = fieldRowId || selectedFieldRowId || undefined
       const scopedZoneId = selectedZoneId || undefined
       const scopedRows = scopedZoneId
-        ? fieldRows.filter((row: any) => row.zoneId === scopedZoneId)
+        ? fieldRows.filter((row) => row.zoneId === scopedZoneId)
         : fieldRows
       const effectiveRowId = scopedRowId || scopedRows[0]?.id
       const [historyData, plansData] = await Promise.all([
@@ -87,7 +73,19 @@ export default function CropRotationPlanner() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden, fieldRows, selectedFieldRowId, selectedZoneId])
+
+  useEffect(() => {
+    if (activeGarden) {
+      void loadFieldRows()
+    }
+  }, [activeGarden, loadFieldRows])
+
+  useEffect(() => {
+    if (activeGarden?.id) {
+      void loadData(selectedFieldRowId || undefined)
+    }
+  }, [activeGarden?.id, loadData, selectedFieldRowId])
 
   const handleAcceptPlan = async (planId: string, cropName: string) => {
     try {
@@ -182,7 +180,7 @@ export default function CropRotationPlanner() {
               onChange={(e) => {
                 const nextZoneId = e.target.value
                 setSelectedZoneId(nextZoneId)
-                const nextRow = fieldRows.find((row: any) => row.zoneId === nextZoneId) || fieldRows[0]
+                const nextRow = fieldRows.find((row) => row.zoneId === nextZoneId) || fieldRows[0]
                 setSelectedFieldRowId(nextRow?.id || '')
               }}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
@@ -208,7 +206,7 @@ export default function CropRotationPlanner() {
             onChange={(e) => setSelectedFieldRowId(e.target.value)}
             className="w-full md:w-96 rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
-            {(selectedZoneId ? fieldRows.filter((row: any) => row.zoneId === selectedZoneId) : fieldRows).map((row) => (
+            {(selectedZoneId ? fieldRows.filter((row) => row.zoneId === selectedZoneId) : fieldRows).map((row) => (
               <option key={row.id} value={row.id}>
                 {row.name}{row.cultivar ? ` - ${row.cultivar}` : ''}
               </option>

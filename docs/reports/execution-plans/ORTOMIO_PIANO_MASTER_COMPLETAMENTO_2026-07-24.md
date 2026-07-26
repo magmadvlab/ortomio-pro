@@ -451,6 +451,10 @@ Il lotto 15 porta `FertilizerApplicationModal.tsx`, `QuickHarvestForm.tsx` e `In
 
 Il lotto 16 porta i componenti vivi `HealthAlertSystem.tsx` e `DiaryPlannerIntegration.tsx` da 22 warning complessivi a zero. Baseline globale verificata: **0 errori, 2.215 warning** (`2.237 -> 2.215`); lint mirato e type-check verdi. Il widget geografico emerso nella stessa selezione non ha importer verificati ed e' stato lasciato intatto per la successiva classificazione O45.
 
+### Aggiornamento T01 - lotto 17 (26/07/2026)
+
+Il lotto 17 porta `CropRotationPlanner.tsx`, vivo nelle route Planner e Consigli, da 10 warning a zero. Baseline globale verificata: **0 errori, 2.205 warning** (`2.215 -> 2.205`); lint mirato e type-check verdi. `AnnualPlanner.tsx` e' risultato senza importer ed e' rimasto intatto per O45; `GardenEditModal.tsx` resta vivo ma richiede un lotto dedicato.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
