@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Calendar, 
   Plus, 
@@ -16,7 +16,6 @@ import {
   XCircle,
   AlertTriangle,
   Play,
-  Pause,
   RotateCcw,
   Save,
   X,
@@ -29,8 +28,7 @@ import {
   NutritionTreatment, 
   NutritionSchedule,
   FertilizerProduct,
-  TreatmentProduct,
-  NutritionFilters 
+  TreatmentProduct
 } from '@/types/nutrition'
 import { advancedNutritionService } from '@/services/advancedNutritionService'
 import { buildNutritionMeasuredFeedback } from '@/services/agronomicMeasuredFeedbackService'
@@ -54,6 +52,15 @@ interface TreatmentPlannerProps {
 
 type ViewMode = 'treatments' | 'schedules'
 type TreatmentStatus = 'all' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
+type TreatmentFormData = Partial<NutritionTreatment> & Partial<NutritionSchedule> & {
+  primaryTimeSlot?: string
+  scheduleProductId?: string
+  scheduleProductName?: string
+  scheduleTreatmentType?: string
+  scheduleDosage?: number
+  scheduleDosageUnit?: string
+  scheduleApplicationMethod?: string
+}
 
 export interface TreatmentPlannerLaunchRequest {
   key: number
@@ -98,31 +105,7 @@ export default function TreatmentPlanner({
     Partial<NutritionTreatment> | Partial<NutritionSchedule> | null
   >(null)
 
-  useEffect(() => {
-    loadData()
-  }, [garden.id, viewMode])
-
-  useEffect(() => {
-    if (!launchRequest) {
-      return
-    }
-
-    setViewMode(launchRequest.viewMode)
-    setSelectedItem(null)
-    setInitialModalData(
-      launchRequest.sourceTaskId
-        ? {
-            ...(launchRequest.initialData || {}),
-            sourceTaskId: launchRequest.sourceTaskId,
-          }
-        : (launchRequest.initialData || null)
-    )
-    setModalMode('create')
-    setShowModal(true)
-    onLaunchHandled?.()
-  }, [launchRequest, onLaunchHandled])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -146,7 +129,31 @@ export default function TreatmentPlanner({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id, viewMode])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    if (!launchRequest) {
+      return
+    }
+
+    setViewMode(launchRequest.viewMode)
+    setSelectedItem(null)
+    setInitialModalData(
+      launchRequest.sourceTaskId
+        ? {
+            ...(launchRequest.initialData || {}),
+            sourceTaskId: launchRequest.sourceTaskId,
+          }
+        : (launchRequest.initialData || null)
+    )
+    setModalMode('create')
+    setShowModal(true)
+    onLaunchHandled?.()
+  }, [launchRequest, onLaunchHandled])
 
   const handleCreateTreatment = () => {
     setSelectedItem(null)
@@ -695,7 +702,7 @@ function TreatmentModal({
   onSave
 }: TreatmentModalProps) {
   const { storageProvider } = useStorage()
-  const [formData, setFormData] = useState<any>({})
+  const [formData, setFormData] = useState<TreatmentFormData>({})
   const [saving, setSaving] = useState(false)
   const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
   const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
@@ -781,14 +788,14 @@ function TreatmentModal({
           fieldRowId: formData.fieldRowId,
           sectionId: formData.sectionId,
           plantIds: formData.plantIds || [],
-          treatmentType: formData.treatmentType,
-          productId: formData.productId,
-          productName: selectedProduct?.name || formData.productName,
+          treatmentType: formData.treatmentType || 'fertilization',
+          productId: formData.productId || '',
+          productName: selectedProduct?.name || formData.productName || '',
           dosage: Number(formData.dosage) || 0,
-          dosageUnit: formData.dosageUnit,
-          applicationMethod: formData.applicationMethod,
+          dosageUnit: formData.dosageUnit || 'ml_per_liter',
+          applicationMethod: formData.applicationMethod || 'spray',
           mixingInstructions: formData.mixingInstructions,
-          scheduledDate: formData.scheduledDate,
+          scheduledDate: formData.scheduledDate || new Date().toISOString().split('T')[0],
           actualApplicationDate: formData.actualApplicationDate,
           applicationTime: formData.applicationTime,
           weatherConditions: formData.weatherConditions,
@@ -817,24 +824,25 @@ function TreatmentModal({
             outcome: quickOutcome,
             followUpRequired: quickFollowUpRequired,
           }),
-          status: formData.status
+          status: formData.status || 'planned'
         }
 
         if (mode === 'create') {
           await advancedNutritionService.createNutritionTreatment(treatmentPayload)
         } else {
+          if (!formData.id) throw new Error('Trattamento da aggiornare non identificato')
           await advancedNutritionService.updateNutritionTreatment(formData.id, treatmentPayload)
         }
       } else {
         const schedulePayload: Omit<NutritionSchedule, 'id' | 'createdAt' | 'updatedAt'> = {
           gardenId: formData.gardenId || garden.id,
-          name: formData.name,
+          name: formData.name || '',
           description: formData.description,
           zoneId: formData.zoneId,
           fieldRowId: formData.fieldRowId,
           sectionId: formData.sectionId,
           cropType: formData.cropType,
-          scheduleType: formData.scheduleType,
+          scheduleType: formData.scheduleType || 'recurring',
           isActive: Boolean(formData.isActive),
           frequency: formData.frequency,
           interval: formData.interval,
@@ -848,11 +856,11 @@ function TreatmentModal({
           treatments: formData.scheduleProductId
             ? [{
                 productId: formData.scheduleProductId,
-                productName: selectedScheduleProduct?.name || formData.scheduleProductName,
-                treatmentType: formData.scheduleTreatmentType,
+                productName: selectedScheduleProduct?.name || formData.scheduleProductName || '',
+                treatmentType: formData.scheduleTreatmentType || 'fertilization',
                 dosage: Number(formData.scheduleDosage) || 0,
-                dosageUnit: formData.scheduleDosageUnit,
-                applicationMethod: formData.scheduleApplicationMethod,
+                dosageUnit: formData.scheduleDosageUnit || 'ml_per_liter',
+                applicationMethod: formData.scheduleApplicationMethod || 'soil',
                 priority: 'medium'
               }]
             : [],
@@ -864,6 +872,7 @@ function TreatmentModal({
         if (mode === 'create') {
           await advancedNutritionService.createNutritionSchedule(schedulePayload)
         } else {
+          if (!formData.id) throw new Error('Programmazione da aggiornare non identificata')
           await advancedNutritionService.updateNutritionSchedule(formData.id, schedulePayload)
         }
       }
@@ -913,7 +922,7 @@ function TreatmentModal({
                 followUpRequired={quickFollowUpRequired}
                 onOutcomeChange={(value) => {
                   setQuickOutcome(value)
-                  setFormData((prev: any) => ({
+                  setFormData((prev) => ({
                     ...prev,
                     effectiveness:
                       value === 'good'
@@ -927,7 +936,7 @@ function TreatmentModal({
                 }}
                 onFollowUpRequiredChange={(value) => {
                   setQuickFollowUpRequired(value)
-                  setFormData((prev: any) => ({ ...prev, followUpRequired: value }))
+                  setFormData((prev) => ({ ...prev, followUpRequired: value }))
                 }}
               />
               <TaskExecutionQuickNotes
@@ -938,7 +947,7 @@ function TreatmentModal({
                   quickOutcome ? `esito ${quickOutcome}` : '',
                   quickFollowUpRequired ? 'follow-up richiesto' : '',
                 ].filter(Boolean)}
-                onChange={(notes) => setFormData((prev: any) => ({ ...prev, notes }))}
+                onChange={(notes) => setFormData((prev) => ({ ...prev, notes }))}
               />
 
               <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
@@ -952,7 +961,7 @@ function TreatmentModal({
                     <select
                       value={formData.effectiveness ?? ''}
                       onChange={(e) =>
-                        setFormData((prev: any) => ({
+                        setFormData((prev) => ({
                           ...prev,
                           effectiveness: e.target.value === '' ? undefined : Number(e.target.value),
                         }))
@@ -970,7 +979,7 @@ function TreatmentModal({
                     <label className="block text-sm font-medium text-gray-700 mb-2">Risposta coltura</label>
                     <select
                       value={formData.plantResponse || ''}
-                      onChange={(e) => setFormData((prev: any) => ({ ...prev, plantResponse: e.target.value || undefined }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, plantResponse: e.target.value || undefined }))}
                       disabled={isReadOnly}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                     >
@@ -988,7 +997,7 @@ function TreatmentModal({
                       step="0.1"
                       value={formData.actualCoverage ?? ''}
                       onChange={(e) =>
-                        setFormData((prev: any) => ({
+                        setFormData((prev) => ({
                           ...prev,
                           actualCoverage: e.target.value === '' ? undefined : Number(e.target.value),
                         }))
@@ -1006,7 +1015,10 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo trattamento</label>
                   <select
                     value={formData.treatmentType || 'fertilization'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, treatmentType: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      treatmentType: e.target.value as NutritionTreatment['treatmentType']
+                    }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1023,7 +1035,7 @@ function TreatmentModal({
                     value={formData.productId || ''}
                     onChange={(e) => {
                       const product = products.find((item) => item.id === e.target.value)
-                      setFormData((prev: any) => ({
+                      setFormData((prev) => ({
                         ...prev,
                         productId: e.target.value,
                         productName: product?.name || '',
@@ -1067,7 +1079,7 @@ function TreatmentModal({
                     min="0"
                     step="0.1"
                     value={formData.dosage ?? 0}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, dosage: Number(e.target.value) || 0 }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, dosage: Number(e.target.value) || 0 }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1076,7 +1088,7 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Unità dose</label>
                   <select
                     value={formData.dosageUnit || 'ml_per_liter'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, dosageUnit: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, dosageUnit: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1091,7 +1103,7 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Metodo</label>
                   <select
                     value={formData.applicationMethod || 'spray'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, applicationMethod: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, applicationMethod: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1111,7 +1123,7 @@ function TreatmentModal({
                   <input
                     type="date"
                     value={formData.scheduledDate || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduledDate: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1121,7 +1133,7 @@ function TreatmentModal({
                   <input
                     type="time"
                     value={formData.applicationTime || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, applicationTime: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, applicationTime: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1130,7 +1142,10 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Stato</label>
                   <select
                     value={formData.status || 'planned'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      status: e.target.value as NutritionTreatment['status']
+                    }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1148,7 +1163,7 @@ function TreatmentModal({
                   <input
                     type="checkbox"
                     checked={Boolean(formData.organicCompliant)}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, organicCompliant: e.target.checked }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, organicCompliant: e.target.checked }))}
                     disabled={isReadOnly}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -1158,7 +1173,7 @@ function TreatmentModal({
                   <input
                     type="checkbox"
                     checked={Boolean(formData.calibrationCheck)}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, calibrationCheck: e.target.checked }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, calibrationCheck: e.target.checked }))}
                     disabled={isReadOnly}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -1174,7 +1189,7 @@ function TreatmentModal({
                   <input
                     type="text"
                     value={formData.name || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                     placeholder="Es. Piano fertirrigazione primavera"
@@ -1184,7 +1199,10 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Frequenza</label>
                   <select
                     value={formData.frequency || 'weekly'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, frequency: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      frequency: e.target.value as NutritionSchedule['frequency']
+                    }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1202,7 +1220,7 @@ function TreatmentModal({
                 <textarea
                   rows={3}
                   value={formData.description || ''}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                   disabled={isReadOnly}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   placeholder="Obiettivo della programmazione e condizioni di utilizzo"
@@ -1215,7 +1233,7 @@ function TreatmentModal({
                   <input
                     type="date"
                     value={formData.startDate || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, startDate: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1225,7 +1243,7 @@ function TreatmentModal({
                   <input
                     type="date"
                     value={formData.endDate || ''}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, endDate: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1235,7 +1253,7 @@ function TreatmentModal({
                   <input
                     type="time"
                     value={formData.primaryTimeSlot || '08:00'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, primaryTimeSlot: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, primaryTimeSlot: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1249,7 +1267,7 @@ function TreatmentModal({
                     value={formData.scheduleProductId || ''}
                     onChange={(e) => {
                       const product = products.find((item) => item.id === e.target.value)
-                      setFormData((prev: any) => ({
+                      setFormData((prev) => ({
                         ...prev,
                         scheduleProductId: e.target.value,
                         scheduleProductName: product?.name || '',
@@ -1286,7 +1304,7 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
                   <select
                     value={formData.scheduleTreatmentType || 'fertilization'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleTreatmentType: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduleTreatmentType: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1307,7 +1325,7 @@ function TreatmentModal({
                     min="0"
                     step="0.1"
                     value={formData.scheduleDosage ?? 0}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleDosage: Number(e.target.value) || 0 }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduleDosage: Number(e.target.value) || 0 }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   />
@@ -1316,7 +1334,7 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Unità dose</label>
                   <select
                     value={formData.scheduleDosageUnit || 'ml_per_liter'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleDosageUnit: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduleDosageUnit: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1331,7 +1349,7 @@ function TreatmentModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">Metodo</label>
                   <select
                     value={formData.scheduleApplicationMethod || 'soil'}
-                    onChange={(e) => setFormData((prev: any) => ({ ...prev, scheduleApplicationMethod: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, scheduleApplicationMethod: e.target.value }))}
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
                   >
@@ -1348,7 +1366,7 @@ function TreatmentModal({
                 <input
                   type="checkbox"
                   checked={Boolean(formData.isActive)}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, isActive: e.target.checked }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.checked }))}
                   disabled={isReadOnly}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
