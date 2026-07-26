@@ -76,7 +76,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M12 | `[!]` bloccato | Protocollo pilot e guardrail | Azienda/dati/mezzi e ciclo reale (`O29-O30`) |
 | M13 | `[-]` parziale | Smoke Open-Meteo reale | Provider avanzato e gestione operativa (`O31-O33`) |
 | M14 | `[-]` parziale | Regressioni locali 9/9 | Dataset, periodo shadow, metriche e firma (`O34-O37`) |
-| M15 | `[L]` implementazione locale | O38-O43 implementati localmente; O40 chiuso con modello unico PRO senza piani/limiti | Provider inviti, migrazioni e prove E2E su due aziende in staging |
+| M15 | `[L]` implementazione locale | O38-O43 implementati localmente; O40 chiuso con modello unico PRO senza piani/limiti | Probe Production 26/07: colonne O39 e tabelle O41-O43 assenti; servono migrazioni e prove E2E su due aziende |
 | M16 | `[x]` audit eseguito | Verbale formale **NO-GO** del 26/07/2026; gate automatico esteso a M15 | Rieseguire per GO soltanto dopo la chiusura delle evidenze remote |
 
 Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la release soltanto **M01 e M02**. M03-M05 hanno prodotto risultati locali utili, ma non autorizzano a considerarli conclusi ai fini della release commerciale.

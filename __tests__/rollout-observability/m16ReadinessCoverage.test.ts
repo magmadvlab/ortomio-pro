@@ -46,3 +46,13 @@ test('local release check requires every O38-O43 migration artifact', () => {
     assert.match(localCheck, new RegExp(migration))
   }
 })
+
+test('commercial schema probe is read-only and never prints credentials or row data', () => {
+  const probe = readFileSync('scripts/check-commercial-schema.mjs', 'utf8')
+  assert.match(probe, /method|fetch\(/)
+  assert.doesNotMatch(probe, /method:\s*['"](?:POST|PATCH|PUT|DELETE)['"]/)
+  assert.match(probe, /missing_relation/)
+  assert.match(probe, /missing_column/)
+  assert.match(probe, /schemaReady/)
+  assert.doesNotMatch(probe, /console\.log\(.*anonKey|JSON\.stringify\(.*anonKey/)
+})
