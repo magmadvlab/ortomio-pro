@@ -14,10 +14,28 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseClient()
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const outcomeMaturity = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const requiredTables = [
-      'diary_event_revisions', 'smart_device_commands', 'agronomic_predictions', 'monitoring_runs',
-      'ndvi_data_cache', 'prescription_maps', 'certification_evidence_events', 'export_audit_log',
-      'release_capability_rollouts', 'release_observability_events', 'notification_delivery_queue',
+    const requiredSchema = [
+      { key: 'diary_event_revisions', table: 'diary_event_revisions', columns: 'id' },
+      { key: 'smart_device_commands', table: 'smart_device_commands', columns: 'id' },
+      { key: 'agronomic_predictions', table: 'agronomic_predictions', columns: 'id' },
+      { key: 'monitoring_runs', table: 'monitoring_runs', columns: 'id' },
+      { key: 'ndvi_data_cache', table: 'ndvi_data_cache', columns: 'id' },
+      { key: 'prescription_maps', table: 'prescription_maps', columns: 'id' },
+      { key: 'certification_evidence_events', table: 'certification_evidence_events', columns: 'id' },
+      { key: 'export_audit_log', table: 'export_audit_log', columns: 'id' },
+      { key: 'release_capability_rollouts', table: 'release_capability_rollouts', columns: 'id' },
+      { key: 'release_observability_events', table: 'release_observability_events', columns: 'id' },
+      { key: 'notification_delivery_queue', table: 'notification_delivery_queue', columns: 'id' },
+      {
+        key: 'organization_invitations_delivery',
+        table: 'organization_invitations',
+        columns: 'id,delivery_status,delivery_provider,provider_message_id,delivered_at',
+      },
+      { key: 'organization_commercial_accounts', table: 'organization_commercial_accounts', columns: 'id' },
+      { key: 'organization_invoices', table: 'organization_invoices', columns: 'id' },
+      { key: 'organization_commercial_audit_log', table: 'organization_commercial_audit_log', columns: 'id' },
+      { key: 'organization_access_suspensions', table: 'organization_access_suspensions', columns: 'id' },
+      { key: 'organization_support_access_grants', table: 'organization_support_access_grants', columns: 'id' },
     ]
     const [commands, runs, errors, predictions, observability, deliveries, ...schemaProbes] = await Promise.all([
       supabase.from('smart_device_commands').select('status,attempts').gte('requested_at', since),
@@ -26,9 +44,11 @@ export async function GET(request: NextRequest) {
       supabase.from('agronomic_predictions').select('outcome_count,status').eq('status', 'generated').lte('valid_until', outcomeMaturity),
       supabase.from('release_observability_events').select('status,latency_ms,retry_count,outcome_missing').gte('occurred_at', since),
       supabase.from('notification_delivery_queue').select('status,attempts,created_at,sent_at,delivered_at').gte('created_at', since),
-      ...requiredTables.map(table => supabase.from(table).select('id').limit(1)),
+      ...requiredSchema.map(probe => supabase.from(probe.table).select(probe.columns).limit(1)),
     ])
-    const schema = Object.fromEntries(requiredTables.map((table, index) => [table, !schemaProbes[index].error]))
+    const schema = Object.fromEntries(
+      requiredSchema.map((probe, index) => [probe.key, !schemaProbes[index].error]),
+    )
     const commandRows = commands.data || []
     const runRows = runs.data || []
     const errorRows = errors.data || []
@@ -62,6 +82,11 @@ export async function GET(request: NextRequest) {
       securityAdvisorVerified: Boolean(process.env.RELEASE_SECURITY_ADVISOR_RUN_ID),
       providerSmokeVerified: Boolean(process.env.RELEASE_PROVIDER_SMOKE_ID),
       pilotVerified: Boolean(process.env.RELEASE_PILOT_ID),
+      migrationHistoryVerified: Boolean(process.env.RELEASE_MIGRATION_AUDIT_ID),
+      tenantIsolationVerified: Boolean(process.env.RELEASE_TENANT_ISOLATION_RUN_ID),
+      commercialLifecycleVerified: Boolean(process.env.RELEASE_COMMERCIAL_LIFECYCLE_E2E_ID),
+      agronomicShadowVerified: Boolean(process.env.RELEASE_AGRONOMIC_SHADOW_ID),
+      agronomicReviewVerified: Boolean(process.env.RELEASE_AGRONOMIC_REVIEW_ID),
     }
     const queryErrors = [commands.error, runs.error, errors.error, predictions.error, observability.error, deliveries.error].filter(Boolean).map(error => error!.message)
     return NextResponse.json({

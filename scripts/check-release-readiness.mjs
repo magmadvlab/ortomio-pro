@@ -9,6 +9,11 @@ const requiredMigrations = [
   '20260717020000_p4_physical_operation_lifecycle.sql', '20260717030000_p5_health_prediction_monitoring.sql',
   '20260717040000_p6_remote_data_provenance.sql', '20260717050000_p7_regulatory_exports_admin.sql',
   '20260717060000_p8_rollout_observability.sql',
+  '20260726103000_transactional_organization_provisioning.sql',
+  '20260726113000_server_organization_invitations.sql',
+  '20260726150000_single_pro_billing_lifecycle.sql',
+  '20260726160000_organization_suspension_lifecycle.sql',
+  '20260726170000_organization_exit_and_support_lifecycle.sql',
 ]
 const requiredEvidence = [
   'P0_BASELINE_INVENTORY_2026-07-16.md',
