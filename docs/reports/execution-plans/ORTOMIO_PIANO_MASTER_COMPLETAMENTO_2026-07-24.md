@@ -484,6 +484,10 @@ Il lotto 22 porta `components/vineyard/VineManager.tsx`, vivo in `/app/vineyard`
 
 Il lotto 23 porta `components/plants/SmartPlantManager.tsx`, vivo in quattro route, da 13 warning a zero: mapping e statistiche tipizzati, callback stabilizzate e gestione errori esplicita. Chiuso anche il bottone “Aggiorna Salute”, prima collegato a un modal inesistente e ora instradato al flusso bulk implementato; rimosso il falso comando “Operazione Unificata”, che non eseguiva nulla e mostrava soltanto un avviso di sviluppo. Aggiunta copertura regressiva dedicata. Baseline globale verificata: **0 errori, 2.031 warning** (`2.044 -> 2.031`); capability test 18/18, lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 24 (26/07/2026)
+
+Il lotto 24 porta `InterventionWizard.tsx` (vivo in NDVI e Smart Hub) da 11 warning a zero e `interventionService.ts` da 2 a zero. Oltre alla tipizzazione, chiude due difetti di persistenza: i default obbligatori del submit non possono piu' essere sovrascritti dal form parziale e i payload Supabase contengono soltanto le colonne snake_case previste dalla tabella `interventions`, non anche i campi camelCase inesistenti. Aggiunti builder puri e test regressivi insert/update. Baseline globale verificata: **0 errori, 2.018 warning** (`2.031 -> 2.018`); persistenza 64/64, lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
