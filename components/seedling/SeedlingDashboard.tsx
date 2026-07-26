@@ -18,13 +18,10 @@ import {
   Sprout, 
   Plus,
   Search,
-  Filter,
-  Calendar,
   TrendingUp,
   AlertCircle,
   CheckCircle,
   Clock,
-  Camera,
   Bell,
   BarChart3,
   Grid3X3,
@@ -73,7 +70,6 @@ export default function SeedlingDashboard({
   batches,
   onBatchCreate,
   onBatchUpdate,
-  onBatchDelete,
   maxBatches = 10
 }: SeedlingDashboardProps) {
   const { storageProvider } = useStorage();
@@ -374,7 +370,8 @@ export default function SeedlingDashboard({
               createForm.variety || undefined
             );
 
-      const { id: _ignored, ...payload } = created;
+      const payload = { ...created };
+      delete (payload as Partial<StoredSeedlingBatch>).id;
 
       if (onBatchCreate) {
         await Promise.resolve(onBatchCreate(payload));

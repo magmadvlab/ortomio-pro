@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Package, 
   Plus, 
@@ -9,16 +9,12 @@ import {
   Edit, 
   Trash2, 
   Eye, 
-  AlertTriangle,
-  CheckCircle,
   X,
   Save,
   Leaf,
   Beaker,
   Shield,
-  Clock,
-  Euro,
-  Droplets
+  Euro
 } from 'lucide-react'
 import { Garden } from '@/types'
 import { 
@@ -33,7 +29,34 @@ interface ProductManagerProps {
 }
 
 type ProductType = 'fertilizer' | 'treatment'
-type ProductFormData = Record<string, any>
+type ProductFormData = {
+  id?: string
+  gardenId?: string
+  name?: string
+  brand?: string
+  organicApproved?: boolean
+  isActive?: boolean
+  fertilizerType?: FertilizerProduct['fertilizerType']
+  treatmentType?: TreatmentProduct['treatmentType']
+  category?: string
+  npkRatio?: string
+  activeIngredient?: string
+  recommendedDosage?: number
+  dosageUnit?: FertilizerProduct['dosageUnit'] | TreatmentProduct['dosageUnit']
+  applicationMethod?: FertilizerProduct['applicationMethod'] | TreatmentProduct['applicationMethod']
+  concentration?: number
+  concentrationUnit?: TreatmentProduct['concentrationUnit']
+  preharvest_interval_days?: number
+  reentry_interval_hours?: number
+  beeHazard?: boolean
+  aquaticHazard?: boolean
+}
+type ProductFieldsProps = {
+  formData: ProductFormData
+  setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>
+  isReadOnly: boolean
+}
+const EMPTY_NUTRITION_FILTERS: NutritionFilters = {}
 
 export default function ProductManager({ garden }: ProductManagerProps) {
   const [activeTab, setActiveTab] = useState<ProductType>('fertilizer')
@@ -44,20 +67,14 @@ export default function ProductManager({ garden }: ProductManagerProps) {
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [selectedProduct, setSelectedProduct] = useState<FertilizerProduct | TreatmentProduct | null>(null)
-  const [filters, setFilters] = useState<NutritionFilters>({})
-
-  useEffect(() => {
-    loadProducts()
-  }, [garden.id, activeTab])
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoading(true)
       if (activeTab === 'fertilizer') {
-        const data = await advancedNutritionService.getFertilizerProducts(garden.id, filters)
+        const data = await advancedNutritionService.getFertilizerProducts(garden.id, EMPTY_NUTRITION_FILTERS)
         setFertilizers(data)
       } else {
-        const data = await advancedNutritionService.getTreatmentProducts(garden.id, filters)
+        const data = await advancedNutritionService.getTreatmentProducts(garden.id, EMPTY_NUTRITION_FILTERS)
         setTreatments(data)
       }
     } catch (error) {
@@ -65,7 +82,11 @@ export default function ProductManager({ garden }: ProductManagerProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeTab, garden.id])
+
+  useEffect(() => {
+    loadProducts()
+  }, [loadProducts])
 
   const handleCreateProduct = () => {
     setSelectedProduct(null)
@@ -366,7 +387,7 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
 
   useEffect(() => {
     if (product) {
-      setFormData(product)
+      setFormData(product as ProductFormData)
     } else {
       // Initialize with default values
       setFormData({
@@ -406,13 +427,13 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
         if (mode === 'create') {
           await advancedNutritionService.createFertilizerProduct(formData as Omit<FertilizerProduct, 'id' | 'createdAt' | 'updatedAt'>)
         } else {
-          await advancedNutritionService.updateFertilizerProduct(formData.id, formData)
+          await advancedNutritionService.updateFertilizerProduct(formData.id!, formData as Partial<FertilizerProduct>)
         }
       } else {
         if (mode === 'create') {
           await advancedNutritionService.createTreatmentProduct(formData as Omit<TreatmentProduct, 'id' | 'createdAt' | 'updatedAt'>)
         } else {
-          await advancedNutritionService.updateTreatmentProduct(formData.id, formData)
+          await advancedNutritionService.updateTreatmentProduct(formData.id!, formData as Partial<TreatmentProduct>)
         }
       }
       
@@ -549,7 +570,7 @@ function ProductModal({ mode, productType, product, garden, onClose, onSave }: P
 }
 
 // Fertilizer-specific fields
-function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
+function FertilizerFields({ formData, setFormData, isReadOnly }: ProductFieldsProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -624,7 +645,7 @@ function FertilizerFields({ formData, setFormData, isReadOnly }: any) {
 }
 
 // Treatment-specific fields
-function TreatmentFields({ formData, setFormData, isReadOnly }: any) {
+function TreatmentFields({ formData, setFormData, isReadOnly }: ProductFieldsProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
