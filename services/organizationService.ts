@@ -555,55 +555,26 @@ export const updateMemberStatus = async (
 export const createInvitation = async (
   organizationId: string,
   email: string,
-  roleId: string,
-  invitedBy: string
+  roleId: string
 ): Promise<OrganizationInvitation> => {
-  const supabase = getSupabase();
-
-  const invitation: OrganizationInvitation = {
-    id: crypto.randomUUID(),
-    organizationId,
-    email,
-    roleId,
-    status: 'Pending',
-    token: crypto.randomUUID(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-    invitedBy,
-    invitedAt: new Date().toISOString(),
-  };
-
-  const { data, error } = await supabase
-    .from('organization_invitations')
-    .insert({
-      id: invitation.id,
-      organization_id: invitation.organizationId,
-      email: invitation.email,
-      role_id: invitation.roleId,
-      status: invitation.status,
-      token: invitation.token,
-      expires_at: invitation.expiresAt,
-      invited_by: invitation.invitedBy,
-      invited_at: invitation.invitedAt
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating invitation:', error);
-    throw new Error(`Failed to create invitation: ${error.message}`);
+  const response = await fetch('/api/organizations/invitations', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ organizationId, email, roleId }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !payload.invitation) {
+    throw new Error(payload.error || 'invitation_creation_failed')
   }
-
-  // La consegna dell'invito richiede un provider server-side dedicato.
-  // Non esporre mai token o indirizzi completi nei log applicativi.
-  console.info('Organization invitation persisted; delivery pending provider configuration');
-
+  const data = payload.invitation
   return {
     id: data.id,
-    organizationId: data.organization_id,
+    organizationId: data.organization_id || organizationId,
     email: data.email,
-    roleId: data.role_id,
+    roleId: data.role_id || roleId,
     status: data.status,
-    token: data.token,
+    token: '',
     expiresAt: data.expires_at,
     invitedBy: data.invited_by,
     invitedAt: data.invited_at,
@@ -617,27 +588,22 @@ export const createInvitation = async (
 export const getPendingInvitations = async (
   organizationId: string
 ): Promise<OrganizationInvitation[]> => {
-  const supabase = getSupabase();
-
-  const { data, error } = await supabase
-    .from('organization_invitations')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .eq('status', 'Pending')
-    .order('invited_at', { ascending: false });
-
-  if (error) {
-    console.error('Error getting pending invitations:', error);
-    throw new Error(`Failed to get invitations: ${error.message}`);
+  const response = await fetch(
+    `/api/organizations/invitations?organizationId=${encodeURIComponent(organizationId)}`,
+    { credentials: 'include', cache: 'no-store' },
+  )
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || 'invitation_read_failed')
   }
 
-  return (data || []).map(invitation => ({
+  return (payload.invitations || []).map((invitation: Record<string, string>) => ({
     id: invitation.id,
     organizationId: invitation.organization_id,
     email: invitation.email,
     roleId: invitation.role_id,
     status: invitation.status,
-    token: invitation.token,
+    token: '',
     expiresAt: invitation.expires_at,
     invitedBy: invitation.invited_by,
     invitedAt: invitation.invited_at,
@@ -649,46 +615,31 @@ export const getPendingInvitations = async (
  * Accept invitation
  */
 export const acceptInvitation = async (
-  token: string,
-  userId: string
+  token: string
 ): Promise<OrganizationMember> => {
-  const supabase = getSupabase();
-
-  // First, get the invitation
-  const { data: invitation, error: inviteError } = await supabase
-    .from('organization_invitations')
-    .select('*')
-    .eq('token', token)
-    .eq('status', 'Pending')
-    .single();
-
-  if (inviteError || !invitation) {
-    throw new Error('Invalid or expired invitation');
+  const response = await fetch('/api/organizations/invitations', {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !payload.member) {
+    throw new Error(payload.error || 'invitation_acceptance_failed')
   }
-
-  // Check if invitation is expired
-  if (new Date(invitation.expires_at) < new Date()) {
-    throw new Error('Invitation has expired');
+  const member = payload.member
+  return {
+    id: member.id,
+    organizationId: member.organization_id,
+    userId: member.user_id,
+    roleId: member.role_id,
+    status: member.status,
+    invitedBy: member.invited_by,
+    invitedAt: member.invited_at,
+    joinedAt: member.joined_at,
+    createdAt: member.created_at,
+    updatedAt: member.updated_at,
   }
-
-  // Create member
-  const member = await addMember(
-    invitation.organization_id,
-    userId,
-    invitation.role_id,
-    invitation.invited_by
-  );
-
-  // Update invitation status
-  await supabase
-    .from('organization_invitations')
-    .update({
-      status: 'Accepted',
-      responded_at: new Date().toISOString()
-    })
-    .eq('id', invitation.id);
-
-  return member;
 };
 
 /**

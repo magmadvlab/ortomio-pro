@@ -1,7 +1,7 @@
 import { getEnabledFeatures, type FeatureFlag } from '@/config/features'
 
 export type CapabilityRole = 'user' | 'admin'
-export type CapabilityTier = 'FREE' | 'PLUS' | 'PRO'
+export type CapabilityTier = 'PRO'
 export type CapabilityProvider = 'supabase' | 'sentinel' | 'thingsboard'
 export type CapabilityMaturity = 'stable' | 'beta' | 'simulation'
 export type CapabilityTarget = 'desktop' | 'mobile' | 'bottom' | 'search' | 'help'
@@ -66,7 +66,7 @@ export interface CapabilityAccess {
 }
 
 const ALL_ROLES: CapabilityRole[] = ['user', 'admin']
-const ALL_TIERS: CapabilityTier[] = ['FREE', 'PLUS', 'PRO']
+const ALL_TIERS: CapabilityTier[] = ['PRO']
 const PRO: CapabilityTier[] = ['PRO']
 const APP_TARGETS: CapabilityTarget[] = ['desktop', 'mobile', 'search', 'help']
 
@@ -115,8 +115,6 @@ export const TECHNICAL_ROUTES = [
   { route: '/app/pianifica', classification: 'legacy-alias', canonicalEntry: '/app/planner' },
 ] as const
 
-const tierRank: Record<CapabilityTier, number> = { FREE: 0, PLUS: 1, PRO: 2 }
-
 export function isCapabilityVisible(
   capability: CapabilityDescriptor,
   access: CapabilityAccess,
@@ -125,7 +123,7 @@ export function isCapabilityVisible(
 ) {
   if (!capability.targets.includes(target)) return false
   if (!capability.roles.includes(access.role)) return false
-  if (!capability.tiers.some(tier => tierRank[access.tier] >= tierRank[tier])) return false
+  if (!capability.tiers.includes(access.tier)) return false
   if (capability.featureFlag && enabledFeatures && !enabledFeatures.has(capability.featureFlag)) return false
   if (capability.providerRequirement === 'required' && capability.providers?.some(provider => !access.providers[provider])) return false
   if (capability.schema?.some(table => access.schema[table] === false)) return false

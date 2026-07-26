@@ -1,6 +1,6 @@
 /**
  * Treatment Registry Component
- * Visualizza registro trattamenti (solo per PRO_PROFESSIONAL)
+ * Visualizza registro trattamenti nella versione unica PRO.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +11,7 @@ import {
   exportRegistry,
 } from '../../services/treatmentRegistryService';
 import { TreatmentRecord } from '../../services/treatmentRegistryService';
-import { Calendar, Download, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Calendar, Download, AlertTriangle } from 'lucide-react';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 
 interface TreatmentRegistryProps {
@@ -19,7 +19,7 @@ interface TreatmentRegistryProps {
   userTier?: string;
 }
 
-const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier }) => {
+const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden }) => {
   const { storageProvider } = useStorage();
   const [records, setRecords] = useState<TreatmentRecord[]>([]);
   const [activeIntervals, setActiveIntervals] = useState<TreatmentRecord[]>([]);
@@ -69,15 +69,6 @@ const TreatmentRegistry: React.FC<TreatmentRegistryProps> = ({ garden, userTier 
       console.error('Error exporting registry:', error);
     }
   };
-
-  // Solo per PRO_PROFESSIONAL
-  if (userTier !== 'PRO_PROFESSIONAL') {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-500">
-        <p>Registro trattamenti disponibile solo per utenti PRO_PROFESSIONAL</p>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

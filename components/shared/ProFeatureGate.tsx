@@ -1,9 +1,6 @@
 'use client'
 
 import React from 'react'
-import { useTier } from '@/packages/core/hooks/useTier'
-import { AppTier } from '@/packages/core/config/tiers'
-import { UpgradeCard } from './UpgradeCard'
 
 interface ProFeatureGateProps {
   feature: string
@@ -16,67 +13,8 @@ interface ProFeatureGateProps {
 }
 
 export function ProFeatureGate({ 
-  feature, 
-  title, 
-  description,
-  benefits,
   children,
-  showPreview = false,
-  requiredTier = 'PRO'
 }: ProFeatureGateProps) {
-  const { tier, isPro, isPlus } = useTier()
-  
-  // LOCALE: Bypassa tutti i controlli in sviluppo locale
-  // Usa solo process.env.NODE_ENV per evitare hydration mismatch
-  const isLocalDev = process.env.NODE_ENV === 'development'
-  
-  // Check if user has required tier
-  const hasAccess = () => {
-    // LOCALE: Permetti sempre accesso in sviluppo
-    if (isLocalDev) {
-      return true
-    }
-    
-    // New tier system
-    if (requiredTier === 'PRO') {
-      return tier === AppTier.PRO
-    }
-    if (requiredTier === 'PLUS') {
-      return tier === AppTier.PRO
-    }
-    
-    // Legacy tier support (backward compatibility)
-    if (requiredTier === 'PRO_PROFESSIONAL') {
-      return tier === AppTier.PRO
-    }
-    if (requiredTier === 'PRO_CONSUMER') {
-      return tier === AppTier.PRO
-    }
-    
-    // Default: any PRO tier (PLUS or PRO)
-    return isPro
-  }
-  
-  if (hasAccess()) {
-    return <>{children}</>
-  }
-  
-  return (
-    <div className="relative">
-      {showPreview && (
-        <div className="blur-sm pointer-events-none opacity-50">
-          {children}
-        </div>
-      )}
-      
-      <UpgradeCard
-        feature={title || feature || 'Feature Pro'}
-        description={description}
-        benefits={benefits}
-        requiredTier={requiredTier as any}
-      />
-    </div>
-  )
+  return <>{children}</>
 }
-
 

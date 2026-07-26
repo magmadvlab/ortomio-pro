@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Zap, Image, MessageSquare, X } from 'lucide-react'
-import Link from 'next/link'
 
 interface AIRequestModalProps {
   type: 'chat' | 'diagnose' | 'recipe'
@@ -43,8 +42,8 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
               <p className="font-medium text-blue-900 mb-2">Puoi:</p>
               <ul className="space-y-2 text-sm text-blue-800">
                 <li>✓ Aspettare il reset credits</li>
-                <li>✓ Acquistare 50 credits extra per €4.99</li>
-                <li>✓ Fare upgrade a PRO+ (200 credits/mese) per €19.99/mese</li>
+                <li>✓ Attendere il rinnovo operativo dei crediti</li>
+                <li>✓ Contattare l’amministratore se il consumo non è atteso</li>
               </ul>
             </div>
             
@@ -55,12 +54,13 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
               >
                 Annulla
               </button>
-              <Link
-                href="/settings/credits"
+              <button
+                type="button"
+                onClick={onCancel}
                 className="flex-1 px-4 py-2 min-h-[44px] touch-manipulation bg-green-600 text-white rounded-lg hover:bg-green-700 text-center"
               >
-                Compra Credits
-              </Link>
+                Chiudi
+              </button>
             </div>
           </div>
         </div>
@@ -133,8 +133,6 @@ export function AIRequestModal({ type, onConfirm, onCancel, credits }: AIRequest
     </div>
   )
 }
-
-
 
 
 
