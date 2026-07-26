@@ -22,8 +22,8 @@ Il token di invito non viene piu' scritto nei log insieme all'indirizzo email. L
 | piano/licenza e limiti | superato: decisione prodotto single-PRO, nessun piano o limite commerciale |
 | rinnovo e fatturazione | implementato localmente come procedura amministrativa single-PRO; migrazione e prova staging aperte |
 | sospensione | implementata localmente con revoca/ripristino accessi e audit; migrazione e prova staging aperte |
-| cancellazione/esportazione/retention | assente |
-| audit amministrativo | parziale |
+| cancellazione/esportazione/retention | implementata localmente con scadenza/policy esplicite e legal hold; prova staging aperta |
+| audit amministrativo | implementato localmente per lifecycle e accesso assistenza; prova staging aperta |
 
 ## Condizione di uscita
 
@@ -98,3 +98,19 @@ La sospensione non e' un semplice flag commerciale:
 - lo stato commerciale precedente viene ripristinato e gli eventi `OrganizationSuspended` e `OrganizationReactivated` restano auditati con attore, motivo e timestamp.
 
 O42 e' completato localmente. Resta `[L]`, non `[x]`, finche' migrazioni e scenari sospensione/riattivazione non vengono provati sullo staging isolato con due aziende e sessioni reali.
+
+## Avanzamento O43 - 26/07/2026
+
+Il lifecycle di uscita e l'assistenza sono stati implementati senza inventare una durata di conservazione:
+
+- Owner o Administrator esportano i dati organizzativi in JSON tramite `POST /api/organizations/lifecycle`;
+- l'export contiene organizzazione, membership, ruoli, assegnazioni, inviti senza token, contratto, fatture e audit; viene restituito con checksum SHA-256 e registrato prima della consegna;
+- la cancellazione e' riservata a un amministratore OrtoMio e richiede un export precedente, motivo, data futura di retention e riferimento alla policy applicabile;
+- la cancellazione disabilita immediatamente membership e chiavi API e porta il contratto a `Cancelled`;
+- un legal hold motivato e auditato impedisce il purge fino alla revoca;
+- il purge e' consentito soltanto dopo la scadenza e rimuove assegnazioni, inviti, chiavi, membership e ruoli organizzativi;
+- fatture e audit amministrativo restano conservati separatamente e questa scelta e' registrata nell'evento di purge; la loro durata effettiva deriva dal riferimento policy fornito, non da una costante inventata nel codice;
+- il cliente puo' concedere a uno specifico amministratore OrtoMio un accesso assistenza con scopo e scadenza e puo' revocarlo;
+- l'endpoint assistenza verifica amministratore, grant non revocato, identita' esatta e scadenza, poi registra `SupportAccessUsed` **prima** di leggere la vista diagnostica limitata.
+
+O43 e' completato localmente. M15 dispone ora delle implementazioni locali O38-O43, ma resta `[-]`: migrazioni, provider inviti e scenari completi su due aziende devono essere provati nello staging isolato prima di poter dichiarare il milestone `[x]`.
