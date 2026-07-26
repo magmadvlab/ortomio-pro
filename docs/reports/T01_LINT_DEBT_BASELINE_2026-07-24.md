@@ -137,6 +137,30 @@ Trovati **due** gap funzionali reali in questo file, non solo lint:
 | `@next/next/no-img-element` | 0 | 36 |
 | **Totale** | **0** | **2476** |
 
+## Lotti 7-13
+
+I dettagli e le decisioni dei lotti 7-13 sono registrati nella voce canonica `T01` del piano master. La sequenza verificata e' stata: 2476 -> 2453 -> 2429 -> 2413 -> 2386 -> 2344 -> 2329 -> 2298. Il cluster AI Planner morto e `costOptimizationService.ts` restano esclusi dalla pulizia meccanica per le decisioni gia' documentate.
+
+## Lotto 14 (26/07/2026) - chiuso
+
+Quattro file vivi sono stati verificati prima della modifica e portati complessivamente da 31 warning a zero:
+
+- `components/irrigation/IrrigationZoneManager.tsx` 10 -> 0: import morti rimossi, loader stabilizzato con `useCallback`, cast `any` sostituiti con le union di `ZoneFormData`;
+- `components/nutrition/ProductManager.tsx` 9 -> 0: import e setter filtri morti rimossi, loader stabilizzato, form tipizzato esplicitamente;
+- `components/plants/BulkOperationModal.tsx` 7 -> 0: import e variabile locale morti rimossi, tipo operazione preservato senza cast, preview foto migrata a `next/image`;
+- `components/seedling/SeedlingDashboard.tsx` 5 -> 0: import e prop destrutturata mai usati rimossi, payload costruito senza binding ignorato.
+
+La branch di completamento era ferma prima dei lotti T01 gia' confluiti in `main`: prima della misura finale e' stata riallineata a `origin/main`, evitando una baseline falsa. Verifiche: lint mirato 0/0, type-check verde, lint globale reale **0 errori e 2.267 warning**.
+
+## Stato dopo il lotto 14
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2267 |
+| Riduzione lotto | 31 |
+| Riduzione dalla baseline operativa 2642 | 375 |
+
 ## Prossimo lotto
 
-Ripetere il metodo: `npm run lint -- --format json`, ordinare per file con piu' occorrenze della stessa regola, **saltare `costOptimizationService.ts` e l'intero cluster "AI Planner"** (`Planner.tsx`, `PlannerWithAI.tsx`, `AIPlanningWizard.tsx`, `PlanPreviewModal.tsx`, `PlannerSuggestions.tsx`, `PlannerSearch.tsx`, `FloatingAIWidget.tsx`, `VisualGardenPlanner.tsx`) e altri file gia' scartati per irraggiungibilita' (`ListView.tsx`, `AnnualPlanner.tsx`) salvo nuova prova contraria — **verificare con grep la raggiungibilita' di ogni file candidato prima di aprirlo**, leggere il file intero prima di modificarlo, verificare grep di ogni identificatore prima di rimuoverlo — **se un parametro di funzione (non import/variabile locale) risulta inutilizzato, leggere il corpo della funzione per escludere che sia uno stub che finge di calcolare qualcosa, e distinguere uno stub onesto (commento esplicito "non implementato", `return null`) da uno disonesto (dati finti spacciati per calcolati) — solo il secondo va segnalato/fermato**; **se una variabile costruita in un `onClick`/handler non e' mai letta, verificare se il controllo e' collegato a qualcosa in UI**; **quando si rimuove un argomento da una chiamata, rimuoverlo anche dalla firma della funzione nello stesso momento — `tsc --noEmit` lo becca comunque, ma prima di quel controllo, non dopo**; **quando uno state e' letto ma il suo setter non e' mai chiamato da nessuna parte, e' un candidato per una funzionalita' mai collegata all'interfaccia — non limitarsi a zittire il lint, valutare se vale la pena chiedere all'utente di collegarla davvero (vedi lotto 6)** — poi type-check + `test:release` + build dopo ogni lotto.
+Ripetere il metodo, saltando `costOptimizationService.ts`, il cluster AI Planner e O45 come gia' deciso; verificare sempre la raggiungibilita' dei candidati prima di modificarli.
