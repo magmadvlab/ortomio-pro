@@ -3,7 +3,8 @@
  * Mostra dettagli completi pianta con storico operazioni
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { GardenPlant, PlantOperation } from '../../types/individualPlant';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { createUnifiedOperationsService } from '../../services/unifiedOperationsService';
@@ -44,12 +45,6 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
   });
 
   useEffect(() => {
-    if (isOpen && plant.id) {
-      loadOperations();
-    }
-  }, [isOpen, plant.id]);
-
-  useEffect(() => {
     setManualEntry(prev => {
       if (prev.operationType === 'watering') return { ...prev, unit: 'L' };
       if (prev.operationType === 'fertilizing') return { ...prev, unit: 'g' };
@@ -58,7 +53,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     });
   }, [manualEntry.operationType]);
 
-  const loadOperations = async () => {
+  const loadOperations = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -69,10 +64,10 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
       let fieldRowOps: PlantOperation[] = [];
       if (plant.fieldRowId) {
         try {
-          const rowOperations = await (storageProvider as any).getFieldRowOperations?.(plant.fieldRowId) || [];
+          const rowOperations = await storageProvider.getFieldRowOperations?.(plant.fieldRowId, plant.gardenId) || [];
           
           // Converti operazioni filare in formato PlantOperation con flag speciale
-          fieldRowOps = rowOperations.map((op: any) => ({
+          fieldRowOps = rowOperations.map((op) => ({
             ...op,
             id: `row-${op.id}`,
             plantId: plant.id,
@@ -97,7 +92,13 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     } finally {
       setLoading(false);
     }
-  };
+  }, [plant.fieldRowId, plant.fieldRowName, plant.gardenId, plant.id, storageProvider]);
+
+  useEffect(() => {
+    if (isOpen && plant.id) {
+      void loadOperations();
+    }
+  }, [isOpen, loadOperations, plant.id]);
 
   const registerManualOperation = async () => {
     try {
@@ -182,7 +183,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     className: string;
     icon: React.ReactNode;
   } => {
-    if ((operation as any).isFieldRowOperation) {
+    if (operation.isFieldRowOperation) {
       return {
         label: 'Orchestratore Filare',
         className: 'bg-blue-100 text-blue-700',
@@ -191,8 +192,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
     }
 
     const sourceType = operation.sourceType
-      || ((operation as any).parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
-      || ((operation as any).parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
+      || (operation.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
+      || (operation.parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
       || ((operation.notes || '').includes('[IOT]') ? 'iot' : undefined)
       || ((operation.notes || '').includes('[MANUAL]') ? 'manual' : undefined)
       || 'manual';
@@ -238,8 +239,19 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
   };
 
   // Conta operazioni dirette vs filare
-  const directOps = operations.filter(op => !(op as any).isFieldRowOperation).length;
-  const fieldRowOps = operations.filter(op => (op as any).isFieldRowOperation).length;
+  const directOps = operations.filter(op => !op.isFieldRowOperation).length;
+  const fieldRowOps = operations.filter(op => op.isFieldRowOperation).length;
+  const operationTabs: Array<{
+    id: typeof activeTab;
+    label: string;
+    count: number;
+  }> = [
+    { id: 'all', label: 'Tutte', count: operations.length },
+    { id: 'watering', label: 'Irrigazioni', count: stats.watering },
+    { id: 'fertilizing', label: 'Fertilizzazioni', count: stats.fertilizing },
+    { id: 'treatment', label: 'Trattamenti', count: stats.treatment },
+    { id: 'work', label: 'Lavorazioni', count: stats.work },
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -579,16 +591,10 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
         {/* Tabs */}
         <div className="border-b border-gray-200 bg-gray-50 px-6">
           <div className="flex gap-2 overflow-x-auto">
-            {[
-              { id: 'all', label: 'Tutte', count: operations.length },
-              { id: 'watering', label: 'Irrigazioni', count: stats.watering },
-              { id: 'fertilizing', label: 'Fertilizzazioni', count: stats.fertilizing },
-              { id: 'treatment', label: 'Trattamenti', count: stats.treatment },
-              { id: 'work', label: 'Lavorazioni', count: stats.work },
-            ].map((tab) => (
+            {operationTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'text-green-600 border-green-600'
@@ -643,7 +649,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                             {sourceMeta.icon}
                             {sourceMeta.label}
                           </span>
-                          {(operation as any).isFieldRowOperation && (
+                          {operation.isFieldRowOperation && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                               🌾 Filare
                             </span>
@@ -658,9 +664,9 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                             minute: '2-digit'
                           })}
                         </p>
-                        {(operation as any).isFieldRowOperation && (operation as any).fieldRowName && (
+                        {operation.isFieldRowOperation && operation.fieldRowName && (
                           <p className="text-xs text-blue-600 mt-1">
-                            Applicata su tutto il filare: {(operation as any).fieldRowName}
+                            Applicata su tutto il filare: {operation.fieldRowName}
                           </p>
                         )}
                       </div>
@@ -683,24 +689,24 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                   {/* Operation Details */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {/* Context Info - Always show if available */}
-                    {(operation as any).context && (
+                    {operation.context && (
                       <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                         <div className="grid grid-cols-2 gap-3 text-xs">
                           <div>
                             <span className="text-blue-700 font-medium">🌡️ Temperatura:</span>
-                            <span className="ml-2">{(operation as any).context.weather?.temperature}°C</span>
+                            <span className="ml-2">{operation.context.weather?.temperature}°C</span>
                           </div>
                           <div>
                             <span className="text-blue-700 font-medium">💧 Umidità:</span>
-                            <span className="ml-2">{(operation as any).context.weather?.humidity}%</span>
+                            <span className="ml-2">{operation.context.weather?.humidity}%</span>
                           </div>
                           <div>
-                            <span className="text-blue-700 font-medium">{(operation as any).context.lunar?.phaseEmoji} Fase Lunare:</span>
-                            <span className="ml-2">{(operation as any).context.lunar?.phase}</span>
+                            <span className="text-blue-700 font-medium">{operation.context.lunar?.phaseEmoji} Fase Lunare:</span>
+                            <span className="ml-2">{operation.context.lunar?.phase}</span>
                           </div>
                           <div>
                             <span className="text-blue-700 font-medium">🌍 Stagione:</span>
-                            <span className="ml-2 capitalize">{(operation as any).context.season}</span>
+                            <span className="ml-2 capitalize">{operation.context.season}</span>
                           </div>
                         </div>
                       </div>
@@ -803,10 +809,13 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
                       </div>
                       <div className="flex gap-2 overflow-x-auto">
                         {operation.photos.map((photo, idx) => (
-                          <img
+                          <Image
                             key={idx}
                             src={photo}
                             alt={`Foto ${idx + 1}`}
+                            width={80}
+                            height={80}
+                            unoptimized
                             className="w-20 h-20 object-cover rounded border border-gray-200"
                           />
                         ))}
