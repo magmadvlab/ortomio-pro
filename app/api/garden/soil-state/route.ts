@@ -58,17 +58,38 @@ export async function handleGetSoilState(
   try {
     const gardenId = request.nextUrl.searchParams.get('garden_id') || ''
     const zoneId = request.nextUrl.searchParams.get('zone_id') || ''
-    if (!gardenId || !zoneId) return NextResponse.json({ error: 'garden_and_zone_required' }, { status: 400 })
+    const latestForGarden = request.nextUrl.searchParams.get('scope') === 'latest'
+    if (!gardenId || (!zoneId && !latestForGarden)) {
+      return NextResponse.json({ error: 'garden_and_zone_required' }, { status: 400 })
+    }
 
     await (dependencies.requireGardenAccessFn ?? requireGardenAccess)(request, gardenId)
     const supabase = (dependencies.getSupabaseClientFn ?? getSupabaseClient)()
-    await requireAuthorizedZone(supabase, gardenId, zoneId)
-    const { data, error } = await supabase
-      .from('garden_soil_states')
-      .select('*')
-      .eq('garden_id', gardenId)
-      .eq('zone_id', zoneId)
-      .maybeSingle()
+    let data
+    let error
+
+    if (zoneId) {
+      await requireAuthorizedZone(supabase, gardenId, zoneId)
+      const result = await supabase
+        .from('garden_soil_states')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .eq('zone_id', zoneId)
+        .maybeSingle()
+      data = result.data
+      error = result.error
+    } else {
+      const result = await supabase
+        .from('garden_soil_states')
+        .select('*')
+        .eq('garden_id', gardenId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      data = result.data
+      error = result.error
+    }
+
     if (error) throw error
     return NextResponse.json({ state: data ?? null }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {

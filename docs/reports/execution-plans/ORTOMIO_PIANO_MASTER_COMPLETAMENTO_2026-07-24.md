@@ -236,7 +236,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - rendere i writer critici fail-closed;
   - aggiungere test di parita' e idempotenza.
 - **Criterio di uscita:** ogni stato operativo e' unico, persistente e ricostruibile.
-- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi; trattamenti, lavori meccanici, supporto ed esposizione solare falliscono esplicitamente senza database invece di simulare dati o successo.
+- **Risultato parziale:** mappa canonica dei domini prioritari; `createStorageProvider('cloud')` non degrada piu' a local storage; `StorageContext` non espone piu' il provider locale temporaneo ai consumer autenticati e non degrada silenziosamente su errore cloud; il diario attende lettura, persistenza e rilettura autorevole dell'inventario sementi; trattamenti, lavori meccanici, supporto ed esposizione solare falliscono esplicitamente senza database invece di simulare dati o successo. Correzione runtime 26/07: il Director non usa piu' `garden.id` come falso `zone_id` nel controllo tillage; l'API espone una lettura garden-wide esplicita dell'ultimo stato suolo persistito.
 - **Evidenza:** commit `270a214`, `bd2ed53`, test persistenza 22/22 e `M09_CANONICAL_PROVIDER_MAP_2026-07-24.md`.
 - **Residuo:** helper cache sementi legacy e certificazione staging.
 
