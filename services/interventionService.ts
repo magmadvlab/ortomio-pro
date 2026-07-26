@@ -12,13 +12,81 @@ export interface InterventionData {
   assignedTo?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   sourceContext: ActionContext;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   status: 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt?: Date;
   completedAt?: Date;
   userId: string;
   gardenId?: string;
+}
+
+export interface InterventionRow {
+  id: string;
+  user_id: string;
+  garden_id: string | null;
+  type: ActionType;
+  title: string;
+  description: string | null;
+  zone_id: string | null;
+  zone_name: string | null;
+  scheduled_date: string;
+  assigned_to: string | null;
+  priority: InterventionData['priority'];
+  status: InterventionData['status'];
+  source_context: ActionContext;
+  parameters: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string | null;
+  completed_at: string | null;
+}
+
+export function buildInterventionInsert(
+  intervention: Omit<InterventionData, 'id' | 'createdAt' | 'userId'>,
+  userId: string,
+  now = new Date(),
+): InterventionRow {
+  return {
+    id: `intervention_${now.getTime()}_${Math.random().toString(36).slice(2, 11)}`,
+    user_id: userId,
+    garden_id: intervention.gardenId ?? null,
+    type: intervention.type,
+    title: intervention.title,
+    description: intervention.description || null,
+    zone_id: intervention.zoneId ?? null,
+    zone_name: intervention.zoneName ?? null,
+    scheduled_date: intervention.scheduledDate.toISOString(),
+    assigned_to: intervention.assignedTo ?? null,
+    priority: intervention.priority,
+    status: intervention.status,
+    source_context: intervention.sourceContext,
+    parameters: intervention.parameters,
+    created_at: now.toISOString(),
+    updated_at: now.toISOString(),
+    completed_at: null,
+  };
+}
+
+export function buildInterventionUpdate(
+  updates: Partial<InterventionData>,
+  now = new Date(),
+): Partial<InterventionRow> {
+  return {
+    updated_at: now.toISOString(),
+    ...(updates.type !== undefined && { type: updates.type }),
+    ...(updates.title !== undefined && { title: updates.title }),
+    ...(updates.description !== undefined && { description: updates.description }),
+    ...(updates.zoneId !== undefined && { zone_id: updates.zoneId ?? null }),
+    ...(updates.zoneName !== undefined && { zone_name: updates.zoneName ?? null }),
+    ...(updates.scheduledDate !== undefined && { scheduled_date: updates.scheduledDate.toISOString() }),
+    ...(updates.assignedTo !== undefined && { assigned_to: updates.assignedTo ?? null }),
+    ...(updates.priority !== undefined && { priority: updates.priority }),
+    ...(updates.status !== undefined && { status: updates.status }),
+    ...(updates.sourceContext !== undefined && { source_context: updates.sourceContext }),
+    ...(updates.parameters !== undefined && { parameters: updates.parameters }),
+    ...(updates.gardenId !== undefined && { garden_id: updates.gardenId ?? null }),
+    ...(updates.completedAt !== undefined && { completed_at: updates.completedAt.toISOString() }),
+  };
 }
 
 export interface InterventionFilter {
@@ -52,20 +120,7 @@ class InterventionService {
         throw new Error('Utente non autenticato');
       }
 
-      const interventionData = {
-        ...intervention,
-        id: `intervention_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        user_id: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // Converti i campi per il database
-        zone_id: intervention.zoneId,
-        zone_name: intervention.zoneName,
-        scheduled_date: intervention.scheduledDate.toISOString(),
-        assigned_to: intervention.assignedTo,
-        source_context: intervention.sourceContext,
-        garden_id: intervention.gardenId
-      };
+      const interventionData = buildInterventionInsert(intervention, user.id);
 
       const { data, error } = await supabase
         .from('interventions')
@@ -185,18 +240,7 @@ class InterventionService {
         throw new Error('Utente non autenticato');
       }
 
-      const updateData = {
-        ...updates,
-        updated_at: new Date().toISOString(),
-        // Converti i campi per il database
-        ...(updates.zoneId !== undefined && { zone_id: updates.zoneId }),
-        ...(updates.zoneName !== undefined && { zone_name: updates.zoneName }),
-        ...(updates.scheduledDate !== undefined && { scheduled_date: updates.scheduledDate.toISOString() }),
-        ...(updates.assignedTo !== undefined && { assigned_to: updates.assignedTo }),
-        ...(updates.sourceContext !== undefined && { source_context: updates.sourceContext }),
-        ...(updates.gardenId !== undefined && { garden_id: updates.gardenId }),
-        ...(updates.completedAt !== undefined && { completed_at: updates.completedAt.toISOString() })
-      };
+      const updateData = buildInterventionUpdate(updates);
 
       const { data, error } = await supabase
         .from('interventions')
@@ -316,16 +360,16 @@ class InterventionService {
   /**
    * Mappa i dati dal database al formato dell'applicazione
    */
-  private mapFromDatabase(data: any): InterventionData {
+  private mapFromDatabase(data: InterventionRow): InterventionData {
     return {
       id: data.id,
       type: data.type,
       title: data.title,
-      description: data.description,
-      zoneId: data.zone_id,
-      zoneName: data.zone_name,
+      description: data.description || '',
+      zoneId: data.zone_id ?? undefined,
+      zoneName: data.zone_name ?? undefined,
       scheduledDate: new Date(data.scheduled_date),
-      assignedTo: data.assigned_to,
+      assignedTo: data.assigned_to ?? undefined,
       priority: data.priority,
       sourceContext: data.source_context,
       parameters: data.parameters || {},
@@ -334,7 +378,7 @@ class InterventionService {
       updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
       completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
       userId: data.user_id,
-      gardenId: data.garden_id
+      gardenId: data.garden_id ?? undefined
     };
   }
 }

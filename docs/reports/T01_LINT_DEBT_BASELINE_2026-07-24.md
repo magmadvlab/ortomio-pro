@@ -314,3 +314,20 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; capability test 18/18
 | Warning | 2031 |
 | Riduzione lotto | 13 |
 | Riduzione dalla baseline operativa 2642 | 611 |
+
+## Lotto 24 (26/07/2026) - chiuso
+
+`components/actions/InterventionWizard.tsx`, vivo in `NDVIDashboard` e `IntegratedSmartHub`, e `services/interventionService.ts` sono stati portati rispettivamente da 11 e 2 warning a zero. I parametri del wizard e le righe database hanno ora tipi espliciti; gli event handler usano gli eventi React corretti e gli import morti sono stati rimossi.
+
+La rimozione del cast nel submit ha scoperto due difetti reali. Lo spread del form parziale poteva sovrascrivere con `undefined` i default obbligatori appena costruiti; ora i campi obbligatori vengono risolti dopo lo spread. Inoltre il service inviava a Supabase i campi camelCase dell'app insieme alle colonne snake_case: la tabella non possiede colonne come `scheduledDate` o `sourceContext`, quindi create/update potevano fallire. I builder `buildInterventionInsert` e `buildInterventionUpdate` producono ora solo il contratto SQL canonico e hanno test dedicati.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; suite persistenza 64/64; lint globale **0 errori e 2.018 warning** (`2.031 -> 2.018`).
+
+## Stato dopo il lotto 24
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2018 |
+| Riduzione lotto | 13 |
+| Riduzione dalla baseline operativa 2642 | 624 |

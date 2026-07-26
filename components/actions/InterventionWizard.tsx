@@ -16,12 +16,10 @@ import {
   Sprout,
   MapPin,
   Calendar,
-  User,
   FileText,
   CheckCircle,
   ArrowRight,
-  ArrowLeft,
-  AlertCircle
+  ArrowLeft
 } from 'lucide-react';
 import { ActionType, ActionContext } from './ActionButton';
 import { Garden } from '@/types';
@@ -46,9 +44,24 @@ export interface InterventionData {
   assignedTo?: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
   sourceContext: ActionContext;
-  parameters: Record<string, any>;
+  parameters: InterventionParameters;
   status: 'draft' | 'scheduled' | 'in_progress' | 'completed';
   createdAt: Date;
+}
+
+interface InterventionParameters {
+  [key: string]: string | undefined;
+  fieldRowId?: string;
+  fieldRowName?: string;
+  sectionId?: string;
+  sectionName?: string;
+  fullLocationName?: string;
+  prescriptionType?: string;
+  targetRate?: string;
+  waterAmount?: string;
+  duration?: string;
+  product?: string;
+  dose?: string;
 }
 
 const stepConfig = {
@@ -135,14 +148,19 @@ export default function InterventionWizard({
 
   const handleSubmit = () => {
     const intervention: InterventionData = {
+      ...formData,
       id: `intervention_${Date.now()}`,
+      type: formData.type ?? actionType,
       title: formData.title || `${actionLabels[actionType]} - ${context.zoneName || 'Zona'}`,
       description: formData.description || '',
       scheduledDate: formData.scheduledDate || new Date(),
       assignedTo: formData.assignedTo,
+      priority: formData.priority ?? context.urgency ?? 'medium',
+      sourceContext: formData.sourceContext ?? context,
+      parameters: formData.parameters ?? {},
+      status: formData.status ?? 'draft',
       createdAt: new Date(),
-      ...formData
-    } as InterventionData;
+    };
 
     onInterventionCreated(intervention);
     onClose();
@@ -204,7 +222,7 @@ export default function InterventionWizard({
                 <Textarea
                   id="description"
                   value={formData.description || ''}
-                  onChange={(e: any) => updateFormData({ description: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateFormData({ description: e.target.value })}
                   placeholder="Descrivi l'intervento da eseguire..."
                   className="mt-2"
                   rows={4}
@@ -261,7 +279,7 @@ export default function InterventionWizard({
                     id="targetRate"
                     type="number"
                     value={formData.parameters?.targetRate || ''}
-                    onChange={(e: any) => updateFormData({ 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                       parameters: { ...formData.parameters, targetRate: e.target.value }
                     })}
                     placeholder="Es. 150"
@@ -279,7 +297,7 @@ export default function InterventionWizard({
                     id="waterAmount"
                     type="number"
                     value={formData.parameters?.waterAmount || ''}
-                    onChange={(e: any) => updateFormData({ 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                       parameters: { ...formData.parameters, waterAmount: e.target.value }
                     })}
                     placeholder="Es. 25"
@@ -293,7 +311,7 @@ export default function InterventionWizard({
                     id="duration"
                     type="number"
                     value={formData.parameters?.duration || ''}
-                    onChange={(e: any) => updateFormData({ 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                       parameters: { ...formData.parameters, duration: e.target.value }
                     })}
                     placeholder="Es. 60"
@@ -310,7 +328,7 @@ export default function InterventionWizard({
                   <Input
                     id="product"
                     value={formData.parameters?.product || ''}
-                    onChange={(e: any) => updateFormData({ 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                       parameters: { ...formData.parameters, product: e.target.value }
                     })}
                     placeholder="Nome del prodotto"
@@ -324,7 +342,7 @@ export default function InterventionWizard({
                     id="dose"
                     type="number"
                     value={formData.parameters?.dose || ''}
-                    onChange={(e: any) => updateFormData({ 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                       parameters: { ...formData.parameters, dose: e.target.value }
                     })}
                     placeholder="Es. 2.5"
@@ -348,7 +366,7 @@ export default function InterventionWizard({
                   new Date(formData.scheduledDate.getTime() - formData.scheduledDate.getTimezoneOffset() * 60000)
                     .toISOString().slice(0, 16) : ''
                 }
-                onChange={(e: any) => updateFormData({ 
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({
                   scheduledDate: new Date(e.target.value)
                 })}
                 className="mt-2"
@@ -360,7 +378,7 @@ export default function InterventionWizard({
               <Input
                 id="assignedTo"
                 value={formData.assignedTo || ''}
-                onChange={(e: any) => updateFormData({ assignedTo: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData({ assignedTo: e.target.value })}
                 placeholder="Nome operatore"
                 className="mt-2"
               />
