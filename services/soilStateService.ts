@@ -17,6 +17,32 @@ export interface SoilState {
   lastRainAmount?: number; // mm
 }
 
+type SoilStateRow = {
+  garden_id: string;
+  zone_id: string;
+  compaction: number | string;
+  drainage: SoilState['drainage'];
+  workable_depth_cm: number | string;
+  last_work_date?: string | null;
+  last_work_type?: SoilState['lastWorkType'] | null;
+  last_rain_date?: string | null;
+  last_rain_amount_mm?: number | string | null;
+};
+
+const mapSoilState = (state: SoilStateRow): SoilState => ({
+  gardenId: state.garden_id,
+  zoneId: state.zone_id,
+  compaction: Number(state.compaction),
+  drainage: state.drainage,
+  workableDepth: Number(state.workable_depth_cm),
+  lastWorkDate: state.last_work_date ? new Date(state.last_work_date) : undefined,
+  lastWorkType: state.last_work_type || undefined,
+  lastRainDate: state.last_rain_date ? new Date(state.last_rain_date) : undefined,
+  lastRainAmount: state.last_rain_amount_mm === null || state.last_rain_amount_mm === undefined
+    ? undefined
+    : Number(state.last_rain_amount_mm),
+});
+
 /**
  * Aggiorna stato terreno
  */
@@ -49,19 +75,21 @@ export async function getSoilState(
   const body = await response.json();
   if (!response.ok) throw new Error(body?.error || 'soil_state_read_failed');
   if (!body.state) return null;
-  return {
-    gardenId: body.state.garden_id,
-    zoneId: body.state.zone_id,
-    compaction: Number(body.state.compaction),
-    drainage: body.state.drainage,
-    workableDepth: Number(body.state.workable_depth_cm),
-    lastWorkDate: body.state.last_work_date ? new Date(body.state.last_work_date) : undefined,
-    lastWorkType: body.state.last_work_type || undefined,
-    lastRainDate: body.state.last_rain_date ? new Date(body.state.last_rain_date) : undefined,
-    lastRainAmount: body.state.last_rain_amount_mm === null
-      ? undefined
-      : Number(body.state.last_rain_amount_mm),
-  };
+  return mapSoilState(body.state);
+}
+
+/**
+ * Recupera l'ultimo stato terreno persistito per una qualunque zona dell'orto.
+ * Usato soltanto dai calcoli garden-wide che non dispongono di uno zoneId.
+ */
+export async function getLatestGardenSoilState(gardenId: string): Promise<SoilState | null> {
+  const response = await fetch(
+    `/api/garden/soil-state?garden_id=${encodeURIComponent(gardenId)}&scope=latest`,
+    { credentials: 'include', cache: 'no-store' },
+  );
+  const body = await response.json();
+  if (!response.ok) throw new Error(body?.error || 'soil_state_read_failed');
+  return body.state ? mapSoilState(body.state) : null;
 }
 
 /**

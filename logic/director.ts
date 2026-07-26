@@ -97,7 +97,7 @@ import {
 import { suggestFertilizerProduct, FertilizerRecommendation } from './fertilizerEngine';
 import { checkLowStock as checkFertilizerStock, getFertilizerAlerts } from '../services/fertilizerInventoryService';
 import { suggestTillageWork, calculateTemperaTiming } from './tillageEngine';
-import { getSoilState } from '../services/soilStateService';
+import { getLatestGardenSoilState } from '../services/soilStateService';
 import { suggestPhytoProduct, checkTreatmentTiming } from './phytoEngine';
 import { getActiveSafetyIntervals } from '../services/treatmentRegistryService';
 import { assessPlantingWeatherWindow } from './plantingWeatherDecisionEngine'
@@ -2261,7 +2261,7 @@ export const getDailyGardenPlan = async (
 
   // TILLAGE ENGINE: Verifica terreno in tempera per lavorazioni
   try {
-    const soilState = await getSoilState(garden.id, garden.id);
+    const soilState = await getLatestGardenSoilState(garden.id);
     if (soilState) {
       const temperaCheck = await calculateTemperaTiming(
         garden,

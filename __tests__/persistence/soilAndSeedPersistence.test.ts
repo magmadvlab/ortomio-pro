@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 
 import { AccessError } from '@/lib/auth.server'
 import { SeedInventoryService, useSeedForPlanting } from '@/services/seedInventoryService'
+import { getLatestGardenSoilState } from '@/services/soilStateService'
 import {
   handleGetSoilState,
   handleUpdateSoilState,
@@ -120,6 +121,99 @@ test('cross-garden soil reads and writes stop before database access', async () 
   )
   assert.equal(write.status, 404)
   assert.equal(databaseTouched, false)
+})
+
+test('garden-wide soil timing reads the latest persisted zone without inventing a zone id', async () => {
+  const calls: string[] = []
+  const state = {
+    garden_id: 'garden-1',
+    zone_id: 'zone-2',
+    compaction: 0.7,
+    drainage: 'good',
+    workable_depth_cm: 30,
+    updated_at: '2026-07-26T12:00:00.000Z',
+  }
+  const dependencies = {
+    requireGardenAccessFn: async (_request: NextRequest, gardenId: string) => {
+      assert.equal(gardenId, 'garden-1')
+      return { user: { id: 'user-1' } } as never
+    },
+    getSupabaseClientFn: () => ({
+      from: (table: string) => {
+        assert.equal(table, 'garden_soil_states')
+        return {
+          select: () => ({
+            eq: (column: string, value: string) => {
+              calls.push(`eq:${column}:${value}`)
+              return {
+                order: (orderColumn: string, options: { ascending: boolean }) => {
+                  calls.push(`order:${orderColumn}:${options.ascending}`)
+                  return {
+                    limit: (limit: number) => {
+                      calls.push(`limit:${limit}`)
+                      return {
+                        maybeSingle: async () => ({ data: state, error: null }),
+                      }
+                    },
+                  }
+                },
+              }
+            },
+          }),
+        }
+      },
+    }) as never,
+  }
+
+  const response = await handleGetSoilState(
+    request('/api/garden/soil-state?garden_id=garden-1&scope=latest'),
+    dependencies,
+  )
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { state })
+  assert.deepEqual(calls, [
+    'eq:garden_id:garden-1',
+    'order:updated_at:false',
+    'limit:1',
+  ])
+})
+
+test('soil state still requires an explicit zone outside garden-wide latest scope', async () => {
+  const response = await handleGetSoilState(
+    request('/api/garden/soil-state?garden_id=garden-1'),
+  )
+  assert.equal(response.status, 400)
+  assert.deepEqual(await response.json(), { error: 'garden_and_zone_required' })
+})
+
+test('garden-wide soil service requests latest scope instead of using the garden id as a zone', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    assert.equal(String(input), '/api/garden/soil-state?garden_id=garden-1&scope=latest')
+    return new Response(JSON.stringify({
+      state: {
+        garden_id: 'garden-1',
+        zone_id: 'zone-2',
+        compaction: 0.7,
+        drainage: 'good',
+        workable_depth_cm: 30,
+        last_rain_amount_mm: null,
+      },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }) as typeof fetch
+
+  try {
+    const state = await getLatestGardenSoilState('garden-1')
+    assert.equal(state?.gardenId, 'garden-1')
+    assert.equal(state?.zoneId, 'zone-2')
+    assert.equal(state?.lastRainAmount, undefined)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 test('soil state rejects physically invalid measurements', async () => {
