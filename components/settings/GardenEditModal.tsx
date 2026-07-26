@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { X, MapPin, Ruler, Info, Grid, Layers, TreeDeciduous, Sun, Trash2, Plus, Edit2 } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { X, MapPin, Info, Grid, Layers, TreeDeciduous, Sun, Trash2, Plus, Edit2 } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
+import type { FieldRow } from '@/types/fieldRow'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { CultivationSelector } from './CultivationSelector'
 
@@ -21,6 +22,29 @@ type FieldRowOrdering =
   | 'east_to_west'
   | 'north_to_south'
   | 'south_to_north'
+type FieldRowIrrigationType = 'drip' | 'sprinkler' | 'micro_sprinkler' | 'manual'
+type FieldRowScheduleFrequency = 'daily' | 'every_2_days' | 'every_3_days' | 'weekly'
+type EditableFieldRow = Omit<FieldRow, 'irrigationConfig'> & {
+  plant_count?: number
+  row_ordering?: FieldRowOrdering
+  plant_ordering_in_row?: FieldRowOrdering
+  irrigationConfig?: {
+    enabled?: boolean
+    irrigationType?: FieldRowIrrigationType
+    tubeLength?: number
+    tubeDiameter?: number
+    emitterSpacing?: number
+    emitterFlowRate?: number
+    flowRatePerMeter?: number
+    totalFlowRate?: number
+    pressure?: number
+    schedule?: {
+      frequency: FieldRowScheduleFrequency
+      times: string[]
+      duration: number
+    }
+  }
+}
 
 const FIELD_ROW_ORDERING_OPTIONS: Array<{ value: FieldRowOrdering; label: string }> = [
   { value: '', label: 'Non specificato' },
@@ -80,7 +104,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   // Structures state
   const [beds, setBeds] = useState<GardenBed[]>([])
   const [rows, setRows] = useState<GardenRow[]>([])
-  const [fieldRows, setFieldRows] = useState<any[]>([]) // Filari campo aperto (field_rows)
+  const [fieldRows, setFieldRows] = useState<EditableFieldRow[]>([]) // Filari campo aperto (field_rows)
 
   // Editable structure config
   const [pots, setPots] = useState<Array<{ count: number; diameter: number }>>(
@@ -97,7 +121,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   )
 
   // Field row editing state
-  const [editingFieldRow, setEditingFieldRow] = useState<any | null>(null)
+  const [editingFieldRow, setEditingFieldRow] = useState<EditableFieldRow | null>(null)
   const [fieldRowForm, setFieldRowForm] = useState({
     name: '',
     rowNumber: 1,
@@ -143,13 +167,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     plantOrderingInRow: '' as FieldRowOrdering
   })
 
-  useEffect(() => {
-    if (isOpen) {
-      loadGardenStructures()
-    }
-  }, [isOpen, garden.id])
-
-  const loadGardenStructures = async () => {
+  const loadGardenStructures = useCallback(async () => {
     try {
       // Carica aiuole/letti
       const gardenBeds = await storageProvider.getGardenBeds(garden.id)
@@ -169,11 +187,17 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
 
       // Carica filari del campo aperto (field_rows)
       const openFieldRows = await storageProvider.getFieldRows(garden.id)
-      setFieldRows(openFieldRows || [])
+      setFieldRows((openFieldRows || []) as EditableFieldRow[])
     } catch (error) {
       console.error('Error loading garden structures:', error)
     }
-  }
+  }, [garden.id, storageProvider])
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadGardenStructures()
+    }
+  }, [isOpen, loadGardenStructures])
 
   const handleSave = async () => {
     try {
@@ -283,7 +307,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     setFieldRowForm(updateIrrigationCalculations(newForm))
   }
 
-  const handleEditFieldRow = (row: any) => {
+  const handleEditFieldRow = (row: EditableFieldRow) => {
     setEditingFieldRow(row)
     
     // Carica configurazione irrigazione esistente se presente - PRESERVA LO STATO ENABLED
@@ -1251,7 +1275,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             <label className="block text-xs font-semibold text-gray-700 mb-1">Orientamento filare</label>
                             <select
                               value={fieldRowForm.orientation}
-                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as any })}
+                              onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as FieldRowAxis })}
                               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                             >
                               <option value="">Non specificato</option>
@@ -1333,7 +1357,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                                       ...fieldRowForm,
                                       irrigationConfig: {
                                         ...fieldRowForm.irrigationConfig,
-                                        irrigationType: e.target.value as any
+                                        irrigationType: e.target.value as FieldRowIrrigationType
                                       }
                                     }
                                     setFieldRowForm(updateIrrigationCalculations(newForm))
@@ -1475,7 +1499,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                                         ...fieldRowForm.irrigationConfig,
                                         schedule: {
                                           ...fieldRowForm.irrigationConfig.schedule,
-                                          frequency: e.target.value as any
+                                          frequency: e.target.value as FieldRowScheduleFrequency
                                         }
                                       }
                                     })}
@@ -1650,7 +1674,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Orientamento</label>
                         <select
                           value={bulkFieldRowForm.orientation}
-                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, orientation: e.target.value as any })}
+                          onChange={(e) => setBulkFieldRowForm({ ...bulkFieldRowForm, orientation: e.target.value as FieldRowAxis })}
                           className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                         >
                           <option value="">Non specificato</option>
@@ -1732,7 +1756,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                             )}
                             {row.plant_spacing && (
                               <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                                🌱 {row.plant_spacing}cm → {row.plant_count || Math.floor((row.length_meters * 100) / row.plant_spacing)} piante
+                                🌱 {row.plant_spacing}cm → {row.plant_count || row.plantCount || Math.floor(((row.length_meters ?? row.lengthMeters) * 100) / row.plant_spacing)} piante
                               </span>
                             )}
                             {row.cultivar && (
@@ -1766,7 +1790,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                                 💧 {row.irrigationConfig.irrigationType === 'drip' ? 'Goccia' : 
                                      row.irrigationConfig.irrigationType === 'sprinkler' ? 'Aspersione' : 
                                      row.irrigationConfig.irrigationType === 'micro_sprinkler' ? 'Micro' : 'Manuale'}
-                                {row.irrigationConfig.totalFlowRate > 0 && (
+                                {(row.irrigationConfig.totalFlowRate ?? 0) > 0 && (
                                   <span className="text-xs">({row.irrigationConfig.totalFlowRate}L/h)</span>
                                 )}
                               </span>
@@ -1777,7 +1801,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                           {row.irrigationConfig?.enabled && row.irrigationConfig.irrigationType === 'drip' && (
                             <div className="mt-2 p-2 bg-cyan-50 border border-cyan-200 rounded text-xs">
                               <div className="flex items-center gap-4 text-cyan-800">
-                                <span>🔧 {Math.floor((row.length_meters * 100) / row.irrigationConfig.emitterSpacing)} gocciolatori</span>
+                                <span>🔧 {Math.floor(((row.length_meters ?? row.lengthMeters) * 100) / (row.irrigationConfig.emitterSpacing ?? 30))} gocciolatori</span>
                                 <span>⏰ {row.irrigationConfig.schedule?.frequency || 'daily'}</span>
                                 <span>⌚ {row.irrigationConfig.schedule?.duration || 30}min</span>
                                 {row.irrigationConfig.schedule?.times?.[0] && (

@@ -460,6 +460,10 @@ Il lotto 16 porta i componenti vivi `HealthAlertSystem.tsx` e `DiaryPlannerInteg
 
 Il lotto 17 porta `CropRotationPlanner.tsx`, vivo nelle route Planner e Consigli, da 10 warning a zero. Baseline globale verificata: **0 errori, 2.205 warning** (`2.215 -> 2.205`); lint mirato e type-check verdi. `AnnualPlanner.tsx` e' risultato senza importer ed e' rimasto intatto per O45; `GardenEditModal.tsx` resta vivo ma richiede un lotto dedicato.
 
+### Aggiornamento T01 - lotto 18 (26/07/2026)
+
+Il lotto 18 porta `components/settings/GardenEditModal.tsx`, vivo in `/app/settings`, da 9 warning a zero: filari e compatibilita' provider tipizzati, union reali sui select, loader stabilizzato e import morto rimosso. La baseline corrente di `origin/main`, rimisurata prima della modifica, era gia' **0 errori, 2.140 warning** dopo le PR funzionali confluite nel frattempo; il lotto porta il totale a **0 errori, 2.131 warning** (`2.140 -> 2.131`). Lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

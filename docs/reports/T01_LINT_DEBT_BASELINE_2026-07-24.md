@@ -218,3 +218,18 @@ Verifiche: lint mirato 0/0, type-check verde, lint globale reale **0 errori e 2.
 | Warning | 2205 |
 | Riduzione lotto | 10 |
 | Riduzione dalla baseline operativa 2642 | 437 |
+
+## Lotto 18 (26/07/2026) - chiuso
+
+`components/settings/GardenEditModal.tsx`, confermato vivo dalla route `/app/settings`, e' stato portato da 9 warning a zero. Il tipo reale `FieldRow` ora sostituisce gli array e lo stato di editing `any`; le compatibilita' snake_case del provider remoto restano esplicite nel tipo locale. I select di orientamento, irrigazione e frequenza usano le rispettive union; l'import morto `Ruler` e' stato rimosso; `loadGardenStructures` e' stabilizzato con `useCallback`.
+
+Prima della modifica, la baseline corrente di `origin/main` e' stata rimisurata con lo stesso comando globale ed era gia' **0 errori e 2.140 warning**: la differenza rispetto ai 2.205 del lotto 17 deriva dalle PR funzionali confluite nel frattempo e non viene attribuita artificialmente a questo lotto. Dopo il lotto 18 la misura e' **0 errori e 2.131 warning** (`2.140 -> 2.131`). Lint mirato, type-check e `git diff --check` sono verdi.
+
+## Stato dopo il lotto 18
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2131 |
+| Riduzione lotto | 9 |
+| Riduzione dalla baseline operativa 2642 | 511 |
