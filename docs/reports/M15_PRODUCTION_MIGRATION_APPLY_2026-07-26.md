@@ -28,6 +28,8 @@ Un primo invio O38 ha prodotto un errore editor `42601` durante una query di ver
 | `20260726160000` | `organization_suspension_lifecycle` | history, tre relazioni e due RPC verificati |
 | `20260726170000` | `organization_exit_and_support_lifecycle` | history, grant assistenza e sette RPC verificati |
 
+La pagina Database Migrations mostra ora 53 record; le cinque versioni M15 occupano, nell'ordine corretto, le prime cinque righe.
+
 O42 ha sostituito quattro policy `api_keys` tramite `DROP POLICY IF EXISTS` seguito dalla ricreazione nella stessa transazione. O43 definisce una funzione di purge contenente `DELETE`, ma non ha eseguito alcun purge durante la migrazione.
 
 ## Probe applicativo
