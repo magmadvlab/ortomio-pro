@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Garden } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { CardContent, CardHeader, CardTitle, Badge, Input } from '@/components/ui/ortomio-adapter';
@@ -59,7 +59,6 @@ interface SeedlingDashboardProps {
   onBatchCreate?: (batch: Partial<StoredSeedlingBatch>) => void;
   onBatchUpdate?: (batchId: string, updates: Partial<StoredSeedlingBatch>) => void;
   onBatchDelete?: (batchId: string) => void;
-  maxBatches?: number; // Limite per versione free
 }
 
 export default function SeedlingDashboard({
@@ -69,8 +68,7 @@ export default function SeedlingDashboard({
   variety,
   batches,
   onBatchCreate,
-  onBatchUpdate,
-  maxBatches = 10
+  onBatchUpdate
 }: SeedlingDashboardProps) {
   const { storageProvider } = useStorage();
   const masterSheets = getAllMasterSheets();
@@ -83,6 +81,7 @@ export default function SeedlingDashboard({
   const [loadedBatches, setLoadedBatches] = useState<StoredSeedlingBatch[]>([]);
   const [loadingBatches, setLoadingBatches] = useState(false);
   const [savingCreate, setSavingCreate] = useState(false);
+  const createFormRef = useRef<HTMLDivElement>(null);
   const [createForm, setCreateForm] = useState({
     source: 'home' as 'home' | 'nursery',
     plantName: plantName || '',
@@ -145,6 +144,17 @@ export default function SeedlingDashboard({
       setShowCreateForm(true);
     }
   }, [shouldCreate]);
+
+  useEffect(() => {
+    if (!showCreateForm) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      createFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      createFormRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [showCreateForm]);
 
   useEffect(() => {
     setCreateForm((current) => ({
@@ -400,6 +410,10 @@ export default function SeedlingDashboard({
     }
   };
 
+  const openCreateForm = () => {
+    setShowCreateForm(true);
+  };
+
   return (
     <div className="space-y-6">
       {loadingBatches && typeof batches === 'undefined' && (
@@ -537,8 +551,7 @@ export default function SeedlingDashboard({
           </Button>
           
           <Button 
-            onClick={() => setShowCreateForm(true)}
-            disabled={activeBatches.length >= maxBatches}
+            onClick={openCreateForm}
             className="gap-3"
           >
             <Plus className="w-4 h-4" />
@@ -546,21 +559,6 @@ export default function SeedlingDashboard({
           </Button>
         </div>
       </div>
-
-      {/* Limite versione free */}
-      {activeBatches.length >= maxBatches && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                Hai raggiunto il limite di {maxBatches} batch per la versione gratuita. 
-                Passa a Pro per batch illimitati!
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Lista batch */}
       <div className={
@@ -591,7 +589,7 @@ export default function SeedlingDashboard({
                 }
               </p>
               {!searchTerm && filterPhase === 'all' && (
-                <Button onClick={() => setShowCreateForm(true)} className="gap-3">
+                <Button onClick={openCreateForm} className="gap-3">
                   <Plus className="w-4 h-4" />
                   Crea Primo Batch
                 </Button>
@@ -721,11 +719,12 @@ export default function SeedlingDashboard({
 
       {/* Form creazione batch */}
       {showCreateForm && (
-        <Card className="border-blue-200">
-          <CardHeader>
-            <CardTitle>Crea Nuovo Batch</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div ref={createFormRef} tabIndex={-1} className="scroll-mt-6 outline-none">
+          <Card className="border-blue-200">
+            <CardHeader>
+              <CardTitle>Crea Nuovo Batch</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Origine</label>
@@ -861,8 +860,9 @@ export default function SeedlingDashboard({
                 {savingCreate ? 'Salvataggio...' : createForm.source === 'home' ? 'Crea Batch' : 'Aggiungi Piantine'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
