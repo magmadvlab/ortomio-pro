@@ -20,14 +20,14 @@ Il token di invito non viene piu' scritto nei log insieme all'indirizzo email. L
 | invio e accettazione invito server-side | implementato localmente; provider e prova E2E staging aperti |
 | ruoli amministratore/responsabile/operatore | schema presente, E2E non certificato |
 | piano/licenza e limiti | superato: decisione prodotto single-PRO, nessun piano o limite commerciale |
-| rinnovo e fatturazione | assente |
+| rinnovo e fatturazione | implementato localmente come procedura amministrativa single-PRO; migrazione e prova staging aperte |
 | sospensione | assente |
 | cancellazione/esportazione/retention | assente |
 | audit amministrativo | parziale |
 
 ## Condizione di uscita
 
-M15 resta incompleto finche' l'intero lifecycle non e' disponibile tramite API server autorizzate e provato su due aziende, incluso downgrade, sospensione, cancellazione e conservazione dati.
+M15 resta incompleto finche' l'intero lifecycle non e' disponibile tramite API server autorizzate e provato su due aziende, incluso rinnovo, sospensione, cancellazione e conservazione dati.
 
 ## Avanzamento O38 - 26/07/2026
 
@@ -69,3 +69,17 @@ Di conseguenza O40 non e' stato implementato come nuovo sottosistema licenze:
 - rimossi prezzi, acquisto crediti e messaggi di upgrade dai widget AI vivi.
 
 I crediti AI restano una quota tecnica operativa, non una licenza o un piano commerciale. I campi/mapping legacy restano compatibili durante la migrazione dati ma non decidono piu' l'accesso.
+
+## Avanzamento O41 - 26/07/2026
+
+Il ciclo economico della versione unica PRO e' stato implementato come procedura amministrativa verificabile, senza introdurre prezzi o provider di pagamento non decisi:
+
+- Owner e Administrator dell'organizzazione compilano il profilo di fatturazione tramite `POST /api/organizations/billing`;
+- soltanto un amministratore OrtoMio puo' emettere una fattura con importo, valuta, scadenza e periodo contrattuale espliciti;
+- soltanto un amministratore OrtoMio puo' registrare il pagamento;
+- la registrazione del pagamento marca la fattura pagata, attiva o rinnova il contratto PRO e aggiorna il prossimo rinnovo nella stessa transazione;
+- profilo, fatture ed eventi amministrativi sono consultabili dai responsabili dell'organizzazione con cache disabilitata;
+- tutte le mutazioni passano da funzioni `service_role`; i client autenticati non possono scrivere direttamente le tabelle commerciali;
+- gli eventi `BillingProfileSubmitted`, `InvoiceIssued`, `PaymentRecorded` e `ContractRenewed` costituiscono la traccia di audit.
+
+O41 e' quindi completato localmente. Resta `[L]`, non `[x]`, finche' la migrazione non viene applicata nello staging isolato e un ciclo emissione-pagamento-rinnovo non viene provato su due aziende. O42 e O43 restano separati: sospensione/riattivazione e cancellazione/retention non sono dichiarati implementati da questa base.
