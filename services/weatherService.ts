@@ -41,7 +41,7 @@ export interface WeatherForecast {
   temp?: number
   condition: string
   rainMm: number
-  rainForecastMm?: number
+  rainForecastMm: number
   precipitation?: number
   windSpeed: number
   wind?: number
@@ -53,13 +53,19 @@ export interface WeatherForecast {
   humidity: number
   snowfall?: number
   snowForecastMm?: number
+  uv_index?: number
   precipitation_probability?: number
+  precipitation_hours?: number
   showers?: number
   max_hourly_precipitation?: number
   max_hourly_showers?: number
   wind_gusts?: number
   cape_max?: number
   hourly_weather_codes?: number[]
+}
+
+type WeatherAlertForecast = Partial<Omit<WeatherForecast, 'date'>> & {
+  date?: string | Date
 }
 
 export interface WeatherAlert extends WeatherDecision {
@@ -73,10 +79,58 @@ interface GardenLocation {
   lon: number
   name?: string
 }
+
+interface OpenMeteoForecastResponse {
+  timezone?: string
+  latitude?: number
+  longitude?: number
+  daily?: {
+    time?: string[]
+    temperature_2m_max?: number[]
+    temperature_2m_min?: number[]
+    precipitation_sum?: number[]
+    precipitation_probability_max?: number[]
+    precipitation_hours?: number[]
+    showers_sum?: number[]
+    weather_code?: number[]
+    weathercode?: number[]
+    wind_speed_10m_max?: number[]
+    wind_gusts_10m_max?: number[]
+    relative_humidity_2m_mean?: number[]
+    uv_index_max?: number[]
+    snowfall_sum?: number[]
+  }
+  hourly?: {
+    time?: string[]
+    precipitation?: number[]
+    showers?: number[]
+    weather_code?: number[]
+    weathercode?: number[]
+    wind_gusts_10m?: number[]
+    cape?: number[]
+  }
+}
+
+interface OpenWeatherForecastItem {
+  dt_txt: string
+  main: { temp: number; humidity: number }
+  rain?: { '3h'?: number }
+  wind: { speed: number }
+  weather: Array<{ description: string }>
+}
+
+interface OpenMeteoDailyForecast {
+  time: string[]
+  temperature_2m_min: number[]
+  temperature_2m_max: number[]
+  precipitation_sum: number[]
+  wind_speed_10m_max: number[]
+}
+
 export type { WeatherSnapshot } from '@/types/environmental'
 
 // Export standalone functions for compatibility
-export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<any[]> {
+export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<WeatherForecast[]> {
   console.log('🌤️ API METEO: Richiesta per coordinate:', { lat, lng, days });
   
   try {
@@ -88,6 +142,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       'temperature_2m_min',
       'precipitation_sum',
       'precipitation_probability_max',
+      'relative_humidity_2m_mean',
       'weather_code',
       'wind_speed_10m_max',
       'wind_gusts_10m_max',
@@ -117,7 +172,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       throw new Error(`Weather API error: ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const data = await response.json() as OpenMeteoForecastResponse;
     console.log('🌤️ API METEO Risposta:', {
       timezone: data.timezone,
       latitude: data.latitude,
@@ -142,34 +197,49 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
         return Number.isFinite(value) ? Math.max(maximum, value) : maximum
       }, 0)
 
-    return data.daily.time.map((dateStr: string, idx: number) => {
+    const daily = data.daily
+    if (!daily?.time) {
+      throw new Error('Invalid weather API response')
+    }
+
+    return daily.time.map((dateStr, idx): WeatherForecast => {
       const hourlyIndexes = hourlyIndexesByDay.get(dateStr) || []
-      const weatherCode = Number(data.daily.weather_code?.[idx] ?? data.daily.weathercode?.[idx] ?? 0)
+      const weatherCode = Number(daily.weather_code?.[idx] ?? daily.weathercode?.[idx] ?? 0)
       const hourlyWeatherCodes = hourlyIndexes
         .map((index) => Number(data.hourly?.weather_code?.[index] ?? data.hourly?.weathercode?.[index]))
         .filter(Number.isFinite)
+      const tempMax = Math.round(Number(daily.temperature_2m_max?.[idx] ?? 0))
+      const tempMin = Math.round(Number(daily.temperature_2m_min?.[idx] ?? 0))
+      const rainMm = Number(daily.precipitation_sum?.[idx] ?? 0)
+      const windSpeed = Number(daily.wind_speed_10m_max?.[idx] ?? 0)
 
       return {
-        date: new Date(dateStr),
-        temp_max: Math.round(data.daily.temperature_2m_max[idx]),
-        temp_min: Math.round(data.daily.temperature_2m_min[idx]),
-        precipitation: data.daily.precipitation_sum[idx] || 0,
-        precipitation_probability: data.daily.precipitation_probability_max[idx] || 0,
-        precipitation_hours: data.daily.precipitation_hours?.[idx] || 0,
-        showers: data.daily.showers_sum?.[idx] || 0,
+        date: dateStr,
+        tempMin,
+        tempMax,
+        condition: getConditionFromCode(weatherCode),
+        rainMm,
+        rainForecastMm: rainMm,
+        windSpeed,
+        humidity: Number(daily.relative_humidity_2m_mean?.[idx] ?? 0),
+        temp_max: tempMax,
+        temp_min: tempMin,
+        precipitation: rainMm,
+        precipitation_probability: daily.precipitation_probability_max?.[idx] || 0,
+        precipitation_hours: daily.precipitation_hours?.[idx] || 0,
+        showers: daily.showers_sum?.[idx] || 0,
         max_hourly_precipitation: maxAtIndexes(data.hourly?.precipitation, hourlyIndexes),
         max_hourly_showers: maxAtIndexes(data.hourly?.showers, hourlyIndexes),
-        condition: getConditionFromCode(weatherCode),
         weathercode: weatherCode,
         hourly_weather_codes: hourlyWeatherCodes,
-        wind_speed: data.daily.wind_speed_10m_max[idx] || 0,
+        wind_speed: windSpeed,
         wind_gusts: Math.max(
-          Number(data.daily.wind_gusts_10m_max?.[idx] || 0),
+          Number(daily.wind_gusts_10m_max?.[idx] || 0),
           maxAtIndexes(data.hourly?.wind_gusts_10m, hourlyIndexes)
         ),
         cape_max: maxAtIndexes(data.hourly?.cape, hourlyIndexes),
-        uv_index: data.daily.uv_index_max[idx] || 0,
-        snowfall: data.daily.snowfall_sum?.[idx] || 0
+        uv_index: daily.uv_index_max?.[idx] || 0,
+        snowfall: daily.snowfall_sum?.[idx] || 0
       }
     });
   } catch (error) {
@@ -178,12 +248,12 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
   }
 }
 
-export async function getWeatherForecast7Days(lat: number, lng: number): Promise<any[]> {
+export async function getWeatherForecast7Days(lat: number, lng: number): Promise<WeatherForecast[]> {
   return getWeatherForecast(lat, lng, 7);
 }
 
 export function generateWeatherAlerts(
-  forecast: any[], 
+  forecast: WeatherAlertForecast[],
   activePlants: Array<{ plantName: string; minTemp?: number }> = []
 ): WeatherAlert[] {
   if (!forecast || forecast.length === 0) return []
@@ -208,9 +278,13 @@ export function generateWeatherAlerts(
     ].map(Number).filter(Number.isFinite)
     const dayLabel = dayOffset === 0 ? '' : dayOffset === 1 ? 'Domani: ' : `Tra ${dayOffset} giorni: `
 
-    return evaluateWeatherRisks({
+    const tempMin = day.temp_min ?? day.tempMin ?? day.temp
+    const atRiskPlants = typeof tempMin === 'number'
+      ? activePlants.filter((plant) => typeof plant.minTemp === 'number' && tempMin < plant.minTemp)
+      : []
+    const decisions = evaluateWeatherRisks({
       tempMax: day.temp_max ?? day.tempMax ?? day.temp,
-      tempMin: day.temp_min ?? day.tempMin ?? day.temp,
+      tempMin,
       precipitationTotalMm: day.precipitation ?? day.rainMm ?? day.rainForecastMm,
       precipitationProbabilityMax: day.precipitation_probability,
       maxHourlyPrecipitationMm: day.max_hourly_precipitation,
@@ -221,9 +295,30 @@ export function generateWeatherAlerts(
       capeMaxJkg: day.cape_max,
       snowfallCm: day.snowfall,
       weatherCodes,
-    }).map((decision) => ({
+    })
+
+    if (atRiskPlants.length > 0 && !decisions.some((decision) => decision.hazard === 'frost')) {
+      const names = atRiskPlants.map((plant) => plant.plantName).join(', ')
+      decisions.push({
+        hazard: 'frost',
+        severity: 'MEDIUM',
+        urgency: 'today',
+        confidence: 'HIGH',
+        message: `Minima ${tempMin}°C sotto la soglia delle colture: ${names}`,
+        action: 'Proteggi le colture sensibili indicate prima del tramonto e controlla la minima locale.',
+        steps: ['Individua le colture elencate.', 'Applica una protezione traspirante.', 'Rimuovi o arieggia la copertura al rialzo termico.'],
+        estimatedMinutes: 15,
+        evidence: atRiskPlants.map((plant) => `${plant.plantName}: soglia ${plant.minTemp}°C`),
+      })
+    }
+
+    return decisions.map((decision) => ({
       ...decision,
-      message: `${dayLabel}${decision.message}`,
+      message: `${dayLabel}${decision.message}${
+        decision.hazard === 'frost' && atRiskPlants.length > 0
+          ? ` (colture sensibili: ${atRiskPlants.map((plant) => plant.plantName).join(', ')})`
+          : ''
+      }`,
       type: hazardType[decision.hazard],
       forecastDate: day.date instanceof Date ? day.date.toISOString() : day.date,
       dayOffset,
@@ -264,7 +359,7 @@ export interface CriticalWeatherAlert {
  * Verifica allarmi meteo critici per il cron notifiche.
  * Usa il primo giorno disponibile del forecast (oggi).
  */
-export function checkCriticalWeatherAlerts(forecast: any[]): CriticalWeatherAlert[] {
+export function checkCriticalWeatherAlerts(forecast: WeatherAlertForecast[]): CriticalWeatherAlert[] {
   return generateWeatherAlerts(forecast)
     .filter((alert) => alert.severity === 'HIGH')
     .map((alert) => ({
@@ -389,8 +484,7 @@ class WeatherService {
       }
     } catch (error) {
       console.error('Error fetching weather data:', error)
-      // Ritorna dati di fallback
-      return this.getFallbackWeatherData(location)
+      throw new Error('Dati meteo non disponibili per la posizione richiesta', { cause: error })
     }
   }
 
@@ -435,22 +529,16 @@ class WeatherService {
         }
       }
 
-      // Fallback neutro: evita coordinate fisse hardcoded
-      return this.getFallbackWeatherData({
-        lat: 0,
-        lon: 0,
-        name: 'Posizione non disponibile'
-      })
+      throw new Error('Posizione meteo non disponibile')
     }
   }
 
   /**
    * Ottiene dati meteo per un orto specifico
    */
-  async getWeatherForGarden(garden: any): Promise<WeatherData> {
+  async getWeatherForGarden(garden: Garden): Promise<WeatherData> {
     const coordinates =
       normalizeGeoCoordinates(garden?.coordinates) ??
-      normalizeGeoCoordinates(garden?.location?.coordinates) ??
       normalizeGeoCoordinates(garden?.location) ??
       normalizeGeoCoordinates(garden);
 
@@ -532,7 +620,11 @@ class WeatherService {
       })
 
     const resolvedLog = resolvePersistedWeatherLogForDate(
-      rankedLogs.map(({ proximity, location_latitude, location_longitude, ...log }) => log),
+      rankedLogs.map((rankedLog) => Object.fromEntries(
+        Object.entries(rankedLog).filter(([key]) =>
+          !['proximity', 'location_latitude', 'location_longitude'].includes(key)
+        )
+      ) as unknown as PersistedDailyWeatherLike),
       targetDate,
       { now: new Date() }
     )
@@ -635,20 +727,7 @@ class WeatherService {
       }
     } catch (error) {
       console.error(`Error getting weather for ${targetDate}:`, error)
-      return {
-        temperature: 20,
-        humidity: 60,
-        precipitation: 0,
-        windSpeed: 0,
-        condition: 'unknown',
-        pressure: 1013,
-        source: 'fallback',
-        sourceClass: 'synthetic_fallback',
-        primarySource: 'fallback_estimated',
-        signalQuality: 'estimated',
-        regionalConfidence: 'low',
-        localConfidence: 'low',
-      }
+      throw new Error(`Dati meteo non disponibili per ${targetDate}`, { cause: error })
     }
   }
 
@@ -804,8 +883,8 @@ class WeatherService {
   /**
    * Processa previsioni OpenWeatherMap
    */
-  private processForecast(forecastList: any[]): WeatherForecast[] {
-    const dailyForecasts = new Map<string, any[]>()
+  private processForecast(forecastList: OpenWeatherForecastItem[]): WeatherForecast[] {
+    const dailyForecasts = new Map<string, OpenWeatherForecastItem[]>()
     
     // Raggruppa per giorno
     forecastList.forEach(item => {
@@ -829,6 +908,7 @@ class WeatherService {
         tempMax: Math.round(Math.max(...temps)),
         condition: this.translateCondition(items[0].weather[0].description),
         rainMm: Math.max(...rains),
+        rainForecastMm: Math.max(...rains),
         windSpeed: Math.round(Math.max(...winds)),
         humidity: Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length)
       }
@@ -838,66 +918,17 @@ class WeatherService {
   /**
    * Processa previsioni Open-Meteo
    */
-  private processOpenMeteoForecast(daily: any): WeatherForecast[] {
+  private processOpenMeteoForecast(daily: OpenMeteoDailyForecast): WeatherForecast[] {
     return daily.time.slice(0, 7).map((date: string, index: number) => ({
       date,
       tempMin: Math.round(daily.temperature_2m_min[index]),
       tempMax: Math.round(daily.temperature_2m_max[index]),
       condition: 'Variabile', // Open-Meteo gratuito non ha weather codes giornalieri
       rainMm: daily.precipitation_sum[index] || 0,
+      rainForecastMm: daily.precipitation_sum[index] || 0,
       windSpeed: Math.round(daily.wind_speed_10m_max[index]),
       humidity: 60 // Stima
     }))
-  }
-
-  /**
-   * Dati meteo di fallback
-   */
-  private getFallbackWeatherData(location: GardenLocation): WeatherData {
-    const now = new Date()
-    const month = now.getMonth()
-    
-    // Dati stagionali approssimativi per l'Italia
-    let temp = 15
-    let condition = 'Variabile'
-    
-    if (month >= 5 && month <= 8) { // Estate
-      temp = 25
-      condition = 'Soleggiato'
-    } else if (month >= 2 && month <= 4) { // Primavera
-      temp = 18
-      condition = 'Variabile'
-    } else if (month >= 9 && month <= 11) { // Autunno
-      temp = 12
-      condition = 'Nuvoloso'
-    } else { // Inverno
-      temp = 8
-      condition = 'Freddo'
-    }
-
-    return {
-      temp,
-      rainMm: 0,
-      condition,
-      humidity: 65,
-      windSpeed: 10,
-      pressure: 1013,
-      uvIndex: 3,
-      location: {
-        name: location.name || 'Posizione non disponibile',
-        lat: location.lat,
-        lon: location.lon
-      },
-      forecast: Array.from({ length: 7 }, (_, i) => ({
-        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        tempMin: temp - 5,
-        tempMax: temp + 5,
-        condition,
-        rainMm: Math.random() > 0.7 ? Math.random() * 10 : 0,
-        windSpeed: 8 + Math.random() * 10,
-        humidity: 60 + Math.random() * 20
-      }))
-    }
   }
 
   /**
@@ -971,7 +1002,7 @@ export async function checkTransplantConditions(
     
     // Usa la temperatura minima del primo giorno (oggi)
     const today = forecast[0];
-    const currentMinTemp = today.temp_min ?? today.temp_max - 10; // Fallback estimate
+    const currentMinTemp = today.temp_min ?? today.tempMin;
     
     if (currentMinTemp < minTemp) {
       return {

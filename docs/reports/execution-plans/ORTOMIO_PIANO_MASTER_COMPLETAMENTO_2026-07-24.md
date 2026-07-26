@@ -488,6 +488,10 @@ Il lotto 23 porta `components/plants/SmartPlantManager.tsx`, vivo in quattro rou
 
 Il lotto 24 porta `InterventionWizard.tsx` (vivo in NDVI e Smart Hub) da 11 warning a zero e `interventionService.ts` da 2 a zero. Oltre alla tipizzazione, chiude due difetti di persistenza: i default obbligatori del submit non possono piu' essere sovrascritti dal form parziale e i payload Supabase contengono soltanto le colonne snake_case previste dalla tabella `interventions`, non anche i campi camelCase inesistenti. Aggiunti builder puri e test regressivi insert/update. Baseline globale verificata: **0 errori, 2.018 warning** (`2.031 -> 2.018`); persistenza 64/64, lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 25 (26/07/2026)
+
+Il lotto 25 porta i servizi meteo condivisi `weatherService.ts` e `weatherProviderAdapter.ts` da 16 warning complessivi a zero. Le soglie minime delle colture, prima ricevute e ignorate, generano ora allerte specifiche; eliminato anche il fallback che inventava previsioni stagionali e casuali quando provider o geolocalizzazione fallivano: i widget ricevono un errore esplicito invece di dati falsi. Contratti provider tipizzati e test regressivi aggiunti. Baseline globale verificata: **0 errori, 2.002 warning** (`2.018 -> 2.002`); test meteo 13/13, lint mirato, type-check e diff-check verdi. Esclusi e documentati gli orfani `AromaticHarvest`/`WateringLogFormWithFieldRows` e i wizard interni non raggiungibili/non persistenti emersi nelle pagine Nutrizione e Lavorazioni Meccaniche.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

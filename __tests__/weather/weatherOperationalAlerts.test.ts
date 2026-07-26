@@ -35,3 +35,21 @@ test('ogni allerta meteo include azione, passaggi e durata', () => {
     assert.ok(alert.estimatedMinutes > 0)
   })
 })
+
+test('la soglia minima delle colture genera un avviso specifico prima del gelo generico', () => {
+  const alerts = generateWeatherAlerts([{
+    date: '2026-07-27',
+    temp_min: 8,
+    temp_max: 18,
+  }], [
+    { plantName: 'Basilico', minTemp: 10 },
+    { plantName: 'Cavolo', minTemp: 2 },
+  ])
+
+  const frost = alerts.find((alert) => alert.hazard === 'frost')
+  assert.ok(frost)
+  assert.equal(frost.severity, 'MEDIUM')
+  assert.match(frost.message, /Basilico/)
+  assert.doesNotMatch(frost.message, /Cavolo/)
+  assert.match(frost.evidence.join(' '), /soglia 10°C/)
+})

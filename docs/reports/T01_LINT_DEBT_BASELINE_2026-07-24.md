@@ -331,3 +331,22 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; suite persistenza 64/
 | Warning | 2018 |
 | Riduzione lotto | 13 |
 | Riduzione dalla baseline operativa 2642 | 624 |
+
+## Lotto 25 (26/07/2026) - chiuso
+
+`services/weatherService.ts` e `services/weatherProviderAdapter.ts`, entrambi vivi e condivisi da dashboard, cron e motori agronomici, sono stati portati rispettivamente da 12 e 4 warning a zero. Le risposte Open-Meteo, OpenWeatherMap, WeatherAPI e custom hanno ora contratti espliciti; il forecast canonico conserva anche gli alias legacy necessari ai consumatori.
+
+La tipizzazione ha chiuso due difetti reali. `activePlants` veniva passato dai widget con le temperature minime delle colture ma era ignorato: ora una minima sotto la soglia genera un'allerta mirata con colture ed evidenze. Inoltre, in caso di errore provider/geolocalizzazione, il servizio generava previsioni stagionali e valori casuali con `Math.random()`; il falso meteo e' stato eliminato e l'assenza dati produce un errore esplicito gia' gestito dai widget.
+
+Durante la selezione `AromaticHarvest.tsx` e `WateringLogFormWithFieldRows.tsx` sono risultati senza importer e sono rimasti intatti. Nelle pagine Nutrizione e Lavorazioni Meccaniche sono emersi wizard interni mai renderizzati oppure alimentati soltanto da array locali vuoti: sono stati esclusi dal lotto e registrati come pulizia funzionale/codice morto, senza mascherarli come lint.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; test meteo 13/13; lint globale **0 errori e 2.002 warning** (`2.018 -> 2.002`).
+
+## Stato dopo il lotto 25
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2002 |
+| Riduzione lotto | 16 |
+| Riduzione dalla baseline operativa 2642 | 640 |
