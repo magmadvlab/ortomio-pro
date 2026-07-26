@@ -68,8 +68,8 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M03 | `[L]` locale | Creazione zona autorizzata end-to-end | Migrazione staging e convergenza API operazioni legacy (`O01-O02`) |
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
 | M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci; M15 locale azzerato | 75 voci correnti assegnate a M13-M14 (`O05`) |
-| M06 | `[!]` bloccato | Inventario migrazioni e runbook | Staging, dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
-| M07 | `[!]` bloccato | Script backup/restore e template | Drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
+| M06 | `[!]` bloccato | Inventario migrazioni e runbook; audit dashboard 26/07: 48 record, ultimo `20260724082916` | Piano Free, nessun branch/staging; servono dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
+| M07 | `[!]` bloccato | Script backup/restore e template; dashboard conferma `No backups` | Piano Free senza backup provider; servono drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
 | M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09; seed interamente asincroni | Certificazione staging (`O18`) |
 | M10 | `[L]` locale | Coda, scheduler, deduplica, retry, dead-letter, rate limit, webhook e metriche | Consegna provider reale in staging (`O23`) |
@@ -176,7 +176,8 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 
 - **Stato:** `[!]` inventario completato; applicazione bloccata
 - **Obiettivo:** allineare repository e schema remoto senza applicazioni cieche.
-- **Baseline nota:** 40 migrazioni remote tracciate; 79 file locali da riconciliare.
+- **Baseline iniziale:** 40 migrazioni remote tracciate; 79 file locali da riconciliare.
+- **Baseline remota aggiornata 26/07/2026:** dashboard autenticata, audit read-only di 48 record; ultima migration `20260724082916_archive_completed_garden_tasks`; nessuna migration O38-O43 presente.
 - **Casi speciali:**
   - migrazione remota orfana `20260108220000`;
   - `20260104000000_add_field_rows_to_operations.sql.bak`;
@@ -190,8 +191,8 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
   - produrre verifica post-lotto e rollback applicabile.
 - **Criterio di uscita:** nessun file o record remoto privo di classificazione e schema coerente con la history.
 - **Risultato parziale:** snapshot read-only della history remota e manifest locale prodotti; 119 file SQL attivi, 40 versioni remote, 39 file gia' applicati, 74 file in preflight, 6 file coinvolti in timestamp duplicati, 3 file speciali e un record remoto orfano.
-- **Evidenza:** commit `95c324f` (`chore: inventory migration reconciliation blockers`), `M06_MIGRATION_RECONCILIATION_2026-07-24.csv` e `M06_MIGRATION_RUNBOOK_2026-07-24.md`.
-- **Blocco:** manca un target staging isolato con snapshot/restore. Il dump schema read-only via CLI non e' stato eseguito perche' Docker Desktop non e' attivo. Nessun `db push` e nessuna riparazione della history sono autorizzati sul progetto collegato.
+- **Evidenza:** commit `95c324f` (`chore: inventory migration reconciliation blockers`), `M06_MIGRATION_RECONCILIATION_2026-07-24.csv`, `M06_MIGRATION_RUNBOOK_2026-07-24.md` e `M06_SUPABASE_REMOTE_AUDIT_2026-07-26.md`.
+- **Blocco verificato nel dashboard 26/07:** organizzazione Supabase `Free`, solo branch `main` Production, nessun branch persistente/Preview e `Create branch` disabilitato. Il dump schema read-only via CLI non e' stato eseguito perche' mancano credenziali CLI e Docker Desktop non e' attivo. Nessun `db push` e nessuna riparazione della history sono autorizzati sul progetto collegato.
 - **Condizione di ripresa:** staging disponibile, dump schema acquisito, duplicati rinumerati consapevolmente e migrazione orfana ricostruita.
 
 ### M07 - Staging, backup, restore e rollback
@@ -208,7 +209,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Criterio di uscita:** restore riuscito e ripetibile con evidenza.
 - **Risultato parziale:** backup custom con controllo versione, validazione archivio e checksum SHA-256; restore con autorizzazione esplicita, target separato, verifica checksum, `--exit-on-error` e controllo schema finale; template RPO/RTO predisposto.
 - **Evidenza:** commit `769a052` (`chore: harden backup and restore drill`) e `M07_BACKUP_RESTORE_DRILL_2026-07-24.md`.
-- **Blocco:** nessun source/target staging isolato e nessuno snapshot provider identificato; il drill non e' stato eseguito sul progetto collegato.
+- **Blocco verificato nel dashboard 26/07:** nessun source/target staging isolato; overview `No backups`; la pagina Backups dichiara esplicitamente che il piano Free non include backup di progetto. Il drill non e' stato eseguito sul progetto collegato.
 
 ### M08 - Certificazione multi-cliente e RLS
 
@@ -408,11 +409,11 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O02 | M03 | ~~Migrare update, cambio stato ed eliminazione zone legacy alla API canonica~~ **Chiuso 24/07/2026** (`fcd97de`) | Nessuna mutazione production parallela — verificato: solo `/api/garden/zones` scrive `land_zones` dal client |
 | O03 | M04 | Applicare e provare `garden_soil_states` in staging | Read/write e RLS verificate sullo schema candidato |
 | O05 | M05 | **M15 riconciliato 26/07/2026:** 6 -> 0 voci; restano 27 M13 e 48 M14 dipendenti dai rispettivi gate reali | Manifest finale senza voce `scheduled` irrisolta |
-| O06 | M06 | Rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
-| O07 | M06 | Acquisire dump schema e confrontarlo con la history | Drift classificato per ogni oggetto |
+| O06 | M06 | `[!]` Dashboard 26/07: piano Free, nessun branch, `Create branch` disabilitato e nessun backup; rendere disponibile uno staging isolato con snapshot | Target e rollback identificati |
+| O07 | M06 | `[-]` History dashboard acquisita: 48 record, ultimo `20260724082916`; resta dump schema e confronto oggetto per oggetto | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
 | O09 | M06 | Applicare e verificare i batch di migrazioni | Audit post-batch verde e rollback disponibile |
-| O10 | M07 | Eseguire backup e restore drill reale | Restore completo ripetibile |
+| O10 | M07 | `[!]` Piano Free senza backup provider; predisporre target e poi eseguire backup/restore drill reale | Restore completo ripetibile |
 | O11 | M07 | Provare ripristino selettivo di un cliente | Dati cliente riconciliati |
 | O12 | M07 | Misurare e approvare RPO/RTO | Valori registrati nel runbook |
 | O13 | M08 | Eseguire matrice isolamento SQL/API/UI con due clienti | Tutti i negativi attesi risultano negati |
