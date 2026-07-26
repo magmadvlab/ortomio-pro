@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Garden, GardenTask } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { checkWeatherHealthRisks } from '@/services/weatherService'
@@ -24,19 +24,12 @@ export function HealthAlertSystem({
   tasks,
   onAlertsChange
 }: HealthAlertSystemProps) {
-  const [alerts, setAlerts] = useState<HealthAlert[]>([])
-  const [loading, setLoading] = useState(true)
   const { storageProvider } = useStorage()
 
-  const buildIrrigationDeficitAlerts = async (): Promise<HealthAlert[]> => {
-    const sp: any = storageProvider as any
-    if (!sp || typeof sp.getIrrigationZones !== 'function' || typeof sp.getWateringLogs !== 'function') {
-      return []
-    }
-
+  const buildIrrigationDeficitAlerts = useCallback(async (): Promise<HealthAlert[]> => {
     let zones: IrrigationZone[] = []
     try {
-      zones = (await sp.getIrrigationZones(undefined, garden.id)) as IrrigationZone[]
+      zones = await storageProvider.getIrrigationZones(undefined, garden.id)
     } catch {
       return []
     }
@@ -45,7 +38,7 @@ export function HealthAlertSystem({
 
     let logs: WateringLog[] = []
     try {
-      logs = (await sp.getWateringLogs(undefined, garden.id)) as WateringLog[]
+      logs = await storageProvider.getWateringLogs(undefined, garden.id)
     } catch {
       logs = []
     }
@@ -58,12 +51,12 @@ export function HealthAlertSystem({
     for (const z of zones) {
       const last = logs
         .filter((l) => l.zoneId === z.id)
-        .sort((a, b) => new Date((b.wateredAt || b.date) as any).getTime() - new Date((a.wateredAt || a.date) as any).getTime())[0]
+        .sort((a, b) => new Date(b.wateredAt || b.date).getTime() - new Date(a.wateredAt || a.date).getTime())[0]
 
       const lastDateStr = z.lastWateredAt || last?.wateredAt || last?.date
       if (!lastDateStr) continue
 
-      const lastDate = typeof lastDateStr === 'string' ? new Date(lastDateStr) : new Date(lastDateStr as any)
+      const lastDate = new Date(lastDateStr)
       if (Number.isNaN(lastDate.getTime())) continue
 
       const daysSince = differenceInDays(now, lastDate)
@@ -81,17 +74,12 @@ export function HealthAlertSystem({
     }
 
     return alerts
-  }
+  }, [garden.id, storageProvider])
 
-  const buildTreatmentSafetyIntervalAlerts = async (): Promise<HealthAlert[]> => {
-    const sp: any = storageProvider as any
-    if (!sp || typeof sp.getTreatments !== 'function') {
-      return []
-    }
-
+  const buildTreatmentSafetyIntervalAlerts = useCallback(async (): Promise<HealthAlert[]> => {
     let treatments: TreatmentRecordDB[] = []
     try {
-      treatments = (await sp.getTreatments(garden.id)) as TreatmentRecordDB[]
+      treatments = await storageProvider.getTreatments(garden.id)
     } catch {
       return []
     }
@@ -123,11 +111,10 @@ export function HealthAlertSystem({
     }
 
     return alerts
-  }
+  }, [garden.id, storageProvider])
   
   useEffect(() => {
     const checkAlerts = async () => {
-      setLoading(true)
       const newAlerts: HealthAlert[] = []
       
       try {
@@ -176,12 +163,9 @@ export function HealthAlertSystem({
         // 4. Alert da stato piante (sintomi rilevati)
         // TODO: Implementare quando avremo dati da foto AI
         
-        setAlerts(newAlerts)
         onAlertsChange(newAlerts)
       } catch (error) {
         console.error('Error checking health alerts:', error)
-      } finally {
-        setLoading(false)
       }
     }
     
@@ -190,7 +174,7 @@ export function HealthAlertSystem({
     // Ricarica alert ogni ora
     const interval = setInterval(checkAlerts, 60 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [garden, tasks, onAlertsChange, storageProvider])
+  }, [buildIrrigationDeficitAlerts, buildTreatmentSafetyIntervalAlerts, garden, tasks, onAlertsChange, storageProvider])
   
   // Questo componente non renderizza nulla, solo gestisce la logica
   return null

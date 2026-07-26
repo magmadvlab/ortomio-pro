@@ -183,3 +183,21 @@ Verifiche: lint mirato 0/0, type-check verde, lint globale reale **0 errori e 2.
 | Warning | 2237 |
 | Riduzione lotto | 30 |
 | Riduzione dalla baseline operativa 2642 | 405 |
+
+## Lotto 16 (26/07/2026) - chiuso
+
+Due componenti vivi sono stati portati complessivamente da 22 warning a zero:
+
+- `components/health/HealthAlertSystem.tsx` 11 -> 0: provider irrigazione/trattamenti usato tramite il contratto tipizzato, conversioni data rese esplicite, builder stabilizzati con `useCallback`; rimossi gli stati `alerts` e `loading`, che venivano scritti ma mai letti in questo componente non visuale;
+- `components/diary/DiaryPlannerIntegration.tsx` 11 -> 0: `Garden`, `GardenTask`, `DiaryEvent` e `DiaryAnalytics` sostituiscono i cast generici, aggregazione problemi tipizzata, caricamento stabilizzato e import morti rimossi.
+
+Verifiche: lint mirato 0/0, type-check verde, lint globale reale **0 errori e 2.215 warning**.
+
+## Stato dopo il lotto 16
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2215 |
+| Riduzione lotto | 22 |
+| Riduzione dalla baseline operativa 2642 | 427 |

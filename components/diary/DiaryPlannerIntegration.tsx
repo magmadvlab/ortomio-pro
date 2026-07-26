@@ -11,7 +11,7 @@
 
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Bot,
   Calendar,
@@ -23,19 +23,19 @@ import {
   Zap,
   MessageSquare,
   BookOpen,
-  BarChart3,
   AlertTriangle,
-  CheckCircle,
   Star
 } from 'lucide-react'
 import PlannerAIChat from '../planner/PlannerAIChat'
-import { createOperationalDiaryService } from '@/services/operationalDiaryService'
+import { createOperationalDiaryService, DiaryAnalytics } from '@/services/operationalDiaryService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
+import type { DiaryEvent } from '@/types/diary'
+import type { Garden, GardenTask } from '@/types'
 
 interface DiaryPlannerIntegrationProps {
   gardenId: string
-  garden?: any
-  tasks?: any[]
+  garden?: Garden
+  tasks?: GardenTask[]
 }
 
 interface AIInsight {
@@ -59,46 +59,11 @@ export default function DiaryPlannerIntegration({
   const diaryService = useMemo(() => createOperationalDiaryService(storageProvider), [storageProvider])
   const [showPlannerChat, setShowPlannerChat] = useState(false)
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
-  const [recentEntries, setRecentEntries] = useState<any[]>([])
-  const [analytics, setAnalytics] = useState<any>(null)
+  const [recentEntries, setRecentEntries] = useState<DiaryEvent[]>([])
+  const [analytics, setAnalytics] = useState<DiaryAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadIntegrationData()
-  }, [gardenId])
-
-  const loadIntegrationData = async () => {
-    setLoading(true)
-    try {
-      // Carica dati in parallelo per performance migliori
-      const [entries, diaryAnalytics] = await Promise.all([
-        // Carica entries (simulato - in produzione sarebbe dal database)
-        diaryService.getEntries(gardenId, {
-          dateRange: {
-            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            end: new Date().toISOString().split('T')[0]
-          }
-        }),
-        // Carica analytics
-        diaryService.getAnalytics(gardenId)
-      ])
-      
-      setRecentEntries(entries.slice(0, 10))
-      setAnalytics(diaryAnalytics)
-      
-      // Genera insights AI in background (non blocca il rendering)
-      generateAIInsights(entries, diaryAnalytics).then(insights => {
-        setAiInsights(insights)
-      })
-      
-    } catch (error) {
-      console.error('Error loading integration data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const generateAIInsights = async (entries: any[], analytics: any): Promise<AIInsight[]> => {
+  const generateAIInsights = useCallback(async (entries: DiaryEvent[], analytics: DiaryAnalytics): Promise<AIInsight[]> => {
     const insights: AIInsight[] = []
     
     // Insight 1: Pattern di efficienza
@@ -110,7 +75,7 @@ export default function DiaryPlannerIntegration({
         description: `L'efficienza operativa è calata del ${Math.abs(analytics.recentTrends.efficiency)}% nelle ultime settimane`,
         confidence: 0.85,
         actionable: true,
-        relatedEntries: entries.filter(e => e.performance?.efficiency < 70).map(e => e.id),
+        relatedEntries: entries.filter(e => (e.performance?.efficiency ?? 100) < 70).map(e => e.id),
         suggestedActions: [
           'Rivedi i processi operativi meno efficienti',
           'Considera formazione o aggiornamento strumenti',
@@ -122,7 +87,7 @@ export default function DiaryPlannerIntegration({
     
     // Insight 2: Opportunità di miglioramento
     const highPerformingOps = entries.filter(e => 
-      e.performance?.effectiveness > 90 && e.type === 'operation'
+      (e.performance?.effectiveness ?? 0) > 90 && e.type === 'operation'
     )
     
     if (highPerformingOps.length > 0) {
@@ -167,13 +132,14 @@ export default function DiaryPlannerIntegration({
     
     // Insight 4: Problemi ricorrenti
     const recentIssues = entries.filter(e => e.type === 'issue')
-    const issuePatterns = recentIssues.reduce((acc: any, issue) => {
-      const key = issue.operationData?.plantName || 'unknown'
+    const issuePatterns = recentIssues.reduce<Record<string, number>>((acc, issue) => {
+      const plantName = issue.operationData?.plantName
+      const key = typeof plantName === 'string' ? plantName : 'unknown'
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {})
     
-    const recurringIssues = Object.entries(issuePatterns).filter(([_, count]) => (count as number) > 2)
+    const recurringIssues = Object.entries(issuePatterns).filter(([, count]) => count > 2)
     
     if (recurringIssues.length > 0) {
       insights.push({
@@ -222,7 +188,34 @@ export default function DiaryPlannerIntegration({
       const priorityOrder = { high: 3, medium: 2, low: 1 }
       return priorityOrder[b.priority] - priorityOrder[a.priority]
     })
-  }
+  }, [])
+
+  const loadIntegrationData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [entries, diaryAnalytics] = await Promise.all([
+        diaryService.getEntries(gardenId, {
+          dateRange: {
+            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            end: new Date().toISOString().split('T')[0]
+          }
+        }),
+        diaryService.getAnalytics(gardenId)
+      ])
+
+      setRecentEntries(entries.slice(0, 10))
+      setAnalytics(diaryAnalytics)
+      setAiInsights(await generateAIInsights(entries, diaryAnalytics))
+    } catch (error) {
+      console.error('Error loading integration data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [diaryService, gardenId, generateAIInsights])
+
+  useEffect(() => {
+    void loadIntegrationData()
+  }, [loadIntegrationData])
 
   const getInsightIcon = (type: AIInsight['type']) => {
     switch (type) {

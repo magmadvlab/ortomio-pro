@@ -447,6 +447,10 @@ La branch di completamento e' stata riallineata ai lotti 1-13 gia' confluiti in 
 
 Il lotto 15 porta `FertilizerApplicationModal.tsx`, `QuickHarvestForm.tsx` e `InventoryManager.tsx` da 30 warning complessivi a zero. Baseline globale verificata: **0 errori, 2.237 warning** (`2.267 -> 2.237`); lint mirato e type-check verdi. Il dosaggio fertilizzante ora deriva dall'area reale del letto selezionato e accetta solo le fasi previste dal contratto del log. O45 e i gap di prodotto M14 restano separati.
 
+### Aggiornamento T01 - lotto 16 (26/07/2026)
+
+Il lotto 16 porta i componenti vivi `HealthAlertSystem.tsx` e `DiaryPlannerIntegration.tsx` da 22 warning complessivi a zero. Baseline globale verificata: **0 errori, 2.215 warning** (`2.237 -> 2.215`); lint mirato e type-check verdi. Il widget geografico emerso nella stessa selezione non ha importer verificati ed e' stato lasciato intatto per la successiva classificazione O45.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
