@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { GardenTask, FertilizerApplicationLogDB, GardenBed, GardenRow } from '@/types'
-import { X, Droplet, Calendar, AlertCircle, Layers } from 'lucide-react'
+import { X, Calendar, AlertCircle, Layers } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
@@ -52,31 +52,16 @@ export function FertilizerApplicationModal({
   const [selectedBed, setSelectedBed] = useState<string>(task.bedId || '')
   const [selectedRow, setSelectedRow] = useState<string>('')
 
-  // Carica beds e rows
-  useEffect(() => {
-    loadGardenStructure()
-  }, [task.gardenId])
-
-  useEffect(() => {
-    // Carica rows quando cambia bed selezionato
-    if (selectedBed) {
-      loadRows(selectedBed)
-    } else {
-      setRows([])
-      setSelectedRow('')
-    }
-  }, [selectedBed])
-
-  const loadGardenStructure = async () => {
+  const loadGardenStructure = useCallback(async () => {
     try {
       const gardenBeds = await storageProvider.getGardenBeds(task.gardenId)
       setBeds(gardenBeds || [])
     } catch (error) {
       console.error('Error loading garden beds:', error)
     }
-  }
+  }, [storageProvider, task.gardenId])
 
-  const loadRows = async (bedId: string) => {
+  const loadRows = useCallback(async (bedId: string) => {
     try {
       const bedRows = await storageProvider.getGardenRows(bedId)
       setRows(bedRows || [])
@@ -84,14 +69,41 @@ export function FertilizerApplicationModal({
       console.error('Error loading rows:', error)
       setRows([])
     }
-  }
+  }, [storageProvider])
+
+  // Carica beds e rows
+  useEffect(() => {
+    void loadGardenStructure()
+  }, [loadGardenStructure])
+
+  useEffect(() => {
+    // Carica rows quando cambia bed selezionato
+    if (selectedBed) {
+      void loadRows(selectedBed)
+    } else {
+      setRows([])
+      setSelectedRow('')
+    }
+  }, [loadRows, selectedBed])
+
+  const selectedBedArea = useMemo(
+    () => beds.find((bed) => bed.id === selectedBed)?.areaSqMeters,
+    [beds, selectedBed]
+  )
+  const fertilizerGrowthPhase =
+    task.stage === 'Germination' ||
+    task.stage === 'Vegetative' ||
+    task.stage === 'Flowering' ||
+    task.stage === 'Fruiting'
+      ? task.stage
+      : null
 
   // Calcola dosaggio suggerito
   const suggestedDosage = useMemo(() => {
     if (!selectedProduct) return null
 
     // Area dalla bed o default 1m²
-    const area = (task as any).bed?.size || 1
+    const area = selectedBedArea || 1
 
     // Dosaggio min consigliato
     const dosagePerSqm = selectedProduct.dosagePerSqm.min
@@ -101,7 +113,7 @@ export function FertilizerApplicationModal({
       amount: Math.round(totalDosage * 10) / 10,
       unit: selectedProduct.dosagePerSqm.unit
     }
-  }, [selectedProduct, (task as any).bed])
+  }, [selectedBedArea, selectedProduct])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -137,12 +149,12 @@ export function FertilizerApplicationModal({
         npk: selectedProduct.npk || null,
 
         applicationDate,
-        areaSqm: (task as any).bed?.size || null,
+        areaSqm: selectedBedArea || null,
         dosageAmount: amount,
         dosageUnit: selectedProduct.dosagePerSqm.unit,
         method,
 
-        growthPhase: (task as any).stage || null,
+        growthPhase: fertilizerGrowthPhase,
 
         nextApplicationDate: nextDate || null,
         frequencyDays: shouldRepeat ? frequencyDays : null,
@@ -317,7 +329,7 @@ export function FertilizerApplicationModal({
             </label>
             <select
               value={method}
-              onChange={(e) => setMethod(e.target.value as any)}
+              onChange={(e) => setMethod(e.target.value as typeof method)}
               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="surface">Copertura (Surface)</option>

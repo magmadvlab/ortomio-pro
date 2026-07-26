@@ -443,6 +443,10 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 La branch di completamento e' stata riallineata ai lotti 1-13 gia' confluiti in `main`. Il lotto 14 porta `IrrigationZoneManager.tsx`, `ProductManager.tsx`, `BulkOperationModal.tsx` e `SeedlingDashboard.tsx` da 31 warning complessivi a zero. Baseline globale verificata: **0 errori, 2.267 warning** (`2.298 -> 2.267`); type-check verde. O45 e i gap di prodotto M14 restano separati e non sono stati mascherati come lint.
 
+### Aggiornamento T01 - lotto 15 (26/07/2026)
+
+Il lotto 15 porta `FertilizerApplicationModal.tsx`, `QuickHarvestForm.tsx` e `InventoryManager.tsx` da 30 warning complessivi a zero. Baseline globale verificata: **0 errori, 2.237 warning** (`2.267 -> 2.237`); lint mirato e type-check verdi. Il dosaggio fertilizzante ora deriva dall'area reale del letto selezionato e accetta solo le fasi previste dal contratto del log. O45 e i gap di prodotto M14 restano separati.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

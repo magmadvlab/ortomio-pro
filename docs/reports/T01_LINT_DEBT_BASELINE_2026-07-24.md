@@ -164,3 +164,22 @@ La branch di completamento era ferma prima dei lotti T01 gia' confluiti in `main
 ## Prossimo lotto
 
 Ripetere il metodo, saltando `costOptimizationService.ts`, il cluster AI Planner e O45 come gia' deciso; verificare sempre la raggiungibilita' dei candidati prima di modificarli.
+
+## Lotto 15 (26/07/2026) - chiuso
+
+Tre componenti vivi, tutti raggiungibili da flussi applicativi, sono stati portati complessivamente da 30 warning a zero:
+
+- `components/fertilizer/FertilizerApplicationModal.tsx` 10 -> 0: callback di caricamento stabilizzate, import morto rimosso, cast `any` eliminati; il dosaggio ora usa `areaSqMeters` del letto selezionato e la fase viene limitata ai valori ammessi dal log di fertilizzazione;
+- `components/harvest/QuickHarvestForm.tsx` 10 -> 0: provider, select e opzioni qualita' tipizzati, import morti rimossi, anteprima foto migrata a `next/image`;
+- `components/nutrition/InventoryManager.tsx` 10 -> 0: callback di caricamento stabilizzata, import morti rimossi, stati stock/scadenza e tipo movimento tipizzati.
+
+Verifiche: lint mirato 0/0, type-check verde, lint globale reale **0 errori e 2.237 warning**.
+
+## Stato dopo il lotto 15
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2237 |
+| Riduzione lotto | 30 |
+| Riduzione dalla baseline operativa 2642 | 405 |
