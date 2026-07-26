@@ -476,6 +476,10 @@ Il lotto 20 porta `components/irrigation/WateringLogForm.tsx`, vivo in `/app/irr
 
 Il lotto 21 porta `components/plants/PlantDetailModal.tsx`, vivo tramite `SmartPlantManager`, da 20 warning a zero: operazioni, sorgenti e tab tipizzati, foto migrate a `next/image` e loader stabilizzato. Corretto anche il caricamento operazioni filare, che ometteva il `gardenId` richiesto dal provider e poteva fallire silenziosamente. Baseline globale verificata: **0 errori, 2.058 warning** (`2.078 -> 2.058`); lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 22 (26/07/2026)
+
+Il lotto 22 porta `components/vineyard/VineManager.tsx`, vivo in `/app/vineyard`, da 14 warning a zero: operazioni tipizzate con `PlantOperation`, callback stabilizzate, import/helper morti rimossi e registrazione rapida allineata ai campi persistiti ufficiali del servizio unificato. Baseline globale verificata: **0 errori, 2.044 warning** (`2.058 -> 2.044`); lint mirato, type-check e diff-check verdi. `components/garden/ListView.tsx` e' stato confermato senza importer ed e' rimasto intatto come candidato codice morto; i 18 warning di `TreeManager.tsx` restano esplicitamente rinviati perche' coinvolgono il contratto condiviso storico `operationContext`.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
