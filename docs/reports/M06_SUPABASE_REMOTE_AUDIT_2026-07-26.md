@@ -46,7 +46,7 @@ La history non contiene le migrazioni candidate successive, incluse:
 
 Il risultato concorda con il probe anonimo PostgREST: colonne invito O39 e relazioni O41-O43 risultano assenti.
 
-## Decisione operativa
+## Decisione operativa al momento dell'audit
 
 Le migrazioni non vengono applicate direttamente all'unico database Production.
 
@@ -70,3 +70,9 @@ Serve una delle seguenti condizioni:
 3. target PostgreSQL isolato equivalente, approvato come staging e coperto dal runbook M07.
 
 Solo dopo la creazione del target si procede con dump read-only, riconciliazione completa della history, backup, restore drill, applicazione a batch e test O01-O43.
+
+## Decisione successiva dell'utente
+
+Dopo questo audit, l'utente ha deciso esplicitamente di non creare un secondo progetto sul piano Free e di applicare direttamente in Production soltanto le cinque migrazioni M15 gia' verificate.
+
+L'esecuzione e le verifiche sono registrate in `M15_PRODUCTION_MIGRATION_APPLY_2026-07-26.md`. Questa decisione aggiorna lo stato dello schema M15, ma non rimuove i blocchi M06-M08: staging, backup, restore drill, riconciliazione completa e certificazione multi-cliente restano assenti.
