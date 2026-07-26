@@ -4,8 +4,8 @@ import { getTreatmentAdvice, diagnosePlantHealth } from '../services/geminiServi
 import { TreatmentAdvice, Garden } from '../types';
 import { useStorage } from '../packages/core/hooks/useStorage';
 import { Agronomist, AgronomistConsultation } from '../types/agronomist';
-import { Search, Loader2, ShieldCheck, Leaf, AlertCircle, Camera, Sparkles, Activity, CalendarClock, AlertTriangle, Bug, ClipboardList, X, UserCheck, Users, Mail, Phone, Plus, MessageSquare, Calendar } from 'lucide-react';
-import { suggestPhytoProduct, PhytoRecommendation, checkTreatmentTiming, calculateSafetyInterval } from '../logic/phytoEngine';
+import { Search, Loader2, ShieldCheck, Leaf, AlertCircle, Camera, Sparkles, Activity, CalendarClock, AlertTriangle, Bug, ClipboardList, X, UserCheck, Users, Mail, Phone, Plus, Calendar } from 'lucide-react';
+import { suggestPhytoProduct, PhytoRecommendation } from '../logic/phytoEngine';
 import { getMasterSheet } from '../services/plantMasterService';
 import { getWeatherForecast } from '../services/weatherService';
 import ConsultationList from './agronomist/ConsultationList';
@@ -258,7 +258,8 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
         const recommendations: PhytoRecommendation[] = [];
         
         // Per ogni prodotto generico suggerito, trova prodotto concreto
-        for (const productName of advice.products.slice(0, 3)) { // Limita a 3 prodotti
+        const productsToProcess = advice.products.slice(0, 3); // Limita a 3 prodotti
+        for (let i = 0; i < productsToProcess.length; i++) {
           // Estrai nome pianta dal problema (semplificato)
           const plantName = advice.problem.split(' ')[0]; // Esempio semplificato
           const masterSheet = await getMasterSheet(plantName);
@@ -269,7 +270,7 @@ const Advice: React.FC<AdviceProps> = ({ onAddToJournal, initialTab = 'diagnosis
             if (garden.coordinates) {
               try {
                 weatherForecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
-              } catch (e) {
+              } catch {
                 // Ignora errori meteo
               }
             }

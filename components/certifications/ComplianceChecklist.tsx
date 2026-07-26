@@ -6,13 +6,9 @@ import {
   Circle,
   AlertTriangle,
   Clock,
-  User,
-  Calendar,
   FileText,
-  Camera,
   Plus,
-  X,
-  Save
+  X
 } from 'lucide-react'
 
 interface ChecklistItem {
@@ -35,7 +31,7 @@ interface ComplianceChecklistProps {
   certificationName: string
 }
 
-export default function ComplianceChecklist({ certification, certificationName }: ComplianceChecklistProps) {
+export default function ComplianceChecklist({ certificationName }: ComplianceChecklistProps) {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     {
       id: '1',
