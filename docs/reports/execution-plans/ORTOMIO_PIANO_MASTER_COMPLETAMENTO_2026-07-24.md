@@ -178,7 +178,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Stato:** `[!]` inventario completato; applicazione bloccata
 - **Obiettivo:** allineare repository e schema remoto senza applicazioni cieche.
 - **Baseline iniziale:** 40 migrazioni remote tracciate; 79 file locali da riconciliare.
-- **Baseline remota aggiornata 26/07/2026:** dashboard autenticata, audit read-only di 48 record; ultima migration `20260724082916_archive_completed_garden_tasks`; nessuna migration O38-O43 presente.
+- **Baseline remota aggiornata 26/07/2026:** audit iniziale di 48 record con ultimo `20260724082916_archive_completed_garden_tasks`; dopo la decisione Production, history a 53 record con le cinque migrazioni M15 in testa. La riconciliazione delle altre migrazioni locali resta aperta.
 - **Casi speciali:**
   - migrazione remota orfana `20260108220000`;
   - `20260104000000_add_field_rows_to_operations.sql.bak`;
