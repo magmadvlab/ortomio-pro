@@ -552,7 +552,7 @@ function CreateOrganizationModal({
         return
       }
 
-      await createOrganization(userId, formData.name, formData.type, formData)
+      await createOrganization(formData.name, formData.type, formData)
       onSave()
     } catch (error) {
       console.error('Error creating organization:', error)
