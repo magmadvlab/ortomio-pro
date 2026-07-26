@@ -33,48 +33,26 @@ const hasAction = (permission: Permission, action: string): boolean =>
  * Create a new organization
  */
 export const createOrganization = async (
-  ownerId: string,
   name: string,
   type: Organization['type'],
   data?: Partial<Organization>
 ): Promise<Organization> => {
-  const supabase = getSupabase();
-  
-  const organization: Organization = {
-    id: crypto.randomUUID(),
-    name,
-    type,
-    ownerId,
-    ...data,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  const { data: result, error } = await supabase
-    .from('organizations')
-    .insert({
-      id: organization.id,
-      name: organization.name,
-      type: organization.type,
-      description: organization.description,
-      email: organization.email,
-      phone: organization.phone,
-      address: organization.address,
-      vat_number: organization.vatNumber,
-      logo: organization.logo,
-      website: organization.website,
-      owner_id: organization.ownerId,
-      created_at: organization.createdAt,
-      updated_at: organization.updatedAt
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating organization:', error);
-    throw new Error(`Failed to create organization: ${error.message}`);
+  const response = await fetch('/api/organizations/provision', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...data,
+      name,
+      type,
+    }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || !payload.organization) {
+    throw new Error(payload.error || 'organization_provisioning_failed')
   }
 
+  const result = payload.organization
   return {
     id: result.id,
     name: result.name,
