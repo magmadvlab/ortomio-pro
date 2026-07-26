@@ -492,6 +492,10 @@ Il lotto 24 porta `InterventionWizard.tsx` (vivo in NDVI e Smart Hub) da 11 warn
 
 Il lotto 25 porta i servizi meteo condivisi `weatherService.ts` e `weatherProviderAdapter.ts` da 16 warning complessivi a zero. Le soglie minime delle colture, prima ricevute e ignorate, generano ora allerte specifiche; eliminato anche il fallback che inventava previsioni stagionali e casuali quando provider o geolocalizzazione fallivano: i widget ricevono un errore esplicito invece di dati falsi. Contratti provider tipizzati e test regressivi aggiunti. Baseline globale verificata: **0 errori, 2.002 warning** (`2.018 -> 2.002`); test meteo 13/13, lint mirato, type-check e diff-check verdi. Esclusi e documentati gli orfani `AromaticHarvest`/`WateringLogFormWithFieldRows` e i wizard interni non raggiungibili/non persistenti emersi nelle pagine Nutrizione e Lavorazioni Meccaniche.
 
+### Aggiornamento T01 - lotto 26 (26/07/2026)
+
+Il lotto 26 porta `components/shared/HomeDashboard.tsx`, vivo in `/app`, da 12 warning a zero: tipi reali per filari, piante, opzioni Director e raccolti, dipendenze effect complete e array task stabile. Chiuso anche il fallback ingannevole del piano giornaliero: un errore Director non viene piu' convertito in un piano vuoto apparentemente valido, ma produce stato nullo e alert visibile. Baseline globale verificata: **0 errori, 1.990 warning** (`2.002 -> 1.990`); capability test 19/19, lint mirato, type-check e diff-check verdi. Registrato separatamente `intelligentNotificationService`: importato dalla dashboard Monitoraggio ma mai alimentato, perche' `processAlerts` non ha chiamanti e la UI legge una mappa in memoria vuota.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

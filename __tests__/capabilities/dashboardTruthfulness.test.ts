@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { GardenTask } from '../../types'
 import { calculateDashboardGardenStats } from '../../services/dashboardGardenStatsService'
 
@@ -37,4 +39,16 @@ test('dashboard operational counts come only from persisted open tasks', () => {
   assert.equal(stats.tasksOverdue, 1)
   assert.equal(stats.openIrrigationTasks, 1)
   assert.equal(stats.openHarvestTasks, 1)
+})
+
+test('home dashboard exposes daily-plan failures instead of inventing an empty plan', () => {
+  const source = readFileSync(
+    resolve(process.cwd(), 'components/shared/HomeDashboard.tsx'),
+    'utf8',
+  )
+
+  assert.match(source, /setDailyPlan\(null\)/)
+  assert.match(source, /setPlanError\('Piano giornaliero non disponibile/)
+  assert.match(source, /role="alert"/)
+  assert.doesNotMatch(source, /Imposta un piano vuoto/)
 })
