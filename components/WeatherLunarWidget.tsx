@@ -239,7 +239,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         if (data && data.length > 0) {
           // Transform the data to match expected interface
           const transformedData = data.map(item => ({
-            date: item.date?.toISOString?.() || item.date,
+            date: item.date,
             temp: item.temp_max || item.temp_min || 20,
             code: item.weathercode || 0,
             rainForecastMm: item.precipitation || 0,

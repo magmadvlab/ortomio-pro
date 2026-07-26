@@ -4,8 +4,37 @@
  * Usa configurazioni API personalizzate quando disponibili
  */
 
-import { getActiveAPIConfiguration, type WeatherServiceType } from './apiConfigurationService';
+import { getActiveAPIConfiguration } from './apiConfigurationService';
 import { WeatherForecast } from './weatherService';
+
+interface OpenMeteoProviderResponse {
+  daily?: {
+    time?: string[]
+    temperature_2m_min?: number[]
+    temperature_2m_max?: number[]
+    precipitation_sum?: number[]
+    weathercode?: number[]
+  }
+}
+
+interface WeatherAPIForecastDay {
+  date: string
+  day: {
+    mintemp_c: number
+    maxtemp_c: number
+    totalprecip_mm?: number
+    avghumidity?: number
+    maxwind_kph?: number
+    condition?: { text?: string; code?: number }
+  }
+}
+
+interface OpenWeatherProviderItem {
+  dt_txt: string
+  main: { temp: number; temp_min: number; temp_max: number }
+  weather: Array<{ id: number }>
+  rain?: { '3h'?: number }
+}
 
 function getConditionFromCode(code: number): string {
   if (code === 0) return 'Sereno';
@@ -42,16 +71,17 @@ async function getOpenMeteoForecast(
     throw new Error(`Open-Meteo API error: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  if (!data.daily || !data.daily.time) {
+  const data = await response.json() as OpenMeteoProviderResponse;
+  if (!data.daily?.time) {
     return [];
   }
 
-  return data.daily.time.map((date: string, i: number) => ({
-    tempMin: data.daily.temperature_2m_min[i],
-    tempMax: data.daily.temperature_2m_max[i],
-    condition: getConditionFromCode(data.daily.weathercode[i] || 0),
-    rainMm: data.daily.precipitation_sum[i] || 0,
+  return data.daily.time.map((date, i) => ({
+    tempMin: data.daily?.temperature_2m_min?.[i] ?? 0,
+    tempMax: data.daily?.temperature_2m_max?.[i] ?? 0,
+    condition: getConditionFromCode(data.daily?.weathercode?.[i] || 0),
+    rainMm: data.daily?.precipitation_sum?.[i] || 0,
+    rainForecastMm: data.daily?.precipitation_sum?.[i] || 0,
     windSpeed: 0,
     humidity: 0,
     date,
@@ -78,19 +108,20 @@ async function getWeatherAPIForecast(
     throw new Error(`WeatherAPI error: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  if (!data.forecast || !data.forecast.forecastday) {
+  const data = await response.json() as { forecast?: { forecastday?: WeatherAPIForecastDay[] } };
+  if (!data.forecast?.forecastday) {
     return [];
   }
 
-  return data.forecast.forecastday.map((day: any) => ({
+  return data.forecast.forecastday.map((day) => ({
     tempMin: day.day.mintemp_c,
     tempMax: day.day.maxtemp_c,
     condition: day.day.condition?.text || getConditionFromCode(day.day.condition?.code || 0),
     rainMm: day.day.totalprecip_mm || 0,
+    rainForecastMm: day.day.totalprecip_mm || 0,
     date: day.date,
-    humidity: day.day.avghumidity,
-    windSpeed: day.day.maxwind_kph,
+    humidity: day.day.avghumidity ?? 0,
+    windSpeed: day.day.maxwind_kph ?? 0,
   }));
 }
 
@@ -115,7 +146,7 @@ async function getOpenWeatherMapForecast(
     throw new Error(`OpenWeatherMap API error: ${response.statusText}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { list?: OpenWeatherProviderItem[] };
   if (!data.list) {
     return [];
   }
@@ -123,7 +154,7 @@ async function getOpenWeatherMapForecast(
   // OpenWeatherMap restituisce dati ogni 3 ore, raggruppiamo per giorno
   const dailyData = new Map<string, { temps: number[]; min: number; max: number; rain: number; code: number }>();
 
-  data.list.forEach((item: any) => {
+  data.list.forEach((item) => {
     const date = item.dt_txt.split(' ')[0];
     if (!dailyData.has(date)) {
       dailyData.set(date, {
@@ -144,11 +175,12 @@ async function getOpenWeatherMapForecast(
     }
   });
 
-  return Array.from(dailyData.entries()).map(([date, dayData]) => ({
+  return Array.from(dailyData.entries()).slice(0, days).map(([date, dayData]) => ({
     tempMin: dayData.min,
     tempMax: dayData.max,
     condition: getConditionFromCode(dayData.code),
     rainMm: dayData.rain,
+    rainForecastMm: dayData.rain,
     windSpeed: 0,
     humidity: 0,
     date,
@@ -189,7 +221,7 @@ export async function getWeatherForecastWithProvider(
             });
             
             if (response.ok) {
-              const data = await response.json();
+              const data = await response.json() as { forecast?: WeatherForecast[] };
               // Converti formato custom a WeatherForecast[]
               return data.forecast || [];
             }
