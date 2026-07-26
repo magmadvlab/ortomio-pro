@@ -1,9 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useTier } from '@/packages/core/hooks/useTier'
-import { Zap, TrendingUp, AlertCircle } from 'lucide-react'
-import Link from 'next/link'
+import { Zap, AlertCircle } from 'lucide-react'
 
 interface AICreditsData {
   total: number
@@ -13,17 +11,11 @@ interface AICreditsData {
 }
 
 export function AICreditsWidget() {
-  const { tier, isFree } = useTier()
   // TODO: Replace with useAICredits hook in FASE 5
   const [credits, setCredits] = React.useState<AICreditsData | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   
   React.useEffect(() => {
-    if (isFree) {
-      setIsLoading(false)
-      return
-    }
-    
     // Fetch credits status
     fetch('/api/credits/status')
       .then(res => {
@@ -50,31 +42,7 @@ export function AICreditsWidget() {
         setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
         setIsLoading(false)
       })
-  }, [isFree])
-  
-  if (isFree) {
-    return (
-      <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
-        <div className="flex items-start gap-4">
-          <Zap className="text-green-600 flex-shrink-0" size={32} />
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg text-green-900 mb-1">
-              Sblocca AI Illimitata
-            </h3>
-            <p className="text-green-800 text-sm mb-3">
-              Con PRO ottieni 50 AI credits/mese per diagnosi personalizzate
-            </p>
-            <Link
-              href="/pricing"
-              className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-            >
-              Upgrade a PRO (€9.99/mese)
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  }, [])
   
   if (isLoading || !credits) {
     return (
@@ -126,25 +94,16 @@ export function AICreditsWidget() {
                 Stai per esaurire i credits!
               </p>
               <p className="text-yellow-full max-w-sm mt-1">
-                Acquista 50 credits extra per €4.99
+                Attendi il rinnovo operativo dei crediti o contatta l’amministratore.
               </p>
             </div>
           </div>
         )}
         
-        <Link
-          href="/settings/credits"
-          className="flex items-center justify-center gap-3 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-        >
-          <TrendingUp size={16} />
-          Compra Credits
-        </Link>
       </div>
     </div>
   )
 }
-
-
 
 
 

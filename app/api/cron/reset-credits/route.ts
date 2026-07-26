@@ -16,13 +16,11 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseClient()
     const today = new Date()
-    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     
-    // Trova tutti gli utenti PRO con reset_date <= oggi
+    // Tutti gli account appartengono all'unica versione PRO.
     const { data: profiles, error: fetchError } = await supabase
       .from('profiles')
-      .select('id, tier, ai_credits_total, ai_credits_used, ai_credits_reset_date')
-      .in('tier', ['PLUS', 'PRO', 'PRO_CONSUMER', 'PRO_PROFESSIONAL']) // Include legacy tiers for backward compatibility
+      .select('id, ai_credits_total, ai_credits_used, ai_credits_reset_date')
       .lte('ai_credits_reset_date', today.toISOString().split('T')[0])
     
     if (fetchError) {
@@ -45,14 +43,12 @@ export async function GET(request: NextRequest) {
     let resetCount = 0
     
     for (const profile of profiles) {
-      // Map tier to credits (new and legacy)
-      const isProTier = profile.tier === 'PRO' || profile.tier === 'PRO_PROFESSIONAL'
-      const newTotal = isProTier ? 200 : 50
+      const newTotal = 200
       const nextResetDate = getNextMonthFirstDay()
       
       // Accumula credits non usati (fino al cap)
       const currentRemaining = (profile.ai_credits_total || 0) - (profile.ai_credits_used || 0)
-      const cap = isProTier ? 500 : 200
+      const cap = 500
       const accumulated = Math.min(currentRemaining + newTotal, cap)
       
       // Update profile
@@ -75,7 +71,7 @@ export async function GET(request: NextRequest) {
         user_id: profile.id,
         amount: newTotal,
         type: 'monthly_grant',
-        description: `Monthly ${profile.tier} credits grant`,
+        description: 'Monthly PRO credits grant',
       })
       
       resetCount++
@@ -100,8 +96,6 @@ function getNextMonthFirstDay(): string {
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   return next.toISOString().split('T')[0]
 }
-
-
 
 
 
