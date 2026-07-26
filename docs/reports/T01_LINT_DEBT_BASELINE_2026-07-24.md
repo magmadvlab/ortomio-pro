@@ -233,3 +233,18 @@ Prima della modifica, la baseline corrente di `origin/main` e' stata rimisurata 
 | Warning | 2131 |
 | Riduzione lotto | 9 |
 | Riduzione dalla baseline operativa 2642 | 511 |
+
+## Lotto 19 (26/07/2026) - chiuso
+
+`components/nutrition/TreatmentPlanner.tsx`, confermato vivo dalla route `/app/nutrition`, e' stato portato da 32 warning a zero. Il form condiviso tra trattamenti e programmazioni usa ora `Partial<NutritionTreatment>`, `Partial<NutritionSchedule>` e i soli campi UI aggiuntivi espliciti al posto di `any`; i select rispettano le union di dominio. Il loader e' stabilizzato con `useCallback`; due import morti sono rimossi.
+
+La tipizzazione ha reso espliciti anche i default dei campi obbligatori nei payload e blocca gli update privi di ID, evitando richieste ambigue senza cambiare il percorso nominale. Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 errori e 2.099 warning** (`2.131 -> 2.099`).
+
+## Stato dopo il lotto 19
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2099 |
+| Riduzione lotto | 32 |
+| Riduzione dalla baseline operativa 2642 | 543 |

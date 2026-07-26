@@ -464,6 +464,10 @@ Il lotto 17 porta `CropRotationPlanner.tsx`, vivo nelle route Planner e Consigli
 
 Il lotto 18 porta `components/settings/GardenEditModal.tsx`, vivo in `/app/settings`, da 9 warning a zero: filari e compatibilita' provider tipizzati, union reali sui select, loader stabilizzato e import morto rimosso. La baseline corrente di `origin/main`, rimisurata prima della modifica, era gia' **0 errori, 2.140 warning** dopo le PR funzionali confluite nel frattempo; il lotto porta il totale a **0 errori, 2.131 warning** (`2.140 -> 2.131`). Lint mirato, type-check e diff-check verdi.
 
+### Aggiornamento T01 - lotto 19 (26/07/2026)
+
+Il lotto 19 porta `components/nutrition/TreatmentPlanner.tsx`, vivo in `/app/nutrition`, da 32 warning a zero: form trattamento/programmazione tipizzato, union reali sui select, loader stabilizzato e import morti rimossi. I payload hanno ora default obbligatori espliciti e gli update senza ID vengono rifiutati. Baseline globale verificata: **0 errori, 2.099 warning** (`2.131 -> 2.099`); lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
