@@ -20,3 +20,10 @@ test('single-PRO seedling dashboard has no legacy free batch limit', () => {
   assert.doesNotMatch(source, /versione gratuita/)
   assert.doesNotMatch(source, /Passa a Pro/)
 })
+
+test('create action explains and focuses the missing required plant', () => {
+  assert.match(source, /setCreateError\('Seleziona la pianta:/)
+  assert.match(source, /plantSelectRef\.current\?\.focus\(\)/)
+  assert.match(source, /role="alert"/)
+  assert.match(source, /<Button onClick=\{handleCreateBatch\} disabled=\{savingCreate\}>/)
+})
