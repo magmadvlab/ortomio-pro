@@ -1,50 +1,12 @@
 'use client'
 
-import React from 'react'
 import { Zap, AlertCircle } from 'lucide-react'
-
-interface AICreditsData {
-  total: number
-  used: number
-  resetDate: string | null
-  remaining?: number
-}
+import { useAICredits } from '@/hooks/useAICredits'
 
 export function AICreditsWidget() {
-  // TODO: Replace with useAICredits hook in FASE 5
-  const [credits, setCredits] = React.useState<AICreditsData | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const { credits, remaining, percentage, isLoading } = useAICredits()
   
-  React.useEffect(() => {
-    // Fetch credits status
-    fetch('/api/credits/status')
-      .then(res => {
-        if (!res.ok) {
-          // Handle 401 (Unauthorized) gracefully - user is not authenticated
-          if (res.status === 401) {
-            setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
-            setIsLoading(false)
-            return
-          }
-          throw new Error(`HTTP ${res.status}`)
-        }
-        return res.json()
-      })
-      .then(data => {
-        if (data) {
-          setCredits(data)
-        }
-        setIsLoading(false)
-      })
-      .catch(err => {
-        console.error('Error fetching credits:', err)
-        // Set default credits on error
-        setCredits({ total: 0, used: 0, resetDate: null, remaining: 0 })
-        setIsLoading(false)
-      })
-  }, [])
-  
-  if (isLoading || !credits) {
+  if (isLoading) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="animate-pulse">
@@ -54,9 +16,6 @@ export function AICreditsWidget() {
       </div>
     )
   }
-  
-  const remaining = credits.total - credits.used
-  const percentage = credits.total > 0 ? (credits.used / credits.total) * 100 : 0
   
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -104,8 +63,6 @@ export function AICreditsWidget() {
     </div>
   )
 }
-
-
 
 
 

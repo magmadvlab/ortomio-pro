@@ -113,4 +113,16 @@ Il lifecycle di uscita e l'assistenza sono stati implementati senza inventare un
 - il cliente puo' concedere a uno specifico amministratore OrtoMio un accesso assistenza con scopo e scadenza e puo' revocarlo;
 - l'endpoint assistenza verifica amministratore, grant non revocato, identita' esatta e scadenza, poi registra `SupportAccessUsed` **prima** di leggere la vista diagnostica limitata.
 
-O43 e' completato localmente. M15 dispone ora delle implementazioni locali O38-O43, ma resta `[-]`: migrazioni, provider inviti e scenari completi su due aziende devono essere provati nello staging isolato prima di poter dichiarare il milestone `[x]`.
+O43 e' completato localmente. M15 dispone ora delle implementazioni locali O38-O43 ed e' classificato `[L]`, non `[x]`: migrazioni, provider inviti e scenari completi su due aziende devono essere provati nello staging isolato.
+
+## Riconciliazione manifest M05/M15 - 26/07/2026
+
+I sei marker M15 residui sono stati verificati e rimossi senza nascondere funzionalita' incomplete:
+
+- eliminato da `DiseaseDiagnosis` il ramo upgrade FREE/PRO irraggiungibile nel modello single-PRO;
+- `AICreditsWidget` usa ora l'hook reale `useAICredits` invece di duplicarne il fetch;
+- gli scope organizzativi `Own`, `Assigned` e `Specific` falliscono chiusi e `Assigned` usa il vero `member.id`, non `role_id`;
+- l'accesso “tutti i giardini” restituisce gli ID assegnati all'organizzazione, non il placeholder `['*']`;
+- il contratto pubblico dichiara esplicitamente l'API/SDK esterna fuori dallo scope commerciale 1.0, invece di esporla come `todo`.
+
+`npm run audit:release-debt` registra 98 marker classificati e **zero voci M15**: 27 restano assegnate a M13, 48 a M14, 13 sono accettate e 10 isolate come sviluppo/laboratorio.

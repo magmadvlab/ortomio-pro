@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       },
       {
         name: 'external-api',
-        status: 'todo',
-        note: 'No public API / SDK / webhook gateway yet. Track in master plan only.',
+        status: 'not-in-release-scope',
+        note: 'The commercial 1.0 scope does not expose a public SDK or webhook gateway.',
       },
     ],
   })

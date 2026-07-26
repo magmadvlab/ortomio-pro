@@ -779,6 +779,8 @@ export const hasPermission = async (
     const { data: member, error: memberError } = await supabase
       .from('organization_members')
       .select(`
+        id,
+        user_id,
         role_id,
         roles!inner(permissions)
       `)
@@ -807,25 +809,32 @@ export const hasPermission = async (
               case 'All':
                 return true;
               case 'Own':
-                // TODO: Check if resource belongs to user
-                return true;
+                if (resource !== 'gardens' || !gardenId) {
+                  return false;
+                }
+                {
+                  const { data: ownedGarden } = await supabase
+                    .from('gardens')
+                    .select('id')
+                    .eq('id', gardenId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                  return !!ownedGarden;
+                }
               case 'Assigned':
-                if (gardenId) {
-                  // Check if user has access to this garden
+                if (!gardenId) return false;
+                {
                   const { data: assignment } = await supabase
                     .from('garden_assignments')
                     .select('id')
-                    .eq('member_id', member.role_id) // This should be member.id, but we need member table structure
+                    .eq('member_id', member.id)
+                    .eq('organization_id', organizationId)
                     .eq('garden_id', gardenId)
-                    .single();
+                    .maybeSingle();
                   return !!assignment;
                 }
-                return true;
               case 'Specific':
-                if (gardenId && permission.scope.gardenIds) {
-                  return permission.scope.gardenIds.includes(gardenId);
-                }
-                return true;
+                return !!gardenId && !!permission.scope.gardenIds?.includes(gardenId);
             }
           } else {
             // No scope restriction
@@ -873,9 +882,15 @@ export const getUserAccessibleGardens = async (
       if (matchesResource(permission, 'gardens') && hasAction(permission, 'read')) {
         
         if (!permission.scope || permission.scope.type === 'All') {
-          // User has access to all gardens - return all garden IDs for this organization
-          // TODO: Implement getting all garden IDs for organization
-          return ['*']; // Placeholder for "all gardens"
+          const { data: organizationGardens, error: gardensError } = await supabase
+            .from('garden_assignments')
+            .select('garden_id')
+            .eq('organization_id', organizationId);
+          if (gardensError) {
+            console.error('Error getting organization gardens:', gardensError);
+            return [];
+          }
+          return [...new Set((organizationGardens || []).map(assignment => assignment.garden_id))];
         }
       }
     }

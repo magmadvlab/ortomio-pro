@@ -3,8 +3,6 @@ import { PlantMasterSheet, Garden } from '../types';
 import { diagnoseFromPhoto, matchSymptoms, getTreatmentPlan, DiagnosisResult, TreatmentPlan } from '../logic/diseaseDiagnosisEngine';
 import { getSeasonForDate } from '../utils/seasonalAdjustment';
 import { Camera, Loader2, AlertTriangle, CheckCircle, Clock, FlaskConical, Shield, X, Upload, FileImage } from 'lucide-react';
-import { useTier } from '../packages/core/hooks/useTier';
-import UpgradePrompt from './UpgradePrompt';
 
 interface DiseaseDiagnosisProps {
   plant: PlantMasterSheet;
@@ -13,37 +11,12 @@ interface DiseaseDiagnosisProps {
 }
 
 const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weatherForecast }) => {
-  const { can, isPro } = useTier();
   const [photo, setPhoto] = useState<string | null>(null);
   const [symptomsText, setSymptomsText] = useState('');
   const [diagnosisResult, setDiagnosisResult] = useState<DiagnosisResult | null>(null);
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedDisease, setSelectedDisease] = useState<string | null>(null);
-
-  // Protezione Pro: Diagnosi AI è feature Pro
-  if (!can('diseaseDiagnosis')) {
-    return (
-      <div className="bg-white p-6 rounded-xl border-2 border-red-200">
-        <UpgradePrompt
-          feature="Diagnosi Malattie con AI"
-          variant="inline"
-          onUpgrade={() => {
-            // TODO: Implementare upgrade flow
-            console.log('Upgrade to Pro');
-          }}
-        />
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600 mb-2">
-            <strong>Versione Free:</strong> Puoi ancora descrivere i sintomi manualmente e ricevere suggerimenti base.
-          </p>
-          <p className="text-xs text-gray-500">
-            La diagnosi automatica tramite foto e l'analisi AI avanzata sono disponibili in versione Pro.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -382,4 +355,3 @@ const DiseaseDiagnosis: React.FC<DiseaseDiagnosisProps> = ({ plant, garden, weat
 };
 
 export default DiseaseDiagnosis;
-
