@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { Dialog } from '@/components/ui/Dialog'
+import React, { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { IrrigationZone } from '@/types/irrigation'
 import { GardenBed } from '@/types/gardenBed'
 import { GardenRow } from '@/types'
+import type { FieldRow } from '@/types/fieldRow'
 import type { WateringLog } from '@/types/microzoneTracking'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X } from 'lucide-react'
@@ -23,6 +23,31 @@ type WateringZone = IrrigationZone & {
   method?: string
 }
 
+type CompatibleIrrigationLine = NonNullable<GardenRow['irrigationLine']> & {
+  totalFlowRate?: unknown
+  flowRatePerMeter?: unknown
+  emitterSpacing?: unknown
+  dripperSpacing?: unknown
+  emitterFlowRate?: unknown
+  dripperFlowRate?: unknown
+}
+
+type CompatibleGardenRow = GardenRow & {
+  length_meters?: unknown
+  irrigationLine?: CompatibleIrrigationLine
+}
+
+const toNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value.replace(',', '.'))
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
 interface WateringLogFormProps {
   zones: WateringZone[]
   preselectedZone?: WateringZone
@@ -30,7 +55,7 @@ interface WateringLogFormProps {
   initialDate?: string
   initialTime?: string
   initialNotes?: string
-  fieldRows?: any[] // Field rows del garden per irrigazione diretta
+  fieldRows?: FieldRow[] // Field rows del garden per irrigazione diretta
   onSubmit: (log: Omit<WateringLog, 'id' | 'createdAt'>) => Promise<void>
   onSubmitBatch?: (logs: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void>
   onExecuted?: (executedLogs?: Array<Omit<WateringLog, 'id' | 'createdAt'>>) => Promise<void> | void
@@ -44,9 +69,7 @@ export function WateringLogForm({
   initialDate,
   initialTime,
   initialNotes,
-  fieldRows = [],
   onSubmit,
-  onSubmitBatch,
   onExecuted,
   onCancel
 }: WateringLogFormProps) {
@@ -54,40 +77,30 @@ export function WateringLogForm({
   const [showAdvancedDetails, setShowAdvancedDetails] = useState(false)
   const [quickOutcome, setQuickOutcome] = useState<'good' | 'attention' | 'critical' | null>(null)
   const [quickFollowUpRequired, setQuickFollowUpRequired] = useState(false)
-  const toNumber = (value: unknown): number | undefined => {
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : undefined
-    }
-    if (typeof value === 'string' && value.trim() !== '') {
-      const parsed = Number(value.replace(',', '.'))
-      return Number.isFinite(parsed) ? parsed : undefined
-    }
-    return undefined
-  }
-  const calculateRowFlowRateLph = (row: GardenRow): number | null => {
+  const calculateRowFlowRateLph = useCallback((row: CompatibleGardenRow): number | null => {
     const line = row.irrigationLine
     if (!line) return null
 
-    const totalFlowRateLph = toNumber((line as any).totalFlowRate)
+    const totalFlowRateLph = toNumber(line.totalFlowRate)
     if (totalFlowRateLph && totalFlowRateLph > 0) {
       return totalFlowRateLph
     }
 
-    const lengthMeters = toNumber((row as any).lengthMeters ?? (row as any).length_meters) || 0
-    const flowRatePerMeterLph = toNumber((line as any).flowRatePerMeterLph ?? (line as any).flowRatePerMeter)
+    const lengthMeters = toNumber(row.lengthMeters ?? row.length_meters) || 0
+    const flowRatePerMeterLph = toNumber(line.flowRatePerMeterLph ?? line.flowRatePerMeter)
     if (flowRatePerMeterLph && flowRatePerMeterLph > 0 && lengthMeters > 0) {
       return lengthMeters * flowRatePerMeterLph
     }
 
-    const emitterSpacingCm = toNumber((line as any).emitterSpacingCm ?? (line as any).emitterSpacing ?? (line as any).dripperSpacing)
-    const emitterFlowRateLph = toNumber((line as any).emitterFlowRateLph ?? (line as any).emitterFlowRate ?? (line as any).dripperFlowRate)
+    const emitterSpacingCm = toNumber(line.emitterSpacingCm ?? line.emitterSpacing ?? line.dripperSpacing)
+    const emitterFlowRateLph = toNumber(line.emitterFlowRateLph ?? line.emitterFlowRate ?? line.dripperFlowRate)
     if (emitterSpacingCm && emitterSpacingCm > 0 && emitterFlowRateLph && emitterFlowRateLph > 0 && lengthMeters > 0) {
       const emitterCount = lengthMeters / (emitterSpacingCm / 100)
       return emitterCount * emitterFlowRateLph
     }
 
     return null
-  }
+  }, [])
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     zoneId: preselectedZone?.id || '',
@@ -97,7 +110,7 @@ export function WateringLogForm({
     date: initialDate || new Date().toISOString().split('T')[0],
     time: initialTime || new Date().toTimeString().slice(0, 5),
     litersPerRow: 10,
-    method: 'Manual' as const,
+    method: 'Manual' as WateringLog['method'],
     weatherCondition: '',
     soilMoistureBefore: undefined as number | undefined,
     soilMoistureAfter: undefined as number | undefined,
@@ -108,8 +121,6 @@ export function WateringLogForm({
   const [bedOptions, setBedOptions] = useState<GardenBed[]>([])
   const [rowOptions, setRowOptions] = useState<GardenRow[]>([])
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([])
-  const [selectedFieldRowIds, setSelectedFieldRowIds] = useState<string[]>([]) // Nuovo: per field rows
-
   const selectedZone = zones.find(z => z.id === formData.zoneId)
 
   React.useEffect(() => {
@@ -156,11 +167,11 @@ export function WateringLogForm({
     void loadRows()
   }, [formData.bedId, storageProvider])
 
-  const isRowConfigured = (row: GardenRow): boolean => {
+  const isRowConfigured = useCallback((row: GardenRow): boolean => {
     return calculateRowFlowRateLph(row) !== null
-  }
+  }, [calculateRowFlowRateLph])
 
-  const calcMinutesForRow = (row: GardenRow, litersPerRow: number): number | null => {
+  const calcMinutesForRow = useCallback((row: GardenRow, litersPerRow: number): number | null => {
     if (!isRowConfigured(row)) return null
     if (!Number.isFinite(litersPerRow) || litersPerRow <= 0) return null
     const flowRowLph = calculateRowFlowRateLph(row)
@@ -168,7 +179,7 @@ export function WateringLogForm({
     const minutes = (litersPerRow / flowRowLph) * 60
     if (!Number.isFinite(minutes) || minutes <= 0) return null
     return Math.max(1, Math.round(minutes))
-  }
+  }, [calculateRowFlowRateLph, isRowConfigured])
 
   const selectedRows = useMemo(() => {
     const map = new Map(rowOptions.map((r) => [r.id, r]))
@@ -183,12 +194,12 @@ export function WateringLogForm({
       if (typeof m === 'number') out[row.id] = m
     }
     return out
-  }, [formData.litersPerRow, selectedRows])
+  }, [calcMinutesForRow, formData.litersPerRow, selectedRows])
 
   const hasAnyRowMissingConfig = useMemo(() => {
     if (selectedRows.length === 0) return false
     return selectedRows.some((r) => !isRowConfigured(r) || typeof minutesByRowId[r.id] !== 'number')
-  }, [minutesByRowId, selectedRows])
+  }, [isRowConfigured, minutesByRowId, selectedRows])
 
   const durationSummary = useMemo(() => {
     const values = Object.values(minutesByRowId)
@@ -276,7 +287,7 @@ export function WateringLogForm({
         })
 
         for (const log of logsToCreate) {
-          await executeWateringLogThroughUnifiedService(storageProvider, log as any)
+          await executeWateringLogThroughUnifiedService(storageProvider, log)
         }
 
         if (onExecuted) {
@@ -564,7 +575,10 @@ export function WateringLogForm({
               </label>
               <Select
                 value={formData.method}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, method: e.target.value as any }))}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({
+                  ...prev,
+                  method: e.target.value as WateringLog['method']
+                }))}
               >
                 <option value="Manual">Manuale</option>
                 <option value="Automatic">Automatico</option>
