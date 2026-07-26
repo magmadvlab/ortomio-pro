@@ -350,3 +350,22 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; test meteo 13/13; lin
 | Warning | 2002 |
 | Riduzione lotto | 16 |
 | Riduzione dalla baseline operativa 2642 | 640 |
+
+## Lotto 26 (26/07/2026) - chiuso
+
+`components/shared/HomeDashboard.tsx`, montato nella route `/app`, e' stato portato da 12 warning a zero. Filari, piante, opzioni Director e log raccolto usano i tipi reali; le dipendenze degli effect riflettono ora i valori effettivamente letti senza array di default instabili.
+
+Il caricamento del piano giornaliero trasformava ogni errore del Director in un `DailyPlan` vuoto con priorita' bassa, facendo apparire “nessun lavoro” quando in realta' il piano non era disponibile. Ora azzera il piano, registra l'errore e mostra un alert esplicito; un test di veridicita' impedisce il ritorno del fallback vuoto.
+
+Durante la selezione `intelligentNotificationService.ts` e' risultato importato dalla dashboard Monitoraggio ma non operativo: nessun chiamante invoca `processAlerts`, mentre la UI legge solo la mappa in memoria del singleton. E' rimasto intatto e registrato come flusso funzionale scollegato, non trattato come semplice lint.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; capability test 19/19; lint globale **0 errori e 1.990 warning** (`2.002 -> 1.990`).
+
+## Stato dopo il lotto 26
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1990 |
+| Riduzione lotto | 12 |
+| Riduzione dalla baseline operativa 2642 | 652 |

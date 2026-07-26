@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden, GardenTask } from '@/types'
+import {
+  Garden,
+  GardenTask,
+  type DirectorPromptOption,
+  type HarvestLogData,
+} from '@/types'
+import type { FieldRow } from '@/types/fieldRow'
+import type { GardenPlant } from '@/types/individualPlant'
 import {
   Droplets,
   Package, Calendar,
@@ -60,7 +67,7 @@ interface HomeDashboardProps {
   onRefreshTasks?: () => Promise<void>
 }
 
-export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
+export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
   const { storageProvider } = useStorage()
   const router = useRouter()
 
@@ -114,7 +121,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     if (garden && (!activeGarden || garden.id !== activeGarden.id)) {
       setActiveGarden(garden)
     }
-  }, [garden?.id, activeGarden?.id]) // Only re-run if IDs actually change
+  }, [activeGarden, garden, setActiveGarden])
   const [, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
@@ -125,14 +132,15 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [, setLoadingPlan] = useState(false)
   const [seedlingBatches, setSeedlingBatches] = useState<SeedlingBatch[]>([])
   const [seedPackets, setSeedPackets] = useState<SeedPacket[]>([])
-  const [fieldRows, setFieldRows] = useState<any[]>([]) // Field rows del garden
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([]) // Field rows del garden
   const [showAllBaselinePrompts, setShowAllBaselinePrompts] = useState(false)
   const [baselineSearch, setBaselineSearch] = useState('')
   const [baselinePriorityFilter, setBaselinePriorityFilter] = useState<'All' | 'High' | 'Medium' | 'Low'>('All')
   // NEW STATES FOR ADVANCED SYSTEM WIDGETS
   const [showIrrigationManager, setShowIrrigationManager] = useState(false)
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
-  const [fieldRowPlants, setFieldRowPlants] = useState<any[]>([]) // Piante individuali
+  const [fieldRowPlants, setFieldRowPlants] = useState<GardenPlant[]>([]) // Piante individuali
+  const [planError, setPlanError] = useState<string | null>(null)
 
   // States for modals
   const [showVacationMode, setShowVacationMode] = useState(false)
@@ -144,7 +152,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const [showGardenTypeWizard, setShowGardenTypeWizard] = useState(false)
 
   // Use tasks prop directly instead of local state to prevent infinite loops
-  const currentTasks = tasks || []
+  const currentTasks = React.useMemo(() => tasks ?? [], [tasks])
 
   // Helper function to refresh tasks
   const refreshTasks = React.useCallback(async () => {
@@ -215,7 +223,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     };
 
     loadAllData();
-  }, [activeGarden?.id, storageProvider]); // Only re-run when garden ID changes
+  }, [activeGarden, storageProvider])
 
   // Load gardens only once on mount
   const [gardensLoaded, setGardensLoaded] = useState(false)
@@ -255,7 +263,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       }
     }
     loadGardens()
-  }, [gardensLoaded, storageProvider]) // Only run once
+  }, [activeGarden, garden, gardensLoaded, setActiveGarden, storageProvider])
 
   // Removed duplicate irrigation zones loading - now consolidated above
 
@@ -287,7 +295,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
 
     loadDismissed()
-  }, [activeGarden?.id, storageProvider])
+  }, [activeGarden, storageProvider])
 
   useEffect(() => {
     if (!activeGarden) return
@@ -316,24 +324,26 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     }
 
     loadShowAll()
-  }, [activeGarden?.id, storageProvider])
+  }, [activeGarden, storageProvider])
 
   // Load weather when active garden coordinates change - with stable key
   const activeGardenCoordinates = normalizeGeoCoordinates(activeGarden?.coordinates)
   const weatherKey = activeGardenCoordinates
     ? `${activeGardenCoordinates.latitude.toFixed(4)}_${activeGardenCoordinates.longitude.toFixed(4)}`
     : null
+  const weatherLatitude = activeGardenCoordinates?.latitude
+  const weatherLongitude = activeGardenCoordinates?.longitude
 
   useEffect(() => {
-    if (activeGardenCoordinates) {
-      fetchWeather(activeGardenCoordinates.latitude, activeGardenCoordinates.longitude)
+    if (weatherLatitude !== undefined && weatherLongitude !== undefined) {
+      fetchWeather(weatherLatitude, weatherLongitude)
     }
-  }, [weatherKey]) // Only re-run if coordinates actually change
+  }, [weatherKey, weatherLatitude, weatherLongitude])
 
   // Removed useCallback to avoid dependency array issues
   // Function is now defined inline in useEffect
 
-  const handleBaselineOption = async (promptId: string, option: any) => {
+  const handleBaselineOption = async (promptId: string, option: DirectorPromptOption) => {
     if (!activeGarden) return
     if (!option) return
 
@@ -382,7 +392,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
   const planLoadTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (!activeGarden || !tasks) return
+    if (!activeGarden) return
 
     // Clear existing timer
     if (planLoadTimerRef.current) {
@@ -393,10 +403,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
     // Debounce plan loading by 500ms
     const timer = setTimeout(async () => {
       setLoadingPlan(true)
+      setPlanError(null)
       try {
         const plan = await directorService.getLegacyDailyPlanBridge(
           activeGarden,
-          tasks,
+          currentTasks,
           new Date(),
           undefined,
           undefined,
@@ -405,22 +416,10 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
           seedPackets || []
         )
         setDailyPlan(plan)
-      } catch {
-        // Gestisci silenziosamente l'errore (es. tabella irrigation_systems non esiste)
-        // Il director continua comunque a funzionare senza irrigation tasks
-        // Imposta un piano vuoto per evitare loop
-        setDailyPlan({
-          date: new Date().toISOString().split('T')[0],
-          urgentAlerts: [],
-          lifecycleTasks: [],
-          nutrientTasks: [],
-          healthTasks: [],
-          climateWarnings: [],
-          baselinePrompts: [],
-          lunarAdvice: undefined,
-          priority: 'Low',
-          irrigationTasks: []
-        })
+      } catch (error) {
+        console.error('Error loading daily plan:', error)
+        setDailyPlan(null)
+        setPlanError('Piano giornaliero non disponibile. Riprova tra poco.')
       } finally {
         setLoadingPlan(false)
       }
@@ -434,7 +433,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         planLoadTimerRef.current = null
       }
     }
-  }, [activeGarden?.id, tasks?.length, seedlingBatches?.length, seedPackets?.length]) // Only re-run when IDs/lengths change
+  }, [activeGarden, currentTasks, seedlingBatches, seedPackets, storageProvider])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
@@ -477,7 +476,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
         <GardenSelectorCard
           gardens={gardens}
           activeGarden={activeGarden}
-          tasks={tasks}
+          tasks={currentTasks}
           onGardenChange={(garden) => {
             setActiveGarden(garden)
             if (onUpdateGarden) onUpdateGarden(garden)
@@ -487,6 +486,12 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
       </header>
 
       <main className="p-4 lg:p-4 sm:p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+        {planError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {planError}
+          </div>
+        )}
+
         {/* Top Row: Garden Card + Weather Card */}
         <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Garden Card */}
@@ -620,10 +625,11 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
                         await refreshTasks()
                       }}
                       onHarvest={async (harvestData) => {
-                        await storageProvider.createHarvestLog({
+                        const log: Omit<HarvestLogData, 'id'> = {
                           ...harvestData,
                           gardenId: activeGarden!.id
-                        } as any)
+                        }
+                        await storageProvider.createHarvestLog(log)
                       }}
                       onFertilize={async (fertData) => {
                         try {
@@ -679,7 +685,9 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
               <div>
                 <select
                   value={baselinePriorityFilter}
-                  onChange={(e) => setBaselinePriorityFilter(e.target.value as any)}
+                  onChange={(e) => setBaselinePriorityFilter(
+                    e.target.value as 'All' | 'High' | 'Medium' | 'Low'
+                  )}
                   className="text-sm px-4 py-3 min-h-[44px] touch-manipulation text-base rounded-lg border border-gray-200 bg-white text-gray-800"
                 >
                   <option value="All">Tutte le priorità</option>
@@ -1125,7 +1133,7 @@ export default function HomeDashboard({ garden, tasks = [], onUpdateGarden, onUp
             <div className="p-4">
               <VacationMode
                 garden={activeGarden}
-                tasks={tasks}
+                tasks={currentTasks}
                 onUpdateGarden={onUpdateGarden}
               />
             </div>
