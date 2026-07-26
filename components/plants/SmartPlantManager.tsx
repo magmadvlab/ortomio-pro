@@ -3,16 +3,16 @@
  * Sistema scalabile per gestione piante individuali e di gruppo
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Garden } from '../../types';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { Garden, GardenRow } from '../../types';
 import { GardenPlant, BulkRowOperation } from '../../types/individualPlant';
+import type { FieldRow } from '../../types/fieldRow';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import BulkOperationModal from './BulkOperationModal';
 import PlantHealthHeatmap from './PlantHealthHeatmap';
 import PlantDetailModal from './PlantDetailModal';
 import { createBulkOperation } from '../../services/plantOperationsService';
-import { createUnifiedOperationsService, UnifiedOperationRequest } from '../../services/unifiedOperationsService';
-import { createPlantRowSyncService } from '../../services/plantRowSyncService';
+import { createPlantRowSyncService, type PlantRowMapping } from '../../services/plantRowSyncService';
 import { 
   TreePine, 
   Camera, 
@@ -30,7 +30,6 @@ import {
   Search,
   Link,
   Unlink,
-  Layers,
   BarChart3
 } from 'lucide-react';
 
@@ -55,14 +54,19 @@ interface PlantSelection {
   };
 }
 
+interface SyncStatistics {
+  totalPlants: number;
+  plantsInRows: number;
+  plantsWithoutRows: number;
+  recentSyncOperations: number;
+  syncSuccessRate: number;
+  lastSyncDate?: string;
+}
+
 const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow }) => {
   const { storageProvider } = useStorage();
   
   // Services — memoized to prevent recreation on every render
-  const unifiedOperationsService = useMemo(
-    () => createUnifiedOperationsService(storageProvider),
-    [storageProvider]
-  );
   const plantRowSyncService = useMemo(
     () => createPlantRowSyncService(storageProvider),
     [storageProvider]
@@ -80,10 +84,10 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   
   // Row integration state
   const [availableRows, setAvailableRows] = useState<Array<{ id: string; name: string; type: 'garden_row' | 'field_row' }>>([]);
-  const [plantRowMappings, setPlantRowMappings] = useState<any[]>([]);
+  const [plantRowMappings, setPlantRowMappings] = useState<PlantRowMapping[]>([]);
   const [showRowAssignment, setShowRowAssignment] = useState(false);
   const [selectedRowForAssignment, setSelectedRowForAssignment] = useState<string>('');
-  const [syncStatistics, setSyncStatistics] = useState<any>(null);
+  const [syncStatistics, setSyncStatistics] = useState<SyncStatistics | null>(null);
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,25 +112,11 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   
   // Modal states
   const [showOperationModal, setShowOperationModal] = useState(false);
-  const [showHealthModal, setShowHealthModal] = useState(false);
-  const [showUnifiedOperationModal, setShowUnifiedOperationModal] = useState(false);
   const [showPlantDetailModal, setShowPlantDetailModal] = useState(false);
   const [selectedPlantForDetail, setSelectedPlantForDetail] = useState<GardenPlant | null>(null);
   const [selectedOperation, setSelectedOperation] = useState<'watering' | 'fertilizing' | 'treatment' | 'health'>('watering');
 
-  useEffect(() => {
-    if (garden?.id) {
-      loadPlants();
-      loadRowsAndMappings();
-      loadSyncStatistics();
-    }
-  }, [garden?.id]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [plants, plantRowMappings, fieldRowFilter, searchTerm, statusFilter, healthFilter, rowFilter]);
-
-  const loadPlants = async () => {
+  const loadPlants = useCallback(async () => {
     if (!garden?.id) {
       setPlants([]);
       setLoading(false);
@@ -140,7 +130,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       let existingPlants: GardenPlant[] = [];
       try {
         existingPlants = await storageProvider.getIndividualPlants?.(garden.id) || [];
-      } catch (error) {
+      } catch {
         existingPlants = [];
       }
       
@@ -168,9 +158,9 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     } finally {
       setLoading(false);
     }
-  };
+  }, [garden?.id, storageProvider]);
 
-  const loadRowsAndMappings = async () => {
+  const loadRowsAndMappings = useCallback(async () => {
     if (!garden?.id) {
       setAvailableRows([]);
       setPlantRowMappings([]);
@@ -179,7 +169,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     
     try {
       // Load available rows (garden rows + field rows) with proper error handling
-      let gardenRows: any[] = [];
+      let gardenRows: GardenRow[] = [];
       try {
         if (storageProvider.getGardenRows) {
           gardenRows = await storageProvider.getGardenRows(garden.id);
@@ -189,7 +179,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
         gardenRows = [];
       }
 
-      let fieldRows: any[] = [];
+      let fieldRows: FieldRow[] = [];
       try {
         if (storageProvider.getFieldRows) {
           fieldRows = await storageProvider.getFieldRows(garden.id);
@@ -200,8 +190,8 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       }
 
       const allRows = [
-        ...gardenRows.map((r: any) => ({ id: r.id, name: r.name, type: 'garden_row' as const })),
-        ...fieldRows.map((r: any) => ({ id: r.id, name: r.name, type: 'field_row' as const }))
+        ...gardenRows.map((row) => ({ id: row.id, name: row.name || 'Filare senza nome', type: 'garden_row' as const })),
+        ...fieldRows.map((row) => ({ id: row.id, name: row.name, type: 'field_row' as const }))
       ];
 
       setAvailableRows(allRows);
@@ -214,15 +204,15 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
         console.error('Failed to load plant-row mappings:', mappingsError)
         setPlantRowMappings([]);
       }
-    } catch (error: any) {
-      console.error('loadRowsAndMappings failed:', error?.message || error);
+    } catch (error: unknown) {
+      console.error('loadRowsAndMappings failed:', error instanceof Error ? error.message : error);
       // Set empty arrays to prevent UI issues
       setAvailableRows([]);
       setPlantRowMappings([]);
     }
-  };
+  }, [garden?.id, plantRowSyncService, storageProvider]);
 
-  const loadSyncStatistics = async () => {
+  const loadSyncStatistics = useCallback(async () => {
     if (!garden?.id) {
       setSyncStatistics(null);
       return;
@@ -235,9 +225,9 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       console.error('Error loading sync statistics:', error);
       setSyncStatistics(null);
     }
-  };
+  }, [garden?.id, plantRowSyncService]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...plants];
 
     // Search filter
@@ -309,7 +299,19 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     }
 
     setFilteredPlants(filtered);
-  };
+  }, [fieldRowFilter, healthFilter, plantRowMappings, plants, rowFilter, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (garden?.id) {
+      void loadPlants();
+      void loadRowsAndMappings();
+      void loadSyncStatistics();
+    }
+  }, [garden?.id, loadPlants, loadRowsAndMappings, loadSyncStatistics]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const getSelectionModeInfo = (mode: SelectionMode) => {
     const modes = {
@@ -394,34 +396,6 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     } catch (error) {
       console.error('Error in bulk operation:', error);
       alert('Errore nell\'operazione');
-    }
-  };
-
-  const handleUnifiedOperation = async (request: UnifiedOperationRequest) => {
-    try {
-      const result = await unifiedOperationsService.executeUnifiedOperation(request);
-      
-      if (result.success) {
-        alert(`✅ Operazione unificata completata!\n${result.operationsCreated} operazioni create\n${result.plantsAffected} piante coinvolte\n${result.rowsAffected} filari coinvolti`);
-        
-        // Ricarica dati
-        await Promise.all([
-          loadPlants(),
-          loadRowsAndMappings(),
-          loadSyncStatistics()
-        ]);
-        
-        // Reset selezione
-        setSelection({
-          mode: 'single',
-          plantIds: []
-        });
-      } else {
-        alert(`❌ Errore nell'operazione unificata:\n${result.errors?.join('\n')}`);
-      }
-    } catch (error) {
-      console.error('Error in unified operation:', error);
-      alert('Errore nell\'operazione unificata');
     }
   };
 
@@ -793,7 +767,10 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
               </button>
               
               <button
-                onClick={() => setShowHealthModal(true)}
+                onClick={() => {
+                  setSelectedOperation('health');
+                  setShowOperationModal(true);
+                }}
                 className="bg-purple-600 text-white px-4 py-2 min-h-[44px] touch-manipulation rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-3"
               >
                 <Camera size={20} />
@@ -819,13 +796,6 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
                 Rimuovi da Filare ({selection.plantIds.length})
               </button>
 
-              <button
-                onClick={() => setShowUnifiedOperationModal(true)}
-                className="bg-teal-600 text-white px-4 py-2 min-h-[44px] touch-manipulation rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-3"
-              >
-                <Layers size={20} />
-                Operazione Unificata ({selection.plantIds.length})
-              </button>
             </div>
           </div>
         )}
@@ -1081,71 +1051,6 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
         </div>
       )}
 
-      {/* Unified Operation Modal */}
-      {showUnifiedOperationModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-[95vw] sm:max-w-[95vw] sm:max-w-lg w-full">
-            <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Operazione Unificata Multi-Livello
-              </h3>
-              
-              <p className="text-sm text-gray-600 mb-4">
-                Esegui operazione che si propaga automaticamente dai filari alle piante individuali
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo Operazione
-                  </label>
-                  <select
-                    value={selectedOperation}
-                    onChange={(e) => setSelectedOperation(e.target.value as any)}
-                    className="w-full px-4 py-3 min-h-[44px] touch-manipulation text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="watering">Irrigazione</option>
-                    <option value="fertilizing">Fertilizzazione</option>
-                    <option value="treatment">Trattamento</option>
-                  </select>
-                </div>
-
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Layers className="text-teal-600" size={16} />
-                    <span className="text-sm font-medium text-teal-800">Propagazione Automatica</span>
-                  </div>
-                  <p className="text-xs text-teal-700">
-                    L'operazione verrà registrata a livello filare e automaticamente propagata 
-                    alle {selection.plantIds.length} piante selezionate con calcolo automatico delle dosi.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 justify-end mt-6">
-                <button
-                  onClick={() => setShowUnifiedOperationModal(false)}
-                  className="px-4 py-2 min-h-[44px] touch-manipulation text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={() => {
-                    // This would trigger the unified operation
-                    // For now, just close the modal
-                    setShowUnifiedOperationModal(false);
-                    alert('Funzionalità in sviluppo - sarà disponibile nella prossima versione');
-                  }}
-                  className="px-4 py-2 min-h-[44px] touch-manipulation bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-                >
-                  Esegui Operazione
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Plant Detail Modal */}
       <PlantDetailModal
         plant={selectedPlantForDetail || {

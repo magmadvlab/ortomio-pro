@@ -297,3 +297,20 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; lint globale **0 erro
 | Warning | 2044 |
 | Riduzione lotto | 14 |
 | Riduzione dalla baseline operativa 2642 | 598 |
+
+## Lotto 23 (26/07/2026) - chiuso
+
+`components/plants/SmartPlantManager.tsx`, confermato vivo nelle route Piante, Frutteto, Oliveto e Vigneto, e' stato portato da 13 warning a zero. Mapping pianta-filare e statistiche di sincronizzazione usano i tipi reali; i loader e i filtri sono stabilizzati con `useCallback`; gli errori sono trattati come `unknown`.
+
+L'analisi ha chiuso anche due difetti visibili: “Aggiorna Salute” impostava uno stato per un modal mai renderizzato e ora apre il `BulkOperationModal` gia' implementato con tipo `health`; “Operazione Unificata” apriva invece un percorso duplicato che non eseguiva operazioni e mostrava soltanto “Funzionalita' in sviluppo”, quindi il falso comando e il relativo codice morto sono stati rimossi. Il test `smartPlantActions.test.ts` impedisce la regressione di entrambi i casi.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; capability test 18/18; lint globale **0 errori e 2.031 warning** (`2.044 -> 2.031`).
+
+## Stato dopo il lotto 23
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 2031 |
+| Riduzione lotto | 13 |
+| Riduzione dalla baseline operativa 2642 | 611 |
