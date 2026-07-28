@@ -1,13 +1,13 @@
 # OrtoMio Pro - Piano master di completamento
 
-- **Versione:** 1.1
+- **Versione:** 1.2
 - **Data di apertura:** 24 luglio 2026
 - **Repository:** `magmadvlab/ortomio-pro`
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
-- **Stato esecuzione:** 2 milestone chiuse per la release (M01-M02); baseline e implementazioni locali disponibili fino a M15 ma con gate remoti aperti; M16 eseguita con decisione NO-GO motivata il 26/07/2026
-- **Deploy codice Production:** `Ready` — PR `#62` confluita in `main`, merge commit `b99c53f41ea91d28adf11f730a94dfd38497dedd`, deploy Vercel Production completato il 26/07/2026.
+- **Stato esecuzione:** 2 milestone chiuse per la release (M01-M02); 13 dei 44 obiettivi originali chiusi, 5 parziali e 26 ancora dipendenti da prove remote o input esterni; M16 eseguita con decisione NO-GO motivata il 26/07/2026
+- **Deploy codice Production:** `Ready` — ultimo avanzamento verificato in Production: PR `#94`, merge commit `da723227cf01e419e599bfd8a11170bfd0871ec2`, 28/07/2026.
 - **Schema commerciale Production:** `Ready` — cinque migrazioni M15 applicate il 26/07/2026; probe PostgREST `schemaReady=true`.
 - **Deploy readiness (certificazione 1.0):** `false` — codice e schema M15 pubblicati non equivalgono alla certificazione: staging, restore, isolamento, provider, pilot e validazione agronomica restano aperti. Il verbale `M16_GO_NO_GO_2026-07-26.md` elenca tutte le evidenze remote mancanti.
 - **Coda canonica:** questo documento
@@ -82,6 +82,59 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M16 | `[x]` audit eseguito | Verbale formale **NO-GO** del 26/07/2026; gate automatico esteso a M15 | Rieseguire per GO soltanto dopo la chiusura delle evidenze remote |
 
 Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la release soltanto **M01 e M02**. M03-M05 hanno prodotto risultati locali utili, ma non autorizzano a considerarli conclusi ai fini della release commerciale.
+
+## 2.2 Cruscotto operativo corrente - 28 luglio 2026
+
+Questa e' la vista da usare per capire dove siamo e quanto manca. I 44
+obiettivi originali e le scoperte successive sono conteggiati separatamente:
+un nuovo problema non modifica retroattivamente il denominatore O01-O44.
+
+| Perimetro | Chiuso | Parziale | Aperto | Lettura corretta |
+|---|---:|---:|---:|---|
+| Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
+| Scoperte O45-O58 | **13** | **0** | **1** | E' aperto soltanto O48, sicurezza delle credenziali provider. Le altre 13 scoperte sono chiuse e pubblicate. |
+| Debito lint T01 | **851 warning rimossi** | — | **1.791 warning** | Baseline operativa 2.642 -> 1.791 in 41 lotti. T01 non equivale a 1.791 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
+
+### Che cosa manca davvero negli O01-O44
+
+I **26 obiettivi originali aperti** non sono altri 26 moduli da costruire:
+
+- **16 richiedono un ambiente/prova remota:** O01, O03, O06-O15, O18, O23,
+  O27 e O28. Riguardano staging isolato, migrazioni, restore, RLS,
+  delivery provider e giornata operativa;
+- **10 richiedono una decisione o un soggetto esterno:** O05 e O29-O37.
+  Riguardano pilot reale, scelta Sentinel/ThingsBoard, dataset shadow,
+  metriche e firma agronomica;
+- i **5 parziali** O38-O39 e O41-O43 richiedono prove lifecycle E2E su due
+  aziende e un provider inviti reale; l'implementazione e lo schema sono gia'
+  in Production.
+
+Con il piano Supabase Free non esiste oggi uno staging isolato con backup
+provider. Applicare migrazioni direttamente in Production ha pubblicato il
+codice, ma non ha prodotto le evidenze di staging/restore richieste per
+chiudere O01, O03 e O06-O15. Questi ID non verranno fatti passare per chiusi.
+
+### Coda eseguibile senza attendere soggetti esterni
+
+1. **T01 e difetti scoperti nei percorsi vivi:** prossimo lotto
+   `saplingService.ts`; ogni gap funzionale riceve un ID distinto e una prova,
+   senza essere nascosto come lint.
+2. **O48 sicurezza provider:** cifratura autenticata, rotazione e chiamate
+   esclusivamente server-side; la chiusura finale dipende poi dalle
+   credenziali del provider scelto in O31.
+3. **Decisioni di prodotto gia' diagnosticate:** offset panoramica, export UTM,
+   storico registrazioni e motori M14; entrano nel registro prima di essere
+   implementati o esclusi.
+4. **Prove remote appena esiste il target:** O01/O03, poi O06-O15, O18, O23,
+   O27-O28 e infine gli E2E O38-O43.
+5. **Pilot e validazione:** O29-O37; al termine si riesegue M16 per ottenere
+   un GO oppure un nuovo NO-GO motivato.
+
+Il prossimo traguardo tecnico non e' “finire un altro numero di lotto”, ma
+esaurire la coda locale verificabile senza aumentare la coda nascosta. Il
+traguardo di release resta invece la chiusura documentata delle prove remote
+e la riesecuzione M16.
 
 ## 3. Piano sequenziale
 
@@ -730,13 +783,21 @@ Eseguita il 24/07/2026 sulla baseline locale:
 
 ## 7. Prossima azione
 
-Riprendere dal primo lavoro locale non bloccato:
+Ordine operativo aggiornato al 28/07/2026:
 
-1. predisporre staging (`O06`) per sbloccare M03-M04 e M06-M09;
-2. implementare M10 (`O19-O24`);
-3. proseguire M11 e identificare gli owner esterni di M12-M14;
-4. progettare e implementare M15;
-5. eseguire M16 soltanto quando `O01-O43` sono chiusi o formalmente esclusi dalla release.
+1. pubblicare questo cruscotto come fonte unica dello stato;
+2. riprendere T01 dal lotto 42 su `saplingService.ts`, separando gli eventuali
+   difetti funzionali dalla sola tipizzazione;
+3. chiudere O48 per la parte implementabile senza credenziali provider;
+4. registrare e decidere i gap di prodotto gia' diagnosticati, senza
+   riaprirli incidentalmente durante altri lotti;
+5. quando esiste un target isolato, eseguire la sequenza remota
+   O01/O03 -> O06-O15 -> O18/O23/O27-O28 -> O38-O43;
+6. con owner e dati reali, eseguire O29-O37;
+7. rieseguire M16 soltanto dopo la chiusura o esclusione formale di ogni gate.
+
+M10, M11 e M15 non sono piu' da “implementare”: il loro codice e' gia'
+presente. Restano le prove provider, staging ed E2E indicate nel cruscotto.
 
 ## 8. Deploy in produzione 24/07/2026 (decisione esplicita, gate O06 non soddisfatto)
 
