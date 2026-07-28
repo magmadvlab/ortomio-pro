@@ -4,7 +4,41 @@ import { requireSupabase } from '@/lib/supabase-server'
 import { checkHealthAlerts } from '@/services/healthAlertEngine'
 import { extractGardenEnvironmentalHistory, summarizeGardenEnvironmentalHistory } from '@/services/environmentalMonitoringService'
 import type { Garden, GardenTask } from '@/types'
+import type { SensorReading } from '@/types/healthAlert'
 import { monitoringRunKey, monitoringTaskSourceKey } from '@/services/healthMonitoringPolicyService'
+
+type GardenTaskRow = {
+  id: string
+  garden_id: string
+  plant_name: string
+  variety?: string | null
+  task_type: GardenTask['taskType']
+  date: string
+  next_due_date?: string | null
+  completed?: boolean | null
+  quantity?: number | string | null
+  notes?: string | null
+}
+
+type WeatherLogRow = {
+  log_date: string
+  temperature_max?: number | string | null
+  temperature_min?: number | string | null
+  precipitation_mm?: number | string | null
+  raw_data?: unknown
+}
+
+type SensorReadingRow = {
+  sensor_type: string
+  value: number | string
+  recorded_at: string
+  sensor_location?: string | null
+}
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
 
 const finite = (...values: unknown[]) => {
   for (const value of values) {
@@ -46,7 +80,7 @@ export async function GET(request: NextRequest) {
           supabase.from('profiles').select('email').eq('id', gardenRow.user_id).maybeSingle(),
         ])
         if (tasksRes.error) throw new Error(tasksRes.error.message)
-        const tasks = (tasksRes.data ?? []).map((row: any) => ({
+        const tasks = ((tasksRes.data ?? []) as GardenTaskRow[]).map((row) => ({
           id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
           taskType: row.task_type, date: row.date, nextDueDate: row.next_due_date,
           completed: Boolean(row.completed), quantity: finite(row.quantity), notes: row.notes,
@@ -56,29 +90,49 @@ export async function GET(request: NextRequest) {
           coordinates: gardenRow.coordinates, soilType: gardenRow.soil_type,
           dimensions: gardenRow.dimensions, createdAt: gardenRow.created_at,
         }
-        const weatherRows = weatherRes.data ?? []
-        const latest: any = weatherRows[0]
-        const sensors = sensorsRes.data ?? []
-        const findSensor = (type: string) => sensors.find((row: any) => row.sensor_type === type)
-        const humiditySensor: any = findSensor('humidity')
-        const windSensor: any = findSensor('wind_speed')
+        const weatherRows = (weatherRes.data ?? []) as WeatherLogRow[]
+        const latest = weatherRows[0]
+        const latestRawData = asRecord(latest?.raw_data)
+        const latestSnapshotWeather = asRecord(asRecord(latestRawData.snapshot).weather)
+        const sensors = (sensorsRes.data ?? []) as SensorReadingRow[]
+        const findSensor = (type: string) => sensors.find((row) => row.sensor_type === type)
+        const humiditySensor = findSensor('humidity')
+        const windSensor = findSensor('wind_speed')
         const temp = latest ? finite(latest.temperature_max, latest.temperature_min) : undefined
-        const humidity = finite(humiditySensor?.value, latest?.raw_data?.humidity, latest?.raw_data?.snapshot?.weather?.humidityPercentage)
+        const humidity = finite(
+          humiditySensor?.value,
+          latestRawData.humidity,
+          latestSnapshotWeather.humidityPercentage
+        )
         const weather = temp !== undefined && humidity !== undefined ? {
           temp, humidity, rainMm: finite(latest?.precipitation_mm) ?? 0,
           rainTomorrow: finite(weatherRows[1]?.precipitation_mm) ? Number(weatherRows[1].precipitation_mm) > 0 : false,
-          windSpeed: finite(windSensor?.value, latest?.raw_data?.snapshot?.weather?.windSpeedKmh) ?? 0,
+          windSpeed: finite(windSensor?.value, latestSnapshotWeather.windSpeedKmh) ?? 0,
           recordedAt: latest?.log_date ? `${latest.log_date}T12:00:00.000Z` : checkedAt.toISOString(),
           source: 'persisted_daily_weather_log',
         } : undefined
         const environmentalSummary = summarizeGardenEnvironmentalHistory(extractGardenEnvironmentalHistory(
-          weatherRows.map((row: any) => ({ log_date: row.log_date, raw_data: row.raw_data || {} })),
+          weatherRows.map((row) => ({ log_date: row.log_date, raw_data: asRecord(row.raw_data) })),
           { gardenId: gardenRow.id }
         ))
-        const sensorData = sensors.flatMap((row: any) => {
-          const type = row.sensor_type === 'soil_moisture' ? 'soil_moisture' : row.sensor_type === 'temperature' ? 'temperature' : row.sensor_type === 'humidity' ? 'humidity' : null
-          return type ? [{ type, value: Number(row.value), timestamp: row.recorded_at, zoneId: row.sensor_location }] : []
-        }) as any
+        const sensorData: SensorReading[] = sensors.flatMap((row) => {
+          const type: SensorReading['type'] | null =
+            row.sensor_type === 'soil_moisture'
+              ? 'soil_moisture'
+              : row.sensor_type === 'temperature'
+                ? 'temperature'
+                : row.sensor_type === 'humidity'
+                  ? 'humidity'
+                  : null
+          return type
+            ? [{
+                type,
+                value: Number(row.value),
+                timestamp: row.recorded_at,
+                zoneId: row.sensor_location || undefined,
+              }]
+            : []
+        })
         const nextHarvest = tasks.filter(task => !task.completed && task.taskType === 'Harvest').sort((a, b) => a.date.localeCompare(b.date))[0]?.date
         const alerts = await checkHealthAlerts({
           garden, tasks, weather, sensorData, checkedAt: checkedAt.toISOString(),

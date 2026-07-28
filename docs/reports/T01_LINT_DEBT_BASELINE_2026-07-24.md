@@ -369,3 +369,20 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; capability test 19/19
 | Warning | 1990 |
 | Riduzione lotto | 12 |
 | Riduzione dalla baseline operativa 2642 | 652 |
+
+## Lotto 27 (28/07/2026) - chiuso
+
+Le route vive `app/api/cron/health-check/route.ts` e `app/api/garden/sun-exposure/route.ts` sono state portate da 8 warning ciascuna a zero. Il cron salute usa tipi espliciti per i record persistiti di task, meteo e sensori. La route solare ora tratta il fallimento di lettura degli ostacoli come errore, anziche' calcolare l'esposizione con una lista vuota e sovrastimare il sole disponibile.
+
+`services/fieldRowPredictiveService.ts`, primo candidato per volume con 35 warning dopo l'esclusione gia' decisa di `costOptimizationService.ts`, e' stato lasciato intatto: la presenza di task virtuali e predizioni di fallback richiede prima una classificazione funzionale M14, non una pulizia lint meccanica.
+
+Verifiche: lint mirato 0/0, type-check e diff-check verdi; test mirati 16/16; lint globale **0 errori e 1.974 warning** (`1.990 -> 1.974`).
+
+## Stato dopo il lotto 27
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1974 |
+| Riduzione lotto | 16 |
+| Riduzione dalla baseline operativa 2642 | 668 |

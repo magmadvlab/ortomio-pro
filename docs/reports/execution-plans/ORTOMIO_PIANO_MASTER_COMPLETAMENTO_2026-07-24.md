@@ -497,6 +497,12 @@ Il lotto 25 porta i servizi meteo condivisi `weatherService.ts` e `weatherProvid
 
 Il lotto 26 porta `components/shared/HomeDashboard.tsx`, vivo in `/app`, da 12 warning a zero: tipi reali per filari, piante, opzioni Director e raccolti, dipendenze effect complete e array task stabile. Chiuso anche il fallback ingannevole del piano giornaliero: un errore Director non viene piu' convertito in un piano vuoto apparentemente valido, ma produce stato nullo e alert visibile. Baseline globale verificata: **0 errori, 1.990 warning** (`2.002 -> 1.990`); capability test 19/19, lint mirato, type-check e diff-check verdi. Registrato separatamente `intelligentNotificationService`: importato dalla dashboard Monitoraggio ma mai alimentato, perche' `processAlerts` non ha chiamanti e la UI legge una mappa in memoria vuota.
 
+### Aggiornamento T01 - lotto 27 (28/07/2026)
+
+Il lotto 27 porta le route Production `app/api/cron/health-check/route.ts` e `app/api/garden/sun-exposure/route.ts` da 16 warning complessivi a zero. Il cron salute usa ora contratti espliciti per righe task, meteo e sensori. La route esposizione solare non ignora piu' un errore di lettura `garden_obstacles`: senza ostacoli autorevoli interrompe il calcolo con errore esplicito, invece di produrre ore di sole falsamente ottimistiche assumendo una lista vuota. Aggiunta copertura regressiva fail-closed. Baseline globale verificata: **0 errori, 1.974 warning** (`1.990 -> 1.974`); test mirati 16/16, lint mirato, type-check e diff-check verdi.
+
+Durante la selezione, `services/fieldRowPredictiveService.ts` (35 warning) e' stato escluso dal lotto: e' vivo in `/app/garden/rows`, ma costruisce un `GardenTask` virtuale e possiede predizioni di fallback. Non viene trattato come semplice debito lint finche' l'origine e la veridicita' di quelle predizioni non saranno classificate nel perimetro M14.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

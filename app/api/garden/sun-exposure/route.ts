@@ -8,16 +8,9 @@ import {
   getExposureType,
   Obstacle3D,
 } from '@/services/preciseSunCalculator'
-import {
-  calculateSeasonalWindows,
-  classifyGardenType,
-} from '@/services/seasonalSunWindows'
-import {
-  suggestPlantsForGardenType,
-} from '@/services/seasonalPlantSuggestions'
-import {
-  findPlantingWindows,
-} from '@/services/plantingWindowOptimizer'
+
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'unknown_error'
 
 /**
  * GET /api/garden/sun-exposure
@@ -86,6 +79,10 @@ export async function GET(request: NextRequest) {
       .from('garden_obstacles')
       .select('*')
       .eq('garden_id', gardenId)
+
+    if (obstaclesError) {
+      throw new Error(`garden_obstacles_read_failed: ${obstaclesError.message}`)
+    }
     
     const obstacles: Obstacle3D[] = (obstaclesData || []).map(obs => ({
       azimuth: parseFloat(obs.azimuth),
@@ -106,10 +103,10 @@ export async function GET(request: NextRequest) {
       exposure: getExposureType(dailyHours),
       obstaclesCount: obstacles.length,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sun exposure GET error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: errorMessage(error) },
       { status: 500 }
     )
   }
@@ -196,10 +193,10 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json({ monthlySunHours: monthlyHours })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Monthly sun hours POST error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: errorMessage(error) },
       { status: 500 }
     )
   }
@@ -282,10 +279,10 @@ export async function PUT(request: NextRequest) {
     const optimal = calculateOptimalPeriod(lat, lng, obstacles, targetMinSunHours)
     
     return NextResponse.json(optimal)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Optimal period PUT error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: errorMessage(error) },
       { status: 500 }
     )
   }
