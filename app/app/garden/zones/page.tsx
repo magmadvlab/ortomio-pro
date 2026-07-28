@@ -1,23 +1,25 @@
 'use client'
 
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { ArrowLeft, Plus, Edit2, Trash2, TrendingUp, History, BarChart3, Leaf } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, TrendingUp, History, Leaf, X } from 'lucide-react'
 import Link from 'next/link'
 import {
   getLandZones,
   createLandZone,
-  updateLandZone,
   deleteLandZone,
   toggleZoneStatus,
   getZoneStats,
   calculateZoneSoilHealth,
   getZoneRotationSuggestions,
+  getZoneHistory,
   type LandZone,
+  type ZoneStats,
   type ZoneSoilHealth,
-  type ZoneRotationSuggestion
+  type ZoneRotationSuggestion,
+  type ZoneHistoryEntry,
 } from '@/services/landZoneService'
 import type { LandZoneInput } from '@/lib/land-zones'
 
@@ -47,19 +49,47 @@ export default function LandZonesPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [creatingZone, setCreatingZone] = useState(false)
   const [selectedZoneForHistory, setSelectedZoneForHistory] = useState<string | null>(null)
+  const [zoneHistory, setZoneHistory] = useState<ZoneHistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
   
   // Zone stats cache
-  const [zoneStats, setZoneStats] = useState<Map<string, any>>(new Map())
+  const [zoneStats, setZoneStats] = useState<Map<string, ZoneStats>>(new Map())
   const [zoneSoilHealth, setZoneSoilHealth] = useState<Map<string, ZoneSoilHealth>>(new Map())
   const [zoneRotationSuggestions, setZoneRotationSuggestions] = useState<Map<string, ZoneRotationSuggestion[]>>(new Map())
 
   const gardenId = searchParams.get('garden')
 
-  useEffect(() => {
-    loadData()
-  }, [gardenId])
+  const loadZones = useCallback(async (targetGardenId: string) => {
+    try {
+      const loadedZones = await getLandZones(targetGardenId)
+      setZones(loadedZones)
 
-  const loadData = async () => {
+      const statsMap = new Map<string, ZoneStats>()
+      const healthMap = new Map<string, ZoneSoilHealth>()
+      const suggestionsMap = new Map<string, ZoneRotationSuggestion[]>()
+
+      for (const zone of loadedZones) {
+        const [stats, health, suggestions] = await Promise.all([
+          getZoneStats(zone.id),
+          calculateZoneSoilHealth(zone.id),
+          getZoneRotationSuggestions(zone.id)
+        ])
+
+        if (stats) statsMap.set(zone.id, stats)
+        if (health) healthMap.set(zone.id, health)
+        suggestionsMap.set(zone.id, suggestions)
+      }
+
+      setZoneStats(statsMap)
+      setZoneSoilHealth(healthMap)
+      setZoneRotationSuggestions(suggestionsMap)
+    } catch (error) {
+      console.error('Error loading zones:', error)
+    }
+  }, [])
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
@@ -75,41 +105,33 @@ export default function LandZonesPage() {
       if (garden) {
         setSelectedGarden(garden)
         await loadZones(garden.id)
+      } else {
+        setSelectedGarden(null)
+        setZones([])
       }
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [gardenId, loadZones, storageProvider])
 
-  const loadZones = async (gardenId: string) => {
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  const handleOpenHistory = async (zoneId: string) => {
+    setSelectedZoneForHistory(zoneId)
+    setZoneHistory([])
+    setHistoryError(null)
+    setHistoryLoading(true)
     try {
-      const loadedZones = await getLandZones(gardenId)
-      setZones(loadedZones)
-      
-      // Load stats for each zone
-      const statsMap = new Map()
-      const healthMap = new Map()
-      const suggestionsMap = new Map()
-      
-      for (const zone of loadedZones) {
-        const [stats, health, suggestions] = await Promise.all([
-          getZoneStats(zone.id),
-          calculateZoneSoilHealth(zone.id),
-          getZoneRotationSuggestions(zone.id)
-        ])
-        
-        statsMap.set(zone.id, stats)
-        if (health) healthMap.set(zone.id, health)
-        if (suggestions) suggestionsMap.set(zone.id, suggestions)
-      }
-      
-      setZoneStats(statsMap)
-      setZoneSoilHealth(healthMap)
-      setZoneRotationSuggestions(suggestionsMap)
+      setZoneHistory(await getZoneHistory(zoneId))
     } catch (error) {
-      console.error('Error loading zones:', error)
+      console.error('Error loading zone history:', error)
+      setHistoryError('Impossibile caricare lo storico della zona.')
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -435,7 +457,7 @@ export default function LandZonesPage() {
                       </button>
 
                       <button
-                        onClick={() => setSelectedZoneForHistory(zone.id)}
+                        onClick={() => void handleOpenHistory(zone.id)}
                         className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium flex items-center justify-center gap-2"
                       >
                         <History size={16} />
@@ -465,6 +487,92 @@ export default function LandZonesPage() {
           </div>
         )}
       </main>
+
+      {selectedZoneForHistory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="presentation">
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="zone-history-title"
+          >
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 id="zone-history-title" className="text-2xl font-bold text-gray-900">
+                  Storico zona
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {zones.find((zone) => zone.id === selectedZoneForHistory)?.zone_name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedZoneForHistory(null)}
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                aria-label="Chiudi storico zona"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {historyLoading ? (
+              <p className="py-8 text-center text-gray-600">Caricamento storico...</p>
+            ) : historyError ? (
+              <p role="alert" className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+                {historyError}
+              </p>
+            ) : zoneHistory.length === 0 ? (
+              <div className="py-8 text-center">
+                <History className="mx-auto text-gray-400 mb-3" size={36} />
+                <p className="font-medium text-gray-900">Nessuna coltura registrata</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Lo storico apparirà quando la memoria del terreno conterrà cicli colturali per questa zona.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left text-gray-600">
+                      <th className="py-3 pr-4">Coltura</th>
+                      <th className="py-3 pr-4">Famiglia</th>
+                      <th className="py-3 pr-4">Impianto</th>
+                      <th className="py-3 pr-4">Raccolta</th>
+                      <th className="py-3 pr-4 text-right">Resa</th>
+                      <th className="py-3 text-right">Qualità</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {zoneHistory.map((entry, index) => (
+                      <tr
+                        key={`${entry.planting_date}-${entry.crop_name}-${index}`}
+                        className="border-b border-gray-100"
+                      >
+                        <td className="py-3 pr-4 font-medium text-gray-900">{entry.crop_name}</td>
+                        <td className="py-3 pr-4 text-gray-700">{entry.crop_family}</td>
+                        <td className="py-3 pr-4 text-gray-700">
+                          {new Date(entry.planting_date).toLocaleDateString('it-IT')}
+                        </td>
+                        <td className="py-3 pr-4 text-gray-700">
+                          {entry.harvest_date
+                            ? new Date(entry.harvest_date).toLocaleDateString('it-IT')
+                            : 'In corso'}
+                        </td>
+                        <td className="py-3 pr-4 text-right text-gray-700">
+                          {entry.yield_kg == null ? 'n/d' : `${entry.yield_kg} kg`}
+                        </td>
+                        <td className="py-3 text-right text-gray-700">
+                          {entry.quality_rating == null ? 'n/d' : `${entry.quality_rating}/5`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Create Zone Modal */}
       {showCreateModal && (
