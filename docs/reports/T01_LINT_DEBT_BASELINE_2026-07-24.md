@@ -401,3 +401,20 @@ Una regressione statica copre l'intero insieme e impedisce il ritorno al confron
 | Warning | 1963 |
 | Riduzione lotto | 11 |
 | Riduzione dalla baseline operativa 2642 | 679 |
+
+## Lotto 29 (28/07/2026) - chiuso
+
+Quattro endpoint Production sono stati portati da 10 warning complessivi a zero: `auth/register`, `calendar/tasks`, `mechanical-work` e `treatments`. La pulizia ha chiuso anche difetti verificabili: la registrazione non registra piu' il body contenente la password; i due registri basati su service-role verificano l'ownership del giardino prima di leggere o inserire dati e preservano i 404 canonici; le ricorrenze calendario usano tipi espliciti.
+
+Le route `api-configurations`, pur selezionate inizialmente per quattro warning, sono state escluse: il flusso corrente protegge le chiavi soltanto con Base64 e le restituisce decodificate al browser. Il gap e' registrato come `O48/M13` e richiede una migrazione di sicurezza dedicata.
+
+Verifiche: lint mirato 0/0, type-check verde; test sicurezza 43/43; lint globale **0 errori e 1.953 warning** (`1.963 -> 1.953`).
+
+## Stato dopo il lotto 29
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1953 |
+| Riduzione lotto | 10 |
+| Riduzione dalla baseline operativa 2642 | 689 |

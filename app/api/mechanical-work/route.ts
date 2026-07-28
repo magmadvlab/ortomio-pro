@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTier } from '@/lib/auth.server'
+import { accessErrorResponse, requireGardenAccess, verifyTier } from '@/lib/auth.server'
 import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('end_date')
     
     const supabase = getSupabaseClient()
+
+    if (gardenId) {
+      await requireGardenAccess(request, gardenId)
+    }
     
     let query = supabase
       .from('mechanical_work_register')
@@ -53,10 +57,12 @@ export async function GET(request: NextRequest) {
     }
     
     return NextResponse.json({ works: works || [] })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Mechanical work GET error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }
@@ -145,6 +151,10 @@ export async function POST(request: NextRequest) {
     }
     
     const supabase = getSupabaseClient()
+
+    if (garden_id) {
+      await requireGardenAccess(request, garden_id)
+    }
     
     const { data: work, error } = await supabase
       .from('mechanical_work_register')
@@ -170,16 +180,16 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json({ work })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const accessResponse = accessErrorResponse(error)
+    if (accessResponse) return accessResponse
     console.error('Mechanical work POST error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }
 }
-
-
 
 
 

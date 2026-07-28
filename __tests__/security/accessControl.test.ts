@@ -154,6 +154,33 @@ test('scheduled production routes use the canonical fail-closed cron guard', () 
   }
 })
 
+test('registration never logs request credentials', () => {
+  const source = readFileSync('app/api/auth/register/route.ts', 'utf8')
+  assert.doesNotMatch(source, /Registration request body/)
+  assert.doesNotMatch(source, /JSON\.stringify\(sanitizedBody/)
+})
+
+test('service-role operational routes enforce garden ownership', () => {
+  for (const route of ['mechanical-work', 'treatments']) {
+    const source = readFileSync(`app/api/${route}/route.ts`, 'utf8')
+    assert.match(
+      source,
+      /requireGardenAccess\(request,\s*gardenId\)/,
+      `${route} GET must enforce garden ownership`,
+    )
+    assert.match(
+      source,
+      /requireGardenAccess\(request,\s*garden_id\)/,
+      `${route} POST must enforce garden ownership`,
+    )
+    assert.match(
+      source,
+      /accessErrorResponse\(error\)/,
+      `${route} must preserve canonical access responses`,
+    )
+  }
+})
+
 test('device ingestion accepts only the token assigned to that device', () => {
   const previousTokens = process.env.IOT_DEVICE_TOKENS_JSON
   process.env.IOT_DEVICE_TOKENS_JSON = JSON.stringify({ 'device-a': 'token-a' })
