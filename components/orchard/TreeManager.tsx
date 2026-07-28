@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { OrchardConfiguration, OrchardTree, TreePhoto, TreeSearchCriteria, TreeHealthStatus, TreeVigorLevel } from '@/types/orchard'
 import type { FieldRow, FieldRowOrdering, FieldRowAxis } from '@/types/fieldRow'
+import type { PlantOperation } from '@/types/individualPlant'
 import { FIELD_ROW_ORDERING_OPTIONS } from '@/types/fieldRow'
 import { orchardService } from '@/services/orchardService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
@@ -362,13 +363,13 @@ export default function TreeManager({
             needsTreatment: false,
             needsReplacement: false,
             cumulativeYieldKg: 0,
-          } as any)
+          })
         }
 
         nextPositionByRow.set(currentRow, rowStartPosition + batchData.treesPerRow)
       }
 
-      const created = await orchardService.bulkCreateTrees(treesToCreate as any)
+      const created = await orchardService.bulkCreateTrees(treesToCreate)
       setTrees(prev => [...prev, ...created])
       const refreshedFieldRows = await storageProvider.getFieldRows(gardenId)
       setFieldRows(refreshedFieldRows)
@@ -1159,11 +1160,7 @@ function TreeDetailModal({ tree, onClose, onUpdate }: TreeDetailModalProps) {
   const [, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'info' | 'photos' | 'history'>('info')
 
-  useEffect(() => {
-    loadTreePhotos()
-  }, [tree.id])
-
-  const loadTreePhotos = async () => {
+  const loadTreePhotos = useCallback(async () => {
     try {
       setLoading(true)
       const photosData = await orchardService.getTreePhotos(tree.id)
@@ -1173,7 +1170,11 @@ function TreeDetailModal({ tree, onClose, onUpdate }: TreeDetailModalProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tree.id])
+
+  useEffect(() => {
+    loadTreePhotos()
+  }, [loadTreePhotos])
 
   return (
     <AppModal
@@ -1586,6 +1587,98 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     warning?: string
   }
 
+  interface GardenCoordinateSource {
+    coordinates?: { latitude?: number; longitude?: number; lat?: number; lng?: number; lon?: number } | null
+    location?: { coordinates?: { latitude?: number; longitude?: number; lat?: number; lng?: number; lon?: number } } | string | null
+    altitudeMeters?: number
+    sunExposure?: string
+    aspectDirection?: string
+    obstacles?: unknown
+  }
+
+  interface RowIrrigationConfigSource {
+    emitterSpacingCm?: number
+    emitterSpacing?: number
+    dripperSpacing?: number
+    pressureBar?: number
+    pressure?: number
+    nominalPressureBar?: number
+    referencePressureBar?: number
+    emitterFlowRateLph?: number
+    emitterFlowRate?: number
+    dripperFlowRate?: number
+    flowRatePerMeterLph?: number
+    flowRatePerMeter?: number
+    totalFlowRate?: number
+  }
+
+  interface FieldRowConfigSource {
+    id?: string
+    name?: string
+    plantSpacing?: number
+    lengthMeters?: number
+    plantCount?: number
+    irrigationLine?: unknown
+    irrigationConfig?: unknown
+  }
+
+  interface OrchestratorWeatherSource {
+    temp?: number
+    temperature?: number
+    humidity?: number
+    wind?: string | number
+    windSpeed?: string | number
+    condition?: string
+  }
+
+  interface QuickEntryOperationDetails {
+    durationMinutes?: number
+    subtype?: string
+    irrigationCalculation?: {
+      litersPerTree: number
+      method?: string
+      rowName?: string
+      pressureBar?: number
+      mode: 'auto_from_row_config'
+    }
+  }
+
+  type QuickEntryContextSnapshot = Partial<NonNullable<PlantOperation['context']>> & {
+    operationDetails?: QuickEntryOperationDetails
+  }
+
+  interface OrchestratorOperationRecord {
+    id?: string
+    operationType?: string
+    date?: string
+    operationDate?: string
+    operationTime?: string
+    createdAt?: string
+    quantity?: number
+    unit?: string
+    productName?: string
+    notes?: string
+    duration?: number
+    durationMinutes?: number
+    sourceType?: string
+    parentOperationTable?: string
+    operationContext?: {
+      operationDetails?: { durationMinutes?: number; subtype?: string }
+      weather?: OrchestratorWeatherSource
+    }
+    context?: {
+      weather?: OrchestratorWeatherSource
+    }
+    weatherConditions?: OrchestratorWeatherSource
+    geoSnapshot?: {
+      latitude?: number
+      longitude?: number
+      altitudeMeters?: number
+      sunExposure?: string
+      aspectDirection?: string
+    }
+  }
+
   const [loading, setLoading] = useState(true)
   const [timeline, setTimeline] = useState<TreeTimelineItem[]>([])
   const [activeTimelineTab, setActiveTimelineTab] = useState<'all' | 'irrigation' | 'fertilizing' | 'treatment' | 'work' | 'pruning' | 'harvest'>('all')
@@ -1605,10 +1698,6 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
   const [estimatingWater, setEstimatingWater] = useState(false)
 
   useEffect(() => {
-    loadTimeline()
-  }, [tree.id, tree.gardenId])
-
-  useEffect(() => {
     if (entryType === 'watering') {
       setEntryUnit('L')
       return
@@ -1624,16 +1713,16 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     setEntryUnit('sessione')
   }, [entryType])
 
-  const parseNumber = (value?: string | number | null): number | undefined => {
+  const parseNumber = useCallback((value?: string | number | null): number | undefined => {
     if (value === null || value === undefined) return undefined
     if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
     const normalized = Number(String(value).replace(',', '.'))
     return Number.isFinite(normalized) ? normalized : undefined
-  }
+  }, [])
 
-  const getCoordinatesFromGarden = (garden: any): { latitude: number; longitude: number } | undefined => {
+  const getCoordinatesFromGarden = (garden: GardenCoordinateSource | null | undefined): { latitude: number; longitude: number } | undefined => {
     if (!garden) return undefined
-    const coordinates = garden.coordinates || garden.location?.coordinates
+    const coordinates = garden.coordinates || (typeof garden.location === 'object' ? garden.location?.coordinates : undefined)
     if (!coordinates) return undefined
 
     const latitude = parseNumber(coordinates.latitude ?? coordinates.lat)
@@ -1645,32 +1734,32 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     return { latitude, longitude }
   }
 
-  const getRowIrrigationConfig = (row: any): Record<string, any> | undefined => {
+  const getRowIrrigationConfig = useCallback((row: FieldRowConfigSource | null | undefined): RowIrrigationConfigSource | undefined => {
     const raw = row?.irrigationLine ?? row?.irrigationConfig
     if (!raw) return undefined
     if (typeof raw === 'string') {
       try {
-        return JSON.parse(raw)
+        return JSON.parse(raw) as RowIrrigationConfigSource
       } catch {
         return undefined
       }
     }
-    return raw
-  }
+    return raw as RowIrrigationConfigSource
+  }, [])
 
-  const estimateTreeWaterFromRow = async (durationMinutes: number): Promise<TreeWaterEstimate> => {
+  const estimateTreeWaterFromRow = useCallback(async (durationMinutes: number): Promise<TreeWaterEstimate> => {
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
       return { warning: 'Inserisci una durata valida per stimare i litri.' }
     }
 
-    let row: any = null
+    let row: FieldRow | null | undefined = null
     if (tree.fieldRowId) {
       row = await storageProvider?.getFieldRow?.(tree.fieldRowId)
     }
 
     if (!row && tree.rowNumber) {
       const rows = await storageProvider?.getFieldRows?.(tree.gardenId)
-      row = (rows || []).find((r: any) => Number(r.rowNumber) === Number(tree.rowNumber))
+      row = (rows || []).find((r) => Number(r.rowNumber) === Number(tree.rowNumber))
     }
 
     if (!row) {
@@ -1738,7 +1827,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
       rowName: row.name,
       warning: 'Config filare incompleta: serve portata per metro o coppia passo+portata gocciolatore.',
     }
-  }
+  }, [tree.fieldRowId, tree.rowNumber, tree.gardenId, storageProvider, getRowIrrigationConfig, parseNumber])
 
   useEffect(() => {
     let cancelled = false
@@ -1778,7 +1867,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     return () => {
       cancelled = true
     }
-  }, [entryType, entryDurationMinutes, tree.fieldRowId, tree.rowNumber, tree.gardenId, storageProvider])
+  }, [entryType, entryDurationMinutes, estimateTreeWaterFromRow, parseNumber])
 
   const formatOperationLabel = (type: string) => {
     if (type === 'watering') return 'Irrigazione'
@@ -1806,7 +1895,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
       : parsedDate.toLocaleDateString('it-IT')
   }
 
-  const mapSourceFromOperation = (operation: any): TreeTimelineSource => {
+  const mapSourceFromOperation = useCallback((operation: OrchestratorOperationRecord): TreeTimelineSource => {
     const sourceType = operation?.sourceType
       || (operation?.parentOperationTable === 'iot_sensor' ? 'iot' : undefined)
       || (operation?.parentOperationTable === 'manual_orchestrator' ? 'manual' : undefined)
@@ -1819,7 +1908,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     if (sourceType === 'manual') return 'manual'
     if (sourceType === 'orchestrator_auto' || sourceType === 'orchestrator_sync') return 'orchestrator'
     return 'manual'
-  }
+  }, [])
 
   const getSourceBadge = (source: TreeTimelineSource) => {
     if (source === 'iot') return { label: 'IOT', className: 'bg-violet-100 text-violet-700' }
@@ -1828,7 +1917,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     return { label: 'Legacy Frutteto', className: 'bg-gray-100 text-gray-700' }
   }
 
-  const getWeatherSummary = (operation: any) => {
+  const getWeatherSummary = useCallback((operation: OrchestratorOperationRecord) => {
     const weather = operation?.weatherConditions || operation?.operationContext?.weather || operation?.context?.weather
     const temp = parseNumber(weather?.temp ?? weather?.temperature)
     const humidity = parseNumber(weather?.humidity)
@@ -1843,9 +1932,9 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     if (typeof condition === 'string' && condition.trim()) parts.push(condition)
 
     return parts.length > 0 ? parts.join(' • ') : undefined
-  }
+  }, [parseNumber])
 
-  const getGeoSummary = (operation: any) => {
+  const getGeoSummary = useCallback((operation: OrchestratorOperationRecord) => {
     const geo = operation?.geoSnapshot
     if (!geo) return undefined
 
@@ -1864,9 +1953,9 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     if (aspectDirection) parts.push(`Esposizione ${aspectDirection}`)
 
     return parts.length > 0 ? parts.join(' • ') : undefined
-  }
+  }, [parseNumber])
 
-  const loadTimeline = async () => {
+  const loadTimeline = useCallback(async () => {
     try {
       setLoading(true)
       const [pruningRecords, harvestRecords, treatmentRecords, plantOperations, fieldRowOperations] = await Promise.all([
@@ -1947,7 +2036,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         ...(fieldRowOperations || []),
       ]
 
-      const orchestratorItems: TreeTimelineItem[] = allOperations.map((operation: any) => {
+      const orchestratorItems: TreeTimelineItem[] = allOperations.map((operation: OrchestratorOperationRecord) => {
         const operationType = operation.operationType
         const mappedType: TreeTimelineType =
           operationType === 'watering'
@@ -1981,7 +2070,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
           id: `orchestrator-${operation.id}`,
           type: mappedType,
           date: dateWithTime || new Date().toISOString(),
-          title: formatOperationLabel(operationType),
+          title: formatOperationLabel(operationType || ''),
           description: operation.notes,
           source: mapSourceFromOperation(operation),
           quantity,
@@ -2005,7 +2094,11 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tree.id, tree.gardenId, tree.fieldRowId, storageProvider, mapSourceFromOperation, getWeatherSummary, getGeoSummary, parseNumber])
+
+  useEffect(() => {
+    loadTimeline()
+  }, [loadTimeline])
 
   const handleQuickEntrySubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -2074,7 +2167,7 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
           )
         : undefined
 
-      const operationDetails: Record<string, any> = {
+      const operationDetails: QuickEntryOperationDetails = {
         durationMinutes: normalizedDuration,
         subtype: normalizedSubtype || undefined,
         irrigationCalculation: autoQuantityEstimate?.litersPerTree !== undefined
@@ -2110,18 +2203,18 @@ function TreeHistoryTab({ tree }: { tree: OrchardTree }) {
         sourceType: entryMode,
         actorType: entryMode,
         propagateToPlants: false,
-        contextSnapshot: context
-          ? ({ ...context, operationDetails } as any)
-          : ({ timestamp: validTimestamp.toISOString(), operationDetails } as any),
+        contextSnapshot: (context
+          ? { ...context, operationDetails }
+          : { timestamp: validTimestamp.toISOString(), operationDetails }) as QuickEntryContextSnapshot as PlantOperation['context'],
         weatherConditions: context
-          ? ({
+          ? {
               temp: context.weather.temperature,
               humidity: context.weather.humidity,
               wind: `${context.weather.windSpeed} km/h`,
               condition: context.weather.condition,
               precipitation: context.weather.precipitation,
               pressure: context.weather.pressure,
-            } as any)
+            }
           : undefined,
         geoSnapshot: {
           latitude: coordinates?.latitude,
