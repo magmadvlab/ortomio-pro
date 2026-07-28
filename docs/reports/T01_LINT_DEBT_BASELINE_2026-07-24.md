@@ -632,3 +632,29 @@ Verifiche: lint mirato 0/0, type-check verde, capability 31/31; lint globale
 | Warning | 1852 |
 | Riduzione lotto | 17 |
 | Riduzione dalla baseline operativa 2642 | 790 |
+
+## Lotto 39 / O56 (28/07/2026) - chiuso
+
+La route viva `app/app/orchard/page.tsx` e' stata portata da 24 warning a
+zero. Gli alberi e i raggruppamenti per filare usano ora il contratto
+`OrchardTree` restituito da `orchardService`, eliminando gli `any` senza
+modificare letture, riallineamento, aggiornamenti o configurazione irrigua.
+
+Rimosso anche `TropicalExoticSection`: 347 righe definite in fondo alla route
+ma mai importate, invocate o renderizzate. Il blocco conteneva un catalogo
+statico, KPI fissi (`24°C`, `75%`) e un modal irraggiungibile; nessuna
+funzionalita' visibile e' stata sottratta. Restano intatti dashboard frutteto,
+alberi, filari, piante individuali, potature, raccolte e analytics persistenti.
+
+Verifiche: lint mirato 0/0, type-check verde, mapping frutteto/sicurezza filari
+3/3, capability 31/31, build produzione 153/153; lint globale
+**0 errori e 1.828 warning** (`1.852 -> 1.828`).
+
+## Stato dopo il lotto 39
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1828 |
+| Riduzione lotto | 24 |
+| Riduzione dalla baseline operativa 2642 | 814 |
