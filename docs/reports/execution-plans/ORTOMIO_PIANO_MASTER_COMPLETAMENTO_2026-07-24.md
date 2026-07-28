@@ -7,7 +7,7 @@
 - **Baseline iniziale:** `8c37854f51b93585720e6c54e1a84b8b1c7c6879`
 - **Stato generale:** in corso; prodotto non ancora certificato per la release commerciale 1.0
 - **Stato esecuzione:** 2 milestone chiuse per la release (M01-M02); 13 dei 44 obiettivi originali chiusi, 5 parziali e 26 ancora dipendenti da prove remote o input esterni; M16 eseguita con decisione NO-GO motivata il 26/07/2026
-- **Deploy codice Production:** `Ready` — ultimo avanzamento verificato in Production: PR `#94`, merge commit `da723227cf01e419e599bfd8a11170bfd0871ec2`, 28/07/2026.
+- **Deploy codice Production:** `Ready` — ultimo avanzamento verificato in Production: PR `#96`, merge commit `14069cccb79f4d0dbf2090ac58e7dbae6697b2d3`, 28/07/2026.
 - **Schema commerciale Production:** `Ready` — cinque migrazioni M15 applicate il 26/07/2026; probe PostgREST `schemaReady=true`.
 - **Deploy readiness (certificazione 1.0):** `false` — codice e schema M15 pubblicati non equivalgono alla certificazione: staging, restore, isolamento, provider, pilot e validazione agronomica restano aperti. Il verbale `M16_GO_NO_GO_2026-07-26.md` elenca tutte le evidenze remote mancanti.
 - **Coda canonica:** questo documento
@@ -92,7 +92,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 | Perimetro | Chiuso | Parziale | Aperto | Lettura corretta |
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
-| Scoperte O45-O59 | **13** | **1** | **1** | O48 e' aperto; O59 ha codice e migrazione pronti ma attende applicazione/prova Production. Le altre 13 scoperte sono chiuse e pubblicate. |
+| Scoperte O45-O59 | **14** | **0** | **1** | E' aperto soltanto O48, sicurezza delle credenziali provider. Le altre 14 scoperte sono chiuse e pubblicate. |
 | Debito lint T01 | **874 warning rimossi** | — | **1.768 warning** | Baseline operativa 2.642 -> 1.768 in 42 lotti. T01 non equivale a 1.768 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
@@ -117,10 +117,9 @@ chiudere O01, O03 e O06-O15. Questi ID non verranno fatti passare per chiusi.
 
 ### Coda eseguibile senza attendere soggetti esterni
 
-1. **O59 e T01:** applicare/provare la migrazione canonica alberelli, quindi
-   selezionare il prossimo servizio vivo dalla classifica lint; ogni gap
-   funzionale riceve un ID distinto e una prova, senza essere nascosto come
-   lint.
+1. **T01:** selezionare il prossimo servizio vivo dalla classifica lint; ogni
+   gap funzionale riceve un ID distinto e una prova, senza essere nascosto
+   come lint. O59 e' chiuso in Production.
 2. **O48 sicurezza provider:** cifratura autenticata, rotazione e chiamate
    esclusivamente server-side; la chiusura finale dipende poi dalle
    credenziali del provider scelto in O31.
@@ -495,7 +494,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O56 | Trasversale | ~~Rimuovere dalla route Frutteto il prototipo tropicale statico e irraggiungibile~~ **Chiuso 28/07/2026:** eliminate 347 righe di `TropicalExoticSection`, mai importate, invocate o renderizzate, inclusi catalogo statico e KPI fissi `24°C`/`75%`. La rimozione riguarda soltanto il prototipo morto, non il concetto prodotto tropicale implementato correttamente in O57. Gli alberi e i gruppi filare vivi sono tipizzati con `OrchardTree`; dashboard e flussi persistenti restano invariati. | Zero prototipo orfano e zero KPI statici irraggiungibili; route Frutteto 0 warning; test mapping/filari e build verdi |
 | O57 | Trasversale | ~~Differenziare i frutteti tropicali come sottocategoria reale di Frutteto~~ **Chiuso 28/07/2026:** il wizard principale espone `Tropicale/Subtropicale` e sincronizza bidirezionalmente la categoria botanica `ESOTICHE` con il valore persistito `orchardType=tropical`, gia' supportato dal vincolo database. Cambiando categoria non resta una classificazione tropicale obsoleta; la dashboard mostra nome e icona dedicati. | Tropicale resta nel dominio Frutteto; scelta persistita senza dati mock; coerenza bidirezionale testata; dashboard riconoscibile |
 | O58 | Trasversale | ~~Correggere il bulk alberi del wizard Frutteto e tipizzare il servizio persistente~~ **Chiuso 28/07/2026:** `createOrchardFromWizard` non passa piu' righe snake_case a `bulkCreateTrees`, che le rimappava come oggetti camelCase e poteva perdere `orchardId`/`gardenId`. Un builder dedicato mantiene entrambi gli scope fino al mapper, valida numero albero e varieta' prima dell'insert e applica default di stato espliciti. Se il bulk fallisce, la configurazione appena creata viene compensata; un doppio fallimento resta esplicito. I mapper Supabase usano contratti derivati dai tipi dominio. | Scope garden/frutteto presenti nel bulk insert; nessuna identita' inventata; nessun frutteto parziale silenzioso; regressioni persistenti verdi; servizio 0 warning |
-| O59 | M09 | `[L]` Convergere il servizio alberelli vivo sul solo contratto `sapling_batches`/`sapling_items` e rendere atomiche creazione, resize, stato e messa a dimora. **Schema Production pronto 28/07/2026:** migrazione `20260728070000` applicata e registrata dopo inventario del drift reale; history/tabelle/quattro RPC/RLS/permessi verdi, `batches_without_items=0`. Codice e regressioni pronti, manca il deploy applicativo. | Deploy codice Production; creazione, zero residuo, resize, stato, planting e foto persistono al reload; regressioni verdi |
+| O59 | M09 | ~~Convergere il servizio alberelli vivo sul solo contratto `sapling_batches`/`sapling_items` e rendere atomiche creazione, resize, stato e messa a dimora~~ **Chiuso 28/07/2026:** migrazione `20260728070000` applicata e registrata dopo inventario del drift reale; history/tabelle/quattro RPC/RLS/permessi verdi, `batches_without_items=0`. PR #96 unita (`14069cc`) e deploy Vercel Production verde. | Schema e codice Production coerenti; zero ID o dati inventati; creazione/resize/stato/planting atomici; errori distinti dal dataset vuoto; regressioni verdi |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -794,7 +793,8 @@ esteso e backfillato il `sapling_batches` legacy senza eliminare dati, creato
 items/timeline e mantenuto sincronizzati i campi legacy. Versione
 `20260728070000` registrata; probe indipendente:
 history/tabelle/quattro RPC/RLS/permessi tutti verdi e
-`batches_without_items=0`. O59 resta `[L]` soltanto fino al deploy del codice.
+`batches_without_items=0`. PR #96 unita in `main` (`14069cc`) e deploy Vercel
+Production verde: O59 e' chiuso.
 
 ## 6. Verifica trasversale dopo M15
 
@@ -811,8 +811,7 @@ Eseguita il 24/07/2026 sulla baseline locale:
 Ordine operativo aggiornato al 28/07/2026:
 
 1. pubblicare questo cruscotto come fonte unica dello stato;
-2. applicare e provare lo schema O59, poi riprendere T01 dal lotto 43 sul
-   successivo percorso vivo;
+2. riprendere T01 dal lotto 43 sul successivo percorso vivo;
 3. chiudere O48 per la parte implementabile senza credenziali provider;
 4. registrare e decidere i gap di prodotto gia' diagnosticati, senza
    riaprirli incidentalmente durante altri lotti;
