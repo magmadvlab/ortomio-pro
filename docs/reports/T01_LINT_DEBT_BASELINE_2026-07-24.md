@@ -553,3 +553,29 @@ Verifiche: lint mirato 0/0, type-check verde, capability 23/23; lint globale
 | Warning | 1898 |
 | Riduzione lotto | 10 |
 | Riduzione dalla baseline operativa 2642 | 744 |
+
+## Lotto 36 / O53 (28/07/2026) - chiuso
+
+La route viva `app/app/nutrition/page.tsx` e
+`components/nutrition/NutritionStatsWidget.tsx` sono state portate da 13
+warning complessivi a zero. Il wizard di configurazione duplicato, mai
+renderizzato e gia' sostituito dal `TreatmentPlanner` persistente, e' stato
+rimosso insieme ai due rami `schedule` irraggiungibili.
+
+La scheda Bio/Tradizionale non riceve piu' array vuoti costanti: legge
+`treatment_register` e `fertilizer_inventory` tramite il provider corrente. Il
+calcolo puro usa i contratti persistiti `treatment_type`,
+`organic_approved` e `product_type`; a dataset vuoto le percentuali sono `n/d`,
+mentre un errore di lettura produce uno stato esplicito e non zeri simulati.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 25/25; lint globale
+**0 errori e 1.885 warning** (`1.898 -> 1.885`).
+
+## Stato dopo il lotto 36
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1885 |
+| Riduzione lotto | 13 |
+| Riduzione dalla baseline operativa 2642 | 757 |

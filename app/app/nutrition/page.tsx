@@ -8,12 +8,11 @@ import TreatmentPlanner from '@/components/nutrition/TreatmentPlanner'
 import NutritionAnalytics from '@/components/nutrition/NutritionAnalytics'
 import InventoryManager from '@/components/nutrition/InventoryManager'
 import type { TreatmentPlannerLaunchRequest } from '@/components/nutrition/TreatmentPlanner'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, X, ArrowLeft, ArrowRight, MapPin, Settings } from 'lucide-react'
+import { FlaskConical, Droplets, Leaf, Calendar, Plus, BarChart3, Settings } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { Garden } from '@/types'
-import LocationSelector from '@/components/shared/LocationSelector'
+import type { FertilizerInventoryItemDB, Garden, TreatmentRecordDB } from '@/types'
 import TaskExecutionBanner from '@/components/shared/TaskExecutionBanner'
 import type { TaskExecutionContext } from '@/services/taskExecutionLaunchService'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
@@ -22,37 +21,28 @@ import {
   parseTaskExecutionContext,
 } from '@/services/taskExecutionOrchestratorService'
 
-interface TreatmentConfig {
-  id: string
-  gardenId: string
-  gardenName: string
-  zoneId?: string
-  zoneName?: string
-  fieldRowId?: string
-  fieldRowName?: string
-  sectionId?: string
-  sectionName?: string
-  treatmentType: 'fertilizer' | 'pesticide' | 'fungicide' | 'herbicide' | 'foliar' | 'organic'
-  productName: string
-  concentration: number // g/L or ml/L
-  applicationRate: number // L/ha or g/m²
-  applicationMethod: 'spray' | 'drip' | 'granular' | 'foliar' | 'soil'
-  schedule: {
-    frequency: 'weekly' | 'biweekly' | 'monthly' | 'seasonal' | 'custom'
-    startDate: string
-    endDate?: string
-    times: string[] // HH:MM format
-    daysOfWeek?: number[] // 0-6, Sunday = 0
-  }
-  notes?: string
-}
+type NutritionTab = 'dashboard' | 'overview' | 'products' | 'treatments' | 'analytics' | 'inventory'
+
+const DESKTOP_TABS = [
+  { id: 'dashboard', label: 'Dashboard Pro', icon: Settings },
+  { id: 'overview', label: 'Panoramica', icon: BarChart3 },
+  { id: 'products', label: 'Prodotti', icon: FlaskConical },
+  { id: 'treatments', label: 'Trattamenti', icon: Droplets },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'inventory', label: 'Inventario', icon: Calendar },
+] satisfies Array<{ id: NutritionTab; label: string; icon: typeof Settings }>
+
+const MOBILE_PRIMARY_TABS = DESKTOP_TABS.slice(0, 3)
+const MOBILE_SECONDARY_TABS = DESKTOP_TABS.slice(3)
 
 export default function NutritionPage() {
   const { storageProvider } = useStorage()
   const searchParams = useSearchParams()
-  const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'overview' | 'products' | 'treatments' | 'schedule' | 'analytics' | 'inventory'>('dashboard')
+  const [activeTab, setActiveTab] = useState<NutritionTab>('dashboard')
+  const [nutritionTreatments, setNutritionTreatments] = useState<TreatmentRecordDB[] | null>(null)
+  const [fertilizerInventory, setFertilizerInventory] = useState<FertilizerInventoryItemDB[] | null>(null)
+  const [nutritionStatsLoading, setNutritionStatsLoading] = useState(false)
   const [plannerLaunchRequest, setPlannerLaunchRequest] = useState<TreatmentPlannerLaunchRequest | null>(null)
   const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
   const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
@@ -61,7 +51,6 @@ export default function NutritionPage() {
     const loadGardens = async () => {
       try {
         const loadedGardens = await storageProvider.getGardens()
-        setGardens(loadedGardens)
         if (loadedGardens.length > 0) {
           const resolved = await resolveGardenContext(storageProvider, loadedGardens[0].id).catch(() => null)
           setActiveGarden(resolved?.garden || loadedGardens[0])
@@ -73,7 +62,7 @@ export default function NutritionPage() {
     loadGardens()
   }, [storageProvider])
 
-  const resumeTaskAwarePlanner = (context: TaskExecutionContext) => {
+  const resumeTaskAwarePlanner = useCallback((context: TaskExecutionContext) => {
     if (!activeGarden) {
       return
     }
@@ -81,7 +70,7 @@ export default function NutritionPage() {
     const bootstrapState = buildNutritionExecutionBootstrapState(context, activeGarden.id)
     setActiveTab(bootstrapState.activeTab)
     setPlannerLaunchRequest(bootstrapState.plannerLaunchRequest)
-  }
+  }, [activeGarden])
 
   useEffect(() => {
     if (!activeGarden) {
@@ -96,7 +85,43 @@ export default function NutritionPage() {
     setTaskExecutionContext(context)
     resumeTaskAwarePlanner(context)
     setConsumedLaunchSignature(context.sourceTaskId)
-  }, [activeGarden, searchParams, consumedLaunchSignature])
+  }, [activeGarden, searchParams, consumedLaunchSignature, resumeTaskAwarePlanner])
+
+  useEffect(() => {
+    if (!activeGarden) {
+      setNutritionTreatments(null)
+      setFertilizerInventory(null)
+      return
+    }
+
+    let cancelled = false
+    const loadNutritionStats = async () => {
+      setNutritionStatsLoading(true)
+      try {
+        const [treatments, fertilizers] = await Promise.all([
+          storageProvider.getTreatments(activeGarden.id),
+          storageProvider.getFertilizerInventory(activeGarden.id),
+        ])
+        if (!cancelled) {
+          setNutritionTreatments(treatments)
+          setFertilizerInventory(fertilizers)
+        }
+      } catch (error) {
+        console.error('Error loading nutrition statistics:', error)
+        if (!cancelled) {
+          setNutritionTreatments(null)
+          setFertilizerInventory(null)
+        }
+      } finally {
+        if (!cancelled) setNutritionStatsLoading(false)
+      }
+    }
+
+    void loadNutritionStats()
+    return () => {
+      cancelled = true
+    }
+  }, [activeGarden, storageProvider])
   
   // Navigation handlers for Professional Dashboard
   const handleNavigateToProducts = () => {
@@ -152,19 +177,12 @@ export default function NutritionPage() {
         <div className="border-b border-gray-200">
           {/* Desktop: Single row */}
           <nav className="hidden md:flex -mb-px space-x-8">
-            {[
-              { id: 'dashboard', label: 'Dashboard Pro', icon: Settings },
-              { id: 'overview', label: 'Panoramica', icon: BarChart3 },
-              { id: 'products', label: 'Prodotti', icon: FlaskConical },
-              { id: 'treatments', label: 'Trattamenti', icon: Droplets },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-              { id: 'inventory', label: 'Inventario', icon: Calendar }
-            ].map((tab) => {
+            {DESKTOP_TABS.map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
                     activeTab === tab.id
                       ? 'border-green-500 text-green-600'
@@ -182,16 +200,12 @@ export default function NutritionPage() {
           <div className="md:hidden">
             {/* First row - Main tabs */}
             <nav className="flex space-x-4 border-b border-gray-100 -mb-px">
-              {[
-                { id: 'dashboard', label: 'Dashboard Pro', icon: Settings },
-                { id: 'overview', label: 'Panoramica', icon: BarChart3 },
-                { id: 'products', label: 'Prodotti', icon: FlaskConical }
-              ].map((tab) => {
+              {MOBILE_PRIMARY_TABS.map((tab) => {
                 const Icon = tab.icon
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600'
@@ -207,16 +221,12 @@ export default function NutritionPage() {
 
             {/* Second row - Additional tabs */}
             <nav className="flex space-x-4 -mb-px">
-              {[
-                { id: 'treatments', label: 'Trattamenti', icon: Droplets },
-                { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-                { id: 'inventory', label: 'Inventario', icon: Calendar }
-              ].map((tab) => {
+              {MOBILE_SECONDARY_TABS.map((tab) => {
                 const Icon = tab.icon
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600'
@@ -252,8 +262,9 @@ export default function NutritionPage() {
           )}
           
           <NutritionStatsWidget 
-            treatments={[]} 
-            fertilizers={[]} 
+            treatments={nutritionTreatments}
+            fertilizers={fertilizerInventory}
+            loading={nutritionStatsLoading}
           />
           
           {/* Azioni Rapide */}
@@ -323,444 +334,6 @@ export default function NutritionPage() {
       {activeTab === 'inventory' && activeGarden && (
         <InventoryManager garden={activeGarden} />
       )}
-      {activeTab === 'schedule' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <FlaskConical className="mx-auto mb-4 text-green-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Gestione Trattamenti</h2>
-            <p className="text-gray-600 mb-6">
-              Programma e monitora i trattamenti nutrizionali delle tue piante
-            </p>
-            <button 
-              onClick={() => openPlanner({ viewMode: 'treatments' })}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Aggiungi Trattamento
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'schedule' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12">
-            <Calendar className="mx-auto mb-4 text-blue-500" size={48} />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Calendario Trattamenti</h2>
-            <p className="text-gray-600 mb-6">
-              Le programmazioni sono ora integrate nella sezione Trattamenti
-            </p>
-            <button 
-              onClick={() => setActiveTab('treatments')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Vai ai Trattamenti
-            </button>
-          </div>
-        </div>
-      )}
-
-    </div>
-  )
-}
-
-// Treatment Configuration Wizard Component
-interface TreatmentConfigWizardProps {
-  gardens: Garden[]
-  onClose: () => void
-  onSave: (config: TreatmentConfig) => void
-}
-
-function TreatmentConfigWizard({ gardens, onClose, onSave }: TreatmentConfigWizardProps) {
-  const [step, setStep] = useState<'garden' | 'location' | 'treatment' | 'schedule'>('garden')
-  const [selectedGarden, setSelectedGarden] = useState<Garden | null>(null)
-  const [selectedLocation, setSelectedLocation] = useState<any>(null)
-  const [treatmentConfig, setTreatmentConfig] = useState({
-    treatmentType: 'fertilizer' as const,
-    productName: '',
-    concentration: 0,
-    applicationRate: 0,
-    applicationMethod: 'spray' as const,
-    notes: ''
-  })
-  const [scheduleConfig, setScheduleConfig] = useState({
-    frequency: 'weekly' as const,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    times: ['08:00'],
-    daysOfWeek: [1, 2, 3, 4, 5, 6, 0] // All days
-  })
-
-  const handleNext = () => {
-    if (step === 'garden' && selectedGarden) {
-      setStep('location')
-    } else if (step === 'location') {
-      setStep('treatment')
-    } else if (step === 'treatment') {
-      setStep('schedule')
-    }
-  }
-
-  const handleBack = () => {
-    if (step === 'location') {
-      setStep('garden')
-    } else if (step === 'treatment') {
-      setStep('location')
-    } else if (step === 'schedule') {
-      setStep('treatment')
-    }
-  }
-
-  const handleSave = () => {
-    if (!selectedGarden) return
-
-    const config: TreatmentConfig = {
-      id: crypto.randomUUID(),
-      gardenId: selectedGarden.id,
-      gardenName: selectedGarden.name,
-      zoneId: selectedLocation?.zoneId,
-      zoneName: selectedLocation?.zoneName,
-      fieldRowId: selectedLocation?.fieldRowId,
-      fieldRowName: selectedLocation?.fieldRowName,
-      sectionId: selectedLocation?.sectionId,
-      sectionName: selectedLocation?.sectionName,
-      ...treatmentConfig,
-      schedule: scheduleConfig
-    }
-
-    onSave(config)
-  }
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose()
-    }
-  }
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
-    >
-      <div 
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Configura Trattamento</h2>
-            <p className="text-sm text-gray-600">
-              {step === 'garden' && 'Seleziona il giardino'}
-              {step === 'location' && 'Scegli zona o filare'}
-              {step === 'treatment' && 'Configura trattamento'}
-              {step === 'schedule' && 'Imposta programmazione'}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {/* Step 1: Garden Selection */}
-          {step === 'garden' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleziona Giardino</h3>
-              
-              {gardens.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Nessun giardino disponibile</p>
-                  <p className="text-sm text-gray-500 mt-2">Crea un giardino per configurare i trattamenti</p>
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {gardens.map((garden) => (
-                    <button
-                      key={garden.id}
-                      onClick={() => setSelectedGarden(garden)}
-                      className={`p-4 border-2 rounded-lg text-left transition-all ${
-                        selectedGarden?.id === garden.id
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-green-600" size={20} />
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{garden.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            {(garden as any).location || 'Posizione non specificata'}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Location Selection */}
-          {step === 'location' && selectedGarden && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleziona Area di Trattamento</h3>
-              
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-green-800">
-                  <strong>Giardino selezionato:</strong> {selectedGarden.name}
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Scegli zona, filare o porzione specifica
-                  </label>
-                  <LocationSelector
-                    garden={selectedGarden}
-                    onLocationChange={(location) => {
-                      setSelectedLocation(location)
-                    }}
-                    placeholder="Seleziona area da trattare..."
-                  />
-                </div>
-
-                {selectedLocation && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-sm text-green-800">
-                      <strong>Area selezionata:</strong> {selectedLocation.fullLocationName}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Treatment Configuration */}
-          {step === 'treatment' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Configura Trattamento</h3>
-              
-              {/* Treatment Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo di Trattamento
-                </label>
-                <select
-                  value={treatmentConfig.treatmentType}
-                  onChange={(e) => setTreatmentConfig(prev => ({ ...prev, treatmentType: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="fertilizer">Fertilizzante</option>
-                  <option value="pesticide">Pesticida</option>
-                  <option value="fungicide">Fungicida</option>
-                  <option value="herbicide">Erbicida</option>
-                  <option value="foliar">Concime Fogliare</option>
-                  <option value="organic">Trattamento Biologico</option>
-                </select>
-              </div>
-
-              {/* Product Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome Prodotto
-                </label>
-                <input
-                  type="text"
-                  value={treatmentConfig.productName}
-                  onChange={(e) => setTreatmentConfig(prev => ({ ...prev, productName: e.target.value }))}
-                  placeholder="Es: NPK 20-20-20, Rame ossicloruro..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              {/* Concentration and Application Rate */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Concentrazione (g/L o ml/L)
-                  </label>
-                  <input
-                    type="number"
-                    value={treatmentConfig.concentration}
-                    onChange={(e) => setTreatmentConfig(prev => ({ ...prev, concentration: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dose Applicazione (L/ha o g/m²)
-                  </label>
-                  <input
-                    type="number"
-                    value={treatmentConfig.applicationRate}
-                    onChange={(e) => setTreatmentConfig(prev => ({ ...prev, applicationRate: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-
-              {/* Application Method */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Metodo di Applicazione
-                </label>
-                <select
-                  value={treatmentConfig.applicationMethod}
-                  onChange={(e) => setTreatmentConfig(prev => ({ ...prev, applicationMethod: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="spray">Irrorazione</option>
-                  <option value="drip">Fertirrigazione</option>
-                  <option value="granular">Granulare</option>
-                  <option value="foliar">Fogliare</option>
-                  <option value="soil">Al Terreno</option>
-                </select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Note (opzionale)
-                </label>
-                <textarea
-                  value={treatmentConfig.notes}
-                  onChange={(e) => setTreatmentConfig(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Note aggiuntive sul trattamento..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Schedule Configuration */}
-          {step === 'schedule' && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Programmazione Trattamento</h3>
-              
-              {/* Frequency */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Frequenza
-                </label>
-                <select
-                  value={scheduleConfig.frequency}
-                  onChange={(e) => setScheduleConfig(prev => ({ ...prev, frequency: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="weekly">Settimanale</option>
-                  <option value="biweekly">Ogni 2 settimane</option>
-                  <option value="monthly">Mensile</option>
-                  <option value="seasonal">Stagionale</option>
-                  <option value="custom">Personalizzata</option>
-                </select>
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Data Inizio
-                </label>
-                <input
-                  type="date"
-                  value={scheduleConfig.startDate}
-                  onChange={(e) => setScheduleConfig(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              {/* End Date (optional) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Data Fine (opzionale)
-                </label>
-                <input
-                  type="date"
-                  value={scheduleConfig.endDate}
-                  onChange={(e) => setScheduleConfig(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              {/* Times */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Orari di Applicazione
-                </label>
-                <div className="space-y-2">
-                  {scheduleConfig.times.map((time, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        value={time}
-                        onChange={(e) => {
-                          const newTimes = [...scheduleConfig.times]
-                          newTimes[index] = e.target.value
-                          setScheduleConfig(prev => ({ ...prev, times: newTimes }))
-                        }}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      />
-                      {scheduleConfig.times.length > 1 && (
-                        <button
-                          onClick={() => {
-                            const newTimes = scheduleConfig.times.filter((_, i) => i !== index)
-                            setScheduleConfig(prev => ({ ...prev, times: newTimes }))
-                          }}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <X size={16} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      setScheduleConfig(prev => ({ ...prev, times: [...prev.times, '12:00'] }))
-                    }}
-                    className="flex items-center gap-2 text-green-600 hover:text-green-800 text-sm"
-                  >
-                    <Plus size={16} />
-                    Aggiungi Orario
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 bg-gray-50 px-6 py-4 flex justify-between">
-          <button
-            onClick={step === 'garden' ? onClose : handleBack}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={16} />
-            {step === 'garden' ? 'Annulla' : 'Indietro'}
-          </button>
-          
-          <button
-            onClick={step === 'schedule' ? handleSave : handleNext}
-            disabled={
-              (step === 'garden' && !selectedGarden) ||
-              (step === 'treatment' && !treatmentConfig.productName)
-            }
-            className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {step === 'schedule' ? 'Salva Trattamento' : 'Avanti'}
-            {step !== 'schedule' && <ArrowRight size={16} />}
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
