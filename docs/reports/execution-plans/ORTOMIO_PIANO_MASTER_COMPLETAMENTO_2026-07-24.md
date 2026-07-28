@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O61 | **14** | **0** | **3** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`) e O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **944 warning rimossi** | — | **1.698 warning** | Baseline operativa 2.642 -> 1.698 in 45 lotti. T01 non equivale a 1.698 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **962 warning rimossi** | — | **1.680 warning** | Baseline operativa 2.642 -> 1.680 in 46 lotti. T01 non equivale a 1.680 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -912,6 +912,50 @@ gia' registrati.
 Baseline globale verificata: **0 errori, 1.698 warning** (`1.717 -> 1.698`);
 persistenza mirata (`plantRowSyncIntegrity.test.ts`) 2/2, suite `test:release`
 434/434 (9 suite), type-check e build produzione 153/153 pagine verdi.
+
+### Aggiornamento T01 - lotto 46 (28/07/2026)
+
+Alla parita' a 18 warning tra `services/unifiedAgronomicMemoryService.ts`,
+`services/directorService.ts`, `components/orchard/TreeManager.tsx` e
+`components/garden/ListView.tsx`, verificata la raggiungibilita': `ListView.tsx`
+ha zero importer (conferma della nota gia' registrata nel lotto 22, candidato
+codice morto M05); `TreeManager.tsx` e' vivo (`/app/orchard`, `/app/olives`)
+ed era gia' stato segnalato nel lotto 11 come rinviato a un lotto dedicato per
+la sua estensione e complessita'.
+
+Il lotto 46 e' stato eseguito su `components/orchard/TreeManager.tsx`
+(2645 righe), da 18 warning a zero. Due `as any` sulla creazione bulk alberi
+erano superflui: `treesToCreate` era gia' tipizzato correttamente e
+`bulkCreateTrees` si aspettava esattamente quel tipo, senza alcun cast
+necessario. Introdotte interfacce locali (`OrchestratorOperationRecord`,
+`GardenCoordinateSource`, `FieldRowConfigSource`, `RowIrrigationConfigSource`,
+`QuickEntryContextSnapshot`) per modellare fedelmente le letture difensive
+gia' esistenti su oggetti multi-sorgente (operazioni orchestratore con doppio
+nome di campo, config irrigazione filare, coordinate giardino con formati
+legacy) senza cambiarne il comportamento. Il canale `operationDetails`
+allegato al contesto operazione - gia' scritto e riletto nel file ma non
+modellato dal tipo condiviso `PlantOperation['context']` - resta gestito con
+un cast esplicito verso il tipo locale invece di un `any` generico; estendere
+`PlantOperation['context']` stesso e' fuori perimetro per questo lotto
+(tipo condiviso, impatto su tutti i consumer).
+
+Corretti anche i tre `react-hooks/exhaustive-deps`: `loadTreePhotos`,
+`loadTimeline` e la stima idrica sono stati avvolti in `useCallback` con le
+dipendenze reali (inclusi gli helper `parseNumber`, `getRowIrrigationConfig`,
+`mapSourceFromOperation`, `getWeatherSummary`, `getGeoSummary`, anch'essi
+stabilizzati) cosi' che gli effect corrispondenti dipendano dalla funzione
+memoizzata invece che da un array di dipendenze incompleto; nessun nuovo
+rischio di loop, verificato leggendo l'intera catena di dipendenze.
+
+**Verifica non eseguibile in browser:** il refactor degli hook e' stato
+controllato solo a livello statico (type-check, lint, build, lettura
+completa del diff) - il server di sviluppo richiede credenziali applicative
+non disponibili in questa sessione per verificare interattivamente la pagina
+Frutteto.
+
+Baseline globale verificata: **0 errori, 1.680 warning** (`1.698 -> 1.680`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione
+153/153 pagine verdi.
 
 ## 6. Verifica trasversale dopo M15
 
