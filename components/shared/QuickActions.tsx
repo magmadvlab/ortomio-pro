@@ -13,14 +13,12 @@ interface QuickAction {
 }
 
 interface QuickActionsProps {
-  gardenId?: string
   onNewSowing?: () => void
   onRecordHarvest?: () => void
   onReportIssue?: () => void
 }
 
 export function QuickActions({
-  gardenId,
   onNewSowing,
   onRecordHarvest,
   onReportIssue,
@@ -52,7 +50,7 @@ export function QuickActions({
         if (onRecordHarvest) {
           onRecordHarvest()
         } else {
-          router.push('/app/progress?tab=harvests')
+          router.push('/app/harvest')
         }
       },
       color: 'bg-orange-500 hover:bg-orange-600',

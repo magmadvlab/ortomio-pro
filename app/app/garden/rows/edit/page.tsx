@@ -7,7 +7,7 @@ import { Garden } from '@/types'
 import { ArrowLeft, Save, Droplets, AlertCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { CultivationSelector } from '@/components/settings/CultivationSelector'
-import type { FieldRow } from '@/types/fieldRow'
+import type { FieldRow, FieldRowAxis } from '@/types/fieldRow'
 
 export default function EditFieldRowPage() {
   const { storageProvider } = useStorage()
@@ -568,7 +568,7 @@ export default function EditFieldRowPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Orientamento filare</label>
                   <select
                     value={fieldRowForm.orientation}
-                    onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as any })}
+                    onChange={(e) => setFieldRowForm({ ...fieldRowForm, orientation: e.target.value as FieldRowAxis })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     <option value="">Non specificato</option>
@@ -621,7 +621,7 @@ export default function EditFieldRowPage() {
                             ...fieldRowForm,
                             irrigationConfig: {
                               ...fieldRowForm.irrigationConfig,
-                              irrigationType: e.target.value as any
+                              irrigationType: e.target.value as typeof fieldRowForm.irrigationConfig.irrigationType
                             }
                           }
                           setFieldRowForm(updateIrrigationCalculations(newForm))
@@ -763,7 +763,7 @@ export default function EditFieldRowPage() {
                               ...fieldRowForm.irrigationConfig,
                               schedule: {
                                 ...fieldRowForm.irrigationConfig.schedule,
-                                frequency: e.target.value as any
+                                frequency: e.target.value as typeof fieldRowForm.irrigationConfig.schedule.frequency
                               }
                             }
                           })}

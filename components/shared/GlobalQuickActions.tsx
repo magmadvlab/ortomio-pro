@@ -100,7 +100,7 @@ export function GlobalQuickActions() {
       icon: ShoppingBasket,
       color: 'bg-orange-500',
       action: () => {
-          router.push('/app/progress?tab=harvests&action=add')
+          router.push('/app/harvest?action=add')
         setIsOpen(false)
       }
     }
@@ -195,4 +195,3 @@ export function GlobalQuickActions() {
     </div>
   )
 }
-

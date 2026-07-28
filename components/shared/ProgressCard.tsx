@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { GardenTask } from '@/types'
-import { Trophy, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
+import { Trophy } from 'lucide-react'
 
 interface ProgressCardProps {
   tasks: GardenTask[]
@@ -81,8 +80,7 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
   const progressPercentage = Math.min((challengeProgress.progress / challengeProgress.target) * 100, 100)
 
   return (
-    <Link href="/app/progress?tab=achievements" className="block">
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-3">
           <Trophy className="text-amber-500" size={18} />
           Prossimo Traguardo
@@ -114,9 +112,7 @@ export function ProgressCard({ tasks, gardenId }: ProgressCardProps) {
           <span className="text-xs text-gray-500">
             {challengeProgress.isCompleted ? 'Completato!' : `${challengeProgress.target - challengeProgress.progress} rimanenti`}
           </span>
-          <ArrowRight size={16} className="text-gray-400" />
         </div>
       </div>
-    </Link>
   )
 }

@@ -2,10 +2,9 @@
 
 import React, { useState } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Sprout, Calendar, ShoppingBasket, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { AddCropWizard } from '../crops/AddCropWizard'
 import { useRouter } from 'next/navigation'
-import { useTier } from '@/packages/core/hooks/useTier'
 import { getAllArchetypes } from '@/services/archetypeService'
 
 interface AddItemModalProps {
@@ -18,7 +17,6 @@ interface AddItemModalProps {
 
 export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate }: AddItemModalProps) {
   const router = useRouter()
-  const { isPro } = useTier()
   const [selectedOption, setSelectedOption] = useState<'plant' | 'task' | 'harvest' | null>(null)
   const [showCropWizard, setShowCropWizard] = useState(false)
 
@@ -30,7 +28,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate 
     if (option === 'plant' || option === 'task') {
       setShowCropWizard(true)
     } else if (option === 'harvest') {
-      router.push('/app/progress?tab=harvests&action=add')
+      router.push('/app/harvest?action=add')
       onClose()
     }
   }
@@ -96,7 +94,6 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate 
     <div 
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4"
       onClick={(e) => {
-        console.log('Overlay clicked!', e.target === e.currentTarget)
         if (e.target === e.currentTarget) {
           onClose()
         }
@@ -120,7 +117,6 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate 
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              console.log('Close button clicked!')
               onClose()
             }}
             className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors shadow-sm border border-gray-300 touch-manipulation z-10"

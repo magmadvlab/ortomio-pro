@@ -432,6 +432,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O33 | M13 | Definire SLA, costi, monitoraggio e kill switch | Runbook provider approvato |
 | O48 | M13 | Proteggere le credenziali provider: sostituire il Base64 di `api_configurations` con cifratura autenticata a riposo, migrare/ruotare i valori esistenti e spostare ogni chiamata provider dietro endpoint server-side; oggi la route per servizio restituisce la chiave decodificata al client e gli adapter browser la usano direttamente. | Nessun segreto provider in payload/browser; cifratura autenticata e rotazione verificate; provider reali funzionanti soltanto server-side |
 | O49 | M14 | ~~Rendere atomici quota tecnica AI e ledger~~ **Chiuso 28/07/2026:** migrazione Production `20260728050000_atomic_ai_credit_consumption.sql` applicata e registrata; RPC service-role-only aggiorna `profiles.ai_credits_used` e inserisce `ai_credit_transactions` nella stessa transazione. Revocata ai client anche la vecchia `deduct_credits`. Le cinque route vive usano esclusivamente il nuovo adapter, derivano i costi dal catalogo server e non inventano piu' saldo `999` senza Supabase. Probe remoto anon: `401/42501 permission denied`; colonne ledger `HTTP 200`. | Nessun successo AI senza quota+ledger coerenti; RPC non invocabile dal client; saldo sempre autorevole |
+| O50 | Trasversale | ~~Eliminare le azioni vive verso `/app/progress`, route inesistente~~ **Chiuso 28/07/2026:** modale Aggiungi, quick action globale e quick action dashboard convergono su `/app/harvest`; `?action=add` apre realmente il modal di registrazione. Il riquadro traguardo, privo di una pagina dettaglio canonica, non finge piu' di essere navigabile. Regressione capability dedicata. | Zero destinazioni `/app/progress` nei quattro consumer vivi; creazione raccolto raggiungibile e modal aperto |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -554,6 +555,24 @@ sistemi di allevamento vengono normalizzati al contratto vigneto, usando
 
 Baseline globale verificata: **0 errori, 1.923 warning** (`1.939 -> 1.923`);
 lint mirato e type-check verdi; regressione mapping 2/2.
+
+### Aggiornamento T01 - lotto 33 / O50 (28/07/2026)
+
+Il lotto 33 porta a zero warning `AddItemModal.tsx`,
+`QuickActions.tsx` e la route viva di modifica filari, per una riduzione di 8
+warning. I select del filare usano le union reali di orientamento, irrigazione
+e frequenza.
+
+Durante la selezione sono state trovate quattro navigazioni vive verso
+`/app/progress`, route non esistente: due comandi di registrazione raccolto, un
+accesso ai raccolti e il riquadro traguardo. O50 e' chiuso convergendo le azioni
+su `/app/harvest`; `?action=add` apre davvero `HarvestRegistrationModal`. Il
+riquadro traguardo resta informativo e non mostra piu' una falsa affordance di
+navigazione. Una regressione capability verifica l'assenza della route rimossa
+nei consumer e il contratto di apertura del modal.
+
+Baseline globale verificata: **0 errori, 1.915 warning** (`1.923 -> 1.915`);
+lint mirato e type-check verdi; capability 20/20.
 
 ## 6. Verifica trasversale dopo M15
 

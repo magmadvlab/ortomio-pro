@@ -70,3 +70,20 @@ test('legacy technical routes redirect to their classified canonical entry', () 
     assert.match(source, new RegExp(`redirect\\(['\"]${item.canonicalEntry.replaceAll('/', '\\/')}['\"]\\)`))
   }
 })
+
+test('live quick actions never target the removed progress route', () => {
+  const quickActionFiles = [
+    'components/garden/AddItemModal.tsx',
+    'components/shared/GlobalQuickActions.tsx',
+    'components/shared/QuickActions.tsx',
+    'components/shared/ProgressCard.tsx',
+  ]
+
+  for (const file of quickActionFiles) {
+    assert.doesNotMatch(readFileSync(join(root, file), 'utf8'), /\/app\/progress/)
+  }
+
+  const harvestPage = readFileSync(pagePath('/app/harvest'), 'utf8')
+  assert.match(harvestPage, /searchParams\.get\(['"]action['"]\) === ['"]add['"]/)
+  assert.match(harvestPage, /openCreate=/)
+})
