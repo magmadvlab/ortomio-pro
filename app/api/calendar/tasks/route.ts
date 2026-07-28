@@ -11,6 +11,20 @@ import {
   parseOperationalDate,
   parseOperationalRangeEnd,
 } from '@/lib/calendar/romeRecurrence';
+import type { OperationalRecurringPattern } from '@/lib/calendar/romeRecurrence';
+
+type CalendarTaskRow = {
+  id: string;
+  start_date: string;
+  recurring?: boolean | null;
+  recurring_pattern?: OperationalRecurringPattern | null;
+  [key: string]: unknown;
+};
+
+type ExpandedCalendarTask = CalendarTaskRow & {
+  isRecurringInstance?: true;
+  originalTaskId?: string;
+};
 
 // GET /api/calendar/tasks?start_date=&end_date=
 export async function GET(request: NextRequest) {
@@ -35,7 +49,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Espandi task ricorrenti
-    const expandedTasks = await expandRecurringTasks(data || [], startDate, endDate);
+    const expandedTasks = expandRecurringTasks(
+      (data || []) as CalendarTaskRow[],
+      startDate,
+      endDate
+    );
     
     return NextResponse.json({ tasks: expandedTasks });
   } catch (error) {
@@ -239,12 +257,12 @@ export async function DELETE(request: NextRequest) {
 /**
  * Espande task ricorrenti calcolando prossime occorrenze
  */
-async function expandRecurringTasks(
-  tasks: any[],
+function expandRecurringTasks(
+  tasks: CalendarTaskRow[],
   startDate?: string | null,
   endDate?: string | null
-): Promise<any[]> {
-  const expanded: any[] = [];
+): ExpandedCalendarTask[] {
+  const expanded: ExpandedCalendarTask[] = [];
   
   for (const task of tasks) {
     const taskInstant = parseOperationalDate(task.start_date).getTime();

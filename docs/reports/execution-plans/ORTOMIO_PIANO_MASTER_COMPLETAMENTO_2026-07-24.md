@@ -302,6 +302,7 @@ Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la releas
 - **Risultato parziale:** smoke Open-Meteo reale verde con timezone Europe/Rome e serie richieste; Sentinel e ThingsBoard rilevati come non configurati e non chiamati.
 - **Evidenza:** commit `a8b082a` e `M13_PROVIDER_SMOKE_2026-07-24.md`.
 - **Residuo:** contract test periodico, scelta di un provider avanzato, credenziali staging, SLA/costi/owner.
+- **Gap credenziali rilevato il 28/07/2026 durante T01 lotto 29 (`O48`):** `api_configurations` non applica cifratura reale a riposo ma soltanto Base64; la route autenticata per servizio decodifica e restituisce la chiave in chiaro al browser, dove gli adapter AI e meteo la consumano direttamente. Il flusso resta intatto in questo lotto per non interrompere i provider: la chiusura richiede migrazione cifrata, rotazione e chiamate provider esclusivamente server-side, non una correzione lint.
 
 ### M14 - Direttore, regole agronomiche e AI in shadow
 
@@ -429,6 +430,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O31 | M13 | Scegliere Sentinel oppure ThingsBoard e assegnare owner | Decisione e perimetro registrati |
 | O32 | M13 | Configurare credenziali e smoke staging | Provider reale osservabile |
 | O33 | M13 | Definire SLA, costi, monitoraggio e kill switch | Runbook provider approvato |
+| O48 | M13 | Proteggere le credenziali provider: sostituire il Base64 di `api_configurations` con cifratura autenticata a riposo, migrare/ruotare i valori esistenti e spostare ogni chiamata provider dietro endpoint server-side; oggi la route per servizio restituisce la chiave decodificata al client e gli adapter browser la usano direttamente. | Nessun segreto provider in payload/browser; cifratura autenticata e rotazione verificate; provider reali funzionanti soltanto server-side |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -508,6 +510,14 @@ Durante la selezione, `services/fieldRowPredictiveService.ts` (35 warning) e' st
 Il lotto 28 porta a zero warning sei route cron Production: `weekly-photo-reminders`, `germination-check`, `task-reminders`, `weather-alerts`, `daily-diary` e `reset-credits` (11 warning complessivi). Oltre a rimuovere import morti e `any`, uniforma tutti i job al guard centrale `requireCron`: confronto timing-safe, rifiuto quando `CRON_SECRET` e' assente, validazione timestamp e blocco replay. Quattro route confrontavano direttamente l'header con ``Bearer ${CRON_SECRET}`` senza prima garantire che il secret esistesse, rendendo accettabile la stringa `Bearer undefined` in una configurazione errata. I catch preservano ora anche lo status `409` del replay invece di appiattirlo a `401/500`. Aggiunta una regressione che impone il guard canonico a tutte e sei le route.
 
 Baseline globale verificata: **0 errori, 1.963 warning** (`1.974 -> 1.963`); test sicurezza/observability 17/17, lint mirato, type-check e diff-check verdi.
+
+### Aggiornamento T01 - lotto 29 (28/07/2026)
+
+Il lotto 29 porta a zero warning quattro endpoint Production (`auth/register`, `calendar/tasks`, `mechanical-work`, `treatments`), per una riduzione complessiva di 10 warning. La registrazione non scrive piu' nei log il body sanificato, che includeva comunque la password. Le route registri meccanici e trattamenti usano un client service-role, ma ora verificano esplicitamente l'accesso al `garden_id` sia in lettura sia in scrittura, preservano le risposte canoniche 404 per risorse altrui e non espongono dettagli DB nei 500. Le righe e il pattern delle ricorrenze calendario sono tipizzati con il contratto operativo Europe/Rome.
+
+Durante la selezione, i quattro warning delle route `api-configurations` sono stati lasciati intatti: la chiave provider viene soltanto codificata Base64, poi decodificata e restituita al browser per l'uso negli adapter client. Il problema e' ora registrato come `O48/M13` e richiede cifratura, migrazione/rotazione e proxy server-side, non una pulizia meccanica.
+
+Baseline globale verificata: **0 errori, 1.953 warning** (`1.963 -> 1.953`); test sicurezza 43/43, lint mirato e type-check verdi.
 
 ## 6. Verifica trasversale dopo M15
 

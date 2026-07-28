@@ -22,7 +22,7 @@ const resolveRegistrationAuthSiteUrl = (): string => {
   )
 }
 
-const isConfirmationEmailError = (error: unknown): error is { message: string; status?: number } => {
+const isConfirmationEmailError = (error: unknown): boolean => {
   return Boolean(
     error &&
       typeof error === 'object' &&
@@ -46,12 +46,8 @@ export async function POST(request: NextRequest) {
       birthDate: body.birthDate?.trim() || undefined
     }
     
-    // Log per debug
-    console.log('Registration request body:', JSON.stringify(sanitizedBody, null, 2))
-    
     // Validazione registration data
     const validation = registrationValidator.validate(sanitizedBody)
-    console.log('Validation result:', JSON.stringify(validation, null, 2))
     
     if (!validation.isValid) {
       // Mostra il primo errore di validazione come messaggio principale
@@ -99,11 +95,7 @@ export async function POST(request: NextRequest) {
     // Create Supabase auth user
     const authSiteUrl = resolveRegistrationAuthSiteUrl()
 
-    let authData: any = null
-    let authError: any = null
-    let registrationMessage: string | undefined
-
-    const signUpResult = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: body.email,
       password: body.password,
       options: {
@@ -118,9 +110,6 @@ export async function POST(request: NextRequest) {
         }
       }
     })
-
-    authData = signUpResult.data
-    authError = signUpResult.error
 
     if (authError) {
       console.error('Supabase auth error:', JSON.stringify(authError, null, 2))
@@ -207,12 +196,12 @@ export async function POST(request: NextRequest) {
       user: authData.user,
       profile: profileResult,
       requiresEmailVerification,
-      message: registrationMessage || (requiresEmailVerification 
+      message: requiresEmailVerification
         ? 'Registrazione completata! Controlla la tua email per verificare l\'account.'
-        : 'Registrazione completata con successo!')
+        : 'Registrazione completata con successo!'
     } as RegistrationResponse, { status: 201 })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration API error:', error)
     
     const handledError = authErrorHandler.handleRegistrationError(error)
