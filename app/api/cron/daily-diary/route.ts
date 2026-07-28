@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dailyDiaryService } from '@/services/dailyDiaryService'
 import { requireSupabase } from '@/lib/supabase-server'
+import { AccessError, requireCron } from '@/lib/auth.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,19 +18,7 @@ export const maxDuration = 300 // 5 minuti max
 
 export async function GET(request: NextRequest) {
   try {
-    // Verifica authorization header per sicurezza
-    const authHeader = request.headers.get('authorization')
-    
-    // In produzione, verifica che la richiesta venga da Vercel Cron
-    if (process.env.NODE_ENV === 'production') {
-      const cronSecret = process.env.CRON_SECRET
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        )
-      }
-    }
+    requireCron(request)
     
     console.log('🌱 Starting daily diary cron job...')
     const startTime = Date.now()
@@ -62,13 +51,13 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       },
-      { status: 500 }
+      { status: error instanceof AccessError ? error.status : 500 }
     )
   }
 }
 
 // Endpoint POST per trigger manuale (solo in development)
-export async function POST(request: NextRequest) {
+export async function POST() {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json(
       { error: 'Manual trigger not allowed in production' },

@@ -5,22 +5,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
-import { getPendingReminders, markReminderSent } from '../../../../services/weeklyPhotoReminder';
+import { AccessError, requireCron } from '@/lib/auth.server';
+import { markReminderSent } from '../../../../services/weeklyPhotoReminder';
 import { sendNotification } from '../../../../services/notificationService';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Internal server error';
 
 export async function GET(request: NextRequest) {
   try {
+    requireCron(request);
     const supabase = requireSupabase();
-
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Recupera tutti gli utenti con reminder pendenti
     const { data: allReminders, error: remindersError } = await supabase
@@ -82,8 +77,8 @@ export async function GET(request: NextRequest) {
         // Marca reminder come inviato
         await markReminderSent(supabase, reminder.id);
         notificationsSent++;
-      } catch (error: any) {
-        const errorMsg = `Error processing reminder ${reminder.id}: ${error.message}`;
+      } catch (error: unknown) {
+        const errorMsg = `Error processing reminder ${reminder.id}: ${errorMessage(error)}`;
         console.error(errorMsg);
         errors.push(errorMsg);
       }
@@ -96,12 +91,12 @@ export async function GET(request: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
       date: new Date().toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in weekly photo reminders cron:', error);
+    const status = error instanceof AccessError ? error.status : 500;
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { error: errorMessage(error) },
+      { status }
     );
   }
 }
-

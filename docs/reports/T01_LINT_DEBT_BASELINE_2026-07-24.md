@@ -386,3 +386,18 @@ Verifiche: lint mirato 0/0, type-check e diff-check verdi; test mirati 16/16; li
 | Warning | 1974 |
 | Riduzione lotto | 16 |
 | Riduzione dalla baseline operativa 2642 | 668 |
+
+## Lotto 28 (28/07/2026) - chiuso
+
+Sei route cron vive (`weekly-photo-reminders`, `germination-check`, `task-reminders`, `weather-alerts`, `daily-diary`, `reset-credits`) sono state portate da 11 warning complessivi a zero. Tutte usano ora `requireCron`, eliminando quattro confronti manuali che, con `CRON_SECRET` assente, potevano accettare letteralmente `Bearer undefined`. Il guard canonico aggiunge confronto timing-safe, finestra temporale e protezione replay; gli handler preservano gli status specifici di `AccessError`.
+
+Una regressione statica copre l'intero insieme e impedisce il ritorno al confronto interpolato. Verifiche: lint mirato 0/0, type-check e diff-check verdi; test sicurezza/observability 17/17; lint globale **0 errori e 1.963 warning** (`1.974 -> 1.963`).
+
+## Stato dopo il lotto 28
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1963 |
+| Riduzione lotto | 11 |
+| Riduzione dalla baseline operativa 2642 | 679 |

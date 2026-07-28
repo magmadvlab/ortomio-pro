@@ -6,22 +6,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
+import { AccessError, requireCron } from '@/lib/auth.server';
 import { sendBatchNotifications, createTaskReminderNotification, NotificationData } from '../../../../services/notificationService';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+type TaskGardenRelation = { user_id?: string } | Array<{ user_id?: string }> | null
 
 export async function GET(request: NextRequest) {
   try {
+    requireCron(request);
     const supabase = requireSupabase();
-    
-    // Verifica secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -74,7 +67,9 @@ export async function GET(request: NextRequest) {
     }>>();
     
     for (const task of tasksDue) {
-      const userId = (task.gardens as any)?.user_id;
+      const gardenRelation = task.gardens as TaskGardenRelation;
+      const garden = Array.isArray(gardenRelation) ? gardenRelation[0] : gardenRelation;
+      const userId = garden?.user_id;
       if (!userId) continue;
       
       const taskDate = new Date(task.date);
@@ -144,16 +139,15 @@ export async function GET(request: NextRequest) {
       notifications_failed: failedCount,
       total_notifications: emailNotifications.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in task reminders cron:', error);
+    const status = error instanceof AccessError ? error.status : 500;
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status }
     );
   }
 }
-
-
 
 
 

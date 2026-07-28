@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
 
 import {
@@ -133,6 +134,23 @@ test('cron guard rejects missing and stale credentials and blocks replay', () =>
   } finally {
     if (previousSecret === undefined) delete process.env.CRON_SECRET
     else process.env.CRON_SECRET = previousSecret
+  }
+})
+
+test('scheduled production routes use the canonical fail-closed cron guard', () => {
+  const cronRoutes = [
+    'weekly-photo-reminders',
+    'germination-check',
+    'task-reminders',
+    'weather-alerts',
+    'daily-diary',
+    'reset-credits',
+  ]
+
+  for (const route of cronRoutes) {
+    const source = readFileSync(`app/api/cron/${route}/route.ts`, 'utf8')
+    assert.match(source, /requireCron\(request\)/, `${route} must use requireCron`)
+    assert.doesNotMatch(source, /Bearer \$\{CRON_SECRET\}/, `${route} must not accept an undefined interpolated secret`)
   }
 })
 

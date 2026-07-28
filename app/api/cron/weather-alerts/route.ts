@@ -6,23 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
-import { getWeatherForecast, checkCriticalWeatherAlerts, WeatherForecast } from '../../../../services/weatherService';
+import { AccessError, requireCron } from '@/lib/auth.server';
+import { getWeatherForecast, checkCriticalWeatherAlerts } from '../../../../services/weatherService';
 import { sendBatchNotifications, createWeatherAlertNotification, NotificationData } from '../../../../services/notificationService';
-
-const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
   try {
+    requireCron(request);
     const supabase = requireSupabase();
-    
-    // Verifica secret
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
     
     // Ottieni tutti i giardini con coordinate
     const { data: gardens, error: gardensError } = await supabase
@@ -127,12 +118,12 @@ export async function GET(request: NextRequest) {
       notifications_sent: sentCount,
       notifications_failed: failedCount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in weather alerts cron:', error);
+    const status = error instanceof AccessError ? error.status : 500;
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
-      { status: 500 }
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status }
     );
   }
 }
-
