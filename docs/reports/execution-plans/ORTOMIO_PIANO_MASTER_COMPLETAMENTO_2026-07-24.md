@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O61 | **14** | **0** | **3** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`) e O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **925 warning rimossi** | — | **1.717 warning** | Baseline operativa 2.642 -> 1.717 in 44 lotti. T01 non equivale a 1.717 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **944 warning rimossi** | — | **1.698 warning** | Baseline operativa 2.642 -> 1.698 in 45 lotti. T01 non equivale a 1.698 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -877,6 +877,41 @@ finti.
 Baseline globale verificata: **0 errori, 1.717 warning** (`1.737 -> 1.717`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione 153/153
 pagine verdi.
+
+### Aggiornamento T01 - lotto 45 (28/07/2026)
+
+Nella classifica aggiornata, dopo i quattro esclusi gia' noti, il candidato
+successivo era in parita' a 19 warning tra `services/plantRowSyncService.ts` e
+`components/Planner.tsx`. Verificato che `components/Planner.tsx` (2569
+righe) ha zero importer nelle route reali (`/app/planner` usa `SmartPlanner`
+e `CropRotationPlanner`, non questo file): e' lo stesso file gia' elencato nel
+cluster morto "AI Planner" di M05, riconfermato ancora escluso.
+
+Il lotto 45 e' stato eseguito su `services/plantRowSyncService.ts` (vivo,
+usato da `SmartPlantManager.tsx` e da `unifiedOperationsService.ts`), da 19
+warning a zero: rimosso l'import di tipo morto `PlantOperation`; tipizzato il
+provider di storage con `Pick<IStorageProvider, ...>` sulle 10 sole funzioni
+realmente usate; introdotte interfacce dedicate per le righe di
+configurazione (`RowSyncSource`, `IrrigationLineConfigSource`) e per i
+dettagli operazione multi-sorgente (`SyncOperationDetailsSource`, che
+riflette fedelmente la lettura difensiva sia camelCase sia snake_case gia'
+presente su tre tabelle diverse - annaffiatura, fertilizzante, trattamento -
+senza cambiarne il comportamento). Un `catch (error: any)` e' stato convertito
+in `catch (error: unknown)` con cast esplicito per l'accesso ai campi errore.
+
+Durante la selezione e' emerso che `batchAssignPlantsToRow`, funzione
+esportata dal file, non ha alcun chiamante in tutto il repository (verificato
+con grep mirato) - zero importer, stesso pattern degli altri candidati M05.
+Il parametro `startPosition`, gia' segnalato come mai cablato dal commento
+"This would need additional method to update position", e' stato rimosso
+dalla firma percheé genuinamente morto all'interno di una funzione essa
+stessa irraggiungibile; la funzione non e' stata rimossa in questo lotto,
+resta un candidato per il prossimo censimento M05 insieme agli altri orfani
+gia' registrati.
+
+Baseline globale verificata: **0 errori, 1.698 warning** (`1.717 -> 1.698`);
+persistenza mirata (`plantRowSyncIntegrity.test.ts`) 2/2, suite `test:release`
+434/434 (9 suite), type-check e build produzione 153/153 pagine verdi.
 
 ## 6. Verifica trasversale dopo M15
 

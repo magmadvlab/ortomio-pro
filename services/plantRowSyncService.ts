@@ -5,9 +5,103 @@
  */
 
 
-import { GardenPlant, PlantOperation } from '../types/individualPlant';
+import { GardenPlant } from '../types/individualPlant';
 import { PreciseIrrigationService, DripperConfig, PlantPosition, WaterDistributionResult } from './preciseIrrigationService';
+import type { IStorageProvider } from '../packages/core/storage/interface';
 
+type PlantRowSyncStorageProvider = Pick<
+  IStorageProvider,
+  | 'getGardenRow'
+  | 'getGardenRows'
+  | 'getFieldRow'
+  | 'getFieldRows'
+  | 'getIndividualPlants'
+  | 'getWateringLog'
+  | 'getFertilizerApplicationLog'
+  | 'getTreatment'
+  | 'updateIndividualPlant'
+  | 'createPlantOperation'
+>;
+
+interface StorageErrorLike {
+  message?: unknown;
+  code?: unknown;
+  details?: unknown;
+  hint?: unknown;
+}
+
+interface RowSyncSource {
+  id?: string;
+  zoneId?: string | null;
+  name?: string;
+  lengthMeters?: number;
+  length_meters?: number;
+  plantSpacing?: number;
+  plant_spacing?: number;
+  irrigationLine?: unknown;
+  irrigationConfig?: unknown;
+}
+
+interface IrrigationLineConfigSource {
+  emitterSpacingCm?: number;
+  emitterSpacing?: number;
+  dripperSpacing?: number;
+  pressureBar?: number;
+  pressure?: number;
+  nominalPressureBar?: number;
+  referencePressureBar?: number;
+  emitterFlowRateLph?: number;
+  emitterFlowRate?: number;
+  dripperFlowRate?: number;
+  flowRatePerMeterLph?: number;
+  flowRatePerMeter?: number;
+  totalFlowRate?: number;
+}
+
+interface SyncOperationDetailsSource {
+  durationMinutes?: number;
+  duration_minutes?: number;
+  litersApplied?: number;
+  liters_applied?: number;
+  litersTotal?: number;
+  liters_total?: number;
+  notes?: string | null;
+  date?: string;
+  operationDate?: string;
+  wateredAt?: string;
+  weatherCondition?: string;
+  weather_condition?: string;
+  airTemperatureC?: number;
+  air_temperature_c?: number;
+  dosageAmount?: number;
+  dosage_amount?: number;
+  quantity?: number;
+  dosageUnit?: string;
+  dosage_unit?: string;
+  unit?: string;
+  fertilizerProductName?: string;
+  fertilizer_product_name?: string;
+  fertilizer_name?: string;
+  applicationDate?: string;
+  application_date?: string;
+  weatherConditions?: unknown;
+  weather_conditions?: unknown;
+  dosage?: number;
+  product_name?: string;
+  treatment_date?: string;
+  gardenId?: string | null;
+  garden_id?: string | null;
+  fieldRowId?: string | null;
+  field_row_id?: string | null;
+  bedRowId?: string | null;
+  bed_row_id?: string | null;
+  rowId?: string | null;
+  row_id?: string | null;
+  zoneId?: string | null;
+  zone_id?: string | null;
+  bedId?: string | null;
+  bed_id?: string | null;
+}
 
 export interface SyncConfiguration {
   autoSyncEnabled: boolean;
@@ -49,11 +143,11 @@ export interface PlantRowMapping {
  * PLANT-ROW SYNC SERVICE
  */
 export class PlantRowSyncService {
-  private storageProvider: any;
+  private storageProvider: PlantRowSyncStorageProvider;
   private config: SyncConfiguration;
   private syncStatus: SyncStatus;
 
-  constructor(storageProvider: any, config?: Partial<SyncConfiguration>) {
+  constructor(storageProvider: PlantRowSyncStorageProvider, config?: Partial<SyncConfiguration>) {
     this.storageProvider = storageProvider;
     this.config = {
       autoSyncEnabled: true,
@@ -118,7 +212,7 @@ export class PlantRowSyncService {
           try {
             console.log('🔗 PLANT ROW SYNC DEBUG - Getting field row:', plant.fieldRowId)
             const fieldRows = await this.storageProvider.getFieldRows?.(gardenId);
-            const row = fieldRows?.find((r: any) => r.id === plant.fieldRowId);
+            const row = fieldRows?.find((r) => r.id === plant.fieldRowId);
             rowName = row?.name;
             console.log('🔗 PLANT ROW SYNC DEBUG - Field row name:', rowName)
           } catch (error) {
@@ -170,7 +264,7 @@ export class PlantRowSyncService {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : 0;
       };
-      const parseConfig = (value: unknown): Record<string, any> | undefined => {
+      const parseConfig = (value: unknown): IrrigationLineConfigSource | undefined => {
         if (!value) return undefined;
         if (typeof value === 'string') {
           try {
@@ -179,13 +273,13 @@ export class PlantRowSyncService {
             return undefined;
           }
         }
-        if (typeof value === 'object') return value as Record<string, any>;
+        if (typeof value === 'object') return value as IrrigationLineConfigSource;
         return undefined;
       };
-      const getRowLengthMeters = (row: any): number => {
+      const getRowLengthMeters = (row: RowSyncSource | null | undefined): number => {
         return toNumber(row?.lengthMeters ?? row?.length_meters) || 0;
       };
-      const getRowPlantSpacingCm = (row: any): number => {
+      const getRowPlantSpacingCm = (row: RowSyncSource | null | undefined): number => {
         return toNumber(row?.plantSpacing ?? row?.plant_spacing) || 30;
       };
 
@@ -193,17 +287,17 @@ export class PlantRowSyncService {
       const createdPlantOperationIds: string[] = [];
 
       // 1. Get Operation Details
-      let operationDetails: any;
+      let operationDetails: SyncOperationDetailsSource | null | undefined;
       let durationMinutes = 0;
       let totalAmount = 0;
       let unit = '';
       let productName = '';
-      let notes = '';
+      let notes: string | null | undefined = '';
       let operationDate = '';
       let operationTime: string | undefined;
       let parentOperationTable: 'watering_logs' | 'fertilizer_application_logs' | 'treatment_register' = 'watering_logs';
       let derivedOperationType: 'watering' | 'fertilizing' | 'treatment' = 'watering';
-      let weatherConditions: Record<string, any> | undefined;
+      let weatherConditions: unknown;
 
       if (operationType === 'watering') {
         operationDetails = await this.storageProvider.getWateringLog?.(operationId);
@@ -277,8 +371,8 @@ export class PlantRowSyncService {
         const gardenRows = await this.storageProvider.getGardenRows?.(zoneId) || [];
 
         const validRowIds = new Set([
-          ...fieldRows.filter((r: any) => r.zoneId === zoneId).map((r: any) => r.id),
-          ...gardenRows.map((r: any) => r.id)
+          ...fieldRows.filter((r) => r.zoneId === zoneId).map((r) => r.id),
+          ...gardenRows.map((r) => r.id)
         ]);
 
         targetMappings = mappings.filter(m =>
@@ -302,7 +396,7 @@ export class PlantRowSyncService {
 
         // Get Row Config
         // We need to know if it's field or garden row to fetch config
-        let row: any = await this.storageProvider.getFieldRow?.(rId);
+        let row: RowSyncSource | null | undefined = await this.storageProvider.getFieldRow?.(rId);
         if (!row) row = await this.storageProvider.getGardenRow?.(rId);
 
         if (!row) continue;
@@ -587,12 +681,13 @@ export class PlantRowSyncService {
       // Fallback: return empty array if method doesn't exist
       console.warn('🔗 PLANT ROW SYNC WARN - getIndividualPlants method not available in storageProvider');
       return [];
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as StorageErrorLike;
       console.error('🔗 PLANT ROW SYNC ERROR - Error getting garden plants:');
-      console.error('🔗 PLANT ROW SYNC ERROR - Error message:', error?.message || 'Unknown error');
-      console.error('🔗 PLANT ROW SYNC ERROR - Error code:', error?.code || 'No code');
-      console.error('🔗 PLANT ROW SYNC ERROR - Error details:', error?.details || 'No details');
-      console.error('🔗 PLANT ROW SYNC ERROR - Error hint:', error?.hint || 'No hint');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error message:', err?.message || 'Unknown error');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error code:', err?.code || 'No code');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error details:', err?.details || 'No details');
+      console.error('🔗 PLANT ROW SYNC ERROR - Error hint:', err?.hint || 'No hint');
 
       // Return empty array instead of throwing to prevent cascading failures
       return [];
@@ -624,7 +719,7 @@ export class PlantRowSyncService {
  * Create plant-row sync service instance
  */
 export const createPlantRowSyncService = (
-  storageProvider: any,
+  storageProvider: PlantRowSyncStorageProvider,
   config?: Partial<SyncConfiguration>
 ) => {
   return new PlantRowSyncService(storageProvider, config);
@@ -634,7 +729,7 @@ export const createPlantRowSyncService = (
  * Auto-sync row operation to plants
  */
 export const autoSyncRowOperation = async (
-  storageProvider: any,
+  storageProvider: PlantRowSyncStorageProvider,
   operationType: 'watering' | 'fertilizer' | 'treatment',
   operationId: string
 ): Promise<SyncResult> => {
@@ -646,11 +741,10 @@ export const autoSyncRowOperation = async (
  * Batch assign plants to row with position calculation
  */
 export const batchAssignPlantsToRow = async (
-  storageProvider: any,
+  storageProvider: PlantRowSyncStorageProvider,
   plantIds: string[],
   rowId: string,
-  rowType: 'garden_row' | 'field_row',
-  startPosition: number = 1
+  rowType: 'garden_row' | 'field_row'
 ): Promise<{ success: boolean; plantsAssigned: number; errors: string[] }> => {
   try {
     const syncService = createPlantRowSyncService(storageProvider);
