@@ -85,7 +85,6 @@ export interface MonitoringRule {
   cropAliases?: string[]
   agronomicProfileIds?: string[]
   requiredHealthPriorities?: AgronomicHealthPriority[]
-  samplePlants?: Array<{ code: string; name: string }>
 }
 
 export interface MonitoringTrigger {
@@ -150,7 +149,6 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     enabled: true,
     applicableContexts: ['generic'],
     cropAliases: ['pomodoro'],
-    samplePlants: [{ code: 'ROW-01', name: 'Pomodoro San Marzano' }],
   },
   {
     id: 'aphid_spring_alert',
@@ -194,7 +192,6 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     enabled: true,
     applicableContexts: ['generic', 'orchard'],
     requiredHealthPriorities: ['sap_sucking_pests'],
-    samplePlants: [{ code: 'CHK-01', name: 'Pesco giovane' }],
   },
   {
     id: 'nutrient_deficiency_detection',
@@ -309,7 +306,6 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     enabled: true,
     applicableContexts: ['vineyard'],
     agronomicProfileIds: ['vineyard_quality'],
-    samplePlants: [{ code: 'VIN-01', name: 'Vite da vino' }],
   },
   {
     id: 'olive_fly_pressure',
@@ -350,7 +346,6 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     enabled: true,
     applicableContexts: ['olive'],
     agronomicProfileIds: ['olive_grove_oil'],
-    samplePlants: [{ code: 'OLV-01', name: 'Olivo da olio' }],
   },
   {
     id: 'orchard_fruit_sanitation',
@@ -390,7 +385,6 @@ const DEFAULT_MONITORING_RULES: MonitoringRule[] = [
     enabled: true,
     applicableContexts: ['orchard'],
     agronomicProfileIds: ['orchard_generic'],
-    samplePlants: [{ code: 'ORC-01', name: 'Melo' }],
   },
 ]
 
@@ -553,11 +547,11 @@ export class PlantHealthMonitoringService {
       return []
     }
 
-    const relevantPlants = this.getRelevantPlants(rule, garden, environmentalContext.cropContext, environmentalContext)
+    const relevantPlants = this.getRelevantPlants(rule, environmentalContext)
     return relevantPlants.map((plant) =>
       this.applyAdaptiveLearningToAlert(
         {
-          id: `${rule.id}_${plant.code}_${Date.now()}`,
+          id: `${rule.id}_${plant.code || plant.name}_${Date.now()}`,
           type: this.getAlertTypeFromRule(rule),
           severity: this.calculateSeverity(rule),
           plantCode: plant.code,
@@ -1000,10 +994,8 @@ export class PlantHealthMonitoringService {
 
   private getRelevantPlants(
     rule: MonitoringRule,
-    garden: Garden,
-    context: HealthCropContext,
     environmentalContext?: HealthEnvironmentalContext
-  ): Array<{ code: string; name: string }> {
+  ): Array<{ code?: string; name: string }> {
     const dominantPlantNames = environmentalContext?.dominantPlantNames || []
 
     if (dominantPlantNames.length > 0) {
@@ -1012,33 +1004,13 @@ export class PlantHealthMonitoringService {
         : dominantPlantNames
 
       if (filteredPlantNames.length > 0) {
-        return filteredPlantNames.slice(0, 2).map((plantName, index) => ({
-          code: `CROP-${index + 1}`,
+        return filteredPlantNames.slice(0, 2).map((plantName) => ({
           name: plantName,
         }))
       }
     }
 
-    if (rule.samplePlants && rule.samplePlants.length > 0) {
-      return rule.samplePlants
-    }
-
-    if (context.id === 'vineyard') {
-      return [{ code: 'VIN-01', name: garden.vineyardConfig?.varieties?.[0] || 'Vite' }]
-    }
-
-    if (context.id === 'olive') {
-      return [{ code: 'OLV-01', name: garden.oliveGroveConfig?.varieties?.[0] || 'Olivo' }]
-    }
-
-    if (context.id === 'orchard') {
-      return [{ code: 'ORC-01', name: garden.orchardConfig?.varieties?.[0] || 'Albero da frutto' }]
-    }
-
-    return [
-      { code: 'ROW-01', name: 'Pomodoro San Marzano' },
-      { code: 'ROW-02', name: 'Basilico Genovese' },
-    ]
+    return []
   }
 
   private getAlertTypeFromRule(rule: MonitoringRule): HealthAlert['type'] {
@@ -1109,19 +1081,23 @@ export class PlantHealthMonitoringService {
         ? ` Contesto sito: ${siteContextClauses.join(', ')}.`
         : ''
 
-    if (context.id === 'vineyard') {
-      return `${rule.description} rilevate su ${plantName}. Concentrati sui filari piu umidi o chiusi.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
-    }
+    const evidencePrefix = rule.triggers.some((trigger) => trigger.type === 'weather')
+      ? `Le condizioni meteo disponibili attivano il controllo "${rule.name}" per ${plantName}.`
+      : rule.triggers.some((trigger) => trigger.type === 'calendar')
+        ? `Promemoria stagionale per ${plantName}: ${rule.description}. Non e una diagnosi.`
+        : rule.triggers.some((trigger) => trigger.type === 'photo_analysis')
+          ? `Controllo suggerito per ${plantName} in base alle foto registrate. Non e una diagnosi automatica.`
+          : `Controllo suggerito per ${plantName}: ${rule.description}.`
 
-    if (context.id === 'olive') {
-      return `${rule.description} rilevato su ${plantName}. Verifica chioma, olive e uniformita dell impianto.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
-    }
+    const contextInstruction = context.id === 'vineyard'
+      ? ' Concentrati sui filari piu umidi o chiusi.'
+      : context.id === 'olive'
+        ? ' Verifica chioma, olive e uniformita dell impianto.'
+        : context.id === 'orchard'
+          ? ' Controlla insieme foglie, chioma e frutti.'
+          : ''
 
-    if (context.id === 'orchard') {
-      return `${rule.description} rilevata su ${plantName}. Controlla insieme foglie, chioma e frutti.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
-    }
-
-    return `${rule.description} rilevata per ${plantName}.${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
+    return `${evidencePrefix}${contextInstruction}${phenologySuffix}${agronomicSuffix}${sensorSuffix}${measuredFeedbackSuffix}${environmentalHistorySuffix}${adaptiveLearningSuffix}${siteContextSuffix}`
   }
 
   private shouldConsultAgronomist(rule: MonitoringRule): boolean {
