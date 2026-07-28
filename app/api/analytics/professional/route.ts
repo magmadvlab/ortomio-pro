@@ -57,15 +57,14 @@ export async function GET(request: NextRequest) {
       summary,
       crops: analytics || [],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Analytics error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }
 }
-
 
 
 

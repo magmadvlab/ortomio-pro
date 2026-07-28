@@ -418,3 +418,20 @@ Verifiche: lint mirato 0/0, type-check verde; test sicurezza 43/43; lint globale
 | Warning | 1953 |
 | Riduzione lotto | 10 |
 | Riduzione dalla baseline operativa 2642 | 689 |
+
+## Lotto 30 (28/07/2026) - chiuso
+
+Sette endpoint Production sono stati portati a zero warning: le tre route solari derivate, analytics professionali, ricerca/tassonomia piante e record blockchain lab-only. Le varianti solari ora falliscono esplicitamente se `garden_obstacles` non e' leggibile; prima proseguivano con `obstaclesData || []`, producendo calcoli falsamente ottimistici. La regressione copre l'intero gruppo di quattro route.
+
+Le route AI/crediti con warning analoghi sono rimaste intatte: la quota viene aggiornata e registrata in due operazioni e alcuni handler ignorano gli errori Supabase. Vanno trattate in un lotto transazionale dedicato, non come sostituzione meccanica del tipo del catch.
+
+Verifiche: lint mirato 0/0, type-check verde; test persistenza 65/65; lint globale **0 errori e 1.946 warning** (`1.953 -> 1.946`).
+
+## Stato dopo il lotto 30
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1946 |
+| Riduzione lotto | 7 |
+| Riduzione dalla baseline operativa 2642 | 696 |
