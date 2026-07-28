@@ -440,6 +440,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O55 | Trasversale | ~~Rimuovere dati demo e destinazioni vuote dalla route Irrigazione~~ **Chiuso 28/07/2026:** eliminati KPI hardcoded (`85L`, `3`, `15%`, `68%`), zone campione 2024, wizard/analytics interni mai renderizzati e tab che mostravano soltanto “componente in sviluppo”. Dashboard, zone, sistemi e log restano collegati ai servizi persistenti; selezionare una zona filtra davvero i sistemi. | Zero KPI/zone campione; zero tab placeholder; azioni opzionali visibili solo con handler; registrazione singola/batch testata |
 | O56 | Trasversale | ~~Rimuovere dalla route Frutteto il prototipo tropicale statico e irraggiungibile~~ **Chiuso 28/07/2026:** eliminate 347 righe di `TropicalExoticSection`, mai importate, invocate o renderizzate, inclusi catalogo statico e KPI fissi `24°C`/`75%`. La rimozione riguarda soltanto il prototipo morto, non il concetto prodotto tropicale implementato correttamente in O57. Gli alberi e i gruppi filare vivi sono tipizzati con `OrchardTree`; dashboard e flussi persistenti restano invariati. | Zero prototipo orfano e zero KPI statici irraggiungibili; route Frutteto 0 warning; test mapping/filari e build verdi |
 | O57 | Trasversale | ~~Differenziare i frutteti tropicali come sottocategoria reale di Frutteto~~ **Chiuso 28/07/2026:** il wizard principale espone `Tropicale/Subtropicale` e sincronizza bidirezionalmente la categoria botanica `ESOTICHE` con il valore persistito `orchardType=tropical`, gia' supportato dal vincolo database. Cambiando categoria non resta una classificazione tropicale obsoleta; la dashboard mostra nome e icona dedicati. | Tropicale resta nel dominio Frutteto; scelta persistita senza dati mock; coerenza bidirezionale testata; dashboard riconoscibile |
+| O58 | Trasversale | ~~Correggere il bulk alberi del wizard Frutteto e tipizzare il servizio persistente~~ **Chiuso 28/07/2026:** `createOrchardFromWizard` non passa piu' righe snake_case a `bulkCreateTrees`, che le rimappava come oggetti camelCase e poteva perdere `orchardId`/`gardenId`. Un builder dedicato mantiene entrambi gli scope fino al mapper, valida numero albero e varieta' prima dell'insert e applica default di stato espliciti. Se il bulk fallisce, la configurazione appena creata viene compensata; un doppio fallimento resta esplicito. I mapper Supabase usano contratti derivati dai tipi dominio. | Scope garden/frutteto presenti nel bulk insert; nessuna identita' inventata; nessun frutteto parziale silenzioso; regressioni persistenti verdi; servizio 0 warning |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -694,6 +695,27 @@ altri valori statici del vecchio prototipo.
 
 Baseline globale verificata: **0 errori, 1.824 warning** (`1.828 -> 1.824`);
 lint mirato e type-check verdi; mapping categoria 5/5, capability 31/31 e build
+produzione 153/153.
+
+### Aggiornamento T01 - lotto 41 / O58 (28/07/2026)
+
+`services/orchardService.ts`, servizio vivo di tutte le funzioni Frutteto, e'
+stato portato da 33 warning a zero. I mapper database hanno ora contratti
+snake_case derivati dai tipi dominio; errori e righe bulk non usano piu'
+`any`. Il parametro analytics `period`, privo di chiamanti e ignorato dalla
+query, e' stato rimosso senza attribuirgli una semantica arbitraria.
+
+La pulizia ha corretto il bulk alberi del wizard: prima costruiva
+`orchard_id`/`garden_id` e passava il risultato a un metodo che si aspetta
+`orchardId`/`gardenId`, con rischio di insert senza scope. Il builder puro usa
+il contratto `OrchardTree`, richiede scope e identita' reali prima dell'insert
+e non genera nomi di fallback. Se il bulk fallisce, elimina la configurazione
+appena creata; se fallisce anche la compensazione espone entrambi gli errori.
+Cinque regressioni coprono payload, identita', scope, ordine di validazione e
+rollback.
+
+Baseline globale verificata: **0 errori, 1.791 warning** (`1.824 -> 1.791`);
+lint mirato e type-check verdi; persistenza 75/75, capability 31/31 e build
 produzione 153/153.
 
 ## 6. Verifica trasversale dopo M15

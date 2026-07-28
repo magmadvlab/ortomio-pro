@@ -15,14 +15,31 @@ import {
   TreeTreatment,
   OrchardAnalytics,
   OrchardDashboardData,
-  OrchardFilters,
   TreeSearchCriteria,
-  OrchardWizardData,
-  BulkTreeImport
+  OrchardWizardData
 } from '@/types/orchard'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseClient as getSupabaseClientUnsafe } from '@/config/supabase'
 import { resolveAdaptiveQualityPricingBenchmarkForGarden } from '@/services/adaptiveMarketPricingService'
+import {
+  buildWizardOrchardTrees,
+  validateWizardOrchardTreeInputs,
+} from '@/lib/orchard/orchardTreePayload'
+
+type SnakeCase<Value extends string> =
+  Value extends `${infer Head}${infer Tail}`
+    ? `${Head extends Lowercase<Head> ? Head : `_${Lowercase<Head>}`}${SnakeCase<Tail>}`
+    : Value
+
+type DatabaseRow<Value> = {
+  [Key in keyof Value as Key extends string ? SnakeCase<Key> : never]: Value[Key]
+}
+
+interface DatabaseErrorLike {
+  code?: unknown
+  message?: unknown
+  details?: unknown
+}
 
 const getSupabaseClient = (): SupabaseClient => {
   const client = getSupabaseClientUnsafe()
@@ -51,11 +68,15 @@ class OrchardService {
     return Math.max(0, Math.min(100, Math.round(value)))
   }
 
-  private isMissingColumnError(error: any): boolean {
-    if (!error) return false
-    const code = String(error.code || '').toUpperCase()
-    const message = String(error.message || '').toLowerCase()
-    const details = String(error.details || '').toLowerCase()
+  private asDatabaseError(error: unknown): DatabaseErrorLike {
+    return error && typeof error === 'object' ? error as DatabaseErrorLike : {}
+  }
+
+  private isMissingColumnError(error: unknown): boolean {
+    const databaseError = this.asDatabaseError(error)
+    const code = String(databaseError.code || '').toUpperCase()
+    const message = String(databaseError.message || '').toLowerCase()
+    const details = String(databaseError.details || '').toLowerCase()
 
     return (
       code === 'PGRST204' ||
@@ -67,8 +88,9 @@ class OrchardService {
     )
   }
 
-  private extractMissingColumn(error: any): string | null {
-    const combined = `${error?.message || ''} ${error?.details || ''}`
+  private extractMissingColumn(error: unknown): string | null {
+    const databaseError = this.asDatabaseError(error)
+    const combined = `${databaseError.message || ''} ${databaseError.details || ''}`
     const patterns = [
       /column ['"]?([a-zA-Z0-9_]+)['"]? does not exist/i,
       /could not find the ['"]?([a-zA-Z0-9_]+)['"]? column/i,
@@ -83,7 +105,7 @@ class OrchardService {
     return null
   }
 
-  private stripColumnFromRows(rows: any[], column: string): any[] {
+  private stripColumnFromRows<T extends Record<string, unknown>>(rows: T[], column: string): T[] {
     return rows.map((row) => {
       if (!(column in row)) return row
       const copy = { ...row }
@@ -126,7 +148,9 @@ class OrchardService {
     }
   }
 
-  private mapOrchardConfigurationWithFallback(data: any): OrchardConfiguration {
+  private mapOrchardConfigurationWithFallback(
+    data: DatabaseRow<OrchardConfiguration>
+  ): OrchardConfiguration {
     const mapped = this.mapOrchardConfigurationFromDatabase(data)
     return {
       ...mapped,
@@ -413,12 +437,12 @@ class OrchardService {
       const mappedTrees = trees.map(tree => this.mapTreeToDatabase(tree))
       if (mappedTrees.length === 0) return []
 
-      const createdRows: any[] = []
+      const createdRows: DatabaseRow<OrchardTree>[] = []
 
       for (let i = 0; i < mappedTrees.length; i += this.BULK_TREE_CHUNK_SIZE) {
         const chunk = mappedTrees.slice(i, i + this.BULK_TREE_CHUNK_SIZE)
         let sanitizedChunk = [...chunk]
-        let lastError: any = null
+        let lastError: unknown = null
 
         for (let attempt = 0; attempt < 20; attempt++) {
           const { data, error } = await supabase
@@ -807,7 +831,10 @@ class OrchardService {
   async getOrchardDashboardData(gardenId: string): Promise<OrchardDashboardData> {
     try {
       const supabase = getSupabaseClient()
-      const safeRows = async (label: string, query: PromiseLike<{ data: any[] | null; error: any }>) => {
+      const safeRows = async <Row>(
+        label: string,
+        query: PromiseLike<{ data: Row[] | null; error: unknown }>
+      ): Promise<Row[]> => {
         const result = await query
         if (result.error) {
           console.error(`Error loading orchard dashboard ${label}:`, result.error)
@@ -1242,7 +1269,7 @@ class OrchardService {
     }
   }
 
-  async getOrchardAnalytics(orchardId: string, period: string): Promise<OrchardAnalytics | null> {
+  async getOrchardAnalytics(orchardId: string): Promise<OrchardAnalytics | null> {
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase
@@ -1270,8 +1297,15 @@ class OrchardService {
     try {
       const supabase = getSupabaseClient()
       const irrigationDefaults = wizardData.layout?.irrigationDefaults
+      const wizardTrees = wizardData.trees?.treeData || []
+      const gardenId = wizardData.basicInfo?.gardenId || ''
+
+      if (wizardTrees.length > 0) {
+        validateWizardOrchardTreeInputs(wizardTrees, gardenId)
+      }
+
       const orchardPayload = this.cleanDatabasePayload({
-        garden_id: wizardData.basicInfo?.gardenId,
+        garden_id: gardenId || undefined,
         name: wizardData.basicInfo?.name || 'New Orchard',
         description: wizardData.basicInfo?.description,
         orchard_type: wizardData.basicInfo?.orchardType || 'mixed',
@@ -1290,7 +1324,6 @@ class OrchardService {
         soil_type: wizardData.management?.soilType
       })
 
-      // Start transaction
       let { data: orchard, error: orchardError } = await supabase
         .from('orchard_configurations')
         .insert([orchardPayload])
@@ -1324,19 +1357,30 @@ class OrchardService {
       }
 
       // Create trees if provided
-      if (wizardData.trees?.treeData && wizardData.trees.treeData.length > 0) {
-        const treesToCreate = wizardData.trees.treeData.map(tree => ({
-          ...tree,
-          orchard_id: orchard.id,
-          garden_id: wizardData.basicInfo?.gardenId,
-          is_active: true,
-          needs_pruning: false,
-          needs_treatment: false,
-          needs_replacement: false,
-          cumulative_yield_kg: 0
-        }))
+      if (wizardTrees.length > 0) {
+        const treesToCreate = buildWizardOrchardTrees(
+          wizardTrees,
+          orchard.id,
+          gardenId
+        )
 
-        await this.bulkCreateTrees(treesToCreate as any)
+        try {
+          await this.bulkCreateTrees(treesToCreate)
+        } catch (treeError) {
+          const { error: rollbackError } = await supabase
+            .from('orchard_configurations')
+            .delete()
+            .eq('id', orchard.id)
+
+          if (rollbackError) {
+            throw new AggregateError(
+              [treeError, rollbackError],
+              'orchard_tree_bulk_failed_and_rollback_failed'
+            )
+          }
+
+          throw treeError
+        }
       }
 
       return {
@@ -1353,7 +1397,9 @@ class OrchardService {
   // DATABASE MAPPING METHODS
   // ============================================================================
 
-  private mapOrchardConfigurationFromDatabase(data: any): OrchardConfiguration {
+  private mapOrchardConfigurationFromDatabase(
+    data: DatabaseRow<OrchardConfiguration>
+  ): OrchardConfiguration {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1381,7 +1427,9 @@ class OrchardService {
     }
   }
 
-  private mapOrchardConfigurationToDatabase(config: Partial<OrchardConfiguration>): any {
+  private mapOrchardConfigurationToDatabase(
+    config: Partial<OrchardConfiguration>
+  ): Record<string, unknown> {
     return this.cleanDatabasePayload({
       garden_id: config.gardenId,
       name: config.name,
@@ -1405,7 +1453,7 @@ class OrchardService {
     })
   }
 
-  private mapTreeFromDatabase(data: any): OrchardTree {
+  private mapTreeFromDatabase(data: DatabaseRow<OrchardTree>): OrchardTree {
     return {
       id: data.id,
       orchardId: data.orchard_id,
@@ -1445,7 +1493,7 @@ class OrchardService {
     }
   }
 
-  private mapTreeToDatabase(tree: Partial<OrchardTree>): any {
+  private mapTreeToDatabase(tree: Partial<OrchardTree>): Record<string, unknown> {
     const payload = {
       orchard_id: tree.orchardId,
       garden_id: tree.gardenId,
@@ -1487,7 +1535,7 @@ class OrchardService {
   // Additional mapping methods would be implemented here for other types
   // (TreePhoto, PhenologicalObservation, etc.) following the same pattern
 
-  private mapTreePhotoFromDatabase(data: any): TreePhoto {
+  private mapTreePhotoFromDatabase(data: DatabaseRow<TreePhoto>): TreePhoto {
     return {
       id: data.id,
       treeId: data.tree_id,
@@ -1504,7 +1552,7 @@ class OrchardService {
     }
   }
 
-  private mapTreePhotoToDatabase(photo: Partial<TreePhoto>): any {
+  private mapTreePhotoToDatabase(photo: Partial<TreePhoto>): Record<string, unknown> {
     return {
       tree_id: photo.treeId,
       photo_url: photo.photoUrl,
@@ -1518,7 +1566,9 @@ class OrchardService {
     }
   }
 
-  private mapPhenologicalObservationFromDatabase(data: any): PhenologicalObservation {
+  private mapPhenologicalObservationFromDatabase(
+    data: DatabaseRow<PhenologicalObservation>
+  ): PhenologicalObservation {
     return {
       id: data.id,
       treeId: data.tree_id,
@@ -1540,7 +1590,9 @@ class OrchardService {
     }
   }
 
-  private mapPhenologicalObservationToDatabase(observation: Partial<PhenologicalObservation>): any {
+  private mapPhenologicalObservationToDatabase(
+    observation: Partial<PhenologicalObservation>
+  ): Record<string, unknown> {
     return {
       tree_id: observation.treeId,
       orchard_id: observation.orchardId,
@@ -1559,7 +1611,9 @@ class OrchardService {
     }
   }
 
-  private mapPruningScheduleFromDatabase(data: any): PruningSchedule {
+  private mapPruningScheduleFromDatabase(
+    data: DatabaseRow<PruningSchedule>
+  ): PruningSchedule {
     return {
       id: data.id,
       orchardId: data.orchard_id,
@@ -1590,7 +1644,9 @@ class OrchardService {
     }
   }
 
-  private mapPruningScheduleToDatabase(schedule: Partial<PruningSchedule>): any {
+  private mapPruningScheduleToDatabase(
+    schedule: Partial<PruningSchedule>
+  ): Record<string, unknown> {
     return {
       orchard_id: schedule.orchardId,
       name: schedule.name,
@@ -1617,7 +1673,9 @@ class OrchardService {
     }
   }
 
-  private mapTreePruningRecordFromDatabase(data: any): TreePruningRecord {
+  private mapTreePruningRecordFromDatabase(
+    data: DatabaseRow<TreePruningRecord>
+  ): TreePruningRecord {
     return {
       id: data.id,
       treeId: data.tree_id,
@@ -1645,7 +1703,9 @@ class OrchardService {
     }
   }
 
-  private mapTreePruningRecordToDatabase(record: Partial<TreePruningRecord>): any {
+  private mapTreePruningRecordToDatabase(
+    record: Partial<TreePruningRecord>
+  ): Record<string, unknown> {
     return {
       tree_id: record.treeId,
       pruning_schedule_id: record.pruningScheduleId,
@@ -1670,7 +1730,9 @@ class OrchardService {
     }
   }
 
-  private mapHarvestScheduleFromDatabase(data: any): HarvestSchedule {
+  private mapHarvestScheduleFromDatabase(
+    data: DatabaseRow<HarvestSchedule>
+  ): HarvestSchedule {
     return {
       id: data.id,
       orchardId: data.orchard_id,
@@ -1709,7 +1771,9 @@ class OrchardService {
     }
   }
 
-  private mapHarvestScheduleToDatabase(schedule: Partial<HarvestSchedule>): any {
+  private mapHarvestScheduleToDatabase(
+    schedule: Partial<HarvestSchedule>
+  ): Record<string, unknown> {
     return {
       orchard_id: schedule.orchardId,
       name: schedule.name,
@@ -1744,7 +1808,9 @@ class OrchardService {
     }
   }
 
-  private mapTreeHarvestRecordFromDatabase(data: any): TreeHarvestRecord {
+  private mapTreeHarvestRecordFromDatabase(
+    data: DatabaseRow<TreeHarvestRecord>
+  ): TreeHarvestRecord {
     return {
       id: data.id,
       treeId: data.tree_id,
@@ -1779,7 +1845,9 @@ class OrchardService {
     }
   }
 
-  private mapTreeHarvestRecordToDatabase(record: Partial<TreeHarvestRecord>): any {
+  private mapTreeHarvestRecordToDatabase(
+    record: Partial<TreeHarvestRecord>
+  ): Record<string, unknown> {
     return {
       tree_id: record.treeId,
       harvest_schedule_id: record.harvestScheduleId,
@@ -1811,7 +1879,9 @@ class OrchardService {
     }
   }
 
-  private mapTreeTreatmentFromDatabase(data: any): TreeTreatment {
+  private mapTreeTreatmentFromDatabase(
+    data: DatabaseRow<TreeTreatment>
+  ): TreeTreatment {
     return {
       id: data.id,
       treeId: data.tree_id,
@@ -1850,7 +1920,9 @@ class OrchardService {
     }
   }
 
-  private mapTreeTreatmentToDatabase(treatment: Partial<TreeTreatment>): any {
+  private mapTreeTreatmentToDatabase(
+    treatment: Partial<TreeTreatment>
+  ): Record<string, unknown> {
     return {
       tree_id: treatment.treeId,
       treatment_date: treatment.treatmentDate,
@@ -1886,7 +1958,9 @@ class OrchardService {
     }
   }
 
-  private mapOrchardAnalyticsFromDatabase(data: any): OrchardAnalytics {
+  private mapOrchardAnalyticsFromDatabase(
+    data: DatabaseRow<OrchardAnalytics>
+  ): OrchardAnalytics {
     return {
       id: data.id,
       orchardId: data.orchard_id,
@@ -1922,7 +1996,9 @@ class OrchardService {
     }
   }
 
-  private mapDashboardDataFromDatabase(data: any): OrchardDashboardData {
+  private mapDashboardDataFromDatabase(
+    data: DatabaseRow<OrchardDashboardData>
+  ): OrchardDashboardData {
     return {
       totalOrchards: data.total_orchards || 0,
       totalTrees: data.total_trees || 0,

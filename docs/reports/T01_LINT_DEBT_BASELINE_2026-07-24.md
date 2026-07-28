@@ -685,3 +685,34 @@ capability 31/31, build produzione 153/153; lint globale
 | Warning | 1824 |
 | Riduzione lotto | 4 |
 | Riduzione dalla baseline operativa 2642 | 818 |
+
+## Lotto 41 / O58 (28/07/2026) - chiuso
+
+Il servizio vivo `services/orchardService.ts` e' stato portato da 33 warning a
+zero. I mapper Supabase usano ora un contratto snake_case derivato dai tipi
+dominio invece di `any`; errori schema, payload e righe bulk hanno shape
+esplicite. Rimossi due import inutilizzati e il parametro analytics `period`,
+che non aveva chiamanti ne' effetto sulla query.
+
+La tipizzazione ha scoperto un difetto nel bulk del wizard: il metodo costruiva
+`orchard_id`/`garden_id` e poi passava quelle righe gia' snake_case a
+`bulkCreateTrees`, che accetta oggetti `OrchardTree` camelCase e li converte a
+sua volta. Il nuovo builder conserva `orchardId`/`gardenId` fino al mapper,
+applica soltanto default di stato dichiarati e rifiuta scope o identita'
+mancanti prima di creare il frutteto, invece di inventare alberi. Se il bulk
+remoto fallisce dopo l'insert della configurazione, il servizio compensa
+eliminando la configurazione appena creata; un eventuale fallimento della
+compensazione resta esplicito.
+
+Verifiche: lint mirato 0/0, type-check verde, persistenza 75/75, capability
+31/31, build produzione 153/153; lint globale
+**0 errori e 1.791 warning** (`1.824 -> 1.791`).
+
+## Stato dopo il lotto 41
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1791 |
+| Riduzione lotto | 33 |
+| Riduzione dalla baseline operativa 2642 | 851 |
