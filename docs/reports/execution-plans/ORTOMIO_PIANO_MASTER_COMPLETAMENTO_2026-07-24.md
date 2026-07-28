@@ -436,6 +436,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O51 | M14 | ~~Eliminare i KPI inventati dalla Business Intelligence~~ **Chiuso 28/07/2026:** la route Analytics non impone piu' minimi o fallback fittizi per piante, raccolto, acqua, CO2, efficienza, risparmio, ROI e ore; rimosse anche variazioni, resa, ciclo, utilizzo risorse, tempo medio e automazione hardcoded. Le metriche derivabili usano task/raccolti persistiti filtrati dal periodo; quelle senza baseline mostrano `n/d` e la condizione mancante. | Dataset vuoto produce solo zero osservati o `null`; nessun KPI simulato; filtro temporale applicato; regressione capability verde |
 | O52 | Trasversale | ~~Rendere operativo lo storico delle zone terreno~~ **Chiuso 28/07/2026:** il pulsante `Storico` in `/app/garden/zones`, prima limitato a impostare uno stato mai letto, apre ora un dialogo alimentato dalla RPC persistita `get_zone_history`. La UI distingue caricamento, errore e assenza di cicli colturali, senza inventare record; statistiche e righe zona sono tipizzate. | Click verificabilmente operativo; dati solo da `soil_memory`; stati vuoto/errore espliciti; regressione capability verde |
 | O53 | Trasversale | ~~Alimentare le statistiche nutrizione con registri reali~~ **Chiuso 28/07/2026:** la scheda Bio/Tradizionale non riceve piu' `treatments={[]}` e `fertilizers={[]}`; legge trattamenti e inventario fertilizzanti dal provider persistente e classifica i contratti reali. Dataset vuoto mostra percentuali `n/d`, errore provider mostra dati non disponibili. Rimosso il wizard interno mai renderizzato e gia' sostituito dal planner persistente. | Nessuno zero/100% costruito da array costanti; classificazione testata; errore distinto da dataset vuoto; codice duplicato rimosso |
+| O54 | Trasversale | ~~Rimuovere il falso lifecycle in memoria delle lavorazioni meccaniche~~ **Chiuso 28/07/2026:** la route `/app/mechanical-work` non presenta piu' attrezzature e pianificazioni inizializzate sempre vuote e salvate soltanto in React, ne' pulsanti Modifica/Usa/Calendario/Export privi di azione. Registro e creazione usano il provider persistente; le analytics mostrano solo misure supportate dai record e `n/d` per il costo assente. | Nessuna entita' apparentemente salvata ma persa al reload; zero pulsanti morti; metriche soltanto osservate; regressione capability verde |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -625,6 +626,23 @@ trasformati in zeri apparentemente autorevoli.
 
 Baseline globale verificata: **0 errori, 1.885 warning** (`1.898 -> 1.885`);
 lint mirato e type-check verdi; capability 25/25.
+
+### Aggiornamento T01 - lotto 37 / O54 (28/07/2026)
+
+La route viva Lavorazioni meccaniche e' stata portata da 16 warning a zero e
+ricondotta al registro persistente. Rimossi i due lifecycle locali di
+attrezzature e lavorazioni programmate, i cui loader restituivano sempre `[]`
+e i cui salvataggi sparivano al reload; rimossi anche i comandi privi di
+handler per modifica, uso, calendario ed export.
+
+Restano il flusso reale `createMechanicalWork`, il registro
+`getMechanicalWorks`, la selezione orto e il resume dei task. Il builder
+analytics calcola conteggio, superficie e tipi attrezzatura dai record; il
+costo mensile e' `null` senza `standardCost`. Non vengono piu' mostrate ore,
+carburante, efficienza e trend fissati a zero.
+
+Baseline globale verificata: **0 errori, 1.869 warning** (`1.885 -> 1.869`);
+lint mirato e type-check verdi; capability 28/28.
 
 ## 6. Verifica trasversale dopo M15
 

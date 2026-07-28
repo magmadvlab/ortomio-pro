@@ -579,3 +579,30 @@ Verifiche: lint mirato 0/0, type-check verde, capability 25/25; lint globale
 | Warning | 1885 |
 | Riduzione lotto | 13 |
 | Riduzione dalla baseline operativa 2642 | 757 |
+
+## Lotto 37 / O54 (28/07/2026) - chiuso
+
+La route Production `app/app/mechanical-work/page.tsx` e' stata portata da 16
+warning a zero e ridotta da oltre 1.650 a circa 400 righe. Rimossi inventario
+attrezzature e pianificazioni mantenuti soltanto nello stato React: loader
+inizializzati sempre a `[]`, salvataggi persi al reload, pulsanti `Modifica`,
+`Usa`, `Visualizza Calendario` ed `Esporta Report` senza azione.
+
+La pagina usa ora esclusivamente `getMechanicalWorks` e
+`createMechanicalWork`. Il registro distingue errori di lettura da dataset
+vuoto; la selezione dell'orto e il resume da task restano operativi. Le
+analytics pure espongono solo conteggio, superficie, tipi di attrezzatura
+osservati e costo mensile quando `standardCost` e' davvero presente. Ore,
+carburante, efficienza e trend prima fissati a zero sono stati eliminati.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 28/28; lint globale
+**0 errori e 1.869 warning** (`1.885 -> 1.869`).
+
+## Stato dopo il lotto 37
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1869 |
+| Riduzione lotto | 16 |
+| Riduzione dalla baseline operativa 2642 | 773 |
