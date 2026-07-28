@@ -12,11 +12,41 @@ import { getCategoryTips, getCategoryRecommendations } from '../../data/orchardC
 import { generateOrchardTasks, getTasksSummary } from '../../data/orchardTaskTemplates';
 import { orchardService } from '../../services/orchardService';
 import { vineyardService } from '../../services/vineyardService';
+import {
+  toPersistedOrchardType,
+  toPersistedVineyardTrainingSystem,
+  toPersistedVineyardType,
+} from './orchardWizardMappings';
+
+type OrchardType = 'orchard' | 'oliveGrove' | 'vineyard';
+type OliveType = 'OIL' | 'TABLE' | 'DUAL_PURPOSE';
+type VineType = 'WINE' | 'TABLE';
+type TrainingSystem = 'Guyot' | 'Cordon' | 'Pergola' | 'Alberello' | 'Tendone' | 'Spalliera' | 'Sylvoz' | 'GDC' | 'Casarsa' | 'Bellussi';
+type PlantingSystem = 'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE';
+type IrrigationSystem = 'DRIP' | 'SPRINKLER' | 'MICRO' | 'MANUAL';
+type SoilType = 'SANDY' | 'CLAY' | 'LOAM' | 'ROCKY' | 'MIXED';
+
+interface OrchardWizardConfig {
+  establishedDate: string;
+  totalTrees?: number;
+  varieties?: string[];
+  plantingSystem: PlantingSystem;
+  irrigationSystem: IrrigationSystem;
+  soilType: SoilType;
+  surfaceHa?: number;
+  plantSpacing?: number;
+  rowSpacing?: number;
+  soilPh?: number;
+  category?: FruitTreeCategory;
+  profileId?: string;
+  type?: OliveType | VineType;
+  trainingSystem?: TrainingSystem;
+}
 
 interface CreateOrchardWizardProps {
   garden: Garden;
-  orchardType: 'orchard' | 'oliveGrove' | 'vineyard';
-  onComplete: (config: any) => void;
+  orchardType: OrchardType;
+  onComplete: (config: OrchardWizardConfig) => void;
   onCancel: () => void;
 }
 
@@ -35,21 +65,19 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
   const [fruitCategory, setFruitCategory] = useState<FruitTreeCategory | ''>('');
 
   // Per oliveto
-  const [oliveType, setOliveType] = useState<'OIL' | 'TABLE' | 'DUAL_PURPOSE'>('OIL');
+  const [oliveType, setOliveType] = useState<OliveType>('OIL');
 
   // Per vigneto
-  const [vineType, setVineType] = useState<'WINE' | 'TABLE'>('WINE');
-  const [trainingSystem, setTrainingSystem] = useState<
-    'Guyot' | 'Cordon' | 'Pergola' | 'Alberello' | 'Tendone' | 'Spalliera' | 'Sylvoz' | 'GDC' | 'Casarsa' | 'Bellussi'
-  >('Guyot');
+  const [vineType, setVineType] = useState<VineType>('WINE');
+  const [trainingSystem, setTrainingSystem] = useState<TrainingSystem>('Guyot');
 
   // Campi condivisi tra tutte le colture arboree
-  const [plantingSystem, setPlantingSystem] = useState<'TRADITIONAL' | 'INTENSIVE' | 'SUPER_INTENSIVE'>('INTENSIVE');
+  const [plantingSystem, setPlantingSystem] = useState<PlantingSystem>('INTENSIVE');
   const [surfaceHa, setSurfaceHa] = useState('');
   const [plantSpacing, setPlantSpacing] = useState('');
   const [rowSpacing, setRowSpacing] = useState('');
-  const [irrigationSystem, setIrrigationSystem] = useState<'DRIP' | 'SPRINKLER' | 'MICRO' | 'MANUAL'>('DRIP');
-  const [soilType, setSoilType] = useState<'SANDY' | 'CLAY' | 'LOAM' | 'ROCKY' | 'MIXED'>('LOAM');
+  const [irrigationSystem, setIrrigationSystem] = useState<IrrigationSystem>('DRIP');
+  const [soilType, setSoilType] = useState<SoilType>('LOAM');
   const [soilPh, setSoilPh] = useState('');
 
   // Comuni
@@ -66,7 +94,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
     setIsSaving(true);
 
     try {
-      const config: any = {
+      const config: OrchardWizardConfig = {
         establishedDate: establishedDate || new Date().toISOString().split('T')[0],
         totalTrees: totalCount ? parseInt(totalCount) : undefined,
         varieties: varieties ? varieties.split(',').map(v => v.trim()).filter(Boolean) : undefined,
@@ -100,10 +128,15 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
 
       // Salva la configurazione nel servizio corretto invece di aggiornare il garden vuoto
       if (orchardType === 'orchard' || orchardType === 'oliveGrove') {
+        const mainVarieties = config.varieties ?? [];
         await orchardService.createOrchardConfiguration({
           gardenId: garden.id,
           name: garden.name + (orchardType === 'oliveGrove' ? ' - Oliveto' : ' - Frutteto'),
-          orchardType: orchardType === 'oliveGrove' ? 'olive' : (config.category?.toLowerCase() || 'mixed'),
+          orchardType: orchardType === 'oliveGrove'
+            ? 'olive'
+            : config.category
+              ? toPersistedOrchardType(config.category)
+              : 'mixed',
           establishedDate: config.establishedDate,
           totalTrees: config.totalTrees || 0,
           rowSpacingM: config.rowSpacing,
@@ -111,24 +144,28 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
           trainingSystem: config.plantingSystem,
           soilType: config.soilType,
           irrigationSystem: config.irrigationSystem,
-          mainVarieties: config.varieties?.map((v: string) => ({ variety: v, percentage: 100 / config.varieties.length })) || [],
+          mainVarieties: mainVarieties.map((variety) => ({ variety, percentage: 100 / mainVarieties.length })),
           rootstockTypes: [],
           organicCertified: false,
           precisionManagement: false
         });
       } else if (orchardType === 'vineyard') {
+        const mainVarieties = config.varieties ?? [];
+        const vineyardType = toPersistedVineyardType(vineType);
         await vineyardService.createVineyardConfiguration({
           gardenId: garden.id,
           name: garden.name + ' - Vigneto',
-          vineyardType: config.type || 'wine',
+          vineyardType,
           establishedDate: config.establishedDate,
           totalVines: config.totalTrees || 0,
           rowSpacingM: config.rowSpacing,
           vineSpacingM: config.plantSpacing,
-          trainingSystem: config.trainingSystem,
+          trainingSystem: config.trainingSystem
+            ? toPersistedVineyardTrainingSystem(config.trainingSystem)
+            : undefined,
           soilType: config.soilType,
           irrigationSystem: config.irrigationSystem,
-          mainVarieties: config.varieties?.map((v: string) => ({ variety: v, percentage: 100 / config.varieties.length })) || [],
+          mainVarieties: mainVarieties.map((variety) => ({ variety, percentage: 100 / mainVarieties.length })),
           rootstockTypes: [],
           organicCertified: false,
           precisionManagement: false
@@ -235,7 +272,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                       <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
                       <select
                         value={plantingSystem}
-                        onChange={(e) => setPlantingSystem(e.target.value as any)}
+                        onChange={(e) => setPlantingSystem(e.target.value as PlantingSystem)}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       >
                         <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
@@ -292,7 +329,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                     <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
                     <select
                       value={plantingSystem}
-                      onChange={(e) => setPlantingSystem(e.target.value as any)}
+                      onChange={(e) => setPlantingSystem(e.target.value as PlantingSystem)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     >
                       <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
@@ -338,7 +375,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                     <h4 className="font-medium text-gray-700 mb-3">Sistema di Allevamento</h4>
                     <select
                       value={trainingSystem}
-                      onChange={(e) => setTrainingSystem(e.target.value as any)}
+                      onChange={(e) => setTrainingSystem(e.target.value as TrainingSystem)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     >
                       <optgroup label="Sistemi Verticali a Spalliera">
@@ -369,7 +406,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                     <h4 className="font-medium text-gray-700 mb-3">Sistema di Impianto</h4>
                     <select
                       value={plantingSystem}
-                      onChange={(e) => setPlantingSystem(e.target.value as any)}
+                      onChange={(e) => setPlantingSystem(e.target.value as PlantingSystem)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                     >
                       <option value="TRADITIONAL">Tradizionale (meno di 200 piante/ha)</option>
@@ -494,7 +531,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   </label>
                   <select
                     value={irrigationSystem}
-                    onChange={(e) => setIrrigationSystem(e.target.value as any)}
+                    onChange={(e) => setIrrigationSystem(e.target.value as IrrigationSystem)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   >
                     <option value="DRIP">Goccia (microirrigazione localizzata)</option>
@@ -511,7 +548,7 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
                   </label>
                   <select
                     value={soilType}
-                    onChange={(e) => setSoilType(e.target.value as any)}
+                    onChange={(e) => setSoilType(e.target.value as SoilType)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   >
                     <option value="SANDY">Sabbioso (drenante, scarsa ritenzione idrica)</option>
@@ -678,4 +715,3 @@ export const CreateOrchardWizard: React.FC<CreateOrchardWizardProps> = ({
     </div>
   );
 };
-

@@ -450,3 +450,31 @@ Migrazione `20260728050000` applicata e registrata in Production. Probe remoto: 
 | Warning | 1939 |
 | Riduzione lotto | 7 |
 | Riduzione dalla baseline operativa 2642 | 703 |
+
+## Lotto 32 (28/07/2026) - chiuso
+
+La route viva `app/app/advice/page.tsx` e il wizard vivo
+`components/crops/CreateOrchardWizard.tsx` sono stati portati da 16 warning
+complessivi a zero. La pagina Consigli usa tipi espliciti per task, analisi di
+rotazione e tab, e il loader e' stabilizzato con dipendenze complete.
+
+La rimozione degli `any` dal wizard ha reso visibile un difetto di persistenza:
+le categorie UI (`DRUPACEE`, `POMACEE`, ecc.), i tipi vigneto maiuscoli e i
+sistemi di allevamento (`Guyot`, `Cordon`, ecc.) venivano passati ai servizi
+senza normalizzazione, mentre i contratti persistiti accettano enum differenti.
+Il mapping e' ora totale ed esplicito in `orchardWizardMappings.ts`; i sistemi
+non rappresentabili puntualmente sono salvati come `other`, anziche' come
+valori fuori contratto. Una regressione verifica tutte le categorie frutteto e
+le normalizzazioni principali del vigneto.
+
+Verifiche: lint mirato 0/0, type-check verde, test mapping 2/2; lint globale
+**0 errori e 1.923 warning** (`1.939 -> 1.923`).
+
+## Stato dopo il lotto 32
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1923 |
+| Riduzione lotto | 16 |
+| Riduzione dalla baseline operativa 2642 | 719 |

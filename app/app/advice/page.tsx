@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Lightbulb, 
   RefreshCw, 
@@ -15,7 +15,6 @@ import {
   Filter,
   Download,
   Plus,
-  Eye,
   Target,
   Droplets,
   Sun,
@@ -28,7 +27,6 @@ import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { fieldRowCropHistoryService } from '@/services/fieldRowCropHistoryService'
-import { cropRotationService } from '@/services/cropRotationService'
 import type { GardenTask } from '@/types'
 
 interface AIAdvice {
@@ -67,10 +65,12 @@ type TaskFeedback = {
   message: string
 }
 
+type AdviceTabId = 'overview' | 'rotation' | 'biological' | 'ai-suggestions' | 'seasonal'
+
 export default function AdvicePage() {
   const { activeGarden } = useGarden()
   const { storageProvider } = useStorage()
-  const [activeTab, setActiveTab] = useState<'overview' | 'rotation' | 'biological' | 'ai-suggestions' | 'seasonal'>('overview')
+  const [activeTab, setActiveTab] = useState<AdviceTabId>('overview')
   const [advice, setAdvice] = useState<AIAdvice[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
@@ -79,11 +79,7 @@ export default function AdvicePage() {
   const [taskFeedback, setTaskFeedback] = useState<Record<string, TaskFeedback>>({})
   const [seasonalAdvice, setSeasonalAdvice] = useState<AIAdvice[]>([])
 
-  useEffect(() => {
-    loadAIAdvice()
-  }, [activeGarden?.id])
-
-  const loadAIAdvice = async () => {
+  const loadAIAdvice = useCallback(async () => {
     try {
       setLoading(true)
       const resolvedContext = activeGarden?.id
@@ -106,7 +102,7 @@ export default function AdvicePage() {
         garden?.hasGreenhouse
       )
       const openTasks = activeGarden?.id ? await storageProvider.getTasks(activeGarden.id) : []
-      const pendingTasks = openTasks.filter((task: any) => !task.completed)
+      const pendingTasks = openTasks.filter(task => !task.completed)
       const taskCount = pendingTasks.length
       const rotationHistory = activeGarden?.id && firstFieldRow?.id
         ? await fieldRowCropHistoryService.getFieldRowHistory(firstFieldRow.id).catch(() => [])
@@ -120,7 +116,7 @@ export default function AdvicePage() {
         : []
       const bestRotationSuggestion = rotationSuggestions[0]
       const selectedRowAnalysis = firstFieldRow?.id
-        ? rotationAnalysis.find((entry: any) => entry.row_id === firstFieldRow.id || entry.row_id === firstFieldRow.id)
+        ? rotationAnalysis.find(entry => entry.row_id === firstFieldRow.id)
         : rotationAnalysis[0]
       const currentMonth = new Date().getMonth()
       const currentSeason =
@@ -376,7 +372,11 @@ export default function AdvicePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden, storageProvider])
+
+  useEffect(() => {
+    void loadAIAdvice()
+  }, [loadAIAdvice])
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -579,7 +579,12 @@ export default function AdvicePage() {
   }
 
   // Configurazione tab per la pagina consigli
-  const adviceTabs = [
+  const adviceTabs: Array<{
+    id: AdviceTabId
+    label: string
+    icon: typeof Lightbulb
+    badge?: number
+  }> = [
     { id: 'overview', label: '💡 Panoramica', icon: Lightbulb },
     { id: 'ai-suggestions', label: '🤖 Suggerimenti AI', icon: TrendingUp, badge: advice.filter(a => a.priority === 'critical' || a.priority === 'high').length },
     { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
@@ -642,7 +647,7 @@ export default function AdvicePage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600'
@@ -670,7 +675,7 @@ export default function AdvicePage() {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
+                      onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                         activeTab === tab.id
                           ? 'border-green-500 text-green-600'
@@ -696,7 +701,7 @@ export default function AdvicePage() {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
+                      onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                         activeTab === tab.id
                           ? 'border-green-500 text-green-600'

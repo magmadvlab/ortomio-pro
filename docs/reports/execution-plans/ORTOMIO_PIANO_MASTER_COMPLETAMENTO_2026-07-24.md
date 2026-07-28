@@ -538,6 +538,23 @@ La migrazione e' stata applicata e registrata nella Production unica con version
 
 Baseline globale verificata: **0 errori, 1.939 warning** (`1.946 -> 1.939`). L'audit storico M06 resta coerentemente `safeToApply=false` per il debito preesistente di history e non viene falsamente chiuso da questa migrazione puntuale.
 
+### Aggiornamento T01 - lotto 32 (28/07/2026)
+
+Il lotto 32 porta a zero warning la route viva `app/app/advice/page.tsx` e il
+wizard vivo `components/crops/CreateOrchardWizard.tsx`, per una riduzione
+complessiva di 16 warning. La pagina Consigli usa ora i contratti reali di task
+e rotazione e un loader con dipendenze complete.
+
+Nel wizard la tipizzazione ha scoperto che categorie frutteto, tipo vigneto e
+sistema di allevamento venivano inoltrati ai servizi con gli enum della UI,
+incompatibili con gli enum persistiti. Aggiunto un mapping totale e testato:
+ogni categoria frutteto produce un `OrchardType` valido; `WINE`/`TABLE` e i
+sistemi di allevamento vengono normalizzati al contratto vigneto, usando
+`other` per le scelte non rappresentate puntualmente.
+
+Baseline globale verificata: **0 errori, 1.923 warning** (`1.939 -> 1.923`);
+lint mirato e type-check verdi; regressione mapping 2/2.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
