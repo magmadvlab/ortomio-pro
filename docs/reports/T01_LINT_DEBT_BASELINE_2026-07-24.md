@@ -528,3 +528,28 @@ Verifiche: lint mirato 0/0, type-check verde, capability 22/22; lint globale
 | Warning | 1908 |
 | Riduzione lotto | 7 |
 | Riduzione dalla baseline operativa 2642 | 734 |
+
+## Lotto 35 / O52 (28/07/2026) - chiuso
+
+La route viva `app/app/garden/zones/page.tsx` e il servizio
+`services/landZoneService.ts` sono stati portati da 10 warning complessivi a
+zero. Tipi espliciti coprono statistiche, memoria e filari; i loader React sono
+stabilizzati con dipendenze complete.
+
+La pulizia ha reso visibile il pulsante morto `Storico`: prima impostava uno
+stato mai letto e non produceva alcun risultato. Ora apre un dialogo che legge
+la RPC persistita `get_zone_history`, mostra i cicli colturali registrati e
+distingue caricamento, errore e assenza reale di memoria del terreno. La
+regressione capability impedisce il ritorno alla falsa affordance.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 23/23; lint globale
+**0 errori e 1.898 warning** (`1.908 -> 1.898`).
+
+## Stato dopo il lotto 35
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1898 |
+| Riduzione lotto | 10 |
+| Riduzione dalla baseline operativa 2642 | 744 |

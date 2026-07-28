@@ -57,7 +57,7 @@ export interface SoilMemory {
   irrigation_method?: string
   treatments_count?: number
   success_score?: number
-  planting_context?: any
+  planting_context?: unknown
   created_at: string
 }
 
@@ -88,6 +88,29 @@ export interface ZoneHistoryEntry {
   success_score?: number
   season_year: number
   season_type?: string
+}
+
+export interface ZoneStats {
+  totalFieldRows: number
+  totalPlants: number
+  activeFieldRows: number
+  totalYieldKg: number
+  avgQualityRating: number
+  lastCropFamily?: string
+}
+
+export interface ZoneFieldRow {
+  id: string
+  row_number?: number | null
+  calculated_plants?: number | null
+  [key: string]: unknown
+}
+
+interface ZoneMemoryStatsRow {
+  yield_kg?: number | null
+  quality_rating?: number | null
+  crop_family?: string | null
+  planting_date: string
 }
 
 /**
@@ -284,7 +307,7 @@ export async function getZoneHistory(
     return data || []
   } catch (error) {
     console.error('Error fetching zone history:', error)
-    return []
+    throw error
   }
 }
 
@@ -331,7 +354,7 @@ export async function countActiveFieldRowsInZone(zoneId: string): Promise<number
 /**
  * Ottiene i filari di una zona
  */
-export async function getFieldRowsInZone(zoneId: string): Promise<any[]> {
+export async function getFieldRowsInZone(zoneId: string): Promise<ZoneFieldRow[]> {
   try {
     const supabase = getLandZoneSupabaseClient()
     const { data, error } = await supabase
@@ -352,14 +375,7 @@ export async function getFieldRowsInZone(zoneId: string): Promise<any[]> {
 /**
  * Ottiene statistiche aggregate per una zona
  */
-export async function getZoneStats(zoneId: string): Promise<{
-  totalFieldRows: number
-  totalPlants: number
-  activeFieldRows: number
-  totalYieldKg: number
-  avgQualityRating: number
-  lastCropFamily?: string
-}> {
+export async function getZoneStats(zoneId: string): Promise<ZoneStats | null> {
   try {
     const supabase = getLandZoneSupabaseClient()
     
@@ -386,11 +402,12 @@ export async function getZoneStats(zoneId: string): Promise<{
 
     if (memoryError) throw memoryError
 
-    const totalYieldKg = memoryData?.reduce((sum: number, m: any) => sum + (m.yield_kg || 0), 0) || 0
-    const avgQualityRating = memoryData?.length 
-      ? memoryData.reduce((sum: number, m: any) => sum + (m.quality_rating || 0), 0) / memoryData.length
+    const typedMemoryData = (memoryData || []) as ZoneMemoryStatsRow[]
+    const totalYieldKg = typedMemoryData.reduce((sum, memory) => sum + (memory.yield_kg || 0), 0)
+    const avgQualityRating = typedMemoryData.length
+      ? typedMemoryData.reduce((sum, memory) => sum + (memory.quality_rating || 0), 0) / typedMemoryData.length
       : 0
-    const lastCropFamily = memoryData?.[0]?.crop_family
+    const lastCropFamily = typedMemoryData[0]?.crop_family || undefined
 
     return {
       totalFieldRows: fieldRowsCount,
@@ -402,12 +419,6 @@ export async function getZoneStats(zoneId: string): Promise<{
     }
   } catch (error) {
     console.error('Error fetching zone stats:', error)
-    return {
-      totalFieldRows: 0,
-      totalPlants: 0,
-      activeFieldRows: 0,
-      totalYieldKg: 0,
-      avgQualityRating: 0
-    }
+    return null
   }
 }

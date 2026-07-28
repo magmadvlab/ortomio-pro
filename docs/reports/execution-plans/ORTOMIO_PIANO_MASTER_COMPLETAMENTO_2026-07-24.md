@@ -434,6 +434,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O49 | M14 | ~~Rendere atomici quota tecnica AI e ledger~~ **Chiuso 28/07/2026:** migrazione Production `20260728050000_atomic_ai_credit_consumption.sql` applicata e registrata; RPC service-role-only aggiorna `profiles.ai_credits_used` e inserisce `ai_credit_transactions` nella stessa transazione. Revocata ai client anche la vecchia `deduct_credits`. Le cinque route vive usano esclusivamente il nuovo adapter, derivano i costi dal catalogo server e non inventano piu' saldo `999` senza Supabase. Probe remoto anon: `401/42501 permission denied`; colonne ledger `HTTP 200`. | Nessun successo AI senza quota+ledger coerenti; RPC non invocabile dal client; saldo sempre autorevole |
 | O50 | Trasversale | ~~Eliminare le azioni vive verso `/app/progress`, route inesistente~~ **Chiuso 28/07/2026:** modale Aggiungi, quick action globale e quick action dashboard convergono su `/app/harvest`; `?action=add` apre realmente il modal di registrazione. Il riquadro traguardo, privo di una pagina dettaglio canonica, non finge piu' di essere navigabile. Regressione capability dedicata. | Zero destinazioni `/app/progress` nei quattro consumer vivi; creazione raccolto raggiungibile e modal aperto |
 | O51 | M14 | ~~Eliminare i KPI inventati dalla Business Intelligence~~ **Chiuso 28/07/2026:** la route Analytics non impone piu' minimi o fallback fittizi per piante, raccolto, acqua, CO2, efficienza, risparmio, ROI e ore; rimosse anche variazioni, resa, ciclo, utilizzo risorse, tempo medio e automazione hardcoded. Le metriche derivabili usano task/raccolti persistiti filtrati dal periodo; quelle senza baseline mostrano `n/d` e la condizione mancante. | Dataset vuoto produce solo zero osservati o `null`; nessun KPI simulato; filtro temporale applicato; regressione capability verde |
+| O52 | Trasversale | ~~Rendere operativo lo storico delle zone terreno~~ **Chiuso 28/07/2026:** il pulsante `Storico` in `/app/garden/zones`, prima limitato a impostare uno stato mai letto, apre ora un dialogo alimentato dalla RPC persistita `get_zone_history`. La UI distingue caricamento, errore e assenza di cicli colturali, senza inventare record; statistiche e righe zona sono tipizzate. | Click verificabilmente operativo; dati solo da `soil_memory`; stati vuoto/errore espliciti; regressione capability verde |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -592,6 +593,21 @@ di vendita adattivo, e' stato rinominato correttamente.
 
 Baseline globale verificata: **0 errori, 1.908 warning** (`1.915 -> 1.908`);
 lint mirato e type-check verdi; capability 22/22.
+
+### Aggiornamento T01 - lotto 35 / O52 (28/07/2026)
+
+La route viva `app/app/garden/zones/page.tsx` e
+`services/landZoneService.ts` sono stati portati da 10 warning a zero. Tipi
+espliciti sostituiscono gli `any` per statistiche, memoria e filari; i loader
+React hanno dipendenze complete.
+
+La selezione ha scoperto che `Storico` era un pulsante morto: impostava
+`selectedZoneForHistory`, ma nessun componente leggeva quello stato. O52 lo
+collega alla RPC persistita `get_zone_history` e presenta in un dialogo i cicli
+colturali reali, con stati distinti per caricamento, errore e memoria vuota.
+
+Baseline globale verificata: **0 errori, 1.898 warning** (`1.908 -> 1.898`);
+lint mirato e type-check verdi; capability 23/23.
 
 ## 6. Verifica trasversale dopo M15
 
