@@ -269,12 +269,14 @@ export default function ProfessionalIrrigationDashboard({
               <Clock className="w-5 h-5 text-blue-500" />
               Attività Recente
             </h3>
-            <button
-              onClick={onNavigateToAnalytics}
-              className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              Vedi Tutto
-            </button>
+            {onNavigateToAnalytics && (
+              <button
+                onClick={onNavigateToAnalytics}
+                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Vedi Tutto
+              </button>
+            )}
           </div>
 
           {dashboardData.recentLogs && dashboardData.recentLogs.length > 0 ? (
@@ -320,12 +322,14 @@ export default function ProfessionalIrrigationDashboard({
               <Clock className="w-5 h-5 text-purple-500" />
               Prossime Programmazioni
             </h3>
-            <button
-              onClick={onNavigateToScheduler}
-              className="text-sm text-purple-600 hover:text-purple-700 transition-colors"
-            >
-              Gestisci
-            </button>
+            {onNavigateToScheduler && (
+              <button
+                onClick={onNavigateToScheduler}
+                className="text-sm text-purple-600 hover:text-purple-700 transition-colors"
+              >
+                Gestisci
+              </button>
+            )}
           </div>
 
           {dashboardData.upcomingSchedules && dashboardData.upcomingSchedules.length > 0 ? (
@@ -368,12 +372,14 @@ export default function ProfessionalIrrigationDashboard({
             <div className="text-center py-8">
               <Clock className="mx-auto h-8 w-8 text-gray-400 mb-2" />
               <p className="text-gray-600">Nessuna programmazione attiva</p>
-              <button
-                onClick={onNavigateToScheduler}
-                className="mt-2 text-sm text-purple-600 hover:text-purple-700 transition-colors"
-              >
-                Crea Programmazione
-              </button>
+              {onNavigateToScheduler && (
+                <button
+                  onClick={onNavigateToScheduler}
+                  className="mt-2 text-sm text-purple-600 hover:text-purple-700 transition-colors"
+                >
+                  Crea Programmazione
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -467,21 +473,25 @@ export default function ProfessionalIrrigationDashboard({
             <span className="text-sm font-medium text-blue-900">Configura Sistemi</span>
           </button>
 
-          <button
-            onClick={onNavigateToAnalytics}
-            className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
-          >
-            <BarChart3 className="w-6 h-6 text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">Analytics</span>
-          </button>
+          {onNavigateToAnalytics && (
+            <button
+              onClick={onNavigateToAnalytics}
+              className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+            >
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Analytics</span>
+            </button>
+          )}
 
-          <button
-            onClick={onNavigateToScheduler}
-            className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
-          >
-            <Clock className="w-6 h-6 text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">Programmazione</span>
-          </button>
+          {onNavigateToScheduler && (
+            <button
+              onClick={onNavigateToScheduler}
+              className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+            >
+              <Clock className="w-6 h-6 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Programmazione</span>
+            </button>
+          )}
         </div>
       </div>
 

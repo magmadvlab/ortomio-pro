@@ -437,6 +437,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O52 | Trasversale | ~~Rendere operativo lo storico delle zone terreno~~ **Chiuso 28/07/2026:** il pulsante `Storico` in `/app/garden/zones`, prima limitato a impostare uno stato mai letto, apre ora un dialogo alimentato dalla RPC persistita `get_zone_history`. La UI distingue caricamento, errore e assenza di cicli colturali, senza inventare record; statistiche e righe zona sono tipizzate. | Click verificabilmente operativo; dati solo da `soil_memory`; stati vuoto/errore espliciti; regressione capability verde |
 | O53 | Trasversale | ~~Alimentare le statistiche nutrizione con registri reali~~ **Chiuso 28/07/2026:** la scheda Bio/Tradizionale non riceve piu' `treatments={[]}` e `fertilizers={[]}`; legge trattamenti e inventario fertilizzanti dal provider persistente e classifica i contratti reali. Dataset vuoto mostra percentuali `n/d`, errore provider mostra dati non disponibili. Rimosso il wizard interno mai renderizzato e gia' sostituito dal planner persistente. | Nessuno zero/100% costruito da array costanti; classificazione testata; errore distinto da dataset vuoto; codice duplicato rimosso |
 | O54 | Trasversale | ~~Rimuovere il falso lifecycle in memoria delle lavorazioni meccaniche~~ **Chiuso 28/07/2026:** la route `/app/mechanical-work` non presenta piu' attrezzature e pianificazioni inizializzate sempre vuote e salvate soltanto in React, ne' pulsanti Modifica/Usa/Calendario/Export privi di azione. Registro e creazione usano il provider persistente; le analytics mostrano solo misure supportate dai record e `n/d` per il costo assente. | Nessuna entita' apparentemente salvata ma persa al reload; zero pulsanti morti; metriche soltanto osservate; regressione capability verde |
+| O55 | Trasversale | ~~Rimuovere dati demo e destinazioni vuote dalla route Irrigazione~~ **Chiuso 28/07/2026:** eliminati KPI hardcoded (`85L`, `3`, `15%`, `68%`), zone campione 2024, wizard/analytics interni mai renderizzati e tab che mostravano soltanto “componente in sviluppo”. Dashboard, zone, sistemi e log restano collegati ai servizi persistenti; selezionare una zona filtra davvero i sistemi. | Zero KPI/zone campione; zero tab placeholder; azioni opzionali visibili solo con handler; registrazione singola/batch testata |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -643,6 +644,22 @@ carburante, efficienza e trend fissati a zero.
 
 Baseline globale verificata: **0 errori, 1.869 warning** (`1.885 -> 1.869`);
 lint mirato e type-check verdi; capability 28/28.
+
+### Aggiornamento T01 - lotto 38 / O55 (28/07/2026)
+
+La route viva Irrigazione e' stata portata da 17 warning a zero. Rimossi
+quattro KPI hardcoded, tre zone campione datate 2024, due componenti interni
+mai renderizzati e i tab Analytics/Programmazione che terminavano in un
+messaggio di sviluppo.
+
+Dashboard, gestione zone, sistemi e registrazione irrigazione restano sui
+servizi persistenti. Il click zona non esegue piu' un `console.log`, ma apre i
+sistemi filtrati; i pulsanti opzionali del dashboard vengono mostrati solo
+quando la pagina fornisce un handler reale. Il contratto dei log sostituisce
+l'`any`, con regressione sui percorsi singolo e batch.
+
+Baseline globale verificata: **0 errori, 1.852 warning** (`1.869 -> 1.852`);
+lint mirato e type-check verdi; capability 31/31.
 
 ## 6. Verifica trasversale dopo M15
 
