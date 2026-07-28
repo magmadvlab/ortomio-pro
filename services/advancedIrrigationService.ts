@@ -2,15 +2,11 @@ import {
   IrrigationZone, 
   IrrigationSystem, 
   IrrigationLog, 
-  IrrigationSchedule, 
+  IrrigationSchedule,
   WaterRequirement,
-  IrrigationSensor,
-  SensorReading,
   WaterAnalytics,
   EfficiencyReport,
   IrrigationDashboardData,
-  IrrigationAlert,
-  SystemStatus,
   ActualIrrigationData,
   DateRange,
   IrrigationFilters
@@ -55,7 +51,7 @@ import type {
 } from '@/types/agronomicKernel'
 import type { ArchetypeId } from '@/types/archetypes'
 import type { FunctionalCategory } from '@/data/plantTaxonomy'
-import type { IrrigationWaterQualityProfile } from '@/types/irrigation'
+import type { IrrigationWaterQualityProfile, WeatherData } from '@/types/irrigation'
 
 const getSupabaseClient = (): SupabaseClient => {
   const client = getSupabaseClientUnsafe()
@@ -63,6 +59,205 @@ const getSupabaseClient = (): SupabaseClient => {
     throw new Error('Supabase client not configured')
   }
   return client
+}
+
+type SnakeCase<Value extends string> =
+  Value extends `${infer Head}${infer Tail}`
+    ? `${Head extends Lowercase<Head> ? Head : `_${Lowercase<Head>}`}${SnakeCase<Tail>}`
+    : Value
+
+type DatabaseRow<Value> = {
+  [Key in keyof Value as Key extends string ? SnakeCase<Key> : never]: Value[Key]
+}
+
+interface DatabaseErrorLike {
+  code?: unknown
+  message?: unknown
+  details?: unknown
+  hint?: unknown
+}
+
+interface LegacyWateringLogRow {
+  id: string
+  zone_id: string
+  watered_at?: string
+  created_at?: string
+  duration_minutes?: number
+  liters_applied?: number | string
+  weather_condition?: string
+  air_temperature_c?: number
+  soil_moisture_before?: number
+  soil_moisture_after?: number
+  method?: string
+  notes?: string
+}
+
+type PipeConfigRow = NonNullable<IrrigationSystem['pipeConfig']>
+type EmitterConfigRow = NonNullable<IrrigationSystem['emitterConfig']>
+type CoverageConfigRow = NonNullable<IrrigationSystem['coverageConfig']>
+
+interface RawIrrigationSystemRow {
+  id: string
+  garden_id?: string
+  zone_id?: string
+  name?: string
+  system_type?: IrrigationSystem['systemType']
+  type?: IrrigationSystem['type']
+  water_source?: IrrigationSystem['waterSource']
+  brand?: string
+  model?: string
+  installation_date?: string
+  flow_rate_lh?: number
+  pressure_bar?: number
+  operating_pressure_min_bar?: number
+  operating_pressure_max_bar?: number
+  pipe_diameter_mm?: PipeConfigRow['diameterMm']
+  pipe_material?: PipeConfigRow['material']
+  pipe_length_m?: PipeConfigRow['lengthM']
+  emitter_type?: EmitterConfigRow['type']
+  emitter_spacing_cm?: EmitterConfigRow['spacingCm']
+  emitter_flow_rate_lh?: EmitterConfigRow['flowRateLh']
+  emitter_count?: EmitterConfigRow['count']
+  coverage_radius_m?: CoverageConfigRow['radiusM']
+  coverage_angle_degrees?: CoverageConfigRow['angleDegrees']
+  overlap_percentage?: CoverageConfigRow['overlapPercentage']
+  efficiency_percentage?: number
+  uniformity_coefficient?: number
+  is_active?: boolean
+  last_maintenance_date?: string
+  next_maintenance_date?: string
+  maintenance_interval_days?: number
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+type PressureDataRow = NonNullable<IrrigationLog['pressureData']>
+type EnvironmentalDataRow = NonNullable<IrrigationLog['environmentalData']>
+
+interface RawIrrigationLogRow {
+  id: string
+  zone_id: string
+  system_id?: string
+  start_time: string
+  end_time?: string
+  planned_duration_minutes: number
+  actual_duration_minutes?: number
+  planned_volume_liters: number
+  actual_volume_liters?: number
+  flow_rate_measured_lh?: number
+  pressure_start_bar?: PressureDataRow['startBar']
+  pressure_end_bar?: PressureDataRow['endBar']
+  pressure_avg_bar?: PressureDataRow['avgBar']
+  pressure_variations?: string
+  weather_conditions?: EnvironmentalDataRow['weatherConditions']
+  temperature_celsius?: EnvironmentalDataRow['temperatureCelsius']
+  humidity_percentage?: EnvironmentalDataRow['humidityPercentage']
+  wind_speed_kmh?: EnvironmentalDataRow['windSpeedKmh']
+  soil_moisture_before_percentage?: EnvironmentalDataRow['soilMoistureBefore']
+  soil_moisture_after_percentage?: EnvironmentalDataRow['soilMoistureAfter']
+  soil_temperature_celsius?: EnvironmentalDataRow['soilTemperatureCelsius']
+  irrigation_type: IrrigationLog['irrigationType']
+  trigger_source?: string
+  operator_id?: string
+  operator_notes?: string
+  distribution_uniformity?: number
+  application_efficiency?: number
+  issues_detected?: string[]
+  alerts_triggered?: string[]
+  water_cost_euros?: number
+  energy_cost_euros?: number
+  created_at: string
+}
+
+type ScheduleConditionsRow = NonNullable<IrrigationSchedule['conditions']>
+
+interface RawIrrigationScheduleRow {
+  id?: string
+  zone_id: string
+  system_id?: string
+  name?: string
+  description?: string
+  is_active?: boolean
+  schedule_type?: IrrigationSchedule['scheduleType']
+  start_date?: string
+  end_date?: string
+  days_of_week?: number[]
+  time_slots?: string[]
+  duration_minutes?: number
+  frequency_days?: number
+  last_execution_date?: string
+  next_execution_date?: string
+  weather_conditions?: ScheduleConditionsRow['weatherConditions']
+  soil_moisture_threshold_min?: ScheduleConditionsRow['soilMoistureThresholdMin']
+  soil_moisture_threshold_max?: ScheduleConditionsRow['soilMoistureThresholdMax']
+  temperature_threshold_min?: ScheduleConditionsRow['temperatureThresholdMin']
+  temperature_threshold_max?: ScheduleConditionsRow['temperatureThresholdMax']
+  rain_delay_hours?: ScheduleConditionsRow['rainDelayHours']
+  rain_threshold_mm?: ScheduleConditionsRow['rainThresholdMm']
+  allow_manual_override?: boolean
+  priority_level?: number
+  seasonal_adjustment_percentage?: number
+  created_at?: string
+  updated_at?: string
+}
+
+type SoilWaterBalanceRow = NonNullable<WaterRequirement['soilWaterBalance']>
+
+interface RawWaterRequirementRow {
+  id: string
+  zone_id: string
+  calculation_date: string
+  et0_mm: number
+  kc_coefficient: number
+  etc_mm: number
+  crop_stage?: string
+  crop_age_days?: number
+  leaf_area_index?: number
+  effective_rainfall_mm?: WeatherData['effectiveRainfallMm']
+  temperature_avg_celsius?: WeatherData['temperatureAvgCelsius']
+  humidity_avg_percentage?: WeatherData['humidityAvgPercentage']
+  wind_speed_avg_kmh?: WeatherData['windSpeedAvgKmh']
+  solar_radiation_mjm2?: WeatherData['solarRadiationMjm2']
+  soil_water_deficit_mm?: SoilWaterBalanceRow['soilWaterDeficitMm']
+  field_capacity_mm?: SoilWaterBalanceRow['fieldCapacityMm']
+  wilting_point_mm?: SoilWaterBalanceRow['wiltingPointMm']
+  available_water_mm?: SoilWaterBalanceRow['availableWaterMm']
+  irrigation_need_mm: number
+  recommended_volume_liters: number
+  recommended_duration_minutes?: number
+  calculation_method: string
+  weather_data_source?: string
+  confidence_level: number
+  ai_adjustment_factor: number
+  ai_confidence_score?: number
+  ai_reasoning?: string
+  created_at: string
+}
+
+interface AgronomicSignalInputData extends Partial<WeatherData> {
+  forecastSummary?: string
+  forecastSource?: string
+  forecastHours?: number
+  soilMoisture10cm?: number
+  soilMoisture10?: number
+  soilMoisture30cm?: number
+  soilMoisture30?: number
+  soilMoisture60cm?: number
+  soilMoisture60?: number
+  soilTensionKpa?: number
+  leafWetness?: number
+  leafWetnessHours?: number
+  dewPointCelsius?: number
+  vpdKpa?: number
+  canopyTemperatureCelsius?: number
+  flowRateActual?: number
+  linePressure?: number
+  phenologyObservation?: unknown
+  qualityResult?: unknown
+  operationLedgerReference?: unknown
+  ndvi?: number
+  satelliteVigor?: number
 }
 
 interface AgronomicResolutionInput {
@@ -116,7 +311,7 @@ class AdvancedIrrigationService {
 
       // Prova a ottenere i sistemi di irrigazione associati
       try {
-        let systems: any[] | null = null
+        let systems: DatabaseRow<IrrigationSystem>[] | null = null
 
         if (Object.prototype.hasOwnProperty.call(zones[0], 'system_id')) {
           const legacySystemIds = Array.from(
@@ -149,9 +344,11 @@ class AdvancedIrrigationService {
         // Mappa i dati combinando zone e sistemi
         return zones.map(zone => ({
           ...this.mapZoneFromDatabase(zone),
-          systems: Object.prototype.hasOwnProperty.call(zone, 'system_id')
-            ? systems?.filter(s => s.id === zone.system_id) || []
-            : systems?.filter(s => s.zone_id === zone.id) || []
+          systems: (
+            Object.prototype.hasOwnProperty.call(zone, 'system_id')
+              ? systems?.filter(s => s.id === zone.system_id) || []
+              : systems?.filter(s => s.zone_id === zone.id) || []
+          ).map(this.mapSystemFromDatabase)
         }))
       } catch (systemError) {
         console.warn('Error fetching irrigation systems, returning zones without systems:', systemError)
@@ -252,8 +449,8 @@ class AdvancedIrrigationService {
   async getIrrigationSystems(zoneId: string): Promise<IrrigationSystem[]> {
     try {
       const supabase = getSupabaseClient()
-      let data: any[] | null = null
-      let error: any = null
+      let data: DatabaseRow<IrrigationSystem>[] | null = null
+      let error: DatabaseErrorLike | null = null
 
       const { data: zoneRow, error: zoneError } = await supabase
         .from('irrigation_zones')
@@ -497,7 +694,7 @@ class AdvancedIrrigationService {
     et0Mm: number,
     kcCoefficient: number,
     cropStage?: string,
-    weatherData?: any,
+    weatherData?: Partial<WeatherData>,
     agronomicInput?: AgronomicResolutionInput
   ): Promise<WaterRequirement> {
     try {
@@ -1151,8 +1348,8 @@ class AdvancedIrrigationService {
       }
 
       // Active systems: derive from schema variant without hitting invalid columns.
-      let systems: any[] | null = null
-      let systemsError: any = null
+      let systems: Array<{ id: string; is_active?: boolean | null }> | null = null
+      let systemsError: DatabaseErrorLike | null = null
       if (usesLegacySchema) {
         const legacySystemIds = Array.from(
           new Set(
@@ -1191,10 +1388,10 @@ class AdvancedIrrigationService {
       }
 
       // Irrigation logs: choose source from schema variant.
-      let todayLogs: any[] | null = null
+      let todayLogs: Array<{ id: string; zone_id?: string }> | null = null
       let weeklyConsumption = 0
-      let recentLogs: any[] | null = null
-      let upcomingSchedules: any[] | null = []
+      let recentLogs: Array<RawIrrigationLogRow | LegacyWateringLogRow> | null = null
+      let upcomingSchedules: RawIrrigationScheduleRow[] | null = []
 
       const canUseLegacyLogs = usesLegacySchema
 
@@ -1330,8 +1527,8 @@ class AdvancedIrrigationService {
         weeklyConsumption,
         currentAlerts: [], // Would need alert system implementation
         recentLogs: canUseLegacyLogs
-          ? recentLogs?.map((log) => this.mapLegacyWateringLogToIrrigationLog(log)) || []
-          : recentLogs?.map(this.mapLogFromDatabase) || [],
+          ? recentLogs?.map((log) => this.mapLegacyWateringLogToIrrigationLog(log as LegacyWateringLogRow)) || []
+          : recentLogs?.map((log) => this.mapLogFromDatabase(log as RawIrrigationLogRow)) || [],
         upcomingSchedules: upcomingSchedules?.map(this.mapScheduleFromDatabase) || [],
         systemStatus: [] // Would need system status monitoring
       }
@@ -1360,7 +1557,9 @@ class AdvancedIrrigationService {
   // UTILITY METHODS
   // ============================================================================
 
-  private calculateNextExecutionDate(schedule: any): string {
+  private calculateNextExecutionDate(
+    schedule: Pick<DatabaseRow<IrrigationSchedule>, 'schedule_type' | 'frequency_days'>
+  ): string {
     const today = new Date()
     const nextDate = new Date(today)
 
@@ -1398,7 +1597,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private isMissingColumnError(error: any, columnName: string): boolean {
+  private isMissingColumnError(error: DatabaseErrorLike, columnName: string): boolean {
     const message = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
     const target = columnName.toLowerCase()
     return (
@@ -1410,7 +1609,7 @@ class AdvancedIrrigationService {
     )
   }
 
-  private isMissingRelationError(error: any, relationName: string): boolean {
+  private isMissingRelationError(error: DatabaseErrorLike, relationName: string): boolean {
     const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
     const target = relationName.toLowerCase()
     return (
@@ -1438,7 +1637,9 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapZoneFromDatabase(data: any): IrrigationZone {
+  private mapZoneFromDatabase(
+    data: DatabaseRow<Omit<IrrigationZone, 'systems'>> & { irrigation_systems?: RawIrrigationSystemRow[] }
+  ): IrrigationZone {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1459,7 +1660,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapZoneToDatabase(zone: Partial<IrrigationZone>): any {
+  private mapZoneToDatabase(zone: Partial<IrrigationZone>): Record<string, unknown> {
     return {
       garden_id: zone.gardenId,
       name: zone.name,
@@ -1476,7 +1677,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapSystemFromDatabase(data: any): IrrigationSystem {
+  private mapSystemFromDatabase(data: RawIrrigationSystemRow): IrrigationSystem {
     return {
       id: data.id,
       gardenId: data.garden_id || '',
@@ -1519,7 +1720,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapSystemToDatabase(system: Partial<IrrigationSystem>): any {
+  private mapSystemToDatabase(system: Partial<IrrigationSystem>): Record<string, unknown> {
     return {
       garden_id: system.gardenId,
       zone_id: system.zoneId,
@@ -1553,7 +1754,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapLogFromDatabase(data: any): IrrigationLog {
+  private mapLogFromDatabase(data: RawIrrigationLogRow): IrrigationLog {
     return {
       id: data.id,
       zoneId: data.zone_id,
@@ -1594,7 +1795,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapLegacyWateringLogToIrrigationLog(data: any): IrrigationLog {
+  private mapLegacyWateringLogToIrrigationLog(data: LegacyWateringLogRow): IrrigationLog {
     const startTime = data.watered_at || data.created_at || new Date().toISOString()
     const durationMinutes = data.duration_minutes ?? 0
     const litersApplied = Number(data.liters_applied) || 0
@@ -1640,7 +1841,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapScheduleFromDatabase(data: any): IrrigationSchedule {
+  private mapScheduleFromDatabase(data: RawIrrigationScheduleRow): IrrigationSchedule {
     return {
       id: data.id,
       zoneId: data.zone_id,
@@ -1674,7 +1875,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapScheduleToDatabase(schedule: Partial<IrrigationSchedule>): any {
+  private mapScheduleToDatabase(schedule: Partial<IrrigationSchedule>): Record<string, unknown> {
     return {
       zone_id: schedule.zoneId,
       system_id: schedule.systemId,
@@ -1703,7 +1904,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapWaterRequirementFromDatabase(data: any): WaterRequirement {
+  private mapWaterRequirementFromDatabase(data: RawWaterRequirementRow): WaterRequirement {
     return {
       id: data.id,
       zoneId: data.zone_id,
@@ -1715,7 +1916,7 @@ class AdvancedIrrigationService {
       cropAgeDays: data.crop_age_days,
       leafAreaIndex: data.leaf_area_index,
       weatherData: {
-        effectiveRainfallMm: data.effective_rainfall_mm,
+        effectiveRainfallMm: data.effective_rainfall_mm ?? 0,
         temperatureAvgCelsius: data.temperature_avg_celsius,
         humidityAvgPercentage: data.humidity_avg_percentage,
         windSpeedAvgKmh: data.wind_speed_avg_kmh,
@@ -1740,7 +1941,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private mapWaterRequirementToDatabase(requirement: Partial<WaterRequirement>): any {
+  private mapWaterRequirementToDatabase(requirement: Partial<WaterRequirement>): Record<string, unknown> {
     return {
       zone_id: requirement.zoneId,
       calculation_date: requirement.calculationDate,
@@ -1865,7 +2066,7 @@ class AdvancedIrrigationService {
   private calculateAgronomicConfidenceLevel(
     resolvedProfile: ResolvedAgronomicCropProfile | null,
     cropStage?: string,
-    weatherData?: any,
+    weatherData?: AgronomicSignalInputData,
     measuredFeedbackSummary?: AgronomicMeasuredFeedbackSummary | null,
     soilHydraulicProfile?: SoilHydraulicProfile | null,
     waterQualityProfile?: IrrigationWaterQualityProfile | null
@@ -1933,7 +2134,7 @@ class AdvancedIrrigationService {
   private buildAgronomicReasoning(
     resolvedProfile: ResolvedAgronomicCropProfile | null,
     cropStage: string,
-    weatherData: any,
+    weatherData: AgronomicSignalInputData | undefined,
     systemEfficiency: number,
     waterRetention?: string,
     aiAdjustmentFactor?: number,
@@ -2241,7 +2442,7 @@ class AdvancedIrrigationService {
   }
 
   private enrichWeatherDataWithWaterQuality(
-    weatherData: any,
+    weatherData: Partial<WeatherData> | undefined,
     waterQualityProfile?: IrrigationWaterQualityProfile | null
   ): WaterRequirement['weatherData'] {
     const baseWeatherData: WaterRequirement['weatherData'] = {
@@ -2346,7 +2547,7 @@ class AdvancedIrrigationService {
     }
   }
 
-  private getAvailableAgronomicSignals(weatherData?: any): Set<AgronomicSignalKey> {
+  private getAvailableAgronomicSignals(weatherData?: AgronomicSignalInputData): Set<AgronomicSignalKey> {
     const availableSignals = new Set<AgronomicSignalKey>()
 
     if (!weatherData) {
@@ -2486,7 +2687,13 @@ class AdvancedIrrigationService {
     return 0.52
   }
 
-  private getAvailableWaterSignalsFromEfficiencyLogs(logs: any[]): Set<AgronomicSignalKey> {
+  private getAvailableWaterSignalsFromEfficiencyLogs(
+    logs: Array<Pick<
+      RawIrrigationLogRow,
+      'pressure_avg_bar' | 'pressure_start_bar' | 'soil_moisture_before_percentage' |
+      'soil_moisture_after_percentage' | 'weather_conditions' | 'temperature_celsius' | 'humidity_percentage'
+    >>
+  ): Set<AgronomicSignalKey> {
     const availableSignals = new Set<AgronomicSignalKey>(['operation_ledger'])
 
     if (logs.length === 0) {
