@@ -503,3 +503,28 @@ Verifiche: lint mirato 0/0, type-check verde, capability 20/20; lint globale
 | Warning | 1915 |
 | Riduzione lotto | 8 |
 | Riduzione dalla baseline operativa 2642 | 727 |
+
+## Lotto 34 / O51 (28/07/2026) - chiuso
+
+La route viva `app/app/analytics/page.tsx` e' stata portata da 7 warning a
+zero. Il lavoro ha rimosso KPI Business Intelligence inventati: minimi e
+fallback per piante, raccolto, acqua, CO2, efficienza, risparmio, ROI e ore,
+oltre a trend e metriche di produttivita' hardcoded.
+
+Il builder puro `lib/analytics/operationalStats.ts` filtra task e raccolti
+persistiti secondo il periodo selezionato. Calcola soltanto peso, completamento,
+operazioni semina/trapianto e durate supportate da evidenze; le metriche senza
+baseline restituiscono `null` e sono presentate come `n/d`. Due regressioni
+verificano dataset vuoto e filtro temporale.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 22/22; lint globale
+**0 errori e 1.908 warning** (`1.915 -> 1.908`).
+
+## Stato dopo il lotto 34
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1908 |
+| Riduzione lotto | 7 |
+| Riduzione dalla baseline operativa 2642 | 734 |
