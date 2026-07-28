@@ -5,23 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSupabase } from '../../../../lib/supabase-server';
-import { findTasksNeedingGerminationNotification, checkGerminationStatus } from '../../../../services/germinationTracker';
+import { AccessError, requireCron } from '@/lib/auth.server';
+import { findTasksNeedingGerminationNotification } from '../../../../services/germinationTracker';
 import { getMasterSheetSync } from '../../../../services/plantMasterService';
 import { sendNotification } from '../../../../services/notificationService';
 
-const CRON_SECRET = process.env.CRON_SECRET;
-
 export async function GET(request: NextRequest) {
   try {
+    requireCron(request);
     const supabase = requireSupabase();
-
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Recupera tutti i task di semina non completati
     const { data: tasks, error: tasksError } = await supabase
@@ -111,12 +103,12 @@ export async function GET(request: NextRequest) {
       checksFound: checks.length,
       date: new Date().toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in germination check cron:', error);
+    const status = error instanceof AccessError ? error.status : 500;
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status }
     );
   }
 }
-

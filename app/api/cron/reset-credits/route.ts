@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseClient } from '@/lib/auth.server'
+import { AccessError, getSupabaseClient, requireCron } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
-  // Verifica auth (Vercel Cron secret)
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    )
-  }
-  
   try {
+    requireCron(request)
     const supabase = getSupabaseClient()
     const today = new Date()
     
@@ -82,11 +72,12 @@ export async function GET(request: NextRequest) {
       resetCount,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Credit reset failed:', error)
+    const status = error instanceof AccessError ? error.status : 500
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
-      { status: 500 }
+      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status }
     )
   }
 }
@@ -96,8 +87,6 @@ function getNextMonthFirstDay(): string {
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   return next.toISOString().split('T')[0]
 }
-
-
 
 
 

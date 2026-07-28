@@ -503,6 +503,12 @@ Il lotto 27 porta le route Production `app/api/cron/health-check/route.ts` e `ap
 
 Durante la selezione, `services/fieldRowPredictiveService.ts` (35 warning) e' stato escluso dal lotto: e' vivo in `/app/garden/rows`, ma costruisce un `GardenTask` virtuale e possiede predizioni di fallback. Non viene trattato come semplice debito lint finche' l'origine e la veridicita' di quelle predizioni non saranno classificate nel perimetro M14.
 
+### Aggiornamento T01 - lotto 28 (28/07/2026)
+
+Il lotto 28 porta a zero warning sei route cron Production: `weekly-photo-reminders`, `germination-check`, `task-reminders`, `weather-alerts`, `daily-diary` e `reset-credits` (11 warning complessivi). Oltre a rimuovere import morti e `any`, uniforma tutti i job al guard centrale `requireCron`: confronto timing-safe, rifiuto quando `CRON_SECRET` e' assente, validazione timestamp e blocco replay. Quattro route confrontavano direttamente l'header con ``Bearer ${CRON_SECRET}`` senza prima garantire che il secret esistesse, rendendo accettabile la stringa `Bearer undefined` in una configurazione errata. I catch preservano ora anche lo status `409` del replay invece di appiattirlo a `401/500`. Aggiunta una regressione che impone il guard canonico a tutte e sei le route.
+
+Baseline globale verificata: **0 errori, 1.963 warning** (`1.974 -> 1.963`); test sicurezza/observability 17/17, lint mirato, type-check e diff-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
