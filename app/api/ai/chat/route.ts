@@ -3,6 +3,7 @@ import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost } from '@/lib/credits'
 import { buildAIAssistantGroundingContext } from '@/services/aiGroundingService'
+import { consumeAICredits, isInsufficientAICreditsError } from '@/lib/ai-credits.server'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
@@ -179,30 +180,13 @@ export async function POST(request: NextRequest) {
     const response = await model.generateContent(buildGlobalChatPrompt(message, boundedContext))
     const reply = response.response.text()
     
-    // Deduct credits
     const supabase = getSupabaseClient()
-    await supabase.rpc('deduct_credits', {
-      p_user_id: user.id,
-      p_amount: cost,
-    })
-    
-    // Log transaction
-    await supabase.from('ai_credit_transactions').insert({
-      user_id: user.id,
-      amount: -cost,
-      type: 'usage',
+    const remaining = await consumeAICredits(supabase, {
+      userId: user.id,
+      amount: cost,
       feature: 'chat',
       description: 'AI chat request',
     })
-    
-    // Get updated credits
-    const { data: updatedProfile } = await supabase
-      .from('profiles')
-      .select('ai_credits_total, ai_credits_used')
-      .eq('id', user.id)
-      .single()
-    
-    const remaining = (updatedProfile?.ai_credits_total || 0) - (updatedProfile?.ai_credits_used || 0)
     
     return NextResponse.json({
       reply,
@@ -211,8 +195,14 @@ export async function POST(request: NextRequest) {
       contextAccepted: Boolean(boundedContext),
       grounding,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Chat error:', error)
+    if (isInsufficientAICreditsError(error)) {
+      return NextResponse.json(
+        { error: 'insufficient_credits', message: 'Credits insufficienti' },
+        { status: 402 }
+      )
+    }
     return NextResponse.json(
       { error: 'internal_error', message: 'Il motore AI non è disponibile in questo momento. Riprova tra poco.' },
       { status: 500 }

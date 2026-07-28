@@ -3,6 +3,7 @@ import { verifyTier } from '@/lib/auth.server'
 import { getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost } from '@/lib/credits'
+import { consumeAICredits, isInsufficientAICreditsError } from '@/lib/ai-credits.server'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
@@ -70,41 +71,24 @@ ${plantType ? `Tipo pianta: ${plantType}` : ''}
     
     const diagnosis = response.response.text()
     
-    // Deduct credits
     const supabase = getSupabaseClient()
-    await supabase.rpc('deduct_credits', {
-      p_user_id: user.id,
-      p_amount: cost,
-    })
-    
-    // Log transaction
-    await supabase.from('ai_credit_transactions').insert({
-      user_id: user.id,
-      amount: -cost,
-      type: 'usage',
+    const remaining = await consumeAICredits(supabase, {
+      userId: user.id,
+      amount: cost,
       feature: 'diagnose',
       description: `Diagnosis for ${plantType || 'plant'}`,
       metadata: { plantType, hasImage: true },
     })
-    
-    // Get updated credits
-    const { data: updatedProfile } = await supabase
-      .from('profiles')
-      .select('ai_credits_total, ai_credits_used')
-      .eq('id', user.id)
-      .single()
-    
-    const remaining = (updatedProfile?.ai_credits_total || 0) - (updatedProfile?.ai_credits_used || 0)
     
     return NextResponse.json({
       diagnosis,
       creditsUsed: cost,
       creditsRemaining: remaining,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Diagnosis error:', error)
     
-    if (error.message?.includes('insufficient_credits')) {
+    if (isInsufficientAICreditsError(error)) {
       return NextResponse.json(
         {
           error: 'insufficient_credits',
@@ -115,12 +99,11 @@ ${plantType ? `Tipo pianta: ${plantType}` : ''}
     }
     
     return NextResponse.json(
-      { error: 'internal_error', message: error.message || 'Errore durante la diagnosi' },
+      { error: 'internal_error', message: 'Errore durante la diagnosi' },
       { status: 500 }
     )
   }
 }
-
 
 
 

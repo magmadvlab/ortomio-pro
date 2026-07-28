@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyTier } from '@/lib/auth.server'
 import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server'
+import { CREDIT_COSTS, getCreditCost, type CreditFeature } from '@/lib/credits'
+import { consumeAICredits, isInsufficientAICreditsError } from '@/lib/ai-credits.server'
+
+const isCreditFeature = (value: unknown): value is CreditFeature =>
+  typeof value === 'string' && value in CREDIT_COSTS
 
 export async function POST(request: NextRequest) {
   try {
-    // In locale senza Supabase, simula successo (credits illimitati)
     if (!isSupabaseAvailable()) {
-      const { amount, feature, metadata } = await request.json()
-      return NextResponse.json({
-        success: true,
-        remaining: 999,
-        deducted: amount,
-        feature,
-        metadata,
-      })
+      return NextResponse.json(
+        { error: 'cloud_storage_unavailable' },
+        { status: 503 }
+      )
     }
 
     // Verify tier PRO
@@ -27,15 +27,16 @@ export async function POST(request: NextRequest) {
     }
     
     const { user, profile } = result
-    const { amount, feature, metadata } = await request.json()
+    const { feature, metadata } = await request.json()
     
-    // Validate input
-    if (!amount || amount <= 0) {
+    if (!isCreditFeature(feature)) {
       return NextResponse.json(
-        { error: 'invalid_amount' },
+        { error: 'invalid_feature' },
         { status: 400 }
       )
     }
+
+    const amount = getCreditCost(feature)
     
     // Check credits available
     const available = (profile.ai_credits_total || 0) - (profile.ai_credits_used || 0)
@@ -55,59 +56,36 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Deduct credits using database function
     const supabase = getSupabaseClient()
-    const { error: deductError } = await supabase.rpc('deduct_credits', {
-      p_user_id: user.id,
-      p_amount: amount,
-    })
-    
-    if (deductError) {
-      if (deductError.message.includes('insufficient_credits')) {
-        return NextResponse.json(
-          {
-            error: 'insufficient_credits',
-            message: 'Credits insufficienti',
-          },
-          { status: 402 }
-        )
-      }
-      throw deductError
-    }
-    
-    // Log transaction
-    await supabase.from('ai_credit_transactions').insert({
-      user_id: user.id,
-      amount: -amount, // Negative for usage
-      type: 'usage',
+    const remaining = await consumeAICredits(supabase, {
+      userId: user.id,
+      amount,
       feature,
       description: `Used ${amount} credits for ${feature}`,
-      metadata,
+      metadata: metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? metadata as Record<string, unknown>
+        : {},
     })
-    
-    // Return updated credits
-    const { data: updatedProfile } = await supabase
-      .from('profiles')
-      .select('ai_credits_total, ai_credits_used')
-      .eq('id', user.id)
-      .single()
-    
-    const remaining = (updatedProfile?.ai_credits_total || 0) - (updatedProfile?.ai_credits_used || 0)
     
     return NextResponse.json({
       success: true,
       creditsUsed: amount,
       creditsRemaining: remaining,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Deduct credits error:', error)
+    if (isInsufficientAICreditsError(error)) {
+      return NextResponse.json(
+        { error: 'insufficient_credits', message: 'Credits insufficienti' },
+        { status: 402 }
+      )
+    }
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }
 }
-
 
 
 
