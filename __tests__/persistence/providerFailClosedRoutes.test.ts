@@ -28,3 +28,11 @@ test('sun exposure routes never substitute a default garden or anonymous mock', 
   assert.match(routes, /cloud_storage_unavailable/)
   assert.match(routes, /status:\s*503/)
 })
+
+test('sun exposure calculation fails closed when obstacle data cannot be read', () => {
+  const route = source('app/api/garden/sun-exposure/route.ts')
+
+  assert.match(route, /if \(obstaclesError\)/)
+  assert.match(route, /garden_obstacles_read_failed/)
+  assert.doesNotMatch(route, /obstaclesError\s*=\s*null/)
+})
