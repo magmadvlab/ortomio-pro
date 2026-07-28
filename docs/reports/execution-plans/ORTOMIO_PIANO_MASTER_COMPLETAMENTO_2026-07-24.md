@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O61 | **14** | **0** | **3** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`) e O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **905 warning rimossi** | — | **1.737 warning** | Baseline operativa 2.642 -> 1.737 in 43 lotti. T01 non equivale a 1.737 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **925 warning rimossi** | — | **1.717 warning** | Baseline operativa 2.642 -> 1.717 in 44 lotti. T01 non equivale a 1.717 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -846,6 +846,35 @@ registro aperti (§5.1), non solo in questo paragrafo, per rispettare la
 regola anti-riapertura del piano.
 
 Baseline globale verificata: **0 errori, 1.737 warning** (`1.768 -> 1.737`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione 153/153
+pagine verdi.
+
+### Aggiornamento T01 - lotto 44 (28/07/2026)
+
+Nella classifica aggiornata i primi quattro candidati restavano esclusi:
+`costOptimizationService.ts` (KPI statici gia' noti in M14),
+`fieldRowPredictiveService.ts` (O-pending dal lotto 27),
+`prescriptionMapsService.ts` (O60, appena escluso) e `aiPlanningService.ts`,
+riverificato e confermato ancora parte del cluster "AI Planner" morto di M05
+(tutti i suoi importer sono altri file dello stesso cluster, nessuna route
+reale).
+
+Il lotto 44 e' stato eseguito su `services/advancedNutritionService.ts` (vivo
+in `/app/nutrition`, usato da cinque componenti Product/Analytics/Inventory/
+Treatment/Dashboard), da 20 warning a zero: rimossi 3 import di tipi mai usati
+(`TreatmentHistory`, `DateRange`, `ComplianceRecord`) e tipizzati tutti i 17
+`any` con lo stesso pattern `DatabaseRow<T>` gia' introdotto in
+`orchardService.ts`/`advancedIrrigationService.ts`, incluse le eccezioni per i
+campi annidati appiattiti in colonne separate (`phRange`/`temperatureRange`)
+e per il rename non derivabile `interval` -> `interval_days`. Rimosso anche un
+cast `supabase as any` non necessario (il tipo del client era gia'
+compatibile). Nessun gap funzionale nuovo trovato: i placeholder gia'
+presenti (`treatmentsByZone`, `treatmentsByProduct`, `monthlyTrends`,
+`seasonalPatterns`, `costPerSqm`) sono array/zero espliciti con commento
+"Would need X data", stesso standard onesto gia' visto altrove, non dati
+finti.
+
+Baseline globale verificata: **0 errori, 1.717 warning** (`1.737 -> 1.717`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione 153/153
 pagine verdi.
 

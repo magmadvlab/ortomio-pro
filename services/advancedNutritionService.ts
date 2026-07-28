@@ -5,13 +5,10 @@ import {
   NutritionSchedule,
   ProductInventory,
   StockMovement,
-  TreatmentHistory,
   NutritionAnalytics,
   NutritionDashboardData,
   NutritionFilters,
   AnalyticsRecommendation,
-  DateRange,
-  ComplianceRecord,
   ProductCompatibility,
   NutritionAdaptiveThresholds,
   EffectivenessAlert,
@@ -21,7 +18,7 @@ import { getSupabaseClient } from '@/config/supabase'
 import { createStorageProvider } from '@/packages/core/storage/factory'
 import { resolveIrrigationWaterQualityProfile } from '@/services/irrigationWaterQualityService'
 import { calculateSoilHydraulicProfile, getLatestSoilAnalysis } from '@/services/soilAnalysisService'
-import type { IrrigationSystem } from '@/types/irrigation'
+import type { IrrigationSystem, IrrigationZone } from '@/types/irrigation'
 import {
   buildAgronomicNutritionLearningAdjustment,
   buildAgronomicQualityLearningAdjustment,
@@ -29,6 +26,29 @@ import {
   type AgronomicNutritionLearningAdjustment,
   type AgronomicQualityLearningAdjustment,
 } from '@/services/agronomicProfileLearningService'
+
+type SnakeCase<Value extends string> =
+  Value extends `${infer Head}${infer Tail}`
+    ? `${Head extends Lowercase<Head> ? Head : `_${Lowercase<Head>}`}${SnakeCase<Tail>}`
+    : Value
+
+type DatabaseRow<Value> = {
+  [Key in keyof Value as Key extends string ? SnakeCase<Key> : never]: Value[Key]
+}
+
+type PhRangeRow = NonNullable<FertilizerProduct['phRange']>
+type TemperatureRangeRow = NonNullable<TreatmentProduct['temperatureRange']>
+
+interface NutritionTreatmentAnalyticsRow {
+  treatment_type: NutritionTreatment['treatmentType']
+  total_cost?: number
+  effectiveness?: number
+  organic_compliant?: boolean
+  follow_up_required?: boolean
+  followUpRequired?: boolean
+  application_method?: NutritionTreatment['applicationMethod']
+  applicationMethod?: NutritionTreatment['applicationMethod']
+}
 
 const roundMetric = (value: number, digits: number = 1) =>
   Number(value.toFixed(digits))
@@ -871,8 +891,15 @@ class AdvancedNutritionService {
   // UTILITY METHODS
   // ============================================================================
 
-  private groupTreatmentsByType(treatments: any[]) {
-    const grouped = treatments.reduce((acc, treatment) => {
+  private groupTreatmentsByType(treatments: NutritionTreatmentAnalyticsRow[]) {
+    const grouped = treatments.reduce<Record<string, {
+      type: string
+      count: number
+      totalCost: number
+      averageEffectiveness: number
+      organicPercentage: number
+      organicCount: number
+    }>>((acc, treatment) => {
       const type = treatment.treatment_type
       if (!acc[type]) {
         acc[type] = {
@@ -884,19 +911,19 @@ class AdvancedNutritionService {
           organicCount: 0
         }
       }
-      
+
       acc[type].count++
       acc[type].totalCost += treatment.total_cost || 0
       acc[type].averageEffectiveness += toEffectivenessPercent(treatment.effectiveness)
-      
+
       if (treatment.organic_compliant) {
         acc[type].organicCount++
       }
-      
+
       return acc
     }, {})
 
-    return Object.values(grouped).map((group: any) => ({
+    return Object.values(grouped).map((group) => ({
       ...group,
       averageEffectiveness: group.count > 0 ? roundMetric(group.averageEffectiveness / group.count) : 0,
       organicPercentage: group.count > 0 ? (group.organicCount / group.count) * 100 : 0
@@ -904,7 +931,7 @@ class AdvancedNutritionService {
   }
 
   private generateRecommendations(
-    treatments: any[],
+    treatments: NutritionTreatmentAnalyticsRow[],
     organicPercentage: number,
     nutritionAdjustment: AgronomicNutritionLearningAdjustment,
     qualityAdjustment: AgronomicQualityLearningAdjustment,
@@ -1019,7 +1046,7 @@ class AdvancedNutritionService {
 
   private async buildNutritionWaterQualityInsight(
     gardenId: string,
-    treatments: any[]
+    treatments: NutritionTreatmentAnalyticsRow[]
   ): Promise<NutritionWaterQualityInsight | undefined> {
     const supabase = requireNutritionSupabaseClient()
     const fertigationExposure = treatments.some(
@@ -1055,7 +1082,7 @@ class AdvancedNutritionService {
       .eq('is_active', true)
 
     const systemsByZone = new Map<string, IrrigationSystem[]>()
-    ;(systems || []).forEach((system: any) => {
+    ;(systems || []).forEach((system: { zone_id: string; water_source?: IrrigationSystem['waterSource'] }) => {
       const zoneSystems = systemsByZone.get(system.zone_id) || []
       zoneSystems.push({
         id: `${system.zone_id || 'system'}:${system.water_source || 'unknown'}`,
@@ -1068,7 +1095,7 @@ class AdvancedNutritionService {
     })
 
     const zoneProfiles = await Promise.all(
-      zoneList.map(async (zone: any) => ({
+      zoneList.map(async (zone: { id: string }) => ({
         zoneId: zone.id,
         profile: await resolveIrrigationWaterQualityProfile({
           gardenId,
@@ -1100,10 +1127,16 @@ class AdvancedNutritionService {
     const worstProfile = sortedProfiles[0]
     const soilProfiles = (
       await Promise.all(
-        zoneList.map(async (zone: any) => {
+        zoneList.map(async (zone: {
+          id: string
+          soil_type?: IrrigationZone['soilType']
+          slope_percentage?: IrrigationZone['slopePercentage']
+          drainage_quality?: IrrigationZone['drainageQuality']
+          water_retention?: IrrigationZone['waterRetention']
+        }) => {
           const waterQualityProfile =
             zoneProfiles.find((entry) => entry.zoneId === zone.id)?.profile || null
-          const latestSoilAnalysis = await getLatestSoilAnalysis(supabase as any, zone.id, gardenId)
+          const latestSoilAnalysis = await getLatestSoilAnalysis(supabase, zone.id, gardenId)
           return calculateSoilHydraulicProfile(latestSoilAnalysis, {
             zone: {
               soilType: zone.soil_type || 'mixed',
@@ -1266,7 +1299,12 @@ class AdvancedNutritionService {
   // DATABASE MAPPING METHODS
   // ============================================================================
 
-  private mapFertilizerFromDatabase(data: any): FertilizerProduct {
+  private mapFertilizerFromDatabase(
+    data: DatabaseRow<Omit<FertilizerProduct, 'phRange'>> & {
+      ph_range_min?: PhRangeRow['min']
+      ph_range_max?: PhRangeRow['max']
+    }
+  ): FertilizerProduct {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1309,7 +1347,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapFertilizerToDatabase(product: Partial<FertilizerProduct>): any {
+  private mapFertilizerToDatabase(product: Partial<FertilizerProduct>): Record<string, unknown> {
     return {
       garden_id: product.gardenId,
       name: product.name,
@@ -1347,7 +1385,12 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapTreatmentProductFromDatabase(data: any): TreatmentProduct {
+  private mapTreatmentProductFromDatabase(
+    data: DatabaseRow<Omit<TreatmentProduct, 'temperatureRange'>> & {
+      temperature_range_min?: TemperatureRangeRow['min']
+      temperature_range_max?: TemperatureRangeRow['max']
+    }
+  ): TreatmentProduct {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1394,7 +1437,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapTreatmentProductToDatabase(product: Partial<TreatmentProduct>): any {
+  private mapTreatmentProductToDatabase(product: Partial<TreatmentProduct>): Record<string, unknown> {
     return {
       garden_id: product.gardenId,
       name: product.name,
@@ -1436,7 +1479,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapTreatmentFromDatabase(data: any): NutritionTreatment {
+  private mapTreatmentFromDatabase(data: DatabaseRow<NutritionTreatment>): NutritionTreatment {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1483,7 +1526,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapTreatmentToDatabase(treatment: Partial<NutritionTreatment>): any {
+  private mapTreatmentToDatabase(treatment: Partial<NutritionTreatment>): Record<string, unknown> {
     return {
       garden_id: treatment.gardenId,
       zone_id: treatment.zoneId,
@@ -1527,7 +1570,9 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapScheduleFromDatabase(data: any): NutritionSchedule {
+  private mapScheduleFromDatabase(
+    data: DatabaseRow<Omit<NutritionSchedule, 'interval'>> & { interval_days?: NutritionSchedule['interval'] }
+  ): NutritionSchedule {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -1557,7 +1602,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapScheduleToDatabase(schedule: Partial<NutritionSchedule>): any {
+  private mapScheduleToDatabase(schedule: Partial<NutritionSchedule>): Record<string, unknown> {
     return {
       garden_id: schedule.gardenId,
       name: schedule.name,
@@ -1584,7 +1629,7 @@ class AdvancedNutritionService {
     }
   }
 
-  private mapInventoryFromDatabase(data: any): ProductInventory {
+  private mapInventoryFromDatabase(data: DatabaseRow<ProductInventory>): ProductInventory {
     return {
       productId: data.product_id,
       productName: data.product_name,
