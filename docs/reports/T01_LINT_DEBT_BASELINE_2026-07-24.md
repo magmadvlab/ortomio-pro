@@ -478,3 +478,28 @@ Verifiche: lint mirato 0/0, type-check verde, test mapping 2/2; lint globale
 | Warning | 1923 |
 | Riduzione lotto | 16 |
 | Riduzione dalla baseline operativa 2642 | 719 |
+
+## Lotto 33 / O50 (28/07/2026) - chiuso
+
+`components/garden/AddItemModal.tsx`, `components/shared/QuickActions.tsx` e la
+route viva `app/app/garden/rows/edit/page.tsx` sono stati portati da 8 warning
+complessivi a zero. I tre select della configurazione filare usano ora le union
+reali invece di `any`.
+
+La selezione ha scoperto quattro azioni vive verso `/app/progress`, route
+inesistente. I comandi raccolto convergono su `/app/harvest`, la variante
+`?action=add` apre realmente il modal di registrazione e il riquadro traguardo
+senza pagina dettaglio non e' piu' presentato come link. La regressione
+capability copre i quattro consumer e il contratto della pagina Raccolti.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 20/20; lint globale
+**0 errori e 1.915 warning** (`1.923 -> 1.915`).
+
+## Stato dopo il lotto 33
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1915 |
+| Riduzione lotto | 8 |
+| Riduzione dalla baseline operativa 2642 | 727 |

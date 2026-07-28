@@ -119,6 +119,7 @@ export default function HarvestPage() {
           gardenId={activeGarden?.id}
           launchRequest={launchRequest}
           onLaunchHandled={() => setLaunchRequest(null)}
+          openCreate={searchParams.get('action') === 'add'}
         />
       </div>
     </div>

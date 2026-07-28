@@ -40,9 +40,15 @@ interface HarvestDashboardProps {
   gardenId?: string;
   launchRequest?: HarvestLaunchRequest | null;
   onLaunchHandled?: () => void;
+  openCreate?: boolean;
 }
 
-export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, launchRequest, onLaunchHandled }) => {
+export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
+  gardenId,
+  launchRequest,
+  onLaunchHandled,
+  openCreate = false,
+}) => {
   const supabase = getSupabaseClient();
   const { storageProvider } = useStorage();
   const [harvests, setHarvests] = useState<Harvest[]>([]);
@@ -86,6 +92,15 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({ gardenId, la
     setShowModal(true);
     onLaunchHandled?.();
   }, [launchRequest, onLaunchHandled]);
+
+  useEffect(() => {
+    if (!openCreate) {
+      return;
+    }
+
+    setEditingHarvest(null);
+    setShowModal(true);
+  }, [openCreate]);
 
   const loadData = async () => {
     try {
