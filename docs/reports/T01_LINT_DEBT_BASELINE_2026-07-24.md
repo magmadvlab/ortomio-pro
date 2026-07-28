@@ -606,3 +606,29 @@ Verifiche: lint mirato 0/0, type-check verde, capability 28/28; lint globale
 | Warning | 1869 |
 | Riduzione lotto | 16 |
 | Riduzione dalla baseline operativa 2642 | 773 |
+
+## Lotto 38 / O55 (28/07/2026) - chiuso
+
+La route viva `app/app/irrigation/page.tsx` e' stata portata da 17 warning a
+zero. Rimossi i KPI hardcoded `85L`, `3 zone`, `15% risparmio` e `68% umidita'`,
+le tre zone campione datate 2024 e due componenti interni mai renderizzati.
+Anche i tab Analytics e Programmazione, che conducevano soltanto a
+“componente in sviluppo”, non sono piu' esposti.
+
+Restano dashboard, zone, sistemi e registrazione irrigazione basati sui servizi
+persistenti. Il click zona ora apre i sistemi filtrati invece di eseguire un
+`console.log`; i comandi opzionali della dashboard vengono renderizzati solo
+quando esiste una destinazione. I log sono tipizzati e la regressione verifica
+che singolo e batch seguano una sola finalizzazione coerente.
+
+Verifiche: lint mirato 0/0, type-check verde, capability 31/31; lint globale
+**0 errori e 1.852 warning** (`1.869 -> 1.852`).
+
+## Stato dopo il lotto 38
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1852 |
+| Riduzione lotto | 17 |
+| Riduzione dalla baseline operativa 2642 | 790 |
