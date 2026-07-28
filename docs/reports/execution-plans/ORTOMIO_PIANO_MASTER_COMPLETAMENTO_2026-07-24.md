@@ -92,8 +92,8 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 | Perimetro | Chiuso | Parziale | Aperto | Lettura corretta |
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
-| Scoperte O45-O58 | **13** | **0** | **1** | E' aperto soltanto O48, sicurezza delle credenziali provider. Le altre 13 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **851 warning rimossi** | — | **1.791 warning** | Baseline operativa 2.642 -> 1.791 in 41 lotti. T01 non equivale a 1.791 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Scoperte O45-O59 | **13** | **1** | **1** | O48 e' aperto; O59 ha codice e migrazione pronti ma attende applicazione/prova Production. Le altre 13 scoperte sono chiuse e pubblicate. |
+| Debito lint T01 | **874 warning rimossi** | — | **1.768 warning** | Baseline operativa 2.642 -> 1.768 in 42 lotti. T01 non equivale a 1.768 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -117,9 +117,10 @@ chiudere O01, O03 e O06-O15. Questi ID non verranno fatti passare per chiusi.
 
 ### Coda eseguibile senza attendere soggetti esterni
 
-1. **T01 e difetti scoperti nei percorsi vivi:** prossimo lotto
-   `saplingService.ts`; ogni gap funzionale riceve un ID distinto e una prova,
-   senza essere nascosto come lint.
+1. **O59 e T01:** applicare/provare la migrazione canonica alberelli, quindi
+   selezionare il prossimo servizio vivo dalla classifica lint; ogni gap
+   funzionale riceve un ID distinto e una prova, senza essere nascosto come
+   lint.
 2. **O48 sicurezza provider:** cifratura autenticata, rotazione e chiamate
    esclusivamente server-side; la chiusura finale dipende poi dalle
    credenziali del provider scelto in O31.
@@ -494,6 +495,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O56 | Trasversale | ~~Rimuovere dalla route Frutteto il prototipo tropicale statico e irraggiungibile~~ **Chiuso 28/07/2026:** eliminate 347 righe di `TropicalExoticSection`, mai importate, invocate o renderizzate, inclusi catalogo statico e KPI fissi `24°C`/`75%`. La rimozione riguarda soltanto il prototipo morto, non il concetto prodotto tropicale implementato correttamente in O57. Gli alberi e i gruppi filare vivi sono tipizzati con `OrchardTree`; dashboard e flussi persistenti restano invariati. | Zero prototipo orfano e zero KPI statici irraggiungibili; route Frutteto 0 warning; test mapping/filari e build verdi |
 | O57 | Trasversale | ~~Differenziare i frutteti tropicali come sottocategoria reale di Frutteto~~ **Chiuso 28/07/2026:** il wizard principale espone `Tropicale/Subtropicale` e sincronizza bidirezionalmente la categoria botanica `ESOTICHE` con il valore persistito `orchardType=tropical`, gia' supportato dal vincolo database. Cambiando categoria non resta una classificazione tropicale obsoleta; la dashboard mostra nome e icona dedicati. | Tropicale resta nel dominio Frutteto; scelta persistita senza dati mock; coerenza bidirezionale testata; dashboard riconoscibile |
 | O58 | Trasversale | ~~Correggere il bulk alberi del wizard Frutteto e tipizzare il servizio persistente~~ **Chiuso 28/07/2026:** `createOrchardFromWizard` non passa piu' righe snake_case a `bulkCreateTrees`, che le rimappava come oggetti camelCase e poteva perdere `orchardId`/`gardenId`. Un builder dedicato mantiene entrambi gli scope fino al mapper, valida numero albero e varieta' prima dell'insert e applica default di stato espliciti. Se il bulk fallisce, la configurazione appena creata viene compensata; un doppio fallimento resta esplicito. I mapper Supabase usano contratti derivati dai tipi dominio. | Scope garden/frutteto presenti nel bulk insert; nessuna identita' inventata; nessun frutteto parziale silenzioso; regressioni persistenti verdi; servizio 0 warning |
+| O59 | M09 | `[L]` Convergere il servizio alberelli vivo sul solo contratto `sapling_batches`/`sapling_items` e rendere atomiche creazione, resize, stato e messa a dimora. **Schema Production pronto 28/07/2026:** migrazione `20260728070000` applicata e registrata dopo inventario del drift reale; history/tabelle/quattro RPC/RLS/permessi verdi, `batches_without_items=0`. Codice e regressioni pronti, manca il deploy applicativo. | Deploy codice Production; creazione, zero residuo, resize, stato, planting e foto persistono al reload; regressioni verdi |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -771,6 +773,29 @@ Baseline globale verificata: **0 errori, 1.791 warning** (`1.824 -> 1.791`);
 lint mirato e type-check verdi; persistenza 75/75, capability 31/31 e build
 produzione 153/153.
 
+### Aggiornamento T01 - lotto 42 / O59 (28/07/2026)
+
+`services/saplingService.ts` passa da 19 warning a zero e converge sul solo
+backend canonico `sapling_batches`/`sapling_items`. La pulizia ha eliminato
+fallback tra tre schemi, quantita' `0` risuscitate tramite `||`, date/quantita'
+inventate, ID planting generati nel browser e fallimenti di lettura presentati
+come dataset vuoti.
+
+La migrazione `20260728070000_canonical_sapling_persistence.sql` introduce RPC
+atomiche per batch+items, resize, stato e messa a dimora, oltre al timeline foto
+con RLS. Anche i 3 warning residui della dashboard viva sono stati chiusi;
+type-check, regressione O59 5/5 e persistenza 80/80 sono verdi.
+Baseline globale: **0 errori, 1.768 warning** (`1.791 -> 1.768`).
+
+Il primo invio Production e' stato interamente annullato dalla transazione
+perche' `sapling_items` non esisteva nello schema remoto, evidenziando il drift
+rispetto al file storico locale. Dopo l'inventario, la migrazione finale ha
+esteso e backfillato il `sapling_batches` legacy senza eliminare dati, creato
+items/timeline e mantenuto sincronizzati i campi legacy. Versione
+`20260728070000` registrata; probe indipendente:
+history/tabelle/quattro RPC/RLS/permessi tutti verdi e
+`batches_without_items=0`. O59 resta `[L]` soltanto fino al deploy del codice.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
@@ -786,8 +811,8 @@ Eseguita il 24/07/2026 sulla baseline locale:
 Ordine operativo aggiornato al 28/07/2026:
 
 1. pubblicare questo cruscotto come fonte unica dello stato;
-2. riprendere T01 dal lotto 42 su `saplingService.ts`, separando gli eventuali
-   difetti funzionali dalla sola tipizzazione;
+2. applicare e provare lo schema O59, poi riprendere T01 dal lotto 43 sul
+   successivo percorso vivo;
 3. chiudere O48 per la parte implementabile senza credenziali provider;
 4. registrare e decidere i gap di prodotto gia' diagnosticati, senza
    riaprirli incidentalmente durante altri lotti;
