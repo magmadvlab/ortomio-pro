@@ -717,7 +717,7 @@ Verifiche: lint mirato 0/0, type-check verde, persistenza 75/75, capability
 | Riduzione lotto | 33 |
 | Riduzione dalla baseline operativa 2642 | 851 |
 
-## Lotto 42 / O59 (28/07/2026) - schema Production pronto
+## Lotto 42 / O59 (28/07/2026) - chiuso
 
 `services/saplingService.ts`, vivo nella dashboard alberelli e nel manager
 Semenzaio, e' stato portato da 19 warning a zero. La tipizzazione ha confermato
@@ -745,7 +745,8 @@ Verifiche locali: lint mirato 0/0 sul servizio e sulla dashboard, type-check
 verde, regressione O59 5/5 e persistenza 80/80; lint globale **0 errori e
 1.768 warning** (`1.791 -> 1.768`). Migrazione `20260728070000` applicata e
 registrata in Production. Probe: history/tabelle/RPC/RLS/permessi tutti
-`true`, `batches_without_items=0`. O59 resta `[L]` fino al deploy del codice.
+`true`, `batches_without_items=0`. PR #96 unita in `main` (`14069cc`) e deploy
+Vercel Production verde: O59 e' chiuso.
 
 ## Stato dopo il lotto 42
 
