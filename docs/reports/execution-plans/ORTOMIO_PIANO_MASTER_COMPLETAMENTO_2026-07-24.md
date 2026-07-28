@@ -433,6 +433,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O48 | M13 | Proteggere le credenziali provider: sostituire il Base64 di `api_configurations` con cifratura autenticata a riposo, migrare/ruotare i valori esistenti e spostare ogni chiamata provider dietro endpoint server-side; oggi la route per servizio restituisce la chiave decodificata al client e gli adapter browser la usano direttamente. | Nessun segreto provider in payload/browser; cifratura autenticata e rotazione verificate; provider reali funzionanti soltanto server-side |
 | O49 | M14 | ~~Rendere atomici quota tecnica AI e ledger~~ **Chiuso 28/07/2026:** migrazione Production `20260728050000_atomic_ai_credit_consumption.sql` applicata e registrata; RPC service-role-only aggiorna `profiles.ai_credits_used` e inserisce `ai_credit_transactions` nella stessa transazione. Revocata ai client anche la vecchia `deduct_credits`. Le cinque route vive usano esclusivamente il nuovo adapter, derivano i costi dal catalogo server e non inventano piu' saldo `999` senza Supabase. Probe remoto anon: `401/42501 permission denied`; colonne ledger `HTTP 200`. | Nessun successo AI senza quota+ledger coerenti; RPC non invocabile dal client; saldo sempre autorevole |
 | O50 | Trasversale | ~~Eliminare le azioni vive verso `/app/progress`, route inesistente~~ **Chiuso 28/07/2026:** modale Aggiungi, quick action globale e quick action dashboard convergono su `/app/harvest`; `?action=add` apre realmente il modal di registrazione. Il riquadro traguardo, privo di una pagina dettaglio canonica, non finge piu' di essere navigabile. Regressione capability dedicata. | Zero destinazioni `/app/progress` nei quattro consumer vivi; creazione raccolto raggiungibile e modal aperto |
+| O51 | M14 | ~~Eliminare i KPI inventati dalla Business Intelligence~~ **Chiuso 28/07/2026:** la route Analytics non impone piu' minimi o fallback fittizi per piante, raccolto, acqua, CO2, efficienza, risparmio, ROI e ore; rimosse anche variazioni, resa, ciclo, utilizzo risorse, tempo medio e automazione hardcoded. Le metriche derivabili usano task/raccolti persistiti filtrati dal periodo; quelle senza baseline mostrano `n/d` e la condizione mancante. | Dataset vuoto produce solo zero osservati o `null`; nessun KPI simulato; filtro temporale applicato; regressione capability verde |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -573,6 +574,24 @@ nei consumer e il contratto di apertura del modal.
 
 Baseline globale verificata: **0 errori, 1.915 warning** (`1.923 -> 1.915`);
 lint mirato e type-check verdi; capability 20/20.
+
+### Aggiornamento T01 - lotto 34 / O51 (28/07/2026)
+
+La route viva `app/app/analytics/page.tsx` e' stata portata da 7 warning a
+zero. La pulizia ha scoperto KPI presentati come Business Intelligence anche a
+dataset vuoto: 24 piante, 15,6 kg, 120 L, 8,5 kg CO2, efficienza 87,5%,
+risparmio 450 euro, ROI 180%, 12 ore, oltre a trend, resa, ciclo e utilizzo
+risorse hardcoded.
+
+O51 e' chiuso con il builder puro `operationalStats.ts`: task e raccolti sono
+filtrati davvero per mese/trimestre/anno; peso, completamento, semine/trapianti
+e durate derivano solo dai record persistiti. ROI, risparmio, acqua, CO2,
+automazione e metriche prive di baseline restituiscono `null` e la UI mostra
+`n/d` con la causa. Il precedente “Costo/kg”, che mostrava in realta' un prezzo
+di vendita adattivo, e' stato rinominato correttamente.
+
+Baseline globale verificata: **0 errori, 1.908 warning** (`1.915 -> 1.908`);
+lint mirato e type-check verdi; capability 22/22.
 
 ## 6. Verifica trasversale dopo M15
 
