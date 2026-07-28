@@ -560,6 +560,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
         {activeGarden && (
           <HealthAlertsWidget
             garden={activeGarden}
+            tasks={currentTasks}
             maxAlerts={3}
           />
         )}

@@ -18,10 +18,11 @@ import {
 
 interface HealthAlertsWidgetProps {
   garden: Garden
+  tasks: GardenTask[]
   maxAlerts?: number
 }
 
-export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAlertsWidgetProps) {
+export default function HealthAlertsWidget({ garden, tasks, maxAlerts = 3 }: HealthAlertsWidgetProps) {
   const router = useRouter()
   const { storageProvider } = useStorage()
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
@@ -30,12 +31,13 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
   const loadHealthAlerts = useCallback(async () => {
     setLoading(true)
     try {
-      // Simula caricamento task per analisi
-      const tasks: GardenTask[] = [] // In produzione: caricare task reali
       const devices = storageProvider?.getDevices
         ? await storageProvider.getDevices(garden.id).catch(() => [])
         : []
-      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks, { devices })
+      const healthAlerts = await plantHealthMonitoringService.analyzeGardenHealth(garden, tasks, {
+        devices,
+        storageProvider,
+      })
       
       // Ordina per severità e urgenza
       const sortedAlerts = healthAlerts
@@ -54,7 +56,7 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
     } finally {
       setLoading(false)
     }
-  }, [garden, maxAlerts, storageProvider])
+  }, [garden, maxAlerts, storageProvider, tasks])
 
   useEffect(() => {
     if (garden?.id) {
@@ -139,8 +141,10 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
           <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Stethoscope className="text-green-600" size={24} />
           </div>
-          <p className="text-green-700 font-medium">Tutte le piante sono in salute! 🌱</p>
-          <p className="text-sm text-gray-600 mt-1">Monitoraggio automatico attivo</p>
+          <p className="text-green-700 font-medium">Nessun controllo salute prioritario</p>
+          <p className="text-sm text-gray-600 mt-1">
+            La mancanza di segnalazioni non sostituisce un controllo sul campo.
+          </p>
         </div>
       </div>
     )
@@ -152,7 +156,7 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Stethoscope className="text-green-600" size={24} />
-          <h3 className="text-lg font-semibold text-gray-900">Salute Piante</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Controlli salute consigliati</h3>
         </div>
         
         {alerts.length > 0 && (
@@ -162,7 +166,7 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
                 ? 'bg-red-100 text-red-700'
                 : 'bg-yellow-100 text-yellow-700'
             }`}>
-              {alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} urgenti
+              {alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length} prioritari
             </span>
           </div>
         )}
@@ -213,17 +217,12 @@ export default function HealthAlertsWidget({ garden, maxAlerts = 3 }: HealthAler
                 {/* Quick Action Button */}
                 <button
                   onClick={() => {
-                    // Trigger quick action based on alert type
-                    if (alert.photoRequired) {
-                      // Open photo analysis
-                      console.log('Open photo analysis for', alert.id)
-                    } else if (alert.agronomistConsultation) {
-                      // Open agronomist contact
-                      console.log('Open agronomist contact for', alert.id)
-                    } else {
-                      // Open monitoring
-                      console.log('Open monitoring for', alert.id)
-                    }
+                    const action = alert.photoRequired
+                      ? 'photo'
+                      : alert.agronomistConsultation
+                        ? 'agronomist'
+                        : 'monitoring'
+                    router.push(`/app/health?action=${action}&alert=${encodeURIComponent(alert.id)}`)
                   }}
                   className={`flex items-center gap-2 px-3 py-2 text-white text-sm rounded-lg transition-colors ${quickAction.color}`}
                 >

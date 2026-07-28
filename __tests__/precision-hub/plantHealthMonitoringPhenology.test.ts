@@ -96,6 +96,51 @@ test('calculateRuleConfidence increases when a real phenology observation suppor
   assert.ok(withPhenology > withoutPhenology)
 })
 
+test('health rules never invent sample plants when the garden has no persisted crop identity', () => {
+  const service = new PlantHealthMonitoringService()
+  const plants = (service as any).getRelevantPlants(weatherRule, {
+    cropContext: vineyardContext,
+    dominantPlantNames: [],
+  })
+
+  assert.deepEqual(plants, [])
+})
+
+test('health rules use persisted crop names without fabricating location codes', () => {
+  const service = new PlantHealthMonitoringService()
+  const plants = (service as any).getRelevantPlants(weatherRule, {
+    cropContext: vineyardContext,
+    dominantPlantNames: ['Sangiovese'],
+  })
+
+  assert.deepEqual(plants, [{ name: 'Sangiovese' }])
+})
+
+test('calendar rules are explicitly described as seasonal reminders, not diagnoses', () => {
+  const service = new PlantHealthMonitoringService()
+  const description = (service as any).generateDescription(
+    {
+      ...weatherRule,
+      triggers: [{ type: 'calendar', parameters: { month: [7] } }],
+    },
+    'Sangiovese',
+    {
+      cropContext: vineyardContext,
+      weatherData: null,
+      microclimate: null,
+      phenology: null,
+      agronomicProfile: null,
+      measuredFeedbackNotes: [],
+      adaptiveLearning: { notes: [] },
+      refinedContext: null,
+    }
+  )
+
+  assert.match(description, /Promemoria stagionale/)
+  assert.match(description, /Non e una diagnosi/)
+  assert.doesNotMatch(description, /rilevat[oa]/)
+})
+
 test('analyzeWeatherConditions escalates risk when persisted environmental history shows recurring pressure', async () => {
   const service = new PlantHealthMonitoringService()
 
