@@ -8,7 +8,7 @@ import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { type, gardenId, plantId, data } = body
+    const { type, gardenId, data } = body
 
     if (!type || !gardenId || !data) {
       return NextResponse.json(

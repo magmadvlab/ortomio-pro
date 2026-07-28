@@ -35,12 +35,11 @@ export async function POST(request: NextRequest) {
       locale,
       archetypeId: archetypeId || null
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Plant search error:', error);
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     );
   }
 }
-

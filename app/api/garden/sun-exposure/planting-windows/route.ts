@@ -68,10 +68,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Ottieni ostacoli
-    const { data: obstaclesData } = await supabase
+    const { data: obstaclesData, error: obstaclesError } = await supabase
       .from('garden_obstacles')
       .select('*')
       .eq('garden_id', gardenId)
+
+    if (obstaclesError) {
+      console.error('Planting windows obstacle read error:', obstaclesError)
+      return NextResponse.json(
+        { error: 'garden_obstacles_read_failed' },
+        { status: 500 }
+      )
+    }
     
     const obstacles: Obstacle3D[] = (obstaclesData || []).map(obs => ({
       azimuth: parseFloat(obs.azimuth),
@@ -107,10 +115,10 @@ export async function POST(request: NextRequest) {
       plantingWindows: serializedWindows,
       classification,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Planting windows POST error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }

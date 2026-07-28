@@ -519,6 +519,14 @@ Durante la selezione, i quattro warning delle route `api-configurations` sono st
 
 Baseline globale verificata: **0 errori, 1.953 warning** (`1.963 -> 1.953`); test sicurezza 43/43, lint mirato e type-check verdi.
 
+### Aggiornamento T01 - lotto 30 (28/07/2026)
+
+Il lotto 30 porta a zero warning sette endpoint Production: le tre varianti derivate di esposizione solare (`seasonal-windows`, `plant-suggestions`, `planting-windows`), analytics professionali, ricerca e tassonomia piante e il record blockchain lab-only. Le tre route solari non ignorano piu' il fallimento della lettura `garden_obstacles`: senza ostacoli autorevoli restituiscono `garden_obstacles_read_failed`, invece di calcolare finestre e suggerimenti assumendo silenziosamente zero ostacoli. La regressione fail-closed copre ora tutte e quattro le route del gruppo. Gli endpoint di sola lettura non espongono piu' messaggi interni del database nei 500; dal payload blockchain e' rimossa la variabile `plantId` mai utilizzata, senza modificare il contratto 501 lab-only.
+
+Le route AI e crediti emerse nella stessa classifica restano escluse da questo lotto: dopo la risposta del provider chiamano `deduct_credits` e inseriscono il ledger come operazioni separate, e diversi handler non verificano gli errori restituiti. La loro chiusura richiede un intervento dedicato sull'integrita' della quota tecnica, non la sola sostituzione del `catch (error: any)`.
+
+Baseline globale verificata: **0 errori, 1.946 warning** (`1.953 -> 1.946`); test persistenza 65/65, lint mirato e type-check verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

@@ -30,9 +30,17 @@ test('sun exposure routes never substitute a default garden or anonymous mock', 
 })
 
 test('sun exposure calculation fails closed when obstacle data cannot be read', () => {
-  const route = source('app/api/garden/sun-exposure/route.ts')
+  const routePaths = [
+    'app/api/garden/sun-exposure/route.ts',
+    'app/api/garden/sun-exposure/seasonal-windows/route.ts',
+    'app/api/garden/sun-exposure/plant-suggestions/route.ts',
+    'app/api/garden/sun-exposure/planting-windows/route.ts',
+  ]
 
-  assert.match(route, /if \(obstaclesError\)/)
-  assert.match(route, /garden_obstacles_read_failed/)
-  assert.doesNotMatch(route, /obstaclesError\s*=\s*null/)
+  for (const routePath of routePaths) {
+    const route = source(routePath)
+    assert.match(route, /if \(obstaclesError\)/, `${routePath} must check obstacle reads`)
+    assert.match(route, /garden_obstacles_read_failed/, `${routePath} must fail closed`)
+    assert.doesNotMatch(route, /obstaclesError\s*=\s*null/)
+  }
 })
