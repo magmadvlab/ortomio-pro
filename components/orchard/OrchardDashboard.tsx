@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { OrchardConfiguration, OrchardDashboardData, OrchardAlert, UpcomingTask } from '@/types/orchard'
+import React, { useState, useEffect, useCallback } from 'react'
+import { OrchardConfiguration, OrchardDashboardData } from '@/types/orchard'
 import { orchardService } from '@/services/orchardService'
 import { 
   TreePine, 
@@ -45,11 +45,7 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
   const [selectedOrchardId, setSelectedOrchardId] = useState<string>('')
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
 
-  useEffect(() => {
-    loadData()
-  }, [gardenId])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [orchardsData, dashData] = await Promise.all([
@@ -60,15 +56,17 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
       setOrchards(orchardsData)
       setDashboardData(dashData)
       
-      if (orchardsData.length > 0 && !selectedOrchardId) {
-        setSelectedOrchardId(orchardsData[0].id)
-      }
+      setSelectedOrchardId((currentId) => currentId || orchardsData[0]?.id || '')
     } catch (error) {
       console.error('Error loading orchard data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [gardenId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const getOrchardTypeIcon = (type: string) => {
     switch (type) {
@@ -77,6 +75,7 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
       case 'peach': return '🍑'
       case 'cherry': return '🍒'
       case 'citrus': return '🍊'
+      case 'tropical': return '🥑'
       case 'olive': return '🫒'
       case 'walnut': return '🥜'
       case 'mixed': return '🌳'
@@ -91,6 +90,7 @@ export default function OrchardDashboard({ gardenId, onCreateOrchard, onSelectOr
       case 'peach': return 'Pescheto'
       case 'cherry': return 'Ceraseto'
       case 'citrus': return 'Agrumeto'
+      case 'tropical': return 'Frutteto tropicale/subtropicale'
       case 'olive': return 'Oliveto'
       case 'walnut': return 'Noccioleto'
       case 'mixed': return 'Misto'
