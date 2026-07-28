@@ -716,3 +716,42 @@ Verifiche: lint mirato 0/0, type-check verde, persistenza 75/75, capability
 | Warning | 1791 |
 | Riduzione lotto | 33 |
 | Riduzione dalla baseline operativa 2642 | 851 |
+
+## Lotto 42 / O59 (28/07/2026) - schema Production pronto
+
+`services/saplingService.ts`, vivo nella dashboard alberelli e nel manager
+Semenzaio, e' stato portato da 19 warning a zero. La tipizzazione ha confermato
+che il servizio tentava tre backend concorrenti (`sapling_batches`,
+`sapling_inventory` e `saplings`) e trasformava qualunque errore di lettura in
+una lista vuota.
+
+Il servizio converge ora esclusivamente sul contratto canonico
+`sapling_batches`/`sapling_items`. La migrazione
+`20260728070000_canonical_sapling_persistence.sql` rende atomiche creazione del
+batch e degli elementi, ridimensionamento, cambio stato e registrazione della
+messa a dimora; aggiorna la quantita' residua nella stessa transazione e
+introduce il timeline foto protetto da RLS. Non vengono piu' generati ID
+browser per fingere una registrazione assente e una quantita' residua `0` non
+viene sostituita con la quantita' totale.
+
+Il primo tentativo Production e' stato annullato integralmente perche' il
+database reale, diversamente dal file storico locale, non conteneva
+`sapling_items`. L'inventario remoto ha mostrato un `sapling_batches` legacy
+con colonne `quantity/current_quantity/phase`. La migrazione finale estende e
+backfilla quel contratto senza perdere i campi legacy, crea elementi e policy,
+e mantiene sincronizzate entrambe le proiezioni durante la transizione.
+
+Verifiche locali: lint mirato 0/0 sul servizio e sulla dashboard, type-check
+verde, regressione O59 5/5 e persistenza 80/80; lint globale **0 errori e
+1.768 warning** (`1.791 -> 1.768`). Migrazione `20260728070000` applicata e
+registrata in Production. Probe: history/tabelle/RPC/RLS/permessi tutti
+`true`, `batches_without_items=0`. O59 resta `[L]` fino al deploy del codice.
+
+## Stato dopo il lotto 42
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1768 |
+| Riduzione lotto | 23 |
+| Riduzione dalla baseline operativa 2642 | 874 |

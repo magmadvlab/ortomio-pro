@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { Garden } from '@/types'
 import { 
-  TreePine, Plus, X, Edit2, Trash2, Calendar, MapPin, 
-  Package, TrendingUp, AlertCircle, CheckCircle
+  TreePine, Plus, X, Edit2, Trash2, MapPin,
+  Package, AlertCircle, CheckCircle
 } from 'lucide-react'
 import { saplingService } from '@/services/saplingService'
 import { Sapling } from '@/types/sapling'
@@ -18,6 +18,7 @@ interface SaplingDashboardProps {
 export default function SaplingDashboard({ garden, plantName, variety }: SaplingDashboardProps) {
   const [saplings, setSaplings] = useState<Sapling[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'nursery' | 'planted' | 'ready'>('all')
@@ -32,9 +33,23 @@ export default function SaplingDashboard({ garden, plantName, variety }: Sapling
     gardenId: garden.id
   })
 
-  useEffect(() => {
-    loadSaplings()
+  const loadSaplings = useCallback(async () => {
+    try {
+      setLoading(true)
+      setLoadError(null)
+      const loaded = await saplingService.getSaplings(garden.id)
+      setSaplings(loaded)
+    } catch (error) {
+      console.error('Error loading saplings:', error)
+      setLoadError('Impossibile caricare gli alberelli. Riprova senza modificare i dati.')
+    } finally {
+      setLoading(false)
+    }
   }, [garden.id])
+
+  useEffect(() => {
+    void loadSaplings()
+  }, [loadSaplings])
 
   useEffect(() => {
     if (plantName) {
@@ -44,18 +59,6 @@ export default function SaplingDashboard({ garden, plantName, variety }: Sapling
       setNewSapling(prev => ({ ...prev, variety }))
     }
   }, [plantName, variety])
-
-  const loadSaplings = async () => {
-    try {
-      setLoading(true)
-      const loaded = await saplingService.getSaplings(garden.id)
-      setSaplings(loaded)
-    } catch (error) {
-      console.error('Error loading saplings:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleAdd = async () => {
     if (!newSapling.plantName) return
@@ -153,6 +156,22 @@ export default function SaplingDashboard({ garden, plantName, variety }: Sapling
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Caricamento alberelli...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+        <AlertCircle className="mx-auto mb-3 text-red-600" />
+        <p role="alert" className="font-medium text-red-800">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => void loadSaplings()}
+          className="mt-4 rounded-lg bg-red-700 px-4 py-2 text-white hover:bg-red-800"
+        >
+          Riprova
+        </button>
       </div>
     )
   }
