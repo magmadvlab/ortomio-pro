@@ -658,3 +658,30 @@ Verifiche: lint mirato 0/0, type-check verde, mapping frutteto/sicurezza filari
 | Warning | 1828 |
 | Riduzione lotto | 24 |
 | Riduzione dalla baseline operativa 2642 | 814 |
+
+## Lotto 40 / O57 (28/07/2026) - chiuso
+
+La decisione prodotto distingue i frutteti classici italiani/mediterranei da
+quelli tropicali senza creare un dominio parallelo. `tropical` era gia'
+ammesso dal tipo e dal vincolo database, ma il wizard principale non lo
+esponeva e la categoria botanica `ESOTICHE` poteva restare persistita come
+frutteto `mixed`.
+
+Il wizard offre ora `Tropicale/Subtropicale` come sottocategoria di Frutteto:
+la scelta imposta `ESOTICHE`, mentre scegliere `ESOTICHE` imposta
+`orchardType=tropical`. Uscire dalla categoria esotica rimuove una
+classificazione tropicale obsoleta. La dashboard mostra icona e nome dedicati;
+nessun KPI o dato colturale viene inventato.
+
+Verifiche: lint mirato 0/0, type-check verde, mapping categoria 5/5,
+capability 31/31, build produzione 153/153; lint globale
+**0 errori e 1.824 warning** (`1.828 -> 1.824`).
+
+## Stato dopo il lotto 40
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1824 |
+| Riduzione lotto | 4 |
+| Riduzione dalla baseline operativa 2642 | 818 |

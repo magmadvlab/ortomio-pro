@@ -438,7 +438,8 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O53 | Trasversale | ~~Alimentare le statistiche nutrizione con registri reali~~ **Chiuso 28/07/2026:** la scheda Bio/Tradizionale non riceve piu' `treatments={[]}` e `fertilizers={[]}`; legge trattamenti e inventario fertilizzanti dal provider persistente e classifica i contratti reali. Dataset vuoto mostra percentuali `n/d`, errore provider mostra dati non disponibili. Rimosso il wizard interno mai renderizzato e gia' sostituito dal planner persistente. | Nessuno zero/100% costruito da array costanti; classificazione testata; errore distinto da dataset vuoto; codice duplicato rimosso |
 | O54 | Trasversale | ~~Rimuovere il falso lifecycle in memoria delle lavorazioni meccaniche~~ **Chiuso 28/07/2026:** la route `/app/mechanical-work` non presenta piu' attrezzature e pianificazioni inizializzate sempre vuote e salvate soltanto in React, ne' pulsanti Modifica/Usa/Calendario/Export privi di azione. Registro e creazione usano il provider persistente; le analytics mostrano solo misure supportate dai record e `n/d` per il costo assente. | Nessuna entita' apparentemente salvata ma persa al reload; zero pulsanti morti; metriche soltanto osservate; regressione capability verde |
 | O55 | Trasversale | ~~Rimuovere dati demo e destinazioni vuote dalla route Irrigazione~~ **Chiuso 28/07/2026:** eliminati KPI hardcoded (`85L`, `3`, `15%`, `68%`), zone campione 2024, wizard/analytics interni mai renderizzati e tab che mostravano soltanto “componente in sviluppo”. Dashboard, zone, sistemi e log restano collegati ai servizi persistenti; selezionare una zona filtra davvero i sistemi. | Zero KPI/zone campione; zero tab placeholder; azioni opzionali visibili solo con handler; registrazione singola/batch testata |
-| O56 | Trasversale | ~~Rimuovere dalla route Frutteto la sezione tropicale statica e irraggiungibile~~ **Chiuso 28/07/2026:** eliminate 347 righe di `TropicalExoticSection`, mai importate, invocate o renderizzate, inclusi catalogo statico e KPI fissi `24°C`/`75%`. Gli alberi e i gruppi filare vivi sono tipizzati con `OrchardTree`; dashboard e flussi persistenti restano invariati. | Zero componente tropicale orfano e zero KPI statici irraggiungibili; route Frutteto 0 warning; test mapping/filari e build verdi |
+| O56 | Trasversale | ~~Rimuovere dalla route Frutteto il prototipo tropicale statico e irraggiungibile~~ **Chiuso 28/07/2026:** eliminate 347 righe di `TropicalExoticSection`, mai importate, invocate o renderizzate, inclusi catalogo statico e KPI fissi `24°C`/`75%`. La rimozione riguarda soltanto il prototipo morto, non il concetto prodotto tropicale implementato correttamente in O57. Gli alberi e i gruppi filare vivi sono tipizzati con `OrchardTree`; dashboard e flussi persistenti restano invariati. | Zero prototipo orfano e zero KPI statici irraggiungibili; route Frutteto 0 warning; test mapping/filari e build verdi |
+| O57 | Trasversale | ~~Differenziare i frutteti tropicali come sottocategoria reale di Frutteto~~ **Chiuso 28/07/2026:** il wizard principale espone `Tropicale/Subtropicale` e sincronizza bidirezionalmente la categoria botanica `ESOTICHE` con il valore persistito `orchardType=tropical`, gia' supportato dal vincolo database. Cambiando categoria non resta una classificazione tropicale obsoleta; la dashboard mostra nome e icona dedicati. | Tropicale resta nel dominio Frutteto; scelta persistita senza dati mock; coerenza bidirezionale testata; dashboard riconoscibile |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -677,6 +678,23 @@ raggiungibili.
 Baseline globale verificata: **0 errori, 1.828 warning** (`1.852 -> 1.828`);
 lint mirato e type-check verdi; mapping frutteto/sicurezza filari 3/3,
 capability 31/31 e build produzione 153/153.
+
+### Aggiornamento T01 - lotto 40 / O57 (28/07/2026)
+
+Su decisione prodotto, le colture tropicali non sono un modulo parallelo ma
+una sottocategoria reale di Frutteto. Il contratto `OrchardType` e il vincolo
+database ammettevano gia' `tropical`; mancavano la scelta nel wizard principale
+e la sincronizzazione con la categoria botanica `ESOTICHE`.
+
+Il wizard ora mantiene coerenti le due rappresentazioni in entrambe le
+direzioni e ripulisce la classificazione tropicale quando si torna a una
+categoria classica. La dashboard rende `Frutteto tropicale/subtropicale` con
+icona dedicata. Non vengono reintrodotti cataloghi, temperature, umidita' o
+altri valori statici del vecchio prototipo.
+
+Baseline globale verificata: **0 errori, 1.824 warning** (`1.828 -> 1.824`);
+lint mirato e type-check verdi; mapping categoria 5/5, capability 31/31 e build
+produzione 153/153.
 
 ## 6. Verifica trasversale dopo M15
 

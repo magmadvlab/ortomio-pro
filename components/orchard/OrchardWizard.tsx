@@ -8,6 +8,10 @@ import { orchardService } from '@/services/orchardService'
 import { vineyardService } from '@/services/vineyardService'
 import { generateOrchardTasks, getTasksSummary } from '@/data/orchardTaskTemplates'
 import { getCategoryTips, getCategoryRecommendations } from '@/data/orchardCategoryTips'
+import {
+  getDefaultFruitTreeCategory,
+  synchronizeOrchardTypeWithCategory,
+} from '@/lib/orchard/orchardCategory'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import {
@@ -118,6 +122,7 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
     { value: 'apricot', label: 'Albicocceto', icon: '\u{1F7E0}', kind: 'orchard' },
     { value: 'plum', label: 'Susino', icon: '\u{1F7E3}', kind: 'orchard' },
     { value: 'citrus', label: 'Agrumeto', icon: '\u{1F34A}', kind: 'orchard' },
+    { value: 'tropical', label: 'Tropicale/Subtropicale', icon: '\u{1F951}', kind: 'orchard' },
     { value: 'walnut', label: 'Noccioleto/Noce', icon: '\u{1F95C}', kind: 'orchard' },
     { value: 'olive', label: 'Oliveto', icon: '\u{1FAD2}', kind: 'oliveGrove' },
     { value: 'mixed', label: 'Misto', icon: '\u{1F333}', kind: 'orchard' },
@@ -306,9 +311,12 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
 
         onComplete(orchard.id)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating configuration:', error)
-      const msg = error?.message || error?.details || 'Errore sconosciuto'
+      const details = error && typeof error === 'object'
+        ? error as { message?: string; details?: string }
+        : null
+      const msg = details?.message || details?.details || 'Errore sconosciuto'
       setErrors({ general: `Errore nella creazione: ${msg}. Riprova.` })
     } finally {
       setLoading(false)
@@ -407,6 +415,13 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
                 <button key={type.value} type="button"
                   onClick={() => {
                     setWizardData((prev) => ({ ...prev, basicInfo: { ...prev.basicInfo!, orchardType: type.value } }))
+                    setFruitCategory((currentCategory) =>
+                      type.value === 'tropical'
+                        ? getDefaultFruitTreeCategory(type.value)
+                        : currentCategory === 'ESOTICHE'
+                          ? ''
+                          : currentCategory
+                    )
                     if (type.kind === 'oliveGrove') setCropKind('oliveGrove')
                     else setCropKind('orchard')
                   }}
@@ -466,7 +481,20 @@ export default function OrchardWizard({ gardenId, garden, presetType, onComplete
           <label className="block text-sm font-medium text-gray-700 mb-3">Categoria Botanica (opzionale)</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {fruitTreeCategories.map((cat) => (
-              <button key={cat.id} onClick={() => setFruitCategory(fruitCategory === cat.id ? '' : cat.id)}
+              <button key={cat.id} onClick={() => {
+                const nextCategory = fruitCategory === cat.id ? '' : cat.id
+                setFruitCategory(nextCategory)
+                setWizardData((prev) => ({
+                  ...prev,
+                  basicInfo: {
+                    ...prev.basicInfo!,
+                    orchardType: synchronizeOrchardTypeWithCategory(
+                      prev.basicInfo!.orchardType,
+                      nextCategory
+                    ),
+                  },
+                }))
+              }}
                 className={`p-4 border-2 rounded-lg text-left transition-all ${fruitCategory === cat.id ? 'border-green-500 bg-green-50 shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
                 <div className="text-2xl mb-1">{cat.icon}</div>
                 <div className="font-semibold text-gray-900 text-sm">{cat.label}</div>
