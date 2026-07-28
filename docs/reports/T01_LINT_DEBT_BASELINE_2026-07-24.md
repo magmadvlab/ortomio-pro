@@ -435,3 +435,18 @@ Verifiche: lint mirato 0/0, type-check verde; test persistenza 65/65; lint globa
 | Warning | 1946 |
 | Riduzione lotto | 7 |
 | Riduzione dalla baseline operativa 2642 | 696 |
+
+## Lotto 31 / O49 (28/07/2026) - chiuso
+
+Le sei route vive AI/crediti selezionate nel lotto 30 sono state corrette con un intervento transazionale dedicato, eliminando 7 warning. `consume_ai_credits` aggiorna quota e ledger nella stessa RPC service-role-only; ogni handler verifica l'esito e usa il saldo restituito dalla transazione. L'endpoint generico deriva il costo dal catalogo server, anziche' fidarsi dell'importo inviato dal client. In assenza di Supabase gli endpoint credito restituiscono 503, non un saldo sintetico `999`.
+
+Migrazione `20260728050000` applicata e registrata in Production. Probe remoto: colonne ledger `HTTP 200`; RPC negata alla chiave anon con `401/42501`. Verifiche locali: lint mirato 0/0, type-check verde, test sicurezza 48/48; lint globale **0 errori e 1.939 warning** (`1.946 -> 1.939`).
+
+## Stato dopo il lotto 31
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1939 |
+| Riduzione lotto | 7 |
+| Riduzione dalla baseline operativa 2642 | 703 |

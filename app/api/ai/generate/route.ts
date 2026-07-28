@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost, CREDIT_COSTS, type CreditFeature } from '@/lib/credits'
+import { consumeAICredits, isInsufficientAICreditsError } from '@/lib/ai-credits.server'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
@@ -58,36 +59,28 @@ export async function POST(request: NextRequest) {
     const text = response.response.text()
 
     const supabase = getSupabaseClient()
-    await supabase.rpc('deduct_credits', {
-      p_user_id: user.id,
-      p_amount: cost,
-    })
-
-    await supabase.from('ai_credit_transactions').insert({
-      user_id: user.id,
-      amount: -cost,
-      type: 'usage',
+    const remaining = await consumeAICredits(supabase, {
+      userId: user.id,
+      amount: cost,
       feature,
       description: `Legacy AI proxy request (${feature})`,
     })
-
-    const { data: updatedProfile } = await supabase
-      .from('profiles')
-      .select('ai_credits_total, ai_credits_used')
-      .eq('id', user.id)
-      .single()
-
-    const remaining = (updatedProfile?.ai_credits_total || 0) - (updatedProfile?.ai_credits_used || 0)
 
     return NextResponse.json({
       text,
       creditsUsed: cost,
       creditsRemaining: remaining,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('AI generate proxy error:', error)
+    if (isInsufficientAICreditsError(error)) {
+      return NextResponse.json(
+        { error: 'insufficient_credits', message: 'Credits insufficienti' },
+        { status: 402 }
+      )
+    }
     return NextResponse.json(
-      { error: 'internal_error', message: error.message || 'Errore durante la generazione AI' },
+      { error: 'internal_error', message: 'Errore durante la generazione AI' },
       { status: 500 }
     )
   }

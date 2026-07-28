@@ -3,14 +3,11 @@ import { verifyTier, isSupabaseAvailable } from '@/lib/auth.server'
 
 export async function GET(request: NextRequest) {
   try {
-    // In locale senza Supabase, restituisci credits illimitati per sviluppo
     if (!isSupabaseAvailable()) {
-      return NextResponse.json({
-        total: 999,
-        used: 0,
-        resetDate: null,
-        remaining: 999,
-      })
+      return NextResponse.json(
+        { error: 'cloud_storage_unavailable' },
+        { status: 503 }
+      )
     }
 
     const result = await verifyTier(request)
@@ -42,15 +39,14 @@ export async function GET(request: NextRequest) {
       resetDate: profile.ai_credits_reset_date,
       remaining: (profile.ai_credits_total || 0) - (profile.ai_credits_used || 0),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Credits status error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error' },
       { status: 500 }
     )
   }
 }
-
 
 
 

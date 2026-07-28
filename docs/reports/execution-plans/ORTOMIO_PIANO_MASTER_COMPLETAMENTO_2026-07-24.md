@@ -431,6 +431,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O32 | M13 | Configurare credenziali e smoke staging | Provider reale osservabile |
 | O33 | M13 | Definire SLA, costi, monitoraggio e kill switch | Runbook provider approvato |
 | O48 | M13 | Proteggere le credenziali provider: sostituire il Base64 di `api_configurations` con cifratura autenticata a riposo, migrare/ruotare i valori esistenti e spostare ogni chiamata provider dietro endpoint server-side; oggi la route per servizio restituisce la chiave decodificata al client e gli adapter browser la usano direttamente. | Nessun segreto provider in payload/browser; cifratura autenticata e rotazione verificate; provider reali funzionanti soltanto server-side |
+| O49 | M14 | ~~Rendere atomici quota tecnica AI e ledger~~ **Chiuso 28/07/2026:** migrazione Production `20260728050000_atomic_ai_credit_consumption.sql` applicata e registrata; RPC service-role-only aggiorna `profiles.ai_credits_used` e inserisce `ai_credit_transactions` nella stessa transazione. Revocata ai client anche la vecchia `deduct_credits`. Le cinque route vive usano esclusivamente il nuovo adapter, derivano i costi dal catalogo server e non inventano piu' saldo `999` senza Supabase. Probe remoto anon: `401/42501 permission denied`; colonne ledger `HTTP 200`. | Nessun successo AI senza quota+ledger coerenti; RPC non invocabile dal client; saldo sempre autorevole |
 | O34 | M14 | Approvare dataset regressivo reale | Dataset versionato e firmato |
 | O35 | M14 | Eseguire periodo shadow | Raccomandazioni e decisioni raccolte |
 | O36 | M14 | Calcolare metriche e soglie rollback | Falsi positivi, accettazione e outcome misurati |
@@ -526,6 +527,16 @@ Il lotto 30 porta a zero warning sette endpoint Production: le tre varianti deri
 Le route AI e crediti emerse nella stessa classifica restano escluse da questo lotto: dopo la risposta del provider chiamano `deduct_credits` e inseriscono il ledger come operazioni separate, e diversi handler non verificano gli errori restituiti. La loro chiusura richiede un intervento dedicato sull'integrita' della quota tecnica, non la sola sostituzione del `catch (error: any)`.
 
 Baseline globale verificata: **0 errori, 1.946 warning** (`1.953 -> 1.946`); test persistenza 65/65, lint mirato e type-check verdi.
+
+### Aggiornamento T01 - lotto 31 / O49 (28/07/2026)
+
+Il lotto 31 chiude il difetto transazionale delle quote tecniche AI emerso nel lotto 30 e porta a zero warning le route `ai/chat`, `ai/diagnose`, `ai/generate`, `ai/recipe`, `credits/deduct` e `credits/status` (7 warning complessivi). Prima, detrazione e ledger erano due operazioni separate; quattro route ignoravano entrambi gli errori e potevano restituire successo senza quota o audit aggiornati. L'endpoint generico accettava inoltre dal client un costo arbitrario e, senza Supabase, gli endpoint credito inventavano un saldo `999`.
+
+La migrazione `20260728050000_atomic_ai_credit_consumption.sql` aggiunge la RPC `consume_ai_credits`: update condizionale del saldo e insert del ledger avvengono nella stessa transazione; il valore rimanente e' restituito dall'update autorevole. L'esecuzione e' revocata a `PUBLIC`, `anon` e `authenticated` e concessa soltanto al `service_role`; la vecchia `deduct_credits` viene parimenti sottratta ai client. Tutte le route usano un adapter server condiviso, trasformano l'esaurimento concorrente in `402`, gli altri fallimenti in `500`, e derivano il costo dal catalogo `CREDIT_COSTS`.
+
+La migrazione e' stata applicata e registrata nella Production unica con versione `20260728050000`. Verifica remota indipendente: select delle nuove colonne `feature,metadata` `HTTP 200`; invocazione anon della RPC `HTTP 401`, codice PostgreSQL `42501 permission denied`. Test sicurezza 48/48, lint mirato e type-check verdi.
+
+Baseline globale verificata: **0 errori, 1.939 warning** (`1.946 -> 1.939`). L'audit storico M06 resta coerentemente `safeToApply=false` per il debito preesistente di history e non viene falsamente chiuso da questa migrazione puntuale.
 
 ## 6. Verifica trasversale dopo M15
 
