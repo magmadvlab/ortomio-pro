@@ -1507,6 +1507,36 @@ warning a zero: rimossi due import di tipi mai usati (`DecisionType`,
 Baseline globale verificata: **0 errori, 1.422 warning** (`1.429 -> 1.422`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 61 (29/07/2026)
+
+`components/advice/BiologicalControlDashboard.tsx` (7 warning) e' risultato
+vivo, montato direttamente da `/app/planner` e `/app/advice`.
+
+**Gap funzionale trovato e corretto su decisione esplicita dell'utente:**
+il pulsante dettaglio checklist chiamava gia' `loadSubtasks(checklist.id)`
+(dati reali da `biologicalControlService.getSubtasks`), ma il modal
+dettaglio renderizzava solo `<ComplianceChecklist>` - un componente
+generico per la certificazione della categoria, senza alcun collegamento
+ai sotto-task appena caricati. I sotto-task venivano quindi scaricati dal
+backend e scartati, mai mostrati all'utente. Il backend era gia' completo
+(`updateSubtaskStatus` esiste ed era gia' usato altrove nel service).
+Aggiunta la lista sotto-attivita' nel modal (checkbox per segnare
+completato/non completato, collegata a `updateSubtaskStatus` esistente),
+mantenendo `ComplianceChecklist` per la parte di certificazione generica
+(le due cose coprono scopi diversi: sotto-task specifici della checklist
+vs. requisiti di certificazione della categoria).
+
+Il lotto 61 e' stato eseguito su `BiologicalControlDashboard.tsx`, da 7
+warning a zero (oltre al fix funzionale sopra): rimossi due import morti
+(`Camera`, `Download`); risolto `exhaustive-deps` avvolgendo
+`loadChecklists` in `useCallback`; sostituiti tre cast `as any` con i tipi
+reali (`ChecklistStatus | 'ALL'`, `BiologicalControlCategory | 'ALL'`, e
+l'oggetto filtri tipizzato sulla firma reale di
+`biologicalControlService.getChecklists`).
+
+Baseline globale verificata: **0 errori, 1.415 warning** (`1.422 -> 1.415`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

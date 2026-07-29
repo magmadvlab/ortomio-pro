@@ -1,16 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Bug,
   Plus,
   CheckCircle,
   Clock,
   AlertTriangle,
-  Camera,
   FileText,
-  Filter,
-  Download
+  Filter
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useAuth } from '@/packages/core/hooks/useAuth'
@@ -43,21 +41,15 @@ export default function BiologicalControlDashboard() {
   const [filterStatus, setFilterStatus] = useState<ChecklistStatus | 'ALL'>('ALL')
   const [filterCategory, setFilterCategory] = useState<BiologicalControlCategory | 'ALL'>('ALL')
 
-  useEffect(() => {
-    if (activeGarden) {
-      loadChecklists()
-    }
-  }, [activeGarden, filterStatus, filterCategory])
-
-  const loadChecklists = async () => {
+  const loadChecklists = useCallback(async () => {
     if (!activeGarden) return
-    
+
     try {
       setLoading(true)
-      const filters: any = {}
+      const filters: { status?: ChecklistStatus; category?: BiologicalControlCategory } = {}
       if (filterStatus !== 'ALL') filters.status = filterStatus
       if (filterCategory !== 'ALL') filters.category = filterCategory
-      
+
       const data = await biologicalControlService.getChecklists(activeGarden.id, filters)
       setChecklists(data)
     } catch (error) {
@@ -65,7 +57,13 @@ export default function BiologicalControlDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden, filterStatus, filterCategory])
+
+  useEffect(() => {
+    if (activeGarden) {
+      loadChecklists()
+    }
+  }, [activeGarden, loadChecklists])
 
   const loadSubtasks = async (checklistId: string) => {
     try {
@@ -102,6 +100,20 @@ export default function BiologicalControlDashboard() {
       }
     } catch (error) {
       console.error('Error updating status:', error)
+    }
+  }
+
+  const handleToggleSubtask = async (subtask: BiologicalControlSubtask) => {
+    if (!user) {
+      console.error('Cannot update subtask status: user not authenticated')
+      return
+    }
+    const nextStatus: ChecklistStatus = subtask.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED'
+    try {
+      await biologicalControlService.updateSubtaskStatus(subtask.id, nextStatus, user.id)
+      if (selectedChecklist) await loadSubtasks(selectedChecklist.id)
+    } catch (error) {
+      console.error('Error updating subtask status:', error)
     }
   }
 
@@ -216,7 +228,7 @@ export default function BiologicalControlDashboard() {
           <Filter size={20} className="text-gray-400" />
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
+            onChange={(e) => setFilterStatus(e.target.value as ChecklistStatus | 'ALL')}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="ALL">Tutti gli stati</option>
@@ -228,7 +240,7 @@ export default function BiologicalControlDashboard() {
           
           <select
             value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value as any)}
+            onChange={(e) => setFilterCategory(e.target.value as BiologicalControlCategory | 'ALL')}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="ALL">Tutte le categorie</option>
@@ -367,13 +379,41 @@ export default function BiologicalControlDashboard() {
       {selectedChecklist && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {subtasks.length > 0 && (
+              <div className="p-6 border-b border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-3">Sotto-attività</h4>
+                <ul className="space-y-3">
+                  {subtasks.map((subtask) => (
+                    <li key={subtask.id} className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={subtask.status === 'COMPLETED'}
+                        onChange={() => handleToggleSubtask(subtask)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <p className={`text-sm font-medium ${subtask.status === 'COMPLETED' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                          {subtask.title}
+                        </p>
+                        {subtask.description && (
+                          <p className="text-xs text-gray-500">{subtask.description}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <ComplianceChecklist
               certification={selectedChecklist.category}
               certificationName={CATEGORY_LABELS[selectedChecklist.category]}
             />
             <div className="p-6 border-t border-gray-200">
               <button
-                onClick={() => setSelectedChecklist(null)}
+                onClick={() => {
+                  setSelectedChecklist(null)
+                  setSubtasks([])
+                }}
                 className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Chiudi
