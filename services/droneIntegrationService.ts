@@ -31,7 +31,7 @@ export interface Waypoint {
   altitude: number
   action: 'PHOTO' | 'VIDEO' | 'HOVER' | 'SAMPLE'
   duration?: number // seconds
-  parameters?: Record<string, any>
+  parameters?: Record<string, unknown>
 }
 
 export interface Dronesensor {
@@ -39,7 +39,7 @@ export interface Dronesensor {
   model: string
   resolution: string
   enabled: boolean
-  settings: Record<string, any>
+  settings: Record<string, unknown>
 }
 
 export interface WeatherConditions {
@@ -225,10 +225,17 @@ export interface DroneModel {
   price: number // €
 }
 
+interface GardenBounds {
+  north: number
+  south: number
+  east: number
+  west: number
+  center: { lat: number; lng: number }
+}
+
 class DroneIntegrationService {
   private flightPlans: Map<string, DroneFlightPlan> = new Map()
   private droneModels: Map<string, DroneModel> = new Map()
-  private activeFlights: Map<string, any> = new Map()
 
   constructor() {
     this.initializeDroneModels()
@@ -264,7 +271,7 @@ class DroneIntegrationService {
       speed: this.getOptimalSpeed(type),
       waypoints: options.customWaypoints || await this.generateWaypoints(garden, type),
       sensors: options.sensors || this.getDefaultSensors(type),
-      weather: await this.checkWeatherConditions(garden),
+      weather: await this.checkWeatherConditions(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -275,7 +282,7 @@ class DroneIntegrationService {
 
   async generateAutomaticFlightPlan(gardenId: string): Promise<DroneFlightPlan> {
     const garden = await this.getGarden(gardenId)
-    const tasks = await this.getGardenTasks(gardenId)
+    const tasks = await this.getGardenTasks()
     
     // Determine flight type based on current needs
     const flightType = this.determineOptimalFlightType(garden, tasks)
@@ -300,7 +307,7 @@ class DroneIntegrationService {
         
       case 'MONITORING':
         // Focus on key areas and plants
-        waypoints.push(...this.generateMonitoringPattern(bounds, garden))
+        waypoints.push(...this.generateMonitoringPattern(bounds))
         break
         
       case 'PRESCRIPTION':
@@ -317,7 +324,7 @@ class DroneIntegrationService {
     return waypoints
   }
 
-  private generateGridPattern(bounds: any, spacing: number): Waypoint[] {
+  private generateGridPattern(bounds: GardenBounds, spacing: number): Waypoint[] {
     const waypoints: Waypoint[] = []
     let id = 1
     
@@ -391,7 +398,7 @@ class DroneIntegrationService {
       diseaseDetection: this.generateDiseaseDetection(garden),
       yieldEstimation: this.generateYieldEstimation(garden),
       stressAnalysis: this.generateStressAnalysis(garden),
-      weedMapping: this.generateWeedMapping(garden),
+      weedMapping: this.generateWeedMapping(),
       prescriptionMap: flightPlan.type === 'PRESCRIPTION' ? this.generatePrescriptionMap(garden) : undefined
     }
   }
@@ -491,7 +498,7 @@ class DroneIntegrationService {
     }
   }
 
-  private generateWeedMapping(garden: Garden): WeedMapping {
+  private generateWeedMapping(): WeedMapping {
     return {
       totalWeedCoverage: Math.random() * 15, // 0-15%
       weedDensity: 'LOW',
@@ -652,7 +659,7 @@ class DroneIntegrationService {
     return sensorConfigs[type]
   }
 
-  private async checkWeatherConditions(garden: Garden): Promise<WeatherConditions> {
+  private async checkWeatherConditions(): Promise<WeatherConditions> {
     // Simulate weather check
     const windSpeed = Math.random() * 15 // 0-15 m/s
     const temperature = 15 + Math.random() * 20 // 15-35°C
@@ -730,7 +737,7 @@ class DroneIntegrationService {
     return R * c
   }
 
-  private getGardenBounds(garden: Garden) {
+  private getGardenBounds(garden: Garden): GardenBounds {
     // Simplified bounds calculation
     const offset = 0.001 // ~100m
     return {
@@ -745,17 +752,17 @@ class DroneIntegrationService {
     }
   }
 
-  private generateMonitoringPattern(bounds: any, garden: Garden): Waypoint[] {
+  private generateMonitoringPattern(bounds: GardenBounds): Waypoint[] {
     // Focus on key monitoring points
     return this.generateGridPattern(bounds, 30) // Wider spacing for monitoring
   }
 
-  private generatePrescriptionPattern(bounds: any): Waypoint[] {
+  private generatePrescriptionPattern(bounds: GardenBounds): Waypoint[] {
     // Dense pattern for prescription application
     return this.generateGridPattern(bounds, 15) // Closer spacing
   }
 
-  private generateEmergencyPattern(bounds: any): Waypoint[] {
+  private generateEmergencyPattern(bounds: GardenBounds): Waypoint[] {
     // Quick assessment pattern
     return this.generateGridPattern(bounds, 50) // Wide spacing for speed
   }
@@ -774,7 +781,7 @@ class DroneIntegrationService {
     }
   }
 
-  private async getGardenTasks(gardenId: string): Promise<GardenTask[]> {
+  private async getGardenTasks(): Promise<GardenTask[]> {
     // Mock tasks
     return []
   }
