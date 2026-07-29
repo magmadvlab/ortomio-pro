@@ -1,6 +1,7 @@
 import type { FertilizerApplicationLogDB, GardenTask } from '../types'
 import type { WateringLog } from '../types/microzoneTracking'
 import type { NutritionTreatment } from '../types/nutrition'
+import type { IStorageProvider } from '@/packages/core/storage/interface'
 import {
   createUnifiedOperationsService,
   type UnifiedOperationRequest,
@@ -22,7 +23,7 @@ const normalizeTimeFromTimestamp = (timestamp?: string, fallback = '12:00'): str
 const buildWeatherConditions = (input: {
   condition?: string
   temperature?: number
-  weatherConditions?: any
+  weatherConditions?: UnifiedOperationRequest['weatherConditions']
 }) => {
   if (input.weatherConditions && typeof input.weatherConditions === 'object') {
     return input.weatherConditions
@@ -96,7 +97,7 @@ type FieldRowUnifiedExecutionInput = {
 }
 
 export async function executeFieldRowOperationThroughUnifiedService(
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   input: FieldRowUnifiedExecutionInput
 ): Promise<UnifiedOperationResponse> {
   if (!input.gardenRowId && !input.fieldRowId && (!input.plantIds || input.plantIds.length === 0)) {
@@ -141,7 +142,7 @@ export async function executeFieldRowOperationThroughUnifiedService(
 }
 
 export async function executeWateringLogThroughUnifiedService(
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   log: LegacyWateringExecutionInput
 ) {
   const target = resolveWateringTarget(log)
@@ -178,7 +179,7 @@ export async function executeWateringLogThroughUnifiedService(
 }
 
 export async function executeTaskFertilizationThroughUnifiedService(
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   task: GardenTask,
   log: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>
 ) {
@@ -217,7 +218,7 @@ export async function executeTaskFertilizationThroughUnifiedService(
 }
 
 export async function executeNutritionTreatmentThroughUnifiedService(
-  storageProvider: any,
+  storageProvider: IStorageProvider,
   treatment: NutritionTreatment
 ) {
   const unifiedOperationsService = createUnifiedOperationsService(storageProvider)

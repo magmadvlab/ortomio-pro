@@ -4,6 +4,8 @@
  * Supporta template HTML, rate limiting, error handling e retry logic
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 export type NotificationType =
   | 'task_completed'
   | 'task_reminder'
@@ -24,7 +26,7 @@ export interface NotificationData {
   userEmail: string;
   type: NotificationType;
   subject: string;
-  templateData: Record<string, any>;
+  templateData: Record<string, unknown>;
 }
 
 export interface NotificationPreferences {
@@ -42,7 +44,7 @@ export interface NotificationPreferences {
 async function checkUserPreferences(
   userId: string,
   type: NotificationType,
-  supabaseClient: any
+  supabaseClient: SupabaseClient
 ): Promise<boolean> {
   try {
     const { data: preferences, error } = await supabaseClient
@@ -101,7 +103,7 @@ async function checkUserPreferences(
  */
 export async function sendNotification(
   notification: NotificationData,
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   options: {
     directProvider?: boolean
     idempotencyKey?: string
@@ -192,11 +194,11 @@ export async function sendNotification(
         response.headers.get('x-message-id') ||
         undefined,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending notification:', error);
     return {
       success: false,
-      error: error.message || 'Unknown error',
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }
@@ -206,7 +208,7 @@ export async function sendNotification(
  */
 export async function sendBatchNotifications(
   notifications: NotificationData[],
-  supabaseClient: any
+  supabaseClient: SupabaseClient
 ): Promise<{ sent: number; failed: number; errors: string[] }> {
   const results = await Promise.allSettled(
     notifications.map((notif) => sendNotification(notif, supabaseClient))

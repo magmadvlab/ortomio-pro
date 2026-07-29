@@ -22,7 +22,7 @@ export interface APIConfiguration {
     base_url?: string; // Per Ollama o servizi custom: "http://localhost:11434"
     temperature?: number;
     max_tokens?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   is_active?: boolean;
   is_default?: boolean;
@@ -104,8 +104,8 @@ export async function saveAPIConfiguration(
         ...configuration,
         api_key: config.api_key, // Mantieni API key per uso immediato
       };
-    } catch (error: any) {
-      throw new Error(error.message || 'Errore salvataggio configurazione API');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Errore salvataggio configurazione API');
     }
   }
 
@@ -185,7 +185,13 @@ export async function updateAPIConfiguration(
     throw new Error('Utente non autenticato');
   }
 
-  const updateData: any = {};
+  const updateData: Partial<{
+    provider_name: string;
+    api_key_encrypted: string;
+    config: APIConfiguration['config'];
+    is_active: boolean;
+    is_default: boolean;
+  }> = {};
 
   if (updates.provider_name) updateData.provider_name = updates.provider_name;
   if (updates.api_key) updateData.api_key_encrypted = encryptApiKey(updates.api_key);
@@ -248,7 +254,7 @@ export async function getUserAPIConfigurations(): Promise<APIConfiguration[]> {
       const { configurations } = await response.json();
       // Le configurazioni dall'API non includono api_key per sicurezza
       // Aggiungiamo placeholder per il form
-      return configurations.map((config: any) => ({
+      return configurations.map((config: Omit<APIConfiguration, 'api_key'>) => ({
         ...config,
         api_key: '***', // Placeholder - l'utente deve reinserire per modificare
       }));

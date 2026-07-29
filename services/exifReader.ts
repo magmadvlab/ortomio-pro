@@ -15,10 +15,17 @@ export interface EXIFData {
  * Legge metadati EXIF da un file immagine
  * Usa EXIF.js se disponibile, altrimenti fallback
  */
+interface ExifJsModule {
+  getData: (file: File, callback: (this: ExifJsContext) => void) => void;
+  getTag: (context: ExifJsContext, tag: string) => unknown;
+}
+
+type ExifJsContext = unknown;
+
 export async function readEXIF(file: File): Promise<EXIFData | null> {
   try {
     // Prova a caricare EXIF.js dinamicamente
-    let EXIF: any;
+    let EXIF: ExifJsModule;
     try {
       // Tentativo di import dinamico (se EXIF.js è installato)
       // Usa eval per evitare errori di build quando il modulo non esiste
@@ -30,11 +37,11 @@ export async function readEXIF(file: File): Promise<EXIFData | null> {
       }
     } catch {
       // EXIF.js non disponibile, usa metodo alternativo
-      return await readEXIFAlternative(file);
+      return await readEXIFAlternative();
     }
 
     return new Promise((resolve) => {
-      EXIF.getData(file as any, function (this: any) {
+      EXIF.getData(file, function (this: ExifJsContext) {
         const gpsImgDirection = EXIF.getTag(this, 'GPSImgDirection') as number | undefined;
         const orientation = EXIF.getTag(this, 'Orientation') as number | undefined;
         const gpsLatitude = EXIF.getTag(this, 'GPSLatitude') as number | undefined;
@@ -60,7 +67,7 @@ export async function readEXIF(file: File): Promise<EXIFData | null> {
  * Metodo alternativo per leggere EXIF senza libreria esterna
  * Usa FileReader e parsing manuale (limitato)
  */
-async function readEXIFAlternative(file: File): Promise<EXIFData | null> {
+async function readEXIFAlternative(): Promise<EXIFData | null> {
   // Questo è un fallback base - per implementazione completa servirebbe
   // parsing completo del formato JPEG/EXIF
   // Per ora restituiamo null e ci affidiamo alla bussola o calibrazione manuale

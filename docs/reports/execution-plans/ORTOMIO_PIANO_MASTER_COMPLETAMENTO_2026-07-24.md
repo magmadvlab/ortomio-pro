@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O66 | **14** | **0** | **8** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`) e O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.109 warning rimossi** | — | **1.533 warning** | Baseline operativa 2.642 -> 1.533 in 51 lotti. T01 non equivale a 1.533 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.484 warning rimossi** | — | **1.158 warning** | Baseline operativa 2.642 -> 1.158 in 68 lotti. T01 non equivale a 1.158 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -1906,6 +1906,85 @@ questa versione, senza usare `any`.
 
 Baseline globale verificata: **0 errori, 1.191 warning** (`1.230 -> 1.191`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
+### Aggiornamento T01 - lotto 68 (29/07/2026)
+
+7 file vivi verificati con grep sui reali importer (non per inferenza dal
+nome): `services/exifReader.ts` (via `GardenOnboarding.tsx`, live),
+`services/fieldRowCropHistoryService.ts` (via `app/app/advice/page.tsx`,
+route reale), `components/crops/AddWoodyCropWizard.tsx` (via
+`AddCropWizard.tsx`, live dal lotto 13), `services/notificationService.ts`
+(via le route `app/api/cron/**`), `services/operationExecutionBridgeService.ts`
+(via `app/app/irrigation/page.tsx` e `HomeDashboard.tsx`),
+`services/sensorDataService.ts` (via `app/app/smart/page.tsx` e
+`app/api/sensors/readings/route.ts`), `services/apiConfigurationService.ts`
+(vivo transitivamente: `aiProviderAdapter.ts` -> `geminiService.ts` ->
+`app/api/ai/generate/route.ts`, route reale).
+
+33 -> 0 warning sugli 7 file. Pattern ricorrente: `supabaseClient: any` tipizzato
+con `SupabaseClient` da `@supabase/supabase-js`; payload di update dinamici
+tipizzati con l'interfaccia reale della riga o un `Partial<Pick<...>>` mirato;
+`catch (error: any)` sostituito da `catch (error)` con `error instanceof Error`;
+cast `as any` su union discriminate (esito rilevamento frutteto/oliveto/vigneto,
+valori di `<select>`) sostituiti con l'union reale o il cast al tipo specifico.
+
+**Bug reale trovato e corretto, in codice gia' noto come morto:**
+`services/continuousMonitoringService.ts::sendAlertNotification` chiamava
+`sendNotification(notification, {})`, passando un oggetto vuoto al posto del
+client Supabase — prima invisibile perche' il parametro era tipizzato `any`
+in `notificationService.ts`; tipizzandolo `SupabaseClient` in questo lotto,
+il type-check ha smascherato la chiamata come non valida (`{}.from is not a
+function` se mai eseguita). Corretto recuperando un client reale con
+`getSupabaseClient()` e uscendo con log se non disponibile, solo per
+sbloccare `tsc --noEmit` — nessuna rimozione del file. Il file stesso
+(`components/monitoring/ContinuousMonitoringDashboard.tsx`, portato vivo a
+zero warning nel lotto 2, e `services/intelligentNotificationService.ts`,
+suo unico consumer) risultano gia' orfani **dal lotto 64** (non una
+scoperta di questo lotto): la riverifica con grep in questa sessione
+conferma solo che la classificazione precedente resta corretta.
+
+**Selezione dei candidati per questo lotto:** la classifica ESLint
+rigenerata era ancora dominata da candidati gia' classificati come morti
+nei lotti 63-65 (`ListView.tsx`, `VisualGardenPlanner.tsx`,
+`SimplifiedPlantingForm.tsx`, `SpecializedCropForm.tsx`,
+`RecallProcedure.tsx`, `MaturityTracker.tsx`, `WeeklyPhotoReminder.tsx`,
+`integratedStaggeringService.ts`, `AIActionButton.tsx`/`aiProxyService.ts`,
+`TreatmentDashboardWidget.tsx`/`SmartTreatmentWizard.tsx`,
+`UnifiedDashboard.tsx`/`PredictiveDashboard.tsx`,
+`DataBackup.tsx`/`importService.ts`, `WateringLogFormWithFieldRows.tsx`,
+`GeographicMatchingWidget.tsx`, `OliveHarvest.tsx`, `VineHarvest.tsx`,
+`exportReportPDF.ts`, `QuickOperationModal.tsx`, `BrixTracker.tsx`,
+`OliveManagementDashboard.tsx`, `SoilAnalysisForm.tsx`); la riverifica con
+grep in questo lotto ha solo confermato che restano zero-importer, nessuna
+new entry. **Estensione della cascata GardenView del lotto 66:** quel
+lotto aveva registrato `EnvironmentalPlanningSection.tsx`,
+`SunExposureWidget.tsx` e `SunExposureDetailModal.tsx` come orfani
+conseguenti alla scoperta di `GardenView.tsx` orfano, ma non aveva
+verificato `components/gardens/BedManager.tsx` (dato per vivo "via
+GardenView.tsx" nel lotto 64) ne' `components/gardens/RowManagerModal.tsx`
+(unico importer di `BedManager.tsx`) — grep ricorsivo in questo lotto
+conferma che anche questi due sono ormai zero-importer, stessa cascata,
+aggiunti a O45. Nuovi candidati zero-importer non ancora censiti prima
+d'ora: `components/vineyard/VineyardManagementDashboard.tsx`,
+`components/compliance/SelfAssessmentForm.tsx`,
+`components/shared/GardenBedsWidget.tsx`, `services/composterService.ts`,
+`components/settings/APIConfigurationForm.tsx` (il servizio sottostante
+`apiConfigurationService.ts` resta vivo per altra via, vedi sopra).
+
+**Gap noto, non toccato:** `services/fieldRowCropHistoryService.ts::getRotationSuggestions`
+accetta un parametro `zoneId` (passato da un chiamante reale,
+`FieldRowCropHistoryPanel.tsx`), ma la RPC Postgres `get_rotation_suggestions`
+(vedi `supabase/migrations/20260330143000_patch_remote_schema_drift.sql`)
+accetta solo `row_id` — non esiste alcun filtro per zona lato database. Non e'
+un bug di wiring lato client (il dato non c'e' proprio nello schema): i
+suggerimenti di rotazione restano sempre a livello di intero filare,
+indipendentemente dalla zona passata. Richiede una nuova RPC/migrazione per
+essere chiuso, non un fix di lint. Parametro mantenuto nella firma pubblica
+(con `void zoneId` esplicito) per non rompere i chiamanti.
+
+Baseline globale verificata: **0 errori, 1.158 warning** (`1.191 -> 1.158`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione (153
+pagine) verdi.
 
 ## 6. Verifica trasversale dopo M15
 

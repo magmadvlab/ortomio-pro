@@ -72,7 +72,7 @@ export interface CropHistoryEntry {
   problems: string[];
   
   // AI
-  ai_recommendations: any;
+  ai_recommendations: Record<string, unknown>;
   rotation_score?: number;
   
   created_at: string;
@@ -420,6 +420,10 @@ export async function getRotationSuggestions(
   rowId: string,
   zoneId?: string
 ): Promise<RotationSuggestion[]> {
+  // zoneId accettato per compatibilità con i chiamanti, ma la RPC
+  // `get_rotation_suggestions` (vedi migrazioni) prende solo row_id:
+  // non esiste filtro per zona lato database.
+  void zoneId;
   try {
     const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase.rpc('get_rotation_suggestions', {
@@ -473,8 +477,10 @@ export async function updateCropPerformance(
 ): Promise<boolean> {
   try {
     const supabase = getRequiredSupabaseClient();
-    const updates: any = {};
-    
+    const updates: Partial<Pick<CropHistoryEntry,
+      'yield_kg' | 'quality_rating' | 'health_issues' | 'treatments_count' | 'irrigation_method' | 'fertilization_type'
+    >> = {};
+
     if (data.yieldKg !== undefined) updates.yield_kg = data.yieldKg;
     if (data.qualityRating !== undefined) updates.quality_rating = data.qualityRating;
     if (data.healthIssues !== undefined) updates.health_issues = data.healthIssues;
@@ -499,7 +505,7 @@ export async function updateCropPerformance(
 /**
  * Ottiene statistiche per famiglia di colture
  */
-export async function getCropFamilyStats(): Promise<any[]> {
+export async function getCropFamilyStats(): Promise<Record<string, unknown>[]> {
   try {
     const supabase = getRequiredSupabaseClient();
     const { data, error } = await supabase
