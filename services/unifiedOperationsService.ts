@@ -5,10 +5,7 @@
  */
 
 import {
-  GardenPlant,
   PlantOperation,
-  BulkRowOperation,
-  BulkOperationResult
 } from '../types/individualPlant';
 import { autoSyncRowOperation } from './plantRowSyncService';
 import { createControlledEnvironmentExecutionService } from './controlledEnvironmentExecutionService';
@@ -19,6 +16,88 @@ import type {
   SolutionSnapshot,
 } from '../types/controlledEnvironment';
 import type { IStorageProvider } from '@/packages/core/storage/interface';
+
+interface WateringLogSource {
+  id: string;
+  date?: string;
+  wateringDate?: string;
+  createdAt?: string;
+  amount?: number;
+  quantity?: number;
+  waterAmount?: number;
+  unit?: string;
+  notes?: string;
+  fieldRowId?: string;
+  rowId?: string;
+  gardenRowId?: string;
+}
+
+interface FertilizerLogSource {
+  id: string;
+  fieldRowId?: string | null;
+  rowId?: string | null;
+  bedRowId?: string | null;
+  applicationDate?: string;
+  application_date?: string;
+  createdAt?: string;
+  created_at?: string;
+  quantity?: number;
+  amount?: number;
+  unit?: string;
+  productName?: string;
+  fertilizerProductName?: string;
+  notes?: string | null;
+}
+
+interface TreatmentLogSource {
+  id: string;
+  fieldRowId?: string;
+  row_id?: string;
+  bed_row_id?: string;
+  treatment_date?: string;
+  date?: string;
+  created_at?: string;
+  dosage?: number;
+  quantity?: number;
+  dosage_unit?: string;
+  unit?: string;
+  product_name?: string;
+  productName?: string;
+  notes?: string;
+}
+
+interface MechanicalWorkSource {
+  id: string;
+  fieldRowId?: string;
+  row_id?: string;
+  bed_row_id?: string;
+  work_date?: string;
+  date?: string;
+  created_at?: string;
+  duration_minutes?: number;
+  duration?: number;
+  machine_name?: string;
+  machineName?: string;
+  notes?: string;
+}
+
+interface PlantOperationSource {
+  id: string;
+  operationType?: PlantOperation['operationType'];
+  operationDate?: string;
+  date?: string;
+  createdAt?: string;
+  operationTime?: string;
+  quantity?: number;
+  unit?: string;
+  productName?: string;
+  notes?: string;
+  fieldRowId?: string;
+  gardenRowId?: string;
+  plantId?: string;
+  parentOperationId?: string;
+  sourceType?: string;
+}
 
 
 export interface UnifiedOperation {
@@ -303,8 +382,8 @@ export class UnifiedOperationsService {
       ]);
 
       const allRows = [
-        ...gardenRows.map((r: any) => ({ ...r, type: 'garden_row' })),
-        ...fieldRows.map((r: any) => ({ ...r, type: 'field_row' }))
+        ...gardenRows.map((r) => ({ ...r, type: 'garden_row' as const })),
+        ...fieldRows.map((r) => ({ ...r, type: 'field_row' as const }))
       ];
 
       // Execute operation for each row
@@ -884,7 +963,7 @@ export class UnifiedOperationsService {
       to: filters?.dateTo || '',
     });
 
-    return (logs || []).map((log: any) =>
+    return (logs || []).map((log: WateringLogSource) =>
       this.asUnifiedOperation({
         id: `watering:${log.id}`,
         level: log.fieldRowId || log.rowId || log.gardenRowId ? 'row' : 'garden',
@@ -911,7 +990,7 @@ export class UnifiedOperationsService {
       to: filters?.dateTo,
     });
 
-    return (logs || []).map((log: any) =>
+    return (logs || []).map((log: FertilizerLogSource) =>
       this.asUnifiedOperation({
         id: `fertilizer:${log.id}`,
         level: log.fieldRowId || log.rowId || log.bedRowId ? 'row' : 'garden',
@@ -921,8 +1000,8 @@ export class UnifiedOperationsService {
         quantity: log.quantity || log.amount,
         unit: log.unit || 'g',
         productName: log.productName || log.fertilizerProductName,
-        notes: log.notes,
-        fieldRowId: log.fieldRowId || log.rowId || log.bedRowId,
+        notes: log.notes ?? undefined,
+        fieldRowId: (log.fieldRowId || log.rowId || log.bedRowId) ?? undefined,
         sourceOperationId: log.id,
       })
     );
@@ -938,7 +1017,7 @@ export class UnifiedOperationsService {
       dateTo: filters?.dateTo,
     });
 
-    return (logs || []).map((log: any) =>
+    return (logs || []).map((log: TreatmentLogSource) =>
       this.asUnifiedOperation({
         id: `treatment:${log.id}`,
         level: log.fieldRowId || log.row_id || log.bed_row_id ? 'row' : 'garden',
@@ -969,7 +1048,7 @@ export class UnifiedOperationsService {
       dateTo: filters?.dateTo,
     });
 
-    return (logs || []).map((log: any) =>
+    return (logs || []).map((log: MechanicalWorkSource) =>
       this.asUnifiedOperation({
         id: `mechanical:${log.id}`,
         level: log.fieldRowId || log.row_id || log.bed_row_id ? 'row' : 'garden',
@@ -997,23 +1076,35 @@ export class UnifiedOperationsService {
     if (!this.storageProvider.getIndividualPlants || !this.storageProvider.getPlantOperations) return [];
     const plants = await this.storageProvider.getIndividualPlants(gardenId);
 
-    const scopedPlants = (plants || []).filter((plant: any) => {
+    const scopedPlants = (plants || []).filter((plant) => {
       if (filters?.plantId && plant.id !== filters.plantId) return false;
       if (filters?.rowId && plant.fieldRowId !== filters.rowId && plant.gardenRowId !== filters.rowId) return false;
       return true;
     });
 
     const operationLists = await Promise.all(
-      scopedPlants.map((plant: any) => this.storageProvider.getPlantOperations?.(plant.id) ?? Promise.resolve([]))
+      scopedPlants.map((plant) => this.storageProvider.getPlantOperations?.(plant.id) ?? Promise.resolve([]))
     );
 
     const operations = operationLists.flat();
+    const asKnownUnifiedType = (
+      operationType: PlantOperationSource['operationType']
+    ): UnifiedOperation['operationType'] =>
+      operationType === 'watering' ||
+      operationType === 'fertilizing' ||
+      operationType === 'treatment' ||
+      operationType === 'pruning' ||
+      operationType === 'harvest' ||
+      operationType === 'work'
+        ? operationType
+        : 'work';
+
     return operations
-      .map((operation: any) =>
+      .map((operation: PlantOperationSource) =>
         this.asUnifiedOperation({
           id: `plant:${operation.id}`,
           level: 'plant',
-          type: operation.operationType || 'work',
+          type: asKnownUnifiedType(operation.operationType),
           gardenId,
           operationDate: operation.operationDate || operation.date || operation.createdAt,
           operationTime: operation.operationTime,
@@ -1070,10 +1161,7 @@ export class UnifiedOperationsService {
     }
   }
 
-  private async getLatestSyncLog(
-    sourceType: string,
-    sourceOperationId: string
-  ): Promise<OperationSyncLog | null> {
+  private async getLatestSyncLog(): Promise<OperationSyncLog | null> {
     try {
       // This would query the operation_sync_log table
       // For now, return null
@@ -1084,10 +1172,7 @@ export class UnifiedOperationsService {
     }
   }
 
-  private async getPlantOperationsBySource(
-    sourceType: string,
-    sourceOperationId: string
-  ): Promise<PlantOperation[]> {
+  private async getPlantOperationsBySource(): Promise<PlantOperation[]> {
     try {
       // This would query plant_operations with source filters
       // For now, return empty array
@@ -1099,7 +1184,7 @@ export class UnifiedOperationsService {
   }
 
   private parseWeatherTemperature(weather?: PlantOperation['weatherConditions']): number | undefined {
-    const candidate = weather?.temp ?? (weather as any)?.temperature;
+    const candidate = weather?.temp ?? (weather as { temperature?: number })?.temperature;
     const parsed = Number(candidate);
     return Number.isFinite(parsed) ? parsed : undefined;
   }
