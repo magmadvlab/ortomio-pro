@@ -33,8 +33,6 @@ export function CompassCalibrator({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return
     setIsDragging(true)
-    const rect = containerRef.current.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
     setDragStart({
       x: e.clientX,
       rotation: rotation,
@@ -43,9 +41,7 @@ export function CompassCalibrator({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !containerRef.current) return
-    
-    const rect = containerRef.current.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
+
     const deltaX = e.clientX - dragStart.x
     // Converti movimento orizzontale in rotazione (1px = 0.5 gradi)
     const deltaRotation = deltaX * 0.5
@@ -73,8 +69,7 @@ export function CompassCalibrator({
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (!isDragging || !containerRef.current) return
-      
-      const rect = containerRef.current.getBoundingClientRect()
+
       const deltaX = e.clientX - dragStart.x
       const deltaRotation = deltaX * 0.5
       let newRotation = dragStart.rotation + deltaRotation

@@ -7,14 +7,12 @@ import React, { useState, useMemo } from 'react';
 import { GardenPlant } from '../../types/individualPlant';
 import PlantPhotoHealthModal from './PlantPhotoHealthModal';
 import PlantHarvestModal from './PlantHarvestModal';
-import { 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
-  Camera, 
+import {
+  TrendingUp,
+  AlertTriangle,
+  Camera,
   Eye,
-  ZoomIn,
-  Info
+  ZoomIn
 } from 'lucide-react';
 
 interface PlantHealthHeatmapProps {
@@ -23,14 +21,6 @@ interface PlantHealthHeatmapProps {
   onPlantHover?: (plant: GardenPlant | null) => void;
   onShowDetails?: (plant: GardenPlant) => void;
   gardenCoordinates?: { latitude: number; longitude: number };
-}
-
-interface HeatmapCell {
-  plant: GardenPlant;
-  x: number;
-  y: number;
-  rowNumber: number;
-  positionInRow: number;
 }
 
 const PlantHealthHeatmap: React.FC<PlantHealthHeatmapProps> = ({

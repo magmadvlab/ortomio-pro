@@ -7,9 +7,9 @@
  * con azioni prioritizzate, meteo, insights agronomici e raccomandazioni.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/badge'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/Button'
 import { 
   AlertTriangle, 
@@ -24,7 +24,7 @@ import {
   Info,
   Loader2
 } from 'lucide-react'
-import { directorService, type DailyBriefing, type PrioritizedAction } from '@/services/directorService'
+import { directorService, type DailyBriefing } from '@/services/directorService'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { format } from 'date-fns'
@@ -57,15 +57,9 @@ export default function DirectorBriefingWidget({
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(!compact)
 
-  useEffect(() => {
-    if (user && activeGarden) {
-      loadBriefing()
-    }
-  }, [user, activeGarden])
-
-  const loadBriefing = async () => {
+  const loadBriefing = useCallback(async () => {
     if (!user || !activeGarden) return
-    
+
     try {
       setLoading(true)
       setError(null)
@@ -77,7 +71,13 @@ export default function DirectorBriefingWidget({
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, activeGarden])
+
+  useEffect(() => {
+    if (user && activeGarden) {
+      loadBriefing()
+    }
+  }, [user, activeGarden, loadBriefing])
 
   if (loading) {
     return (
@@ -119,9 +119,9 @@ export default function DirectorBriefingWidget({
     )
   }
 
-  const priorityColor = (type: string) => {
+  const priorityColor = (type: string): BadgeVariant => {
     switch (type) {
-      case 'CRITICAL': return 'destructive'
+      case 'CRITICAL': return 'error'
       case 'HIGH': return 'default'
       case 'MEDIUM': return 'secondary'
       case 'LOW': return 'outline'
@@ -169,10 +169,10 @@ export default function DirectorBriefingWidget({
     }
   }
 
-  const urgencyTone = (urgency: string) => {
+  const urgencyTone = (urgency: string): BadgeVariant => {
     switch (urgency) {
       case 'immediate':
-        return 'destructive'
+        return 'error'
       case 'next_cycle':
         return 'default'
       case 'monitor':
@@ -338,7 +338,7 @@ export default function DirectorBriefingWidget({
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-2">
-                            <Badge variant={priorityColor(action.type) as any}>
+                            <Badge variant={priorityColor(action.type)}>
                               {priorityIcon(action.type)}
                               <span className="ml-1">{action.type}</span>
                             </Badge>
@@ -384,7 +384,7 @@ export default function DirectorBriefingWidget({
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline">{queueSourceLabel(item.source)}</Badge>
                             <Badge variant="secondary">{queueFocusLabel(item.focus)}</Badge>
-                            <Badge variant={urgencyTone(item.urgencyLabel) as any}>
+                            <Badge variant={urgencyTone(item.urgencyLabel)}>
                               {item.urgencyLabel === 'immediate'
                                 ? 'Subito'
                                 : item.urgencyLabel === 'next_cycle'

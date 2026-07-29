@@ -4,8 +4,7 @@ import {
   DensityInput,
   DensityRecommendation,
   TrainingSystemInfo,
-  DensityRange,
-  SpacingRange
+  DensityRange
 } from '@/types/plantingDensity';
 
 // Database delle forme di allevamento con parametri standard
@@ -334,15 +333,14 @@ export class PlantingDensityService {
     // Determina confidenza
     const confidence = this.calculateConfidence(
       plantsPerHectare,
-      systemInfo.densityRange,
-      input
+      systemInfo.densityRange
     );
     
     // Genera note
     const notes = this.generateNotes(input, systemInfo, plantsPerHectare);
     
     // Genera alternative
-    const alternatives = this.generateAlternatives(systemInfo, input);
+    const alternatives = this.generateAlternatives(systemInfo);
     
     return {
       plantsPerHectare,
@@ -362,8 +360,7 @@ export class PlantingDensityService {
    */
   private calculateConfidence(
     calculated: number,
-    range: DensityRange,
-    input: DensityInput
+    range: DensityRange
   ): 'low' | 'medium' | 'high' {
     if (calculated < range.min || calculated > range.max) {
       return 'low';
@@ -417,8 +414,7 @@ export class PlantingDensityService {
    * Genera soluzioni alternative
    */
   private generateAlternatives(
-    systemInfo: TrainingSystemInfo,
-    input: DensityInput
+    systemInfo: TrainingSystemInfo
   ): Array<{
     rowSpacing: number;
     plantSpacing: number;
@@ -482,7 +478,7 @@ export class PlantingDensityService {
     info: TrainingSystemInfo;
   }> {
     return Object.entries(TRAINING_SYSTEMS)
-      .filter(([_, info]) => info.suitableFor.includes(cropType))
+      .filter(([, info]) => info.suitableFor.includes(cropType))
       .map(([system, info]) => ({
         system: system as TrainingSystem,
         info

@@ -5,19 +5,19 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Edit3, Eye, ArrowRight } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { AlertTriangle, Lightbulb, CheckCircle, XCircle, Eye, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from './AITransparencyPanel'
-import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
+import type { AISuggestion, AITransparencyLog, SuggestionType } from '@/types/aiFeedback'
 import type { Garden } from '@/types'
 
 interface AISuggestionsWidgetProps {
   garden: Garden
   maxItems?: number
   priorities?: Array<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>
-  types?: string[]
+  types?: SuggestionType[]
   compact?: boolean
 }
 
@@ -25,8 +25,7 @@ export default function AISuggestionsWidget({
   garden,
   maxItems = 3,
   priorities = ['CRITICAL', 'HIGH'],
-  types,
-  compact = true
+  types
 }: AISuggestionsWidgetProps) {
   const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
@@ -37,25 +36,19 @@ export default function AISuggestionsWidget({
   const [transparencyLog, setTransparencyLog] = useState<AITransparencyLog | null>(null)
   const [showTransparency, setShowTransparency] = useState(false)
 
-  useEffect(() => {
-    if (user) {
-      loadSuggestions()
-    }
-  }, [garden.id, user?.id])
-
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (!user) return
-    
+
     try {
       setLoading(true)
       setLoadError(false)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
         priorities,
-        types: types as any,
+        types,
         gardenId: garden.id
       })
-      
+
       setSuggestions(suggs.slice(0, maxItems))
     } catch (error) {
       console.error('Error loading suggestions:', error)
@@ -64,7 +57,13 @@ export default function AISuggestionsWidget({
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, garden.id, maxItems, priorities, types])
+
+  useEffect(() => {
+    if (user) {
+      loadSuggestions()
+    }
+  }, [user, loadSuggestions])
 
   const handleAccept = async (suggestionId: string) => {
     if (!user) return

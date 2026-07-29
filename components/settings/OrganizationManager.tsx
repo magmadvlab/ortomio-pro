@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Building2,
   Users,
@@ -39,16 +39,6 @@ export default function OrganizationManager() {
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
 
-  useEffect(() => {
-    loadOrganizations()
-  }, [])
-
-  useEffect(() => {
-    if (selectedOrg) {
-      loadOrganizationData()
-    }
-  }, [selectedOrg])
-
   const getCurrentUserId = async (): Promise<string | null> => {
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -67,7 +57,7 @@ export default function OrganizationManager() {
     }
   };
 
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
       setLoading(true)
       const userId = await getCurrentUserId()
@@ -86,9 +76,9 @@ export default function OrganizationManager() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedOrg])
 
-  const loadOrganizationData = async () => {
+  const loadOrganizationData = useCallback(async () => {
     if (!selectedOrg) return
 
     try {
@@ -104,7 +94,17 @@ export default function OrganizationManager() {
     } catch (error) {
       console.error('Error loading organization data:', error)
     }
-  }
+  }, [selectedOrg])
+
+  useEffect(() => {
+    loadOrganizations()
+  }, [])
+
+  useEffect(() => {
+    if (selectedOrg) {
+      loadOrganizationData()
+    }
+  }, [selectedOrg, loadOrganizationData])
 
   if (loading) {
     return (
@@ -206,17 +206,17 @@ export default function OrganizationManager() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <div className="flex gap-4">
-          {[
+          {([
             { id: 'overview', label: 'Panoramica', icon: Building2 },
             { id: 'members', label: 'Membri', icon: Users },
             { id: 'roles', label: 'Ruoli', icon: Shield },
             { id: 'invitations', label: 'Inviti', icon: Mail }
-          ].map((tab) => {
+          ] as const).map((tab) => {
             const Icon = tab.icon
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? 'border-green-600 text-green-600 font-medium'
@@ -584,7 +584,7 @@ function CreateOrganizationModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as Organization['type'] })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="Farm">Azienda Agricola</option>
