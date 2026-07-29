@@ -1413,6 +1413,32 @@ dopo aver verificato l'assenza di modifiche non salvate (solo
 Da ora in poi, chiudere/ripulire il worktree del lotto precedente subito
 dopo il merge, prima di aprirne uno nuovo.
 
+### Aggiornamento T01 - lotto 58 (29/07/2026)
+
+`components/prescription/MapExportModal.tsx` (9 warning) e' risultato
+vivo: raggiungibile via `PrescriptionMapsDashboard.tsx` su
+`/app/prescription-maps` (stessa route di O60, gia' accettata come viva
+nei lotti precedenti). Nessun gap nascosto: `handleExport` chiama il
+servizio export reale (`geoExportService`), nessun dato finto.
+
+Il lotto 58 e' stato eseguito su `MapExportModal.tsx`, da 9 warning a
+zero: tipizzato `exportResult` con `ExportResult` (gia' esportato da
+`geoExportService.ts`) al posto di `any`; sostituiti sei cast `as any` con
+i tipi reali di `ExportConfiguration` (`format`, `coordinateSystem`,
+`kmlOptions.colorScheme`, `csvOptions.delimiter`,
+`csvOptions.coordinateFormat`) e con `typeof activeTab` per i tab;
+risolto `exhaustive-deps` avvolgendo `checkMachineryCompatibility` in
+`useCallback` e memoizzando `exportService` con `useMemo` (altrimenti
+sarebbe stato ricreato a ogni render, richiamando la verifica
+compatibilita' macchina anche su render non pertinenti). Aggiunta una
+guardia `exportResult?.downloadUrl` nei due handler download/copia link,
+necessaria perche' il type-checker (prima mascherato da `any`) non
+restringe la nullabilita' di uno state React dentro closure annidate nella
+JSX, anche se gia' verificata nel blocco condizionale esterno.
+
+Baseline globale verificata: **0 errori, 1.435 warning** (`1.444 -> 1.435`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
