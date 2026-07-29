@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O63 | **14** | **0** | **5** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`) e O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.021 warning rimossi** | — | **1.621 warning** | Baseline operativa 2.642 -> 1.621 in 50 lotti. T01 non equivale a 1.621 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.109 warning rimossi** | — | **1.533 warning** | Baseline operativa 2.642 -> 1.533 in 51 lotti. T01 non equivale a 1.533 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -1095,6 +1095,55 @@ implementazione fissa/semplificata) aggiornando i sei call site coinvolti.
 Baseline globale verificata: **0 errori, 1.621 warning** (`1.634 -> 1.621`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione
 153/153 pagine verdi.
+
+### Aggiornamento T01 - lotto 51 (29/07/2026)
+
+`services/costOptimizationService.ts` (90 warning, il file vivo con piu'
+warning residui nell'intero censimento) e' raggiungibile via
+`components/prescription/CostOptimizationPanel.tsx`, montato da
+`PrescriptionMapsDashboard.tsx` sulla route `/app/prescription-maps`
+(confermata viva; `PrescriptionMapsDashboard_Mobile.tsx` resta invece a
+zero importer, coerente con quanto gia' registrato).
+
+Verificato prima di procedere: l'intero motore "ottimizzazione costi"
+(genetico, simulated annealing, particle swarm, gradient descent, Pareto
+frontier multi-obiettivo, stato di avanzamento realtime) restituisce
+esclusivamente valori mock hardcoded (`return 2340; // Mock value`, quality
+score fissi per algoritmo, popolazione genetica che non evolve mai -
+`evolvePopulation` e' un no-op dichiarato "Simplified", `generateParetoFrontier`
+restituisce sempre `[]`). A differenza di O60 (stesso file
+`prescriptionMapsService.ts` dell'area prescription-maps, dati mai collegati
+ma presentati come reali), qui la natura dimostrativa e' dichiarata
+esplicitamente in UI: `CostOptimizationPanel.tsx` mostra un banner "Valori
+dimostrativi" che avverte l'utente che costo/resa/impatto ambientale/
+efficienza non derivano dai dati reali dell'orto e non vanno usati per
+decisioni operative. Stesso pattern gia' accettato per
+`blockchainTraceabilityService.ts` nel lotto 50: nessun gap nascosto da
+registrare, solo debito lint meccanico.
+
+Il lotto 51 e' stato eseguito su `services/costOptimizationService.ts` (857
+righe), da 90 warning a 2: rimosso l'import inutilizzato
+`PrescriptionCostAnalysis`; introdotto un tipo locale `OptimizationProblem`
+al posto di `any` per l'intera catena di risoluzione (setup, i quattro
+algoritmi, popolazione genetica, vicinato per annealing); tipizzato
+`storageProvider` con `Pick<IStorageProvider, 'getPrescriptionMap'>` al
+posto di `any` (stesso pattern gia' usato su `geoExportService.ts` nel
+lotto 10); rimossi i parametri mai letti da oltre venti helper della
+simulazione (`calculateExpectedYield`, `calculateEfficiencyScore`,
+`calculateVariableBounds`, i quattro `calculateOptimized*`, i quattro
+`calculateSolution*`, `evaluateParameterImpact`,
+`calculateParameterSensitivity`, `generateParetoFrontier`,
+`findRecommendedSolution`, `getCurrentObjectiveValue`, `evolvePopulation`)
+aggiornando tutti i call site coinvolti; eliminato `modifyProblemParameter`,
+rimasto senza chiamanti dopo la pulizia. Lasciati intenzionalmente i 2
+warning residui su `runRealTimeOptimization(optimizationId, request)`:
+entrambi i parametri sono inerti (lo stub e' un "would run in background"
+mai implementato), ma `request` appartiene alla firma pubblica di
+`startRealTimeOptimization` chiamata dal pannello - rimuoverlo sarebbe un
+cambio di contratto pubblico, non una correzione lint.
+
+Baseline globale verificata: **0 errori, 1.533 warning** (`1.621 -> 1.533`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
 ## 6. Verifica trasversale dopo M15
 
