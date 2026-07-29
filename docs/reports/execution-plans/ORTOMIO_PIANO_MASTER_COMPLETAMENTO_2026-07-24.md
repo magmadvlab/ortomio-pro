@@ -1259,6 +1259,36 @@ l'input), aggiornando i rispettivi call site.
 Baseline globale verificata: **0 errori, 1.487 warning** (`1.498 -> 1.487`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 54 (29/07/2026)
+
+Fuori dalla campagna T01, nella stessa sessione e' stato corretto un bug di
+produzione segnalato dall'utente dai log reali: `api_configurations.service_type`
+non e' mai esistita (la migrazione `20260105080000_add_missing_critical_tables.sql`
+definisce la colonna come `service_name`), causa a monte del fallimento nel
+recupero della chiave Gemini salvata. Fix in PR #110 (mersata), non registrato
+in questo registro T01 perche' non e' debito lint ne' un nuovo O-item: era un
+bug singolo, riproducibile, gia' risolto.
+
+`services/agronomicPredictionPipelineService.ts` (10 warning) e' risultato
+vivo: unico consumer `app/api/ai/predictions/route.ts` (la stessa route
+coinvolta nel log dell'errore Gemini, ma per un problema distinto e non
+collegato). Verificato prima di procedere: l'intera pipeline (previsione
+malattie, resa, ottimizzazione risorse) e' un motore deterministico reale,
+calcolato da dati Supabase autentici (`garden_tasks`, `daily_weather_log`,
+`soil_analysis`, `garden_plants`, `sensor_readings`) - nessun `Math.random()`,
+nessun valore mock spacciato per reale. La tabella `baseYield` per coltura e'
+un riferimento agronomico dichiarato, non un dato fittizio. Nessun gap da
+registrare.
+
+Il lotto 54 e' stato eseguito su `services/agronomicPredictionPipelineService.ts`
+(ora ~375 righe), da 10 warning a zero: introdotte quattro interfacce locali
+(`TaskRow`, `WeatherLogRow`, `SensorRow`, `SoilRow`, `PlantRow`) per le righe
+Supabase non tipizzate, al posto di `any` sparsi tra caricamento task, meteo,
+sensori, analisi suolo e piante in `loadCanonicalPredictionInput`.
+
+Baseline globale verificata: **0 errori, 1.477 warning** (`1.487 -> 1.477`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
