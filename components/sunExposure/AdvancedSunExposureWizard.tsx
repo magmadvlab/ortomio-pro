@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Sun, Upload, Sliders, Compass, Calculator, ChevronRight } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Upload, Sliders, Compass, Calculator, ChevronRight } from 'lucide-react'
 import { CompassObstacleSelector } from './CompassObstacleSelector'
-import { Obstacle3D, calculateDailySunHours, calculateMonthlySunHours } from '@/services/preciseSunCalculator'
+import { Obstacle3D, calculateDailySunHours } from '@/services/preciseSunCalculator'
 import { extractObstaclesFrom360 } from '@/services/obstacleExtractor'
 
 interface AdvancedSunExposureWizardProps {
@@ -34,7 +34,7 @@ export function AdvancedSunExposureWizard({
   const [mode, setMode] = useState<WizardMode>('select')
   const [obstacles, setObstacles] = useState<Obstacle3D[]>([])
   const [calculatedSunHours, setCalculatedSunHours] = useState<number | null>(null)
-  const [isCalculating, setIsCalculating] = useState(false)
+  const [, setIsCalculating] = useState(false)
 
   // Modalità Semplice - Slider
   const [simpleMode, setSimpleMode] = useState({
@@ -45,16 +45,11 @@ export function AdvancedSunExposureWizard({
 
   // Modalità Foto 360°
   const [photo360, setPhoto360] = useState<string | null>(null)
-  const [photoNorthOffset, setPhotoNorthOffset] = useState(0)
+  // Offset bussola per la calibrazione della foto 360°: nessun controllo UI lo aggiorna ancora,
+  // resta sempre 0 (stesso pattern gap gia' registrato per GardenOnboarding.tsx).
+  const [photoNorthOffset] = useState(0)
 
-  // Calcola ore sole in tempo reale quando cambiano ostacoli
-  useEffect(() => {
-    if (mode === 'advanced' && obstacles.length > 0) {
-      calculateScientificSunHours()
-    }
-  }, [obstacles, mode])
-
-  const calculateScientificSunHours = async () => {
+  const calculateScientificSunHours = useCallback(async () => {
     setIsCalculating(true)
 
     try {
@@ -75,7 +70,14 @@ export function AdvancedSunExposureWizard({
     } finally {
       setIsCalculating(false)
     }
-  }
+  }, [latitude, longitude, obstacles])
+
+  // Calcola ore sole in tempo reale quando cambiano ostacoli
+  useEffect(() => {
+    if (mode === 'advanced' && obstacles.length > 0) {
+      calculateScientificSunHours()
+    }
+  }, [obstacles, mode, calculateScientificSunHours])
 
   const handle360PhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

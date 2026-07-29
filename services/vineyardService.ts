@@ -3,15 +3,108 @@
 // Professional service layer for complete vineyard operations
 // ============================================================================
 
-import { 
+import {
   VineyardConfiguration,
   VineyardVine,
   VineyardDashboardData,
-  VineyardFilters,
   VineSearchCriteria,
-  VineyardWizardData
+  VineyardWizardData,
+  VineyardType,
+  VineyardTrainingSystem,
+  VarietyInfo,
+  RootstockInfo,
+  VineHealthStatus,
+  VineVigorLevel,
+  VineProductivityStatus
 } from '@/types/vineyard'
 import { getSupabaseClient } from '@/config/supabase'
+
+interface VineyardConfigurationRow {
+  id: string
+  garden_id: string
+  name: string
+  description?: string
+  vineyard_type: VineyardType
+  established_date?: string
+  total_area_sqm?: number
+  total_vines?: number
+  vines_per_hectare?: number
+  row_spacing_m?: number
+  vine_spacing_m?: number
+  training_system?: VineyardTrainingSystem
+  main_varieties?: VarietyInfo[]
+  rootstock_types?: RootstockInfo[]
+  climate_zone?: string
+  soil_type?: string
+  irrigation_system?: string
+  organic_certified?: boolean
+  precision_management?: boolean
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
+interface VineyardConfigurationRowInput {
+  garden_id?: string
+  name?: string
+  description?: string
+  vineyard_type?: VineyardType
+  established_date?: string
+  total_area_sqm?: number
+  total_vines?: number
+  vines_per_hectare?: number
+  row_spacing_m?: number
+  vine_spacing_m?: number
+  training_system?: VineyardTrainingSystem
+  main_varieties?: VarietyInfo[]
+  rootstock_types?: RootstockInfo[]
+  climate_zone?: string
+  soil_type?: string
+  irrigation_system?: string
+  organic_certified?: boolean
+  precision_management?: boolean
+}
+
+interface VineyardVineRow {
+  id: string
+  vineyard_id: string
+  garden_id: string
+  vine_number: string
+  qr_code?: string
+  zone_id?: string
+  field_row_id?: string
+  section_id?: string
+  row_number?: number
+  position_in_row?: number
+  gps_latitude?: number
+  gps_longitude?: number
+  variety: string
+  rootstock?: string
+  planting_date?: string
+  vine_age_years?: number
+  trunk_diameter_cm?: number
+  vine_height_m?: number
+  canopy_width_m?: number
+  training_system?: VineyardTrainingSystem | string
+  health_status: VineHealthStatus
+  vigor_level: VineVigorLevel
+  productivity_status: VineProductivityStatus
+  expected_yield_kg?: number
+  last_harvest_kg?: number
+  last_harvest_date?: string
+  cumulative_yield_kg?: number
+  sugar_content_brix?: number
+  acidity_level?: number
+  ph_level?: number
+  notes?: string
+  special_requirements?: string
+  needs_pruning?: boolean
+  needs_treatment?: boolean
+  needs_replacement?: boolean
+  is_active?: boolean
+  created_at: string
+  updated_at: string
+}
 
 class VineyardService {
   private getClientOrThrow() {
@@ -340,18 +433,22 @@ class VineyardService {
 
       // Create vines if provided
       if (wizardData.vines?.vineData && wizardData.vines.vineData.length > 0) {
+        // Campi in camelCase, come richiesto da bulkCreateVines/mapVineToDatabase: prima erano
+        // snake_case (vineyard_id/garden_id/is_active/...) e finivano sempre `undefined` dopo il
+        // mapping interno, un bug reale corretto qui (le viti create in blocco dal wizard non
+        // risultavano collegate al vigneto/orto ne' attive).
         const vinesToCreate = wizardData.vines.vineData.map(vine => ({
           ...vine,
-          vineyard_id: vineyard.id,
-          garden_id: wizardData.basicInfo?.gardenId,
-          is_active: true,
-          needs_pruning: false,
-          needs_treatment: false,
-          needs_replacement: false,
-          cumulative_yield_kg: 0
-        }))
+          vineyardId: vineyard.id,
+          gardenId: wizardData.basicInfo?.gardenId,
+          isActive: true,
+          needsPruning: false,
+          needsTreatment: false,
+          needsReplacement: false,
+          cumulativeYieldKg: 0
+        })) as Omit<VineyardVine, 'id' | 'createdAt' | 'updatedAt'>[]
 
-        await this.bulkCreateVines(vinesToCreate as any)
+        await this.bulkCreateVines(vinesToCreate)
       }
 
       return this.mapVineyardConfigurationFromDatabase(vineyard)
@@ -365,7 +462,7 @@ class VineyardService {
   // DATABASE MAPPING METHODS
   // ============================================================================
 
-  private mapVineyardConfigurationFromDatabase(data: any): VineyardConfiguration {
+  private mapVineyardConfigurationFromDatabase(data: VineyardConfigurationRow): VineyardConfiguration {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -392,7 +489,7 @@ class VineyardService {
     }
   }
 
-  private mapVineyardConfigurationToDatabase(config: Partial<VineyardConfiguration>): any {
+  private mapVineyardConfigurationToDatabase(config: Partial<VineyardConfiguration>): VineyardConfigurationRowInput {
     return {
       garden_id: config.gardenId,
       name: config.name,
@@ -415,7 +512,7 @@ class VineyardService {
     }
   }
 
-  private mapVineFromDatabase(data: any): VineyardVine {
+  private mapVineFromDatabase(data: VineyardVineRow): VineyardVine {
     return {
       id: data.id,
       vineyardId: data.vineyard_id,
@@ -458,7 +555,7 @@ class VineyardService {
     }
   }
 
-  private mapVineToDatabase(vine: Partial<VineyardVine>): any {
+  private mapVineToDatabase(vine: Partial<VineyardVine>): Partial<VineyardVineRow> {
     return {
       vineyard_id: vine.vineyardId,
       garden_id: vine.gardenId,

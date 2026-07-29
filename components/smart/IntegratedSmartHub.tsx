@@ -5,7 +5,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { 
   Wifi, 
   Droplets, 
@@ -42,12 +42,13 @@ import {
   Legend,
 } from 'recharts'
 import { SmartDevice, SmartDeviceAutomationLog, Garden } from '@/types'
-import ActionButton, { ActionContext } from '@/components/actions/ActionButton'
+import ActionButton, { ActionContext, ActionType } from '@/components/actions/ActionButton'
 import InterventionWizard, { InterventionData } from '@/components/actions/InterventionWizard'
 import { interventionService } from '@/services/interventionService'
 import type { IrrigationScopeDiagnostics } from '@/services/irrigationScopeDiagnosticsService'
 import type { SmartDeviceAutomationAnalytics } from '@/services/smartDeviceAutomationAnalyticsService'
 import type { SensorReading } from '@/services/sensorDataService'
+import type { Waypoint, DiseaseDetection } from '@/services/droneIntegrationService'
 
 interface DroneFlightPlan {
   id: string
@@ -57,14 +58,14 @@ interface DroneFlightPlan {
   scheduledDate: string
   duration: number
   altitude: number
-  waypoints: any[]
+  waypoints: Waypoint[]
   results?: {
     imagesCapture: number
     dataSize: number
     batteryUsed: number
     analysis: {
       healthMap: { overallScore: number }
-      diseaseDetection: any[]
+      diseaseDetection: DiseaseDetection[]
       yieldEstimation: { totalEstimatedYield: number }
     }
   }
@@ -142,7 +143,7 @@ export default function IntegratedSmartHub({
 
   // Action Buttons state
   const [wizardOpen, setWizardOpen] = useState(false)
-  const [selectedAction, setSelectedAction] = useState<any>(null)
+  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null)
   const [actionContext, setActionContext] = useState<ActionContext | null>(null)
 
   // Device Association state
@@ -157,27 +158,7 @@ export default function IntegratedSmartHub({
   // Filter devices for current garden
   const gardenDevices = devices.filter(d => d.gardenId === garden.id)
 
-  useEffect(() => {
-    if (activeTab === 'drones') {
-      loadFlightPlans()
-    }
-  }, [activeTab, garden.id])
-
-  useEffect(() => {
-    if (automationAnalytics.scopeHistory.length === 0) {
-      setSelectedHistoryScopeKey(null)
-      return
-    }
-
-    if (
-      !selectedHistoryScopeKey ||
-      !automationAnalytics.scopeHistory.some(scope => scope.scopeKey === selectedHistoryScopeKey)
-    ) {
-      setSelectedHistoryScopeKey(automationAnalytics.scopeHistory[0].scopeKey)
-    }
-  }, [automationAnalytics.scopeHistory, selectedHistoryScopeKey])
-
-  const loadFlightPlans = async () => {
+  const loadFlightPlans = useCallback(async () => {
     try {
       setLoading(true)
       setDroneError(null)
@@ -195,7 +176,27 @@ export default function IntegratedSmartHub({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    if (activeTab === 'drones') {
+      loadFlightPlans()
+    }
+  }, [activeTab, garden.id, loadFlightPlans])
+
+  useEffect(() => {
+    if (automationAnalytics.scopeHistory.length === 0) {
+      setSelectedHistoryScopeKey(null)
+      return
+    }
+
+    if (
+      !selectedHistoryScopeKey ||
+      !automationAnalytics.scopeHistory.some(scope => scope.scopeKey === selectedHistoryScopeKey)
+    ) {
+      setSelectedHistoryScopeKey(automationAnalytics.scopeHistory[0].scopeKey)
+    }
+  }, [automationAnalytics.scopeHistory, selectedHistoryScopeKey])
 
   const createAutomaticFlight = async () => {
     try {
@@ -328,7 +329,7 @@ export default function IntegratedSmartHub({
     }
   }
 
-  const handleActionSelected = (actionType: any, context: ActionContext) => {
+  const handleActionSelected = (actionType: ActionType, context: ActionContext) => {
     setSelectedAction(actionType)
     setActionContext(context)
     setWizardOpen(true)
@@ -1959,13 +1960,13 @@ export default function IntegratedSmartHub({
             {/* Drone Sub-tabs */}
             <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-md">
               {[
-                { id: 'flights', label: 'Piani di Volo', icon: Calendar },
-                { id: 'results', label: 'Risultati simulati', icon: BarChart3 },
-                { id: 'create', label: 'Crea Volo', icon: Plus }
+                { id: 'flights' as const, label: 'Piani di Volo', icon: Calendar },
+                { id: 'results' as const, label: 'Risultati simulati', icon: BarChart3 },
+                { id: 'create' as const, label: 'Crea Volo', icon: Plus }
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setDroneTab(tab.id as any)}
+                  onClick={() => setDroneTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     droneTab === tab.id
                       ? 'bg-green-600 text-white'
