@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-  Bot, Calendar, MapPin, Clock, AlertTriangle, CheckCircle, 
-  Droplets, Tractor, Thermometer, Cloud, Sun, Wind,
+import {
+  Bot, Calendar, MapPin, Clock, AlertTriangle,
+  Droplets, Tractor, Cloud, Sun,
   Settings, Zap, Target, Plus, Info
 } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
-import { format, addDays, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { smartOperationsService, SmartOperation, WeatherData } from '@/services/smartOperationsService'
 import CalendarAlmanac from '@/components/CalendarAlmanac'
@@ -16,6 +16,16 @@ interface SmartPlannerProps {
   garden: Garden
   tasks: GardenTask[]
   onTasksUpdate: (tasks: GardenTask[]) => void
+}
+
+interface NewOperationFormData {
+  type: string
+  name: string
+  date: string
+  time: string
+  duration: number
+  zones: string[]
+  equipment: string
 }
 
 const OPERATION_TYPES = [
@@ -63,6 +73,9 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
   }, [garden.id, garden.coordinates?.latitude, garden.coordinates?.longitude])
 
   // Analizza operazioni e genera avvisi meteo usando il servizio
+  // smartOperations.length in dipendenza e' intenzionale (non un refuso): analyzeOperationsWeather
+  // ritorna sempre un nuovo array (.map), quindi includere smartOperations per intero causerebbe
+  // un loop infinito (setSmartOperations -> nuova reference -> rieffettua l'effect).
   useEffect(() => {
     if (weatherForecast.length > 0 && smartOperations.length > 0) {
       const analyzedOperations = smartOperationsService.analyzeOperationsWeather(
@@ -73,10 +86,10 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
     }
   }, [weatherForecast, smartOperations.length])
 
-  const createSmartOperation = (type: string, data: any) => {
+  const createSmartOperation = (type: string, data: NewOperationFormData) => {
     const operation: SmartOperation = {
       id: `smart-${Date.now()}`,
-      type: type as any,
+      type: type as SmartOperation['type'],
       name: data.name,
       scheduledDate: data.date,
       scheduledTime: data.time,
@@ -151,7 +164,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveView(tab.id as any)}
+                onClick={() => setActiveView(tab.id as typeof activeView)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                   activeView === tab.id
                     ? 'bg-white text-gray-900 shadow-sm'
@@ -320,7 +333,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
           </h3>
           <CalendarAlmanac 
             tasks={tasks}
-            onDateClick={(date) => {
+            onDateClick={() => {
               // Quando clicchi su una data, apri il form per creare un'operazione
               setShowNewOperationForm(true)
             }}
@@ -408,7 +421,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
 // Modal per nuova operazione
 interface NewOperationModalProps {
   selectedType: string
-  onSave: (data: any) => void
+  onSave: (data: NewOperationFormData) => void
   onCancel: () => void
 }
 
