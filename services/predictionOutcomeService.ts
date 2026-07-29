@@ -1,3 +1,5 @@
+import type { PredictionBundle } from '@/services/agronomicPredictionPipelineService'
+
 export type PredictionOutcomeMetrics = {
   predictedValue: Record<string, unknown>
   absoluteError?: number
@@ -9,17 +11,17 @@ export type PredictionOutcomeMetrics = {
 const round = (value: number) => Number(value.toFixed(4))
 
 export const calculatePredictionOutcomeMetrics = (
-  output: Record<string, any>,
+  output: Partial<PredictionBundle>,
   outcomeType: 'yield' | 'disease' | 'resource' | 'other',
   observedValue: Record<string, unknown>
 ): PredictionOutcomeMetrics => {
   if (outcomeType === 'yield') {
-    const prediction = (output.yieldPredictions ?? []).find((item: any) =>
+    const prediction = (output.yieldPredictions ?? []).find((item) =>
       !observedValue.predictionItemId || item.id === observedValue.predictionItemId
     )
     const observed = Number(observedValue.yieldKgPerSqm)
     const predicted = Number(prediction?.expectedYield)
-    if (!Number.isFinite(observed) || !Number.isFinite(predicted) || observed < 0 || predicted <= 0) {
+    if (!prediction || !Number.isFinite(observed) || !Number.isFinite(predicted) || observed < 0 || predicted <= 0) {
       throw new Error('invalid_yield_outcome')
     }
     const absoluteError = Math.abs(observed - predicted)
@@ -32,7 +34,7 @@ export const calculatePredictionOutcomeMetrics = (
     }
   }
   if (outcomeType === 'disease') {
-    const prediction = (output.diseasePredicitions ?? []).find((item: any) =>
+    const prediction = (output.diseasePredicitions ?? []).find((item) =>
       item.id === observedValue.predictionItemId
     )
     if (!prediction || typeof observedValue.occurred !== 'boolean') throw new Error('invalid_disease_outcome')
@@ -45,12 +47,12 @@ export const calculatePredictionOutcomeMetrics = (
     }
   }
   if (outcomeType === 'resource') {
-    const prediction = (output.resourceOptimizations ?? []).find((item: any) =>
+    const prediction = (output.resourceOptimizations ?? []).find((item) =>
       item.id === observedValue.predictionItemId
     )
     const observed = Number(observedValue.actualUsage)
     const predicted = Number(prediction?.optimizedUsage)
-    if (!Number.isFinite(observed) || !Number.isFinite(predicted) || observed < 0 || predicted < 0) {
+    if (!prediction || !Number.isFinite(observed) || !Number.isFinite(predicted) || observed < 0 || predicted < 0) {
       throw new Error('invalid_resource_outcome')
     }
     const absoluteError = Math.abs(observed - predicted)

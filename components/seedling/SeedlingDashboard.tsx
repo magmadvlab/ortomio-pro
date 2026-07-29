@@ -236,7 +236,7 @@ export default function SeedlingDashboard({
       priority: 'high' | 'medium';
     }> = [];
     const label = batch.variety ? `${batch.plantName} (${batch.variety})` : batch.plantName;
-    const readyCheck = isReadyToTransplant(batch, garden);
+    const readyCheck = isReadyToTransplant(batch);
     const initialQuantity = batch.initialQuantity ?? batch.quantity;
     const currentQuantity = batch.currentQuantity ?? initialQuantity;
     const survivalRate = initialQuantity > 0 ? currentQuantity / initialQuantity : 1;

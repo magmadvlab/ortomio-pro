@@ -27,7 +27,7 @@ export function getReadyBatchesForPlant(
       return false;
     }
 
-    const readyCheck = isReadyToTransplant(batch, garden);
+    const readyCheck = isReadyToTransplant(batch);
     return readyCheck.ready;
   });
 }
@@ -87,7 +87,7 @@ export function getAllReadyBatches(
   }
 
   return batches.filter(batch => {
-    const readyCheck = isReadyToTransplant(batch, garden);
+    const readyCheck = isReadyToTransplant(batch);
     return readyCheck.ready;
   });
 }

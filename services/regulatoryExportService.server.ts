@@ -1,6 +1,6 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js'
 import { jsPDF } from 'jspdf'
 
 export const EXPORT_SCHEMA_VERSION = 'ortomio-export-v2'
@@ -31,21 +31,39 @@ const csvCell = (value: unknown): string => {
   return `"${text.replace(/"/g, '""')}"`
 }
 
-const applyPeriod = (query: any, column: string, from?: string | null, to?: string | null) => {
+interface PeriodFilterable {
+  gte(column: string, value: string): this
+  lte(column: string, value: string): this
+}
+
+const applyPeriod = <Q extends PeriodFilterable>(query: Q, column: string, from?: string | null, to?: string | null): Q => {
   let result = query
   if (from) result = result.gte(column, from)
   if (to) result = result.lte(column, to)
   return result
 }
 
-const ensureRows = (data: unknown, error: any, table: string): any[] => {
+const ensureRows = <T>(data: T[] | null, error: PostgrestError | null, table: string): T[] => {
   if (error) throw new Error(`export_source_unavailable:${table}:${error.message || error.code || 'unknown'}`)
   return Array.isArray(data) ? data : []
 }
 
+type ExportGardenRow = {
+  id: string
+  name?: string
+  type?: string
+  garden_type?: string
+  size_sqm?: number
+  sizeSqMeters?: number
+  coordinates?: { latitude?: number; longitude?: number }
+  latitude?: number
+  longitude?: number
+  created_at?: string
+}
+
 export async function loadAuthorizedExportDataset(
   supabase: SupabaseClient,
-  garden: Record<string, any>,
+  garden: ExportGardenRow,
   dataset: ExportDataset,
   period: { from?: string | null; to?: string | null } = {},
 ): Promise<ExportEnvelope> {
