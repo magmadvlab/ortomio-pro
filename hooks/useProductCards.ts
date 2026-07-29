@@ -82,9 +82,9 @@ export const useProductCards = (gardenId?: string) => {
         }));
 
         setProductCards(cards);
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error loading product cards:', error);
-        setError(error.message || 'Errore nel caricamento delle schede prodotto');
+        setError(error instanceof Error ? error.message : 'Errore nel caricamento delle schede prodotto');
       } finally {
         setLoading(false);
       }
@@ -173,7 +173,7 @@ export const useProductCards = (gardenId?: string) => {
 
       setProductCards(prev => [newCard, ...prev]);
       return newCard;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error adding product card:', error);
       throw error;
     }
@@ -188,7 +188,28 @@ export const useProductCards = (gardenId?: string) => {
 
     try {
       // Converti gli aggiornamenti al formato database
-      const dbUpdates: any = {};
+      const dbUpdates: Partial<{
+        name: string
+        type: ProductCard['type']
+        category: ProductCard['category']
+        description: string
+        scientific_name: string
+        active_ingredients: ProductCard['activeIngredients']
+        recommended_dosage: ProductCard['recommendedDosage']
+        application_method: ProductCard['applicationMethod']
+        application_frequency: ProductCard['applicationFrequency']
+        default_repeat_days: ProductCard['defaultRepeatDays']
+        seasonal_adjustment: ProductCard['seasonalAdjustment']
+        precautions: ProductCard['precautions']
+        best_for: ProductCard['bestFor']
+        avoid_with: ProductCard['avoidWith']
+        best_time: ProductCard['bestTime']
+        ph_requirement: ProductCard['phRequirement']
+        organic_certified: ProductCard['organicCertified']
+        last_used: ProductCard['lastUsed']
+        times_used: ProductCard['timesUsed']
+        application_history: ProductCard['applicationHistory']
+      }> = {};
       
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.type !== undefined) dbUpdates.type = updates.type;
@@ -255,7 +276,7 @@ export const useProductCards = (gardenId?: string) => {
 
       setProductCards(prev => prev.map(c => c.id === id ? updatedCard : c));
       return updatedCard;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating product card:', error);
       throw error;
     }
@@ -278,7 +299,7 @@ export const useProductCards = (gardenId?: string) => {
       if (error) throw error;
 
       setProductCards(prev => prev.filter(c => c.id !== id));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting product card:', error);
       throw error;
     }

@@ -149,8 +149,8 @@ export async function getUserFromRequest(request: NextRequest) {
         }
       }
 
-      if (parsed && typeof parsed === 'object' && typeof (parsed as any).access_token === 'string') {
-        projectScopedToken = (parsed as any).access_token
+      if (parsed && typeof parsed === 'object' && typeof (parsed as { access_token?: unknown }).access_token === 'string') {
+        projectScopedToken = (parsed as { access_token: string }).access_token
       }
     }
   } catch {
@@ -176,7 +176,7 @@ export async function getUserFromRequest(request: NextRequest) {
 type AuthorizationDependencies = {
   getUserFromRequestFn?: typeof getUserFromRequest
   getSupabaseClientFn?: typeof getSupabaseClient
-  getUserProfileFn?: (userId: string) => Promise<any>
+  getUserProfileFn?: typeof getUserProfile
 }
 
 export async function requireUser(request: NextRequest, dependencies: AuthorizationDependencies = {}) {
@@ -359,7 +359,7 @@ export async function verifyTier(
 export async function requireTier(
   request: NextRequest,
   tier: string
-): Promise<{ user: any; profile: any }> {
+) {
   const result = await verifyTier(request, [tier])
   
   if ('error' in result) {

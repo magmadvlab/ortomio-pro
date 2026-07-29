@@ -220,7 +220,15 @@ class BiologicalControlService {
       evidencePhotos?: string[]
     }
   ): Promise<BiologicalControlChecklist> {
-    const updates: any = {
+    const updates: {
+      status: ChecklistStatus
+      updated_at: string
+      completed_date?: string
+      completed_by?: string
+      notes?: string
+      effectiveness_score?: number
+      evidence_photos?: string[]
+    } = {
       status,
       updated_at: new Date().toISOString()
     }
@@ -284,7 +292,14 @@ class BiologicalControlService {
       evidencePhotos?: string[]
     }
   ): Promise<BiologicalControlSubtask> {
-    const updates: any = {
+    const updates: {
+      status: ChecklistStatus
+      updated_at: string
+      completed_date?: string
+      completed_by?: string
+      notes?: string
+      evidence_photos?: string[]
+    } = {
       status,
       updated_at: new Date().toISOString()
     }
@@ -370,7 +385,6 @@ class BiologicalControlService {
 
   async createRecurringChecklists(gardenId: string): Promise<void> {
     const now = new Date()
-    const currentMonth = now.getMonth() + 1
 
     // Create monthly checklists
     for (const [category, template] of Object.entries(CHECKLIST_TEMPLATES)) {
@@ -387,7 +401,28 @@ class BiologicalControlService {
 
   // ===== MAPPING METHODS =====
 
-  private mapChecklistFromDb(data: any): BiologicalControlChecklist {
+  private mapChecklistFromDb(data: {
+    id: string
+    garden_id: string
+    title: string
+    description: string
+    category: BiologicalControlCategory
+    priority: ChecklistPriority
+    frequency: ChecklistFrequency
+    applicable_months?: number[]
+    applicable_seasons?: string[]
+    status: ChecklistStatus
+    due_date?: string
+    completed_date?: string
+    completed_by?: string
+    notes?: string
+    effectiveness_score?: number
+    evidence_photos?: string[]
+    required_for_certification: boolean
+    certification_types?: string[]
+    created_at: string
+    updated_at: string
+  }): BiologicalControlChecklist {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -412,7 +447,20 @@ class BiologicalControlService {
     }
   }
 
-  private mapSubtaskFromDb(data: any): BiologicalControlSubtask {
+  private mapSubtaskFromDb(data: {
+    id: string
+    checklist_id: string
+    title: string
+    description: string
+    order_index: number
+    status: ChecklistStatus
+    completed_date?: string
+    completed_by?: string
+    notes?: string
+    evidence_photos?: string[]
+    created_at: string
+    updated_at: string
+  }): BiologicalControlSubtask {
     return {
       id: data.id,
       checklistId: data.checklist_id,

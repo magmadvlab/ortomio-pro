@@ -76,14 +76,15 @@ export function isVirtualCropRotationPlanId(planId?: string | null): boolean {
   return typeof planId === 'string' && planId.startsWith(VIRTUAL_PLAN_PREFIX)
 }
 
-const isMissingRelationError = (error: any, relation?: string) => {
+const isMissingRelationError = (error: unknown, relation?: string) => {
   if (!error) return false
-  const message = String(error.message || '')
-  const hint = String(error.hint || '')
-  const details = String(error.details || '')
+  const err = error as { message?: string; hint?: string; details?: string; code?: string }
+  const message = String(err.message || '')
+  const hint = String(err.hint || '')
+  const details = String(err.details || '')
   const haystack = `${message} ${hint} ${details}`
 
-  if (error.code === 'PGRST205') {
+  if (err.code === 'PGRST205') {
     return !relation || haystack.includes(relation)
   }
 
@@ -627,7 +628,27 @@ class CropRotationService {
 
   // ===== MAPPING METHODS =====
 
-  private mapHistoryFromDb(data: any): CropRotationHistory {
+  private mapHistoryFromDb(data: {
+    id: string
+    garden_id: string
+    field_row_id?: string
+    zone_id?: string
+    plant_variety_id?: string
+    plant_name: string
+    plant_family: string
+    planted_date: string
+    harvest_date?: string
+    season: CropRotationHistory['season']
+    year: number
+    yield_kg?: number
+    quality_score?: number
+    diseases?: string[]
+    pests?: string[]
+    nutrient_deficiencies?: string[]
+    notes?: string
+    created_at: string
+    updated_at: string
+  }): CropRotationHistory {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -651,7 +672,25 @@ class CropRotationService {
     }
   }
 
-  private mapPlanFromDb(data: any): CropRotationPlan {
+  private mapPlanFromDb(data: {
+    id: string
+    garden_id: string
+    field_row_id?: string
+    zone_id?: string
+    current_crop: string
+    current_family: string
+    suggested_next_crops: SuggestedCrop[]
+    rotation_cycle: number
+    reasoning: string
+    benefits: string[]
+    risks_to_avoid: string[]
+    confidence_score: number
+    status: CropRotationPlan['status']
+    accepted_crop?: string
+    accepted_date?: string
+    created_at: string
+    updated_at: string
+  }): CropRotationPlan {
     return {
       id: data.id,
       gardenId: data.garden_id,
@@ -673,8 +712,22 @@ class CropRotationService {
     }
   }
 
-  private mapHistoryFromFieldRowDb(data: any): CropRotationHistory {
-    const plantedDate = data.planting_date
+  private mapHistoryFromFieldRowDb(data: {
+    id: string
+    garden_id: string
+    garden_row_id?: string
+    crop_name: string
+    crop_family?: string
+    planting_date?: string
+    harvest_date?: string
+    yield_kg?: number
+    quality_rating?: number
+    health_issues?: string[]
+    notes?: string
+    created_at: string
+    updated_at: string
+  }): CropRotationHistory {
+    const plantedDate = data.planting_date || new Date().toISOString()
     const qualityScore = typeof data.quality_rating === 'number'
       ? Math.max(0, Math.min(100, data.quality_rating * 20))
       : undefined
