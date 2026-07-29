@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -24,7 +24,7 @@ import OrchardWizard from '@/components/orchard/OrchardWizard'
 import TreeManager from '@/components/orchard/TreeManager'
 import PruningManager from '@/components/orchard/PruningManager'
 import HarvestManager from '@/components/orchard/HarvestManager'
-import { GardenTask } from '@/types'
+import { GardenTask, MechanicalWorkRecord } from '@/types'
 import { getMasterSheetSync } from '@/services/plantMasterService'
 import { orchardService } from '@/services/orchardService'
 import {
@@ -33,6 +33,7 @@ import {
 } from '@/services/woodyGardenResolverService'
 
 type ViewMode = 'overview' | 'trees' | 'pruning' | 'harvest' | 'individual-plants'
+type SelectedLocation = Parameters<React.ComponentProps<typeof LocationSelector>['onLocationChange']>[0]
 
 interface OliveSummary {
   totalOliveGroves: number
@@ -55,9 +56,9 @@ export default function OlivesPage() {
   const [filteredTasks, setFilteredTasks] = useState<GardenTask[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState('')
   const [selectedOrchardId, setSelectedOrchardId] = useState('')
-  const [selectedLocation, setSelectedLocation] = useState<any>(null)
+  const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('overview')
-  const [upcomingPrunings, setUpcomingPrunings] = useState<any[]>([])
+  const [upcomingPrunings, setUpcomingPrunings] = useState<Array<Omit<MechanicalWorkRecord, 'work_date'> & { work_date: Date }>>([])
   const [summary, setSummary] = useState<OliveSummary>(EMPTY_SUMMARY)
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -71,69 +72,7 @@ export default function OlivesPage() {
   const selectedOrchard =
     selectedOrchards.find((orchard) => orchard.id === selectedOrchardId) || selectedOrchards[0] || null
 
-  useEffect(() => {
-    loadContexts()
-  }, [storageProvider])
-
-  useEffect(() => {
-    if (contexts.length === 0) {
-      setSelectedGardenId('')
-      return
-    }
-
-    if (!selectedGardenId || !contexts.some((context) => context.garden.id === selectedGardenId)) {
-      setSelectedGardenId(contexts[0].garden.id)
-    }
-  }, [contexts, selectedGardenId])
-
-  useEffect(() => {
-    if (!selectedContext) {
-      setSelectedOrchardId('')
-      return
-    }
-
-    const orchardIds = selectedContext.oliveOrchards.map((orchard) => orchard.id)
-    if (!selectedOrchardId || !orchardIds.includes(selectedOrchardId)) {
-      setSelectedOrchardId(orchardIds[0] || '')
-    }
-  }, [selectedContext, selectedOrchardId])
-
-  useEffect(() => {
-    if (!selectedGardenId || !selectedContext) {
-      setTasks([])
-      setFilteredTasks([])
-      setUpcomingPrunings([])
-      setSummary(EMPTY_SUMMARY)
-      return
-    }
-
-    loadOperationalData(selectedContext)
-  }, [storageProvider, selectedGardenId, selectedContext])
-
-  useEffect(() => {
-    if (!selectedLocation) {
-      setFilteredTasks(tasks)
-      return
-    }
-
-    const filtered = tasks.filter((task) => {
-      const taskAny = task as any
-      if (selectedLocation.sectionId && taskAny.fieldRowSectionId) {
-        return taskAny.fieldRowSectionId === selectedLocation.sectionId
-      }
-      if (selectedLocation.fieldRowId && taskAny.fieldRowId) {
-        return taskAny.fieldRowId === selectedLocation.fieldRowId
-      }
-      if (selectedLocation.zoneId && taskAny.zoneId) {
-        return taskAny.zoneId === selectedLocation.zoneId
-      }
-      return true
-    })
-
-    setFilteredTasks(filtered)
-  }, [tasks, selectedLocation])
-
-  const loadContexts = async () => {
+  const loadContexts = useCallback(async () => {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
@@ -145,9 +84,9 @@ export default function OlivesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [storageProvider])
 
-  const loadOperationalData = async (context: OliveGardenContext) => {
+  const loadOperationalData = useCallback(async (context: OliveGardenContext) => {
     try {
       const [gardenTasks, mechanicalWorks, treeGroups, harvestScheduleGroups] = await Promise.all([
         storageProvider.getTasks(context.garden.id),
@@ -184,7 +123,7 @@ export default function OlivesPage() {
           (tree) => tree.needsPruning || tree.needsTreatment || tree.healthStatus !== 'healthy'
         ).length,
         upcomingHarvests: harvestSchedules.filter((schedule) =>
-          ['scheduled', 'planned', 'in_progress'].includes(String((schedule as any).status))
+          ['scheduled', 'planned', 'in_progress'].includes(String(schedule.status))
         ).length,
       })
     } catch (error) {
@@ -194,9 +133,73 @@ export default function OlivesPage() {
       setUpcomingPrunings([])
       setSummary(EMPTY_SUMMARY)
     }
-  }
+  }, [storageProvider])
 
-  const handleWizardComplete = async (_orchardId: string) => {
+  useEffect(() => {
+    loadContexts()
+  }, [loadContexts])
+
+  useEffect(() => {
+    if (contexts.length === 0) {
+      setSelectedGardenId('')
+      return
+    }
+
+    if (!selectedGardenId || !contexts.some((context) => context.garden.id === selectedGardenId)) {
+      setSelectedGardenId(contexts[0].garden.id)
+    }
+  }, [contexts, selectedGardenId])
+
+  useEffect(() => {
+    if (!selectedContext) {
+      setSelectedOrchardId('')
+      return
+    }
+
+    const orchardIds = selectedContext.oliveOrchards.map((orchard) => orchard.id)
+    if (!selectedOrchardId || !orchardIds.includes(selectedOrchardId)) {
+      setSelectedOrchardId(orchardIds[0] || '')
+    }
+  }, [selectedContext, selectedOrchardId])
+
+  useEffect(() => {
+    if (!selectedGardenId || !selectedContext) {
+      setTasks([])
+      setFilteredTasks([])
+      setUpcomingPrunings([])
+      setSummary(EMPTY_SUMMARY)
+      return
+    }
+
+    loadOperationalData(selectedContext)
+  }, [selectedGardenId, selectedContext, loadOperationalData])
+
+  useEffect(() => {
+    if (!selectedLocation) {
+      setFilteredTasks(tasks)
+      return
+    }
+
+    // `GardenTask` non ha mai avuto `fieldRowSectionId`/`fieldRowId` (solo `zoneId`): questi due
+    // rami restano sempre falsi, il filtro reale applicato e' solo quello sulla zona.
+    const filtered = tasks.filter((task) => {
+      const legacyTask = task as GardenTask & { fieldRowSectionId?: string; fieldRowId?: string }
+      if (selectedLocation.sectionId && legacyTask.fieldRowSectionId) {
+        return legacyTask.fieldRowSectionId === selectedLocation.sectionId
+      }
+      if (selectedLocation.fieldRowId && legacyTask.fieldRowId) {
+        return legacyTask.fieldRowId === selectedLocation.fieldRowId
+      }
+      if (selectedLocation.zoneId && legacyTask.zoneId) {
+        return legacyTask.zoneId === selectedLocation.zoneId
+      }
+      return true
+    })
+
+    setFilteredTasks(filtered)
+  }, [tasks, selectedLocation])
+
+  const handleWizardComplete = async () => {
     setShowWizard(false)
     await loadContexts()
   }

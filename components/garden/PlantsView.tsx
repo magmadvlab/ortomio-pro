@@ -2,13 +2,12 @@
 
 import React, { useState, useMemo } from 'react'
 import { Garden, GardenTask } from '@/types'
-import { Sprout, Filter, Search } from 'lucide-react'
+import { Sprout, Search } from 'lucide-react'
 import { getActivePlants } from '@/services/taskCalculationService'
 import { PlantCard } from './PlantCard'
 import { HarvestPromptModal } from '@/components/shared/HarvestPromptModal'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import type { PlantMaturityContext } from '@/utils/plantMaturityDetector'
-import { resolveGardenContext } from '@/services/gardenContextResolverService'
 
 interface PlantsViewProps {
   garden: Garden
@@ -221,10 +220,12 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                 sunExposure: garden.sunExposure || null,
                 aspectDirection: garden.aspectDirection || null,
                 altitudeMeters: garden.altitudeMeters ?? null,
-                slopePercentage: (garden as any).slopePercentage ?? null,
+                // `Garden` non ha mai avuto `slopePercentage` (solo `altitudeMeters`): resta sempre null.
+                slopePercentage: (garden as Garden & { slopePercentage?: number }).slopePercentage ?? null,
                 hasIndoor: garden.hasIndoor ?? null,
                 hasGreenhouse: garden.hasGreenhouse ?? null,
-                fieldRowId: (plant.task as any).fieldRowId || (plant.task as any).rowId || null,
+                // `GardenTask` non ha mai avuto `fieldRowId` (solo `rowId`): il primo fallback e' sempre vuoto.
+                fieldRowId: (plant.task as GardenTask & { fieldRowId?: string }).fieldRowId || plant.task.rowId || undefined,
               } satisfies PlantMaturityContext}
               onHarvest={(task) => setHarvestingTask(task)}
               onViewDetails={(task) => setDetailsTask(task)}
@@ -244,7 +245,7 @@ export function PlantsView({ garden, tasks, onUpdateTask }: PlantsViewProps) {
                 ...harvestData,
                 gardenId: garden.id,
                 taskId: harvestingTask.id
-              } as any)
+              })
 
               // Aggiorna task con harvestLogId reale
               onUpdateTask({

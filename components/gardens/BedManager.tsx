@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Garden } from '@/types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Garden, GardenTask } from '@/types';
 import { GardenBed, BedType, StructureType } from '@/types/gardenBed';
 import { GardenRow } from '@/types';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 import { BedForm } from './BedForm';
 import { BulkBedCreator } from './BulkBedCreator';
 import { RowManagerModal } from './RowManagerModal';
-import { calculateBedSpace } from '@/logic/spaceCalculator';
+import { calculateBedSpace, SpaceCalculation } from '@/logic/spaceCalculator';
 import { getMasterSheetByName } from '@/data/plantMasterSheets';
 import { X, Plus, Edit2, Trash2, Grid, AlertTriangle, Layers } from 'lucide-react';
 
 interface BedManagerProps {
   garden: Garden;
-  tasks?: any[]; // GardenTask[]
+  tasks?: GardenTask[];
   onClose?: () => void;
 }
 
@@ -28,13 +28,25 @@ export const BedManager: React.FC<BedManagerProps> = ({
   const [showBulkCreator, setShowBulkCreator] = useState(false);
   const [editingBed, setEditingBed] = useState<GardenBed | null>(null);
   const [filterType, setFilterType] = useState<BedType | 'All'>('All');
-  const [spaceCalculations, setSpaceCalculations] = useState<Record<string, any>>({});
+  const [spaceCalculations, setSpaceCalculations] = useState<Record<string, SpaceCalculation>>({});
   const [rowsByBedId, setRowsByBedId] = useState<Record<string, GardenRow[]>>({});
   const [rowsModalBed, setRowsModalBed] = useState<GardenBed | null>(null);
 
+  const loadBeds = useCallback(async () => {
+    try {
+      setLoading(true);
+      const gardenBeds = await storageProvider.getGardenBeds(garden.id);
+      setBeds(gardenBeds);
+    } catch (error) {
+      console.error('Error loading beds:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [garden.id, storageProvider]);
+
   useEffect(() => {
     loadBeds();
-  }, [garden.id]);
+  }, [loadBeds]);
 
   useEffect(() => {
     const loadRows = async () => {
@@ -95,25 +107,7 @@ export const BedManager: React.FC<BedManagerProps> = ({
     return false;
   };
 
-  useEffect(() => {
-    if (beds.length > 0 && tasks.length > 0) {
-      calculateSpaces();
-    }
-  }, [beds, tasks]);
-
-  const loadBeds = async () => {
-    try {
-      setLoading(true);
-      const gardenBeds = await storageProvider.getGardenBeds(garden.id);
-      setBeds(gardenBeds);
-    } catch (error) {
-      console.error('Error loading beds:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateSpaces = () => {
+  const calculateSpaces = useCallback(() => {
     const masterSheets = new Map();
     tasks.forEach(task => {
       if (task.plantName) {
@@ -124,12 +118,18 @@ export const BedManager: React.FC<BedManagerProps> = ({
       }
     });
 
-    const calculations: Record<string, any> = {};
+    const calculations: Record<string, SpaceCalculation> = {};
     beds.forEach(bed => {
       calculations[bed.id] = calculateBedSpace(bed, tasks, masterSheets);
     });
     setSpaceCalculations(calculations);
-  };
+  }, [beds, tasks]);
+
+  useEffect(() => {
+    if (beds.length > 0 && tasks.length > 0) {
+      calculateSpaces();
+    }
+  }, [beds, tasks, calculateSpaces]);
 
   const handleSubmit = async (bedData: Omit<GardenBed, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -235,7 +235,7 @@ export const BedManager: React.FC<BedManagerProps> = ({
 
   const totalArea = beds.reduce((sum, bed) => sum + (bed.areaSqMeters || 0), 0);
   const totalOccupied = Object.values(spaceCalculations).reduce(
-    (sum: number, calc: any) => sum + (calc?.occupiedArea || 0),
+    (sum, calc) => sum + (calc.occupiedArea || 0),
     0
   );
 

@@ -15,8 +15,10 @@ import { Garden, GardenTask } from '@/types'
 import { handleTaskCompletion } from '@/services/taskCompletionHook'
 import { recordAgronomicQueueTaskOutcome } from '@/services/agronomicQueueOutcomeService'
 import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
-import { isSameDay, addDays, parseISO, format } from 'date-fns'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
+
+type PlannerTab = 'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'
+const PLANNER_TABS: PlannerTab[] = ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological']
 
 export default function PlannerPage() {
   const { storageProvider } = useStorage()
@@ -25,14 +27,14 @@ export default function PlannerPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'>('planner')
+  const [activeTab, setActiveTab] = useState<PlannerTab>('planner')
   const [showGardenWizard, setShowGardenWizard] = useState(false)
 
   // Handle URL parameters for tab switching
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological'].includes(tab)) {
-      setActiveTab(tab as any)
+    if (tab && PLANNER_TABS.includes(tab as PlannerTab)) {
+      setActiveTab(tab as PlannerTab)
     }
   }, [searchParams])
 
@@ -109,7 +111,8 @@ export default function PlannerPage() {
         const existingTask = tasks.find(t => t.id === task.id)
         if (!existingTask) {
           // Nuovo task - rimuovi l'id per createTask
-          const { id, ...taskWithoutId } = task
+          const taskWithoutId: Omit<GardenTask, 'id'> & { id?: string } = { ...task }
+          delete taskWithoutId.id
           await storageProvider.createTask(taskWithoutId)
         } else {
           // Task esistente - usa updateTask
@@ -152,34 +155,6 @@ export default function PlannerPage() {
   }
 
   // Ottieni task per i prossimi 7 giorni
-  const getUpcomingTasks = () => {
-    if (!tasks || tasks.length === 0) return []
-    
-    const today = new Date()
-    const upcoming = []
-    
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(today, i)
-      const dayTasks = (tasks || []).filter(task => {
-        if (task.completed) return false
-        const taskDate = task.nextDueDate ? parseISO(task.nextDueDate) : parseISO(task.date)
-        return isSameDay(taskDate, date)
-      })
-      
-      if (dayTasks.length > 0) {
-        upcoming.push({
-          date: date,
-          label: i === 0 ? 'Oggi' : i === 1 ? 'Domani' : date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' }),
-          tasks: dayTasks,
-          isToday: i === 0,
-          isTomorrow: i === 1
-        })
-      }
-    }
-    
-    return upcoming
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -226,17 +201,16 @@ export default function PlannerPage() {
 
   const selectedGarden = activeGarden || gardens[0]
   const timelineData = generateTimelineData()
-  const upcomingTasks = getUpcomingTasks()
 
   // Configurazione tab per il componente mobile
   const plannerTabs = [
-    { id: 'planner', label: '🎯 Planner AI', icon: Target },
-    { id: 'calendar', label: '📅 Calendario', icon: Calendar },
-    { id: 'ai-suggestions', label: '💡 Suggerimenti AI', icon: Lightbulb },
-    { id: 'list', label: '📋 Lista Task', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
-    { id: 'timeline', label: '📊 Timeline', icon: Activity },
-    { id: 'rotation', label: '🔄 Rotazione Colture', icon: RefreshCw },
-    { id: 'biological', label: '🐛 Controllo Biologico', icon: Bug }
+    { id: 'planner' as const, label: '🎯 Planner AI', icon: Target },
+    { id: 'calendar' as const, label: '📅 Calendario', icon: Calendar },
+    { id: 'ai-suggestions' as const, label: '💡 Suggerimenti AI', icon: Lightbulb },
+    { id: 'list' as const, label: '📋 Lista Task', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
+    { id: 'timeline' as const, label: '📊 Timeline', icon: Activity },
+    { id: 'rotation' as const, label: '🔄 Rotazione Colture', icon: RefreshCw },
+    { id: 'biological' as const, label: '🐛 Controllo Biologico', icon: Bug }
   ]
 
   return (
@@ -259,7 +233,7 @@ export default function PlannerPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === tab.id
                       ? 'border-green-500 text-green-600'
@@ -287,7 +261,7 @@ export default function PlannerPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600'
@@ -313,7 +287,7 @@ export default function PlannerPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-1 py-3 px-2 border-b-2 font-medium text-xs transition-colors flex-1 justify-center ${
                       activeTab === tab.id
                         ? 'border-green-500 text-green-600'

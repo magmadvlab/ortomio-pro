@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { X, Droplet, Calendar, AlertTriangle, Layers, Beaker } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Calendar, AlertTriangle, Layers, Beaker } from 'lucide-react'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 
@@ -60,10 +60,29 @@ export function TreatmentRegisterForm({
   const [selectedBed, setSelectedBed] = useState<string>(initialData?.bedId || '')
   const [selectedRow, setSelectedRow] = useState<string>(initialData?.rowId || '')
 
+  const loadGardenStructure = useCallback(async () => {
+    try {
+      const gardenBeds = await storageProvider.getGardenBeds(garden.id)
+      setBeds(gardenBeds || [])
+    } catch (error) {
+      console.error('Error loading garden beds:', error)
+    }
+  }, [garden.id, storageProvider])
+
+  const loadRows = useCallback(async (bedId: string) => {
+    try {
+      const bedRows = await storageProvider.getGardenRows(bedId)
+      setRows(bedRows || [])
+    } catch (error) {
+      console.error('Error loading rows:', error)
+      setRows([])
+    }
+  }, [storageProvider])
+
   // Carica beds e rows
   useEffect(() => {
     loadGardenStructure()
-  }, [garden.id])
+  }, [loadGardenStructure])
 
   useEffect(() => {
     if (selectedBed) {
@@ -72,26 +91,7 @@ export function TreatmentRegisterForm({
       setRows([])
       setSelectedRow('')
     }
-  }, [selectedBed])
-
-  const loadGardenStructure = async () => {
-    try {
-      const gardenBeds = await storageProvider.getGardenBeds(garden.id)
-      setBeds(gardenBeds || [])
-    } catch (error) {
-      console.error('Error loading garden beds:', error)
-    }
-  }
-
-  const loadRows = async (bedId: string) => {
-    try {
-      const bedRows = await storageProvider.getGardenRows(bedId)
-      setRows(bedRows || [])
-    } catch (error) {
-      console.error('Error loading rows:', error)
-      setRows([])
-    }
-  }
+  }, [selectedBed, loadRows])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -242,7 +242,7 @@ export function TreatmentRegisterForm({
             />
             <select
               value={formData.dosageUnit || 'ml'}
-              onChange={e => setFormData({ ...formData, dosageUnit: e.target.value as any })}
+              onChange={e => setFormData({ ...formData, dosageUnit: e.target.value as TreatmentLog['dosageUnit'] })}
               className="border border-gray-300 rounded-lg px-4 py-3 text-base.5"
             >
               <option value="ml">ml</option>
@@ -276,7 +276,7 @@ export function TreatmentRegisterForm({
           </label>
           <select
             value={formData.method || 'spray'}
-            onChange={e => setFormData({ ...formData, method: e.target.value as any })}
+            onChange={e => setFormData({ ...formData, method: e.target.value as TreatmentLog['method'] })}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           >
             <option value="spray">Spray/Nebulizzazione</option>
@@ -292,7 +292,7 @@ export function TreatmentRegisterForm({
           </label>
           <select
             value={formData.reason || 'preventive'}
-            onChange={e => setFormData({ ...formData, reason: e.target.value as any })}
+            onChange={e => setFormData({ ...formData, reason: e.target.value as TreatmentLog['reason'] })}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-base.5 focus:ring-2 focus:ring-blue-500"
           >
             <option value="preventive">Preventivo</option>
