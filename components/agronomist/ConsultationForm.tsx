@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AgronomistConsultation, Agronomist } from '@/types/agronomist'
+import { Garden } from '@/types'
 import { format } from 'date-fns'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
@@ -19,7 +20,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
   onCancel
 }) => {
   const { storageProvider } = useStorage()
-  const [gardens, setGardens] = useState<any[]>([])
+  const [gardens, setGardens] = useState<Garden[]>([])
   const [formData, setFormData] = useState({
     agronomistId: consultation?.agronomistId || '',
     date: consultation?.date || format(new Date(), 'yyyy-MM-dd'),
@@ -32,18 +33,18 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
     attachments: consultation?.attachments || [] as string[]
   })
 
-  useEffect(() => {
-    loadGardens()
-  }, [])
-
-  const loadGardens = async () => {
+  const loadGardens = useCallback(async () => {
     try {
       const loadedGardens = await storageProvider.getGardens()
       setGardens(loadedGardens)
     } catch (error) {
       console.error('Error loading gardens:', error)
     }
-  }
+  }, [storageProvider])
+
+  useEffect(() => {
+    loadGardens()
+  }, [loadGardens])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,7 +71,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
           return localStorage.getItem('user_id') || null
         }
         return user.id
-      } catch (error) {
+      } catch {
         return localStorage.getItem('user_id') || null
       }
     }
@@ -116,7 +117,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
     })
   }
 
-  const updateAdvice = (index: number, field: string, value: any) => {
+  const updateAdvice = (index: number, field: keyof AgronomistConsultation['advice'][number], value: string) => {
     const updatedAdvice = [...formData.advice]
     updatedAdvice[index] = { ...updatedAdvice[index], [field]: value }
     setFormData({ ...formData, advice: updatedAdvice })
@@ -177,7 +178,7 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({
             <select
               required
               value={formData.consultationType}
-              onChange={(e) => setFormData({ ...formData, consultationType: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, consultationType: e.target.value as AgronomistConsultation['consultationType'] })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="InPerson">In Persona</option>

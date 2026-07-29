@@ -1,18 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { VineyardWizardData, VineyardType, VineyardTrainingSystem, VarietyInfo, RootstockInfo } from '@/types/vineyard'
 import { vineyardService } from '@/services/vineyardService'
-import { 
-  Grape, 
-  ArrowRight, 
-  ArrowLeft, 
-  Check, 
-  Plus, 
-  Trash2, 
-  Upload,
+import {
+  Grape,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Plus,
+  Trash2,
   MapPin,
-  Calendar,
   Ruler,
   Sprout,
   Settings,
@@ -163,7 +161,7 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
     }))
   }
 
-  const updateVariety = (index: number, field: keyof VarietyInfo, value: any) => {
+  const updateVariety = (index: number, field: keyof VarietyInfo, value: string | number) => {
     setWizardData(prev => ({
       ...prev,
       varieties: {
@@ -203,7 +201,7 @@ export default function VineyardWizard({ gardenId, onComplete, onCancel }: Viney
     }))
   }
 
-  const updateRootstock = (index: number, field: keyof RootstockInfo, value: any) => {
+  const updateRootstock = (index: number, field: keyof RootstockInfo, value: string | number) => {
     setWizardData(prev => ({
       ...prev,
       varieties: {

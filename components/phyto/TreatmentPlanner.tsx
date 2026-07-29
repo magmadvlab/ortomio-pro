@@ -3,12 +3,12 @@
  * Pianificazione trattamento completo con verifica timing meteo
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PlantMasterSheet, Garden, UserProfile } from '../../types';
-import { suggestPhytoProduct, checkTreatmentTiming, PhytoRecommendation } from '../../logic/phytoEngine';
+import { suggestPhytoProduct, checkTreatmentTiming, PhytoRecommendation, TreatmentTimingCheck } from '../../logic/phytoEngine';
 import { registerTreatment } from '../../services/treatmentRegistryService';
-import { getWeatherForecast } from '../../services/weatherService';
-import { AlertTriangle, CheckCircle, Calendar, Wind, Droplets } from 'lucide-react';
+import { getWeatherForecast, WeatherForecast } from '../../services/weatherService';
+import { AlertTriangle, CheckCircle, Wind, Droplets } from 'lucide-react';
 import { useStorage } from '@/packages/core/hooks/useStorage';
 
 interface TreatmentPlannerProps {
@@ -28,30 +28,29 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
 }) => {
   const { storageProvider } = useStorage();
   const [recommendation, setRecommendation] = useState<PhytoRecommendation | null>(null);
-  const [timingCheck, setTimingCheck] = useState<any>(null);
+  const [timingCheck, setTimingCheck] = useState<TreatmentTimingCheck | null>(null);
   const [loading, setLoading] = useState(true);
-  const [weatherForecast, setWeatherForecast] = useState<any>(null);
+  const [weatherForecast, setWeatherForecast] = useState<WeatherForecast[] | null>(null);
 
-  useEffect(() => {
-    loadRecommendation();
-  }, [problem, plant, garden.id, storageProvider]);
-
-  const loadRecommendation = async () => {
+  const loadRecommendation = useCallback(async () => {
     setLoading(true);
     try {
       // Carica previsioni meteo
+      let forecast: WeatherForecast[] | null = null;
       if (garden.coordinates) {
-        const forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
+        forecast = await getWeatherForecast(garden.coordinates.latitude, garden.coordinates.longitude);
         setWeatherForecast(forecast);
       }
 
-      // Suggerisci prodotto
-      const rec = await suggestPhytoProduct(problem, plant, weatherForecast, userProfile);
+      // Suggerisci prodotto (previsione di oggi: `suggestPhytoProduct`/`checkTreatmentTiming`
+      // si aspettano un singolo giorno, prima veniva passato l'intero array/lo stato non
+      // ancora aggiornato, disattivando di fatto ogni controllo meteo su pioggia/temperatura/vento)
+      const rec = await suggestPhytoProduct(problem, plant, forecast?.[0], userProfile);
       setRecommendation(rec);
 
       // Verifica timing
       if (rec && harvestDate) {
-        const check = await checkTreatmentTiming(rec.product, weatherForecast, harvestDate);
+        const check = await checkTreatmentTiming(rec.product, forecast?.[0], harvestDate);
         setTimingCheck(check);
       }
     } catch (error) {
@@ -59,7 +58,11 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [problem, plant, garden, harvestDate, userProfile]);
+
+  useEffect(() => {
+    loadRecommendation();
+  }, [loadRecommendation]);
 
   const handleRegisterTreatment = async () => {
     if (!recommendation) return;
@@ -72,11 +75,11 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
         dosage: `${recommendation.dosage.amount} ${recommendation.dosage.unit}`,
         applicationMethod: recommendation.method,
         targetPestDisease: problem,
-        weatherConditions: weatherForecast
+        weatherConditions: weatherForecast?.[0]
           ? {
-              temp: weatherForecast.tempMin || 0,
+              temp: weatherForecast[0].tempMin || 0,
               humidity: 0,
-              wind: weatherForecast.wind || 0,
+              wind: weatherForecast[0].wind || 0,
             }
           : undefined,
       });
@@ -145,7 +148,7 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
               <div className="font-medium text-yellow-full max-w-sm mb-1">Conflitto Rilevato</div>
               <p className="text-sm text-yellow-full max-w-sm mb-3">{timingCheck.message}</p>
               <div className="space-y-2">
-                {timingCheck.options.map((option: any, idx: number) => (
+                {timingCheck.options.map((option, idx) => (
                   <div key={idx} className="text-sm text-yellow-full max-w-sm bg-white rounded p-3">
                     {idx + 1}. {option.action}
                   </div>
@@ -157,20 +160,20 @@ const TreatmentPlanner: React.FC<TreatmentPlannerProps> = ({
       )}
 
       {/* Weather Conditions */}
-      {weatherForecast && (
+      {weatherForecast?.[0] && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="text-xs font-medium text-blue-800 mb-2">Condizioni Meteo</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-blue-700">
             <div className="flex items-center gap-3">
               <Droplets size={12} />
-              <span>Pioggia: {weatherForecast.precipitation || 0}mm</span>
+              <span>Pioggia: {weatherForecast[0].precipitation || 0}mm</span>
             </div>
             <div className="flex items-center gap-3">
               <Wind size={12} />
-              <span>Vento: {weatherForecast.wind || 0} km/h</span>
+              <span>Vento: {weatherForecast[0].wind || 0} km/h</span>
             </div>
             <div>
-              <span>Temp: {weatherForecast.tempMin || 0}°C - {weatherForecast.tempMax || 0}°C</span>
+              <span>Temp: {weatherForecast[0].tempMin || 0}°C - {weatherForecast[0].tempMax || 0}°C</span>
             </div>
           </div>
         </div>
