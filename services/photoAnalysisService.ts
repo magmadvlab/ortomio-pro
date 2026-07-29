@@ -294,7 +294,61 @@ Rispondi in formato JSON:
  * @returns Promise<PanoramicAnalysis> - Analisi completa con esposizione per direzione e ostacoli
  * @throws Error se Gemini API key non configurata o errore nell'analisi
  */
-export const analyzePanoramic360 = async (photoBase64: string): Promise<PanoramicAnalysis> => {
+type Cardinal8 = 'North' | 'Northeast' | 'East' | 'Southeast' | 'South' | 'Southwest' | 'West' | 'Northwest';
+type Cardinal4OrFlat = 'North' | 'South' | 'East' | 'West' | 'Flat';
+
+const CARDINAL8_ORDER: Cardinal8[] = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
+const CARDINAL4_DEGREES: Record<'North' | 'South' | 'East' | 'West', number> = { North: 0, East: 90, South: 180, West: 270 };
+
+// La foto panoramica 360 non conosce il Nord reale: Gemini deduce le direzioni
+// solo dal contenuto dell'immagine, nel suo stesso sistema di riferimento (il "Nord"
+// che riporta e' semplicemente il punto di partenza della scansione). photoNorthOffset
+// (calcolato in GardenOnboarding tramite orientamento dispositivo/EXIF/bussola manuale)
+// e' l'angolo che separa quel Nord "di foto" dal Nord reale: ruotiamo qui ogni direzione
+// restituita da Gemini di quell'offset per allinearla alla bussola vera.
+const rotateCardinal8 = (direction: Cardinal8, offsetDegrees: number): Cardinal8 => {
+  const baseDegrees = CARDINAL8_ORDER.indexOf(direction) * 45;
+  const normalized = ((baseDegrees + offsetDegrees) % 360 + 360) % 360;
+  return CARDINAL8_ORDER[Math.round(normalized / 45) % 8];
+};
+
+const rotateCardinal4OrFlat = (direction: Cardinal4OrFlat, offsetDegrees: number): Cardinal4OrFlat => {
+  if (direction === 'Flat') return direction;
+  const rotated = rotateCardinal8(direction, offsetDegrees);
+  // aspectDirection ammette solo le 4 direzioni cardinali: le intercardinali risultanti
+  // dalla rotazione vengono arrotondate alla cardinale piu' vicina
+  const CARDINAL8_TO_4: Record<Cardinal8, 'North' | 'South' | 'East' | 'West'> = {
+    North: 'North', Northeast: 'North', East: 'East', Southeast: 'South',
+    South: 'South', Southwest: 'South', West: 'West', Northwest: 'North',
+  };
+  return CARDINAL8_TO_4[rotated];
+};
+
+const rotateExposureByDirection = (
+  exposure: PanoramicAnalysis['exposureByDirection'],
+  offsetDegrees: number
+): PanoramicAnalysis['exposureByDirection'] => {
+  // Per ogni direzione vera, troviamo il bucket "di foto" corrispondente ruotando
+  // all'indietro (-offset) e leggiamo li' il valore di ore di sole gia' stimato da Gemini.
+  const photoBucketFor = (trueDirectionDegrees: number): 'north' | 'south' | 'east' | 'west' => {
+    const photoDegrees = ((trueDirectionDegrees - offsetDegrees) % 360 + 360) % 360;
+    const nearestCardinal = Math.round(photoDegrees / 90) % 4;
+    return (['north', 'east', 'south', 'west'] as const)[nearestCardinal];
+  };
+  return {
+    north: exposure[photoBucketFor(CARDINAL4_DEGREES.North)],
+    south: exposure[photoBucketFor(CARDINAL4_DEGREES.South)],
+    east: exposure[photoBucketFor(CARDINAL4_DEGREES.East)],
+    west: exposure[photoBucketFor(CARDINAL4_DEGREES.West)],
+  };
+};
+
+/**
+ * @param northOffsetDegrees - Offset in gradi (0-360) tra il Nord reale e il Nord
+ * nella foto 360 (garden.photoNorthOffset), gia' calibrato in GardenOnboarding.
+ * Se omesso, le direzioni restituite restano nel sistema di riferimento della foto.
+ */
+export const analyzePanoramic360 = async (photoBase64: string, northOffsetDegrees = 0): Promise<PanoramicAnalysis> => {
   const prompt = `Analizza questa foto panoramica 360° di un orto/giardino.
 
 Determina:
@@ -337,38 +391,49 @@ Rispondi in formato JSON:
 
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        dailySunHours: Math.round(parsed.dailySunHours || 6),
-        sunExposure: parsed.sunExposure || 'PartSun',
-        aspectDirection: parsed.aspectDirection || 'Flat',
-        exposureByDirection: parsed.exposureByDirection || {
-          north: 0,
-          south: 6,
-          east: 3,
-          west: 3
-        },
-        obstacles: parsed.obstacles || [],
-        confidence: parsed.confidence || 0.7,
-        notes: parsed.notes || [],
-      };
-    }
+    const raw: PanoramicAnalysis = jsonMatch
+      ? (() => {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            dailySunHours: Math.round(parsed.dailySunHours || 6),
+            sunExposure: parsed.sunExposure || 'PartSun',
+            aspectDirection: parsed.aspectDirection || 'Flat',
+            exposureByDirection: parsed.exposureByDirection || {
+              north: 0,
+              south: 6,
+              east: 3,
+              west: 3
+            },
+            obstacles: parsed.obstacles || [],
+            confidence: parsed.confidence || 0.7,
+            notes: parsed.notes || [],
+          };
+        })()
+      : {
+          dailySunHours: 6,
+          sunExposure: 'PartSun',
+          aspectDirection: 'Flat',
+          exposureByDirection: {
+            north: 0,
+            south: 6,
+            east: 3,
+            west: 3
+          },
+          obstacles: [],
+          confidence: 0.5,
+          notes: ['Analisi automatica non disponibile'],
+        };
 
-    // Fallback
+    if (!northOffsetDegrees) return raw;
+
     return {
-      dailySunHours: 6,
-      sunExposure: 'PartSun',
-      aspectDirection: 'Flat',
-      exposureByDirection: {
-        north: 0,
-        south: 6,
-        east: 3,
-        west: 3
-      },
-      obstacles: [],
-      confidence: 0.5,
-      notes: ['Analisi automatica non disponibile'],
+      ...raw,
+      aspectDirection: rotateCardinal4OrFlat(raw.aspectDirection, northOffsetDegrees),
+      exposureByDirection: rotateExposureByDirection(raw.exposureByDirection, northOffsetDegrees),
+      obstacles: raw.obstacles.map((obstacle) => ({
+        ...obstacle,
+        direction: rotateCardinal8(obstacle.direction, northOffsetDegrees),
+      })),
     };
   } catch (error) {
     console.error('Error analyzing panoramic photo:', error);

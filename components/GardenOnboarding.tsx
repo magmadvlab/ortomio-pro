@@ -217,7 +217,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       // Il tipo è già impostato, dopo step 1 vai direttamente allo step 3 (posizione) o 4 (dimensioni)
       // La logica di skip sarà gestita in handleNext
     }
-  }, [existingGarden, initialGardenType, initialHydroponicType, step]);
+  }, [existingGarden, initialGardenType, initialHydroponicType, step, hydroponicConfig, latitude, longitude, needsLocation]);
 
   // Inizializza stati da structureConfig esistente
   useEffect(() => {
@@ -306,9 +306,9 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         setLongitude(defaultCoords.longitude.toString());
         setLocationAccuracy(undefined);
       }
-    } catch (error: any) {
+    } catch (error) {
       // Filtra errori temporanei (kCLErrorLocationUnknown) per evitare spam nella console
-      const errorMessage = error?.message || '';
+      const errorMessage = error instanceof Error ? error.message : '';
       const isLocationUnknown = errorMessage.includes('kCLErrorLocationUnknown') || 
                                errorMessage.includes('locationUnknown') ||
                                errorMessage.includes('LocationUnknown');
@@ -413,7 +413,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       
       setDailySunHours(analysis.dailySunHours.toString());
       setSunExposure(analysis.sunExposure);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error analyzing sun exposure:', error);
       setPhotoAnalysisError('Errore nell\'analisi foto. Puoi inserire i valori manualmente.');
     } finally {
@@ -442,7 +442,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       const analysis = await analyzeAspectDirection(base64);
       
       setAspectDirection(analysis.aspectDirection);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error analyzing aspect direction:', error);
       setPhotoAnalysisError('Errore nell\'analisi foto. Puoi inserire i valori manualmente.');
     } finally {
@@ -545,7 +545,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     try {
       setAnalyzingPhotos(true);
       const base64 = await fileToBase64(file);
-      const analysis = await analyzePanoramic360(base64);
+      const analysis = await analyzePanoramic360(base64, offset);
       
       // Popola tutti i campi dall'analisi panoramica
       setDailySunHours(analysis.dailySunHours.toString());
@@ -559,7 +559,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         ).join(', ');
         setPhotoAnalysisError(`Ostacoli rilevati: ${obstaclesInfo}. Analisi completata.`);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error analyzing panoramic photo:', error);
       setPhotoAnalysisError('Errore nell\'analisi foto panoramica. Puoi inserire i valori manualmente.');
     } finally {

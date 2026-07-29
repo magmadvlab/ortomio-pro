@@ -215,7 +215,7 @@ e la riesecuzione M16.
 - **Evidenza:** commit `aac8046` (`chore: classify release debt for M05`).
 - **Verifiche correnti:** `npm run audit:release-debt` verde il 26/07/2026; 98 voci totali: zero assegnate a M09-M12 e M15, 27 a M13, 48 a M14; 13 accettate; 10 isolate come sviluppo/laboratorio.
 - **Rischio residuo:** il censimento non equivale alla correzione delle 75 voci ancora pianificate per M13-M14. Il gate impedisce nuove voci non classificate, mentre la rimozione o implementazione viene verificata nei milestone proprietari. M05 non conta come chiuso per la release finche' il manifest non riflette gli esiti finali di M13-M14.
-- **Scoperta 24/07/2026 durante T01 lotto 6, non ancora nel manifest:** `components/GardenOnboarding.tsx::analyzePanoramicPhotoWithOffset` riceve un `offset` di calibrazione Nord (calcolato tramite orientamento dispositivo, EXIF o calibratore manuale a bussola in `handlePanoramicPhotoChange`) ma non lo usa mai — passa solo la foto a `analyzePanoramic360(base64)` (`services/photoAnalysisService.ts:297`), la cui firma non accetta un offset. La foto panoramica 360° e' comunque analizzata (l'utente riceve un risultato), ma senza la correzione di orientamento che tutta l'infrastruttura di calibrazione e' stata costruita per fornire. **Decisione dell'utente il 24/07 sera: non toccarlo in questa sessione** (ha scelto di collegare invece il wizard "input visivo" nello stesso file, vedi T01 lotto 6). Resta un candidato per il censimento M05, gia' con la diagnosi pronta: per chiuderlo, estendere la firma di `analyzePanoramic360` per accettare l'offset e applicarlo alla logica di analisi.
+- **Scoperta 24/07/2026 durante T01 lotto 6, chiusa 29/07/2026 nel T01 lotto 59:** `components/GardenOnboarding.tsx::analyzePanoramicPhotoWithOffset` riceveva un `offset` di calibrazione Nord (calcolato tramite orientamento dispositivo, EXIF o calibratore manuale a bussola in `handlePanoramicPhotoChange`) ma non lo usava mai — passava solo la foto a `analyzePanoramic360(base64)` (`services/photoAnalysisService.ts:297`), la cui firma non accettava un offset. **Decisione dell'utente il 24/07 sera: non toccarlo in quella sessione** (ha scelto di collegare invece il wizard "input visivo" nello stesso file, vedi T01 lotto 6); **riaperto e chiuso su decisione esplicita dell'utente nel lotto 59**: `analyzePanoramic360` accetta ora `northOffsetDegrees` opzionale e ruota `aspectDirection`/`exposureByDirection`/direzione ostacoli dal sistema di riferimento della foto a quello reale; `GardenOnboarding.tsx` passa l'offset invece di scartarlo. Verificato che `services/obstacleExtractor.ts`, secondo consumer di `analyzePanoramic360`, applicava gia' una correzione equivalente in autonomia e non e' stato impattato (firma retrocompatibile, default `0`).
 - **Scoperta 24/07/2026 durante T01, non ancora nel manifest:** un intero sotto-sistema "AI Planner" (~6.100 righe, 8 file) risulta irraggiungibile da qualunque route — `components/Planner.tsx` (2569 righe), `components/PlannerWithAI.tsx`, `components/ai/AIPlanningWizard.tsx`, `components/ai/PlanPreviewModal.tsx`, `components/planner/tabs/PlannerSuggestions.tsx`, `components/planner/tabs/PlannerSearch.tsx`, `components/ai/FloatingAIWidget.tsx`, `services/aiPlanningService.ts`. Verifica esaustiva (24/07/2026): nessun `import()` dinamico, nessun test, nessuno Storybook, nessuna rewrite in `next.config`, nessuna stringa di require dinamico; tutte le route reali sotto `app/app/` che citano "Planner" usano componenti diversi (`SmartPlanner`, `PlannerAISuggestions`, `ClassicPlannerWithRotation`, `TreatmentPlanner`, `CropRotationPlanner`). Dentro il cluster, `aiPlanningService.ts::optimizePlan()` chiama davvero un LLM (Groq) e poi ne scarta la risposta restituendo testo fisso; `getSeasonalSuggestions()` ignora le coordinate — ma nessun utente reale ci arriva, quindi non e' un caso D6/M14 attivo. Alcuni file del cluster sono stati toccati incidentalmente da fix di sicurezza reali il 22/07 (D8 su `AIPlanningWizard.tsx`, D9 su `PlannerSearch.tsx`) senza che nessuno si accorgesse fossero morti. **Decisione dell'utente il 24/07 sera: lasciarlo intatto per ora**, nessuna rimozione ne' ulteriore pulizia lint in questo cluster; resta un candidato per la classificazione "codice morto" del prossimo censimento M05, con prova di assenza chiamanti gia' raccolta qui.
 - **Verifica 25/07/2026 dei 6 candidati zero-importer emersi durante T01 lotto 11**: l'utente ha chiesto esplicitamente di controllare se fossero doppioni di componenti vivi prima di classificarli come morti — verificato uno per uno con grep sulle route reali, non per inferenza dal nome:
   - `components/planner/ProfessionalCalendar.tsx` (394 righe) — sostituito da `components/planner/TaskCalendar.tsx`, montato da `/app/planner` e `/app/planner-classic`.
@@ -1437,6 +1437,48 @@ restringe la nullabilita' di uno state React dentro closure annidate nella
 JSX, anche se gia' verificata nel blocco condizionale esterno.
 
 Baseline globale verificata: **0 errori, 1.435 warning** (`1.444 -> 1.435`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
+### Aggiornamento T01 - lotto 59 (29/07/2026)
+
+`components/GardenOnboarding.tsx` (9 warning) e' risultato vivo: importato
+da `GardenTypeWizard.tsx`, montato direttamente da quattro route reali
+(`/app`, `/app/settings`, `/app/plants`, `/app/planner`).
+
+**Riaperta su decisione esplicita dell'utente la calibrazione bussola
+panoramica gia' diagnosticata nel lotto 6 e lasciata intenzionalmente non
+toccata allora:** `analyzePanoramicPhotoWithOffset` riceveva un `offset`
+di calibrazione Nord (calcolato da orientamento dispositivo/EXIF/bussola
+manuale) ma lo scartava, passando solo la foto a
+`analyzePanoramic360(base64)` - la cui firma non accettava alcun offset.
+Verificato prima di implementare che un secondo consumer,
+`services/obstacleExtractor.ts`, applica gia' una correzione equivalente
+in autonomia (converte le direzioni in azimut e corregge con
+`photoNorthOffset` per popolare `Garden.obstacles`) - quel percorso non
+era il gap, resta intatto e retrocompatibile con la nuova firma
+opzionale.
+
+Implementato in `services/photoAnalysisService.ts`: `analyzePanoramic360`
+accetta ora un secondo parametro opzionale `northOffsetDegrees` (default
+`0`, nessun cambio per chi non lo passa - `obstacleExtractor.ts` non
+tocca alcuna riga). Quando fornito, ruota `aspectDirection`,
+`exposureByDirection` (le ore di sole per direzione, rimappando i bucket
+Nord/Sud/Est/Ovest) e la `direction` di ogni ostacolo rilevato dal
+sistema di riferimento della foto a quello reale, con arrotondamento alla
+cardinale/intercardinale piu' vicina. `GardenOnboarding.tsx` ora passa
+l'`offset` gia' calcolato invece di scartarlo.
+
+Il lotto 59 e' stato eseguito su `GardenOnboarding.tsx`, da 9 warning a 3
+(oltre al fix funzionale sopra): risolto `exhaustive-deps` aggiungendo
+`hydroponicConfig`/`latitude`/`longitude`/`needsLocation` alle dipendenze
+(ogni ramo dell'effetto e' gia' auto-guardato da un controllo `!X`, nessun
+rischio di loop); sostituiti quattro `catch (error: any)` con
+`catch (error)` e narrowing esplicito dove serviva il messaggio. Lasciati
+intenzionalmente 3 warning `no-img-element`: anteprime locali in base64
+data-URI (foto mezzogiorno/orizzonte/panoramica), stesso pattern gia'
+accettato nel lotto 8.
+
+Baseline globale verificata: **0 errori, 1.429 warning** (`1.435 -> 1.429`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
 ## 6. Verifica trasversale dopo M15
