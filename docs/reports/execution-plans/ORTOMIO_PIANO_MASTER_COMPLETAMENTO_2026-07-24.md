@@ -92,7 +92,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 | Perimetro | Chiuso | Parziale | Aperto | Lettura corretta |
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
-| Scoperte O45-O65 | **14** | **0** | **7** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato) e O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`). Le altre 14 scoperte sono chiuse e pubblicate. |
+| Scoperte O45-O66 | **14** | **0** | **8** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`) e O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task). Le altre 14 scoperte sono chiuse e pubblicate. |
 | Debito lint T01 | **1.109 warning rimossi** | — | **1.533 warning** | Baseline operativa 2.642 -> 1.533 in 51 lotti. T01 non equivale a 1.533 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
@@ -512,6 +512,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O60 | M09/M14 | **Scoperto 28/07/2026 durante T01 lotto 43, `services/prescriptionMapsService.ts` (vivo su `/app/prescription-maps`):** `getPlantLevelData`/`getSoilData` ignorano `gardenId`/`bounds`/date e restituiscono sempre `[]`, per cui i pesi `plantHealthWeight`/`soilWeight` configurabili dall'utente non hanno mai effetto sulla mappa prescrittiva; `expectedYieldIncrease = 0.15` e' una costante di resa non validata usata per proiettare `expectedRevenue`; `clusters[i].confidence = 0.8` sovrascrive con un valore fisso la confidence reale calcolata per punto, mostrata come `dataQuality`/confidenza in UI. Nessuna azione presa: richiede provider dati pianta/suolo reali (non esistenti oggi, a differenza di NDVI che ha `ndvi_data_cache`) e una decisione agronomica sul valore di resa attesa, non una correzione meccanica. | Fonti dati pianta/suolo reali o capability nascosta esplicitamente; nessuna confidence/KPI di business fissa mostrata come misura reale |
 | O63 | M06 | **Scoperto 29/07/2026 in Production, segnalato dall'utente dalla console reale, non durante un lotto T01:** `GET .../irrigation_zones?select=id,drainage_quality,water_retention,slope_percentage,soil_type&garden_id=eq...` restituisce `400 Bad Request`. Le quattro colonne sono definite nella migrazione locale `20260117010000_create_advanced_irrigation_system.sql` ma, coerentemente con il blocco M06 gia' tracciato (`safeToApply=false`, nessuno staging), risultano assenti sullo schema Production reale - evidenza concreta e riproducibile del drift generico gia' descritto in M06, non un difetto isolato. Interessa almeno `buildNutritionWaterQualityInsight` in `services/advancedNutritionService.ts` (query diretta) ed e' probabile che coinvolga altri consumer delle stesse colonne. **Verificato nella stessa sessione che `compute-field-alerts` (422) non e' un bug**: la edge function rifiuta di proposito il calcolo quando il garden non ha coordinate geografiche (comportamento fail-closed atteso). Nessuna correzione qui: la chiusura appartiene alla sequenza remota O06-O09 di M06 (dump schema, riconciliazione, applicazione controllata), non a un fix puntuale. | Le quattro colonne esistono sullo schema Production e la query restituisce `200`, oppure il codice che le richiede viene esplicitamente adattato allo schema reale con dichiarazione del gap |
 | O62 | M05/M09 | **Scoperto 28/07/2026 durante T01 lotto 47, `services/unifiedOperationsService.ts`:** la meta' "lettura e aggregazione" della classe (`getUnifiedOperations`, `getOperationStatistics` e sette helper privati) non ha alcun chiamante esterno nel repository - solo `executeUnifiedOperation` e i suoi helper di esecuzione sono raggiunti. Indipendentemente dalla raggiungibilita', `readWateringLogs`/`readFertilizerLogs`/`readMechanicalWorks` leggono nomi di campo (`amount`, `quantity`, `waterAmount`, `duration_minutes`, `machine_name`) assenti sui tipi database reali (`WateringLog.litersApplied`, nessuna durata su `MechanicalWorkRecord`): se mai collegato a una UI, quantita'/unita' risulterebbero quasi sempre vuote. Due metodi (`getLatestSyncLog`, `getPlantOperationsBySource`) sono stub che restituiscono sempre `null`/`[]`. Nessuna correzione: decidere la mappatura corretta e se riattivare questo sotto-sistema e' una decisione di prodotto, non di tipizzazione. | Sotto-sistema riattivato con mappature verificate contro i tipi reali, oppure rimosso come codice morto in M05 |
+| O66 | M09 | **Scoperto 29/07/2026 durante T01 lotto 57, `components/planner/tabs/PlannerAISuggestions.tsx` (vivo su `/app/planner`):** accettare un suggerimento AI di tipo `PLANTING_PLAN`/`HARVEST_TIMING`/`ROTATION_PLAN` chiama solo `collaborativeAIService.acceptSuggestion` (che registra la decisione) ma non invoca mai `onCreateTasks`, la prop passata da `app/app/planner/page.tsx` con un'implementazione reale (`storageProvider.createTask` per ogni task). Verificato che non esiste nel codebase alcuna conversione suggerimento -> task: `AISuggestion.suggested_parameters` e' un `Record<string, unknown>` generico senza schema fisso per tipo di suggerimento, mostrato come coppie chiave/valore grezze anche in `components/ai/AISuggestionCard.tsx` (nessun precedente di parsing strutturato altrove). Nessuna correzione presa: mappare ogni tipo di suggerimento a task concreti (che taskType, quale data, quale pianta) e' una decisione agronomica/di prodotto da progettare, non un collegamento meccanico - esplicitamente rifiutato come fix rapido dall'utente in favore della registrazione. | Ogni tipo di suggerimento ha una mappatura dichiarata verso task concreti e `onCreateTasks` viene invocato all'accettazione, oppure la limitazione (accettare registra solo la decisione, non crea task) viene dichiarata esplicitamente in UI |
 | O65 | M09 | **Scoperto 29/07/2026 durante T01 lotto 52, `services/fieldRowPredictiveService.ts` (vivo su `/app/garden/rows`):** `predictYield` filtra `operations.filter(op => op.type === 'harvest')` per costruire lo storico raccolti da passare al modello di previsione resa, ma `loadRecentOperations` non chiama mai `getHarvestLogs` - carica solo fertilizzazioni, trattamenti e irrigazioni. Anche collegandolo, l'attribuzione al filare giusto non sarebbe comunque possibile: `HarvestLogData` (in `types.ts`) non ha ne' `fieldRowId` ne' `plantId`, solo `taskId` e `plantName` (stringa libera). A differenza delle fertilizzazioni/trattamenti (normalizzati nello stesso lotto: `applicationDate`/`field_row_id`/`treatment_date` mappati sui nomi attesi dalla pipeline), qui manca proprio il collegamento nello schema, non solo la chiamata. Nessuna correzione presa: collegare `getHarvestLogs` con un'euristica di corrispondenza per nome coltura (non un vero ID di riga) e' stato esplicitamente rifiutato dall'utente come soluzione parziale/fuorviante. Decidere se aggiungere `fieldRowId`/`plantId` allo schema harvest (richiede migrazione) o accettare che la previsione resa dei filari resti senza storico raccolti reale e' una decisione di prodotto. | `HarvestLogData` porta un collegamento reale al filare (o alla pianta) e `predictYield` riceve storico raccolti vero per il filare, oppure la limitazione viene dichiarata esplicitamente in UI |
 | O64 | M09/M14 | **Scoperto 29/07/2026 durante T01 lotto 51, `services/costOptimizationService.ts` (vivo via `CostOptimizationPanel.tsx` -> `PrescriptionMapsDashboard.tsx`, route `/app/prescription-maps`):** l'intero motore di ottimizzazione costi (genetico, simulated annealing, particle swarm, gradient descent, Pareto frontier multi-obiettivo, stato di avanzamento realtime) e' mock end-to-end, non solo su un singolo calcolo. `evolvePopulation` e' un no-op dichiarato "Simplified" che non fa mai selezione/crossover/mutazione; `runParticleSwarmOptimization`/`runGradientDescent` restituiscono `solution: {}` con quality score fissi scritti a mano; `calculateExpectedYield`/`calculateOptimizedCost`/i quattro `calculateSolution*` restituiscono sempre la stessa costante (`4.2`, `2340`, ecc., tutti commentati `// Mock value`); `getRealTimeOptimizationStatus` restituisce sempre lo stesso progresso finto (65%, costo 2340) a prescindere dall'`optimizationId` richiesto, perche' `runRealTimeOptimization` e' un corpo vuoto ("This would run in background..."). A differenza di O60 (stesso file `prescriptionMapsService.ts`, dati mai collegati ma presentati come reali), qui la natura dimostrativa e' gia' dichiarata esplicitamente: `CostOptimizationPanel.tsx` mostra un banner "Valori dimostrativi" che avverte l'utente di non usare questi numeri per decisioni operative. Nessuna azione presa nel lotto 51 (solo pulizia lint, comportamento identico): implementare un motore reale richiede (1) un algoritmo di ottimizzazione vero, non solo tipizzato, (2) un provider di dati resa/costo per coltura e zona - stessa lacuna gia' registrata in O60, non esistente oggi nel sistema - e (3) una decisione agronomica sulla curva di risposta costo/resa da usare, non una correzione meccanica. | Motore di ottimizzazione collegato a dati costo/resa reali e a un algoritmo che converge davvero, oppure la capability rimossa/mantenuta esplicitamente come solo dimostrativa senza pretesa di essere abilitata in futuro |
 | O61 | M13/M14 | **Scoperto 28/07/2026 durante T01 lotto 43, `services/advancedIrrigationService.ts` (vivo su `/app/irrigation`):** `getAvailableAgronomicSignals`/`calculateAgronomicConfidenceLevel`/`buildAgronomicReasoning` verificano la disponibilita' di segnali agronomici estesi (umidita' suolo a 10/30/60cm, umidita' fogliare, VPD, punto di rugiada, temperatura chioma, portata/pressione linea, osservazione fenologica, risultato qualita', riferimento registro operazioni, NDVI, vigore satellitare) per pesare la confidenza del fabbisogno idrico calcolato. Con gli unici chiamanti attuali, l'oggetto passato e' sempre di tipo `WeatherData` (temperatura/umidita'/vento/radiazione/pioggia/qualita' acqua): nessuno di quei segnali estesi viene mai popolato, quindi i rami restanti sono strutturalmente irraggiungibili e la confidenza per le colture con segnali P0 in quelle categorie e' sistematicamente penalizzata. Nessuna azione presa: NDVI esiste gia' altrove (`ndvi_data_cache` in `prescriptionMapsService.ts`) ma non e' collegato qui; gli altri segnali (sensori suolo a profondita', umidita' fogliare, fenologia) potrebbero non avere alcuna fonte dati nel sistema. Decidere quali segnali collegare, da quale provider, e se il resto va rimosso come aspirazionale e' una decisione agronomica/di prodotto, non di tipizzazione. | Ogni segnale controllato ha una fonte dati reale collegata oppure viene rimosso dal calcolo; nessun ramo di confidenza strutturalmente morto |
@@ -1345,6 +1346,72 @@ rischio gia' documentato nel lotto 13.
 
 Baseline globale verificata: **0 errori, 1.458 warning** (`1.467 -> 1.458`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
+### Aggiornamento T01 - lotto 57 (29/07/2026)
+
+`components/planner/tabs/PlannerAISuggestions.tsx` (9 warning) e' risultato
+vivo su `/app/planner`, montato insieme a `SmartPlanner.tsx` (lotto 56).
+Tipizzando `garden: any` -> `Garden` reale, il type-checker ha smascherato
+un **bug attivo** (non dormiente, a differenza di quelli dei lotti
+precedenti): `handleAccept`/`handleReject` chiamavano
+`collaborativeAIService.acceptSuggestion(garden.user_id, ...)` e
+`rejectSuggestion(garden.user_id, ...)`, ma `Garden` non ha mai avuto un
+campo `user_id` - il primo argomento atteso da quei metodi e' in realta'
+l'ID dell'utente corrente (`userId`), gia' disponibile nello stesso file
+come `user.id` da `useAuth()` e gia' usato correttamente in
+`loadSuggestions`. Ogni accept/reject ha quindi sempre registrato la
+decisione con `userId: undefined`. Corretto sostituendo `garden.user_id`
+con `user.id` in entrambi i punti, con guardia `!user?.id` prima della
+chiamata.
+
+Verificato inoltre un secondo bug, ripetuto identico in altri due file:
+`JSON.parse(suggestion.expected_outcomes as any)` in questo file,
+`components/irrigation/IrrigationAISuggestionsWidget.tsx` e
+`components/nutrition/NutritionAISuggestionsWidget.tsx`.
+`AISuggestion.expected_outcomes` e' gia' un array (`ExpectedOutcome[]`),
+mai una stringa JSON - `components/ai/AISuggestionCard.tsx` lo tratta
+correttamente con `.map()`/`.length` diretti. `JSON.parse` su un array
+gia' deserializzato genera un errore runtime; nei due widget era
+catturato da un `try/catch` che faceva silenziosamente fallback a `null`
+(nessun beneficio/risparmio mai mostrato), qui invece non era protetto e
+avrebbe fatto crashare il rendering. Nessun punto del codebase scrive
+`expected_outcomes` come stringa, quindi il bug era dormiente finche' un
+suggerimento non popola davvero quel campo. Corretti tutti e tre i file
+rimuovendo `JSON.parse`, usando l'array direttamente.
+
+**Registrato come nuovo item aperto (O66), non corretto:** accettare un
+suggerimento AI (`PLANTING_PLAN`/`HARVEST_TIMING`/`ROTATION_PLAN`) non crea
+mai i task corrispondenti nel planner. Il genitore (`app/app/planner/page.tsx`)
+passa una `onCreateTasks` con implementazione reale (crea task via
+`storageProvider.createTask`), ma `handleAccept` non la invoca mai.
+Verificato che non esiste nel codebase alcuna conversione
+suggerimento -> task: `suggested_parameters` e' un bag generico
+(`Record<string, unknown>`) senza schema fisso per tipo di suggerimento
+(confermato anche in `AISuggestionCard.tsx`, che lo mostra come coppie
+chiave/valore grezze). Implementarlo richiede una decisione di prodotto
+su come mappare ciascun tipo di suggerimento a task concreti, non un
+collegamento meccanico.
+
+Il lotto 57 e' stato eseguito su `PlannerAISuggestions.tsx`, da 9 warning
+a zero (oltre ai due fix funzionali sopra): rimossi due import morti
+(`AlertTriangle`, `useGarden`); tipizzate le prop con `Garden`/`GardenTask`
+reali mantenendo `tasks`/`onCreateTasks` nell'interfaccia ma non
+distrutturate (restano non utilizzate, coerente con O66); spostata la
+costante `planningTypes` a livello di modulo per risolvere
+`exhaustive-deps` senza rischio di loop infinito; `loadSuggestions`
+avvolta in `useCallback`.
+
+Baseline globale verificata: **0 errori, 1.444 warning** (`1.458 -> 1.444`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
+**Nota operativa:** durante questo lotto la build ha fallito con `ENOSPC`
+(disco del Mac al 100%, 229MB liberi su 228GB) per l'accumulo di worktree
+T01 gia' mersati da precedenti sessioni (lotti 18-34, 43) mai ripuliti,
+ciascuno con il proprio `node_modules`. Rimossi con `git worktree remove`
+dopo aver verificato l'assenza di modifiche non salvate (solo
+`tsconfig.tsbuildinfo`/`node_modules` non tracciati); liberati ~6.4GB.
+Da ora in poi, chiudere/ripulire il worktree del lotto precedente subito
+dopo il merge, prima di aprirne uno nuovo.
 
 ## 6. Verifica trasversale dopo M15
 
