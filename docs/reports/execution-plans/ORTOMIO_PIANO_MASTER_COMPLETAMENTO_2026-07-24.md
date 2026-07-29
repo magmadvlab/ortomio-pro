@@ -1289,6 +1289,38 @@ sensori, analisi suolo e piante in `loadCanonicalPredictionInput`.
 Baseline globale verificata: **0 errori, 1.477 warning** (`1.487 -> 1.477`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 55 (29/07/2026)
+
+`services/aiPredictiveEngine.ts` (10 warning) e' risultato vivo: consumato
+da `app/app/ai-predictions/page.tsx` e dalle card della dashboard
+(`YieldPredictionsCard.tsx`, `AIPredictionsDashboard.tsx`,
+`ResourceOptimizationCard.tsx`, `DiseasePredictionsCard.tsx`), oltre che da
+`services/agronomicPredictionPipelineService.ts` (pulito nel lotto 54, ne
+importa solo i tipi). Il file era gia' stato parzialmente lavorato nel
+lotto 5 (13->5 warning, con un gap algoritmico reale trovato e corretto
+allora); i 10 warning di questo lotto sono su codice diverso, non
+sovrapposto a quella correzione.
+
+Verificato prima di procedere: `optimizeLaborSchedule` e
+`optimizeEnergyUsage` sono stub dichiarati esplicitamente ("Not
+implemented in this version", restituiscono sempre `null`) - stesso
+pattern gia' accettato altrove nella campagna, nessun gap nascosto (gia'
+onestamente non implementati, non finti). Tre campi privati
+(`diseaseModels`, `yieldModels`, `optimizationModels`, tutti
+`Map<string, any>`) risultavano dichiarati ma mai letti ne' scritti in
+nessun punto del file - stesso pattern del campo morto `activeFlights`
+gia' rimosso nel lotto 53.
+
+Il lotto 55 e' stato eseguito su `services/aiPredictiveEngine.ts`, da 10
+warning a zero: rimossi i tre campi privati morti; introdotta
+un'interfaccia locale `DiseaseRule` al posto di `any` per
+`getDiseaseRules()`/`calculateDiseaseProbability()`; rimossi i parametri
+mai usati dai due stub di ottimizzazione, aggiornando il call site in
+`optimizeResources`.
+
+Baseline globale verificata: **0 errori, 1.467 warning** (`1.477 -> 1.467`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

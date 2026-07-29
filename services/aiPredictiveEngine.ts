@@ -149,11 +149,19 @@ export interface PlantHealthData {
   lastUpdate: string
 }
 
+interface DiseaseRule {
+  disease: string
+  conditions: { humidity: string; temperature: string }
+  leadTime: number
+  impact: string
+  confidence: number
+  symptoms: string[]
+  preventiveMeasures: string[]
+  treatments: string[]
+}
+
 class AIPredictiveEngine {
-  private diseaseModels: Map<string, any> = new Map()
-  private yieldModels: Map<string, any> = new Map()
-  private optimizationModels: Map<string, any> = new Map()
-  
+
   // ===== DISEASE PREDICTION =====
   
   async predictDiseases(
@@ -329,11 +337,11 @@ class AIPredictiveEngine {
     if (fertilizerOpt) optimizations.push(fertilizerOpt)
     
     // Labor optimization
-    const laborOpt = await this.optimizeLaborSchedule(tasks, weatherData, plantHealthData)
+    const laborOpt = await this.optimizeLaborSchedule()
     if (laborOpt) optimizations.push(laborOpt)
-    
+
     // Energy optimization
-    const energyOpt = await this.optimizeEnergyUsage(weatherData, tasks)
+    const energyOpt = await this.optimizeEnergyUsage()
     if (energyOpt) optimizations.push(energyOpt)
     
     return optimizations
@@ -387,7 +395,7 @@ class AIPredictiveEngine {
   
   // ===== UTILITY METHODS =====
   
-  private getDiseaseRules(): any[] {
+  private getDiseaseRules(): DiseaseRule[] {
     // Simplified disease rules - in production, this would be ML models
     return [
       {
@@ -413,7 +421,7 @@ class AIPredictiveEngine {
     ]
   }
   
-  private calculateDiseaseProbability(rule: any, weather: WeatherData, soil: SoilData, plant: PlantHealthData): number {
+  private calculateDiseaseProbability(rule: DiseaseRule, weather: WeatherData, soil: SoilData, plant: PlantHealthData): number {
     let probability = 0.1 // Base probability
     
     // Weather factors
@@ -820,19 +828,12 @@ class AIPredictiveEngine {
     return optimal
   }
   
-  private async optimizeLaborSchedule(
-    tasks: GardenTask[],
-    weather: WeatherData,
-    plants: PlantHealthData[]
-  ): Promise<ResourceOptimization | null> {
+  private async optimizeLaborSchedule(): Promise<ResourceOptimization | null> {
     // Simplified labor optimization
     return null // Not implemented in this version
   }
-  
-  private async optimizeEnergyUsage(
-    weather: WeatherData,
-    tasks: GardenTask[]
-  ): Promise<ResourceOptimization | null> {
+
+  private async optimizeEnergyUsage(): Promise<ResourceOptimization | null> {
     // Simplified energy optimization
     return null // Not implemented in this version
   }
