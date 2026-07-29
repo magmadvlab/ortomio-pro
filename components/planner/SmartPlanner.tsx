@@ -126,8 +126,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
   const generateAISuggestions = () => {
     return smartOperationsService.generateAISuggestions(
       smartOperations,
-      weatherForecast,
-      { garden, tasks }
+      weatherForecast
     )
   }
 

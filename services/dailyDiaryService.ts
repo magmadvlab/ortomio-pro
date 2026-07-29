@@ -306,8 +306,7 @@ class DailyDiaryService {
       const eto = this.calculateETo(
         weatherData.temp_min ?? 0,
         weatherData.temp_max ?? 0,
-        weatherData.solar_radiation,
-        date
+        weatherData.solar_radiation
       )
 
       const log: DailyWeatherLog = {
@@ -423,7 +422,12 @@ class DailyDiaryService {
         .limit(1)
 
       if (!gardensError && gardens && gardens.length > 0) {
-        const garden = gardens[0] as any
+        const garden = gardens[0] as {
+          name?: string
+          coordinates?: unknown
+          latitude?: number
+          longitude?: number
+        }
         const coords =
           normalizeGeoCoordinates(garden?.coordinates) ||
           normalizeGeoCoordinates(garden)
@@ -724,7 +728,7 @@ class DailyDiaryService {
   /**
    * Calcola ETo con formula Hargreaves semplificata
    */
-  private calculateETo(tempMin: number, tempMax: number, solarRad?: number, date?: string): number {
+  private calculateETo(tempMin: number, tempMax: number, solarRad?: number): number {
     // Formula Hargreaves-Samani
     const tempAvg = (tempMin + tempMax) / 2
     const tempRange = tempMax - tempMin
@@ -1424,7 +1428,7 @@ class DailyDiaryService {
         .gte('tracking_date', startDate)
         .lte('tracking_date', endDate)
 
-      const { data: weather, error: weatherError } = await this.supabase
+      const { data: weather } = await this.supabase
         .from('daily_weather_log')
         .select('*')
         .eq('user_id', userId)

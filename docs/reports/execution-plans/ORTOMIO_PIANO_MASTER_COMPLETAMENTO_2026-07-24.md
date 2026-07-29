@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O67 | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.516 warning rimossi** | — | **1.126 warning** | Baseline operativa 2.642 -> 1.126 in 69 lotti. T01 non equivale a 1.126 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.543 warning rimossi** | — | **1.099 warning** | Baseline operativa 2.642 -> 1.099 in 70 lotti. T01 non equivale a 1.099 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -2056,6 +2056,65 @@ se esistono) — una sessione dedicata, non un lotto di lint. Registrato
 come **O67** nel registro §5.1.
 
 Baseline globale verificata: **0 errori, 1.126 warning** (`1.158 -> 1.126`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione (153
+pagine) verdi.
+
+### Aggiornamento T01 - lotto 70 (29/07/2026)
+
+La classifica ESLint rigenerata era ancora dominata da candidati gia'
+classificati come morti nei lotti 63-66 (nessuna nuova verifica necessaria,
+gia' confermato dai lotti precedenti). Scendendo oltre il rank 60 sono
+emersi 9 servizi piu' piccoli (3 warning ciascuno), tutti nuovi per questa
+campagna (verificato con grep sul documento prima di scriverli): `services/orchardDetectionService.ts`
+(vivo via `AddWoodyCropWizard.tsx`, gia' noto dal lotto 68),
+`services/seasonalPlantSuggestions.ts` (vivo via la route
+`app/api/garden/sun-exposure/plant-suggestions/route.ts`),
+`services/geoClimateService.ts` (vivo via `GardenOnboarding.tsx`),
+`services/authErrorHandler.ts` (vivo via `app/api/auth/register/route.ts`
+e le pagine `forgot-password`/`reset-password`), `services/dailyDiaryService.ts`
+(vivo via la route `app/api/cron/daily-diary/route.ts` e
+`AutomatedDiaryViewer.tsx`), `services/fieldRowPlantIntegrationService.ts`
+(vivo via `SmartPlantManager.tsx`), `services/ndviSatelliteService.ts`
+(vivo via `NDVIDashboard.tsx`, `/app/ndvi`), `services/notificationDeliveryService.ts`
+(vivo via la route `app/api/cron/notification-delivery/route.ts`),
+`services/smartOperationsService.ts` (vivo via `SmartPlanner.tsx`).
+
+27 -> 0 warning sui 9 file. Pattern ricorrente: `client: any`/`supabaseClient: any`
+tipizzati con `SupabaseClient`; funzioni/parametri esportati mai chiamati da
+nessuno rimossi per intero (`handleLoginError` lasciato — e' parte di
+un'API di gestione errori con 2 sorelle vive, non una funzione isolata —
+ma gli altri due metodi tipizzati con `unknown` + narrowing locale invece
+di `any`, dato che i chiamanti reali passano sia oggetti errore Supabase
+sia `catch (error: unknown)`); ritorni di funzione tipizzati con
+l'interfaccia gia' dichiarata da un'altra funzione sorella nello stesso
+file invece di duplicarla (`NDVIStressArea` estratta e riusata 3 volte in
+`ndviSatelliteService.ts`); parametro `date` passato a `calculateETo` ma
+mai usato nel corpo (il commento della funzione dichiara esplicitamente
+"per semplicita' usiamo un valore medio", non un gap nascosto — rimosso
+dalla firma e dal call site).
+
+**Bug reale trovato e corretto:** `services/fieldRowPlantIntegrationService.ts::generateDefaultPlantingContext`
+costruiva un oggetto con nomi di campo diversi da quelli reali di
+`GardenPlant['plantingContext']` (`weather.temp` invece di
+`weather.temperature`, `moon` invece di `lunar`, `moon.emoji` invece di
+`lunar.phaseEmoji`, `moon.waxing` invece di `lunar.isWaxing`,
+`daylight.hours` invece di `daylight.hoursOfLight`, mancavano del tutto
+`timestamp` e `weather.precipitation`/`windSpeed`/`pressure` e
+`lunar.dayInCycle`) — mascherato finora dal tipo di ritorno `any`.
+Confermato un consumer reale che legge esattamente questi campi:
+`components/plants/PlantDetailModal.tsx` (righe 316-373). Per ogni pianta
+generata in blocco da un filare (`generatePlantsFromFieldRow`/
+`generateDemoPlants`), il pannello dettaglio pianta perdeva silenziosamente
+l'intera sezione fase lunare (campo `lunar` inesistente) e la temperatura/ore
+di luce (nomi di campo diversi), mostrando solo condizione meteo e umidita'
+fissi (65%, "sunny", identici per ogni pianta). Corretto rinominando i
+campi sullo schema reale e aggiungendo i campi mancanti con valori di
+default coerenti con la natura "contesto di fallback" della funzione
+(`precipitation: 0`, `windSpeed: 0`, `pressure: 1013`,
+`dayInCycle: dayOfMonth`); nessuna modifica alla logica di stima
+stagione/fase lunare stessa, solo alla forma dell'oggetto restituito.
+
+Baseline globale verificata: **0 errori, 1.099 warning** (`1.126 -> 1.099`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione (153
 pagine) verdi.
 

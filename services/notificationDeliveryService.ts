@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { NotificationData } from '@/services/notificationService'
 import { sendNotification } from '@/services/notificationService'
 
@@ -27,7 +28,7 @@ export const notificationRetryDecision = (
     }
 
 export const enqueueNotificationDelivery = async (
-  client: any,
+  client: SupabaseClient,
   notification: NotificationData,
   options: {
     gardenId?: string
@@ -53,7 +54,7 @@ export const enqueueNotificationDelivery = async (
   return data
 }
 
-const userRateLimitReached = async (client: any, userId: string): Promise<boolean> => {
+const userRateLimitReached = async (client: SupabaseClient, userId: string): Promise<boolean> => {
   const since = new Date(Date.now() - 24 * 60 * 60_000).toISOString()
   const { count, error } = await client
     .from('notification_delivery_queue')
@@ -65,7 +66,7 @@ const userRateLimitReached = async (client: any, userId: string): Promise<boolea
   return (count || 0) >= NOTIFICATION_RATE_LIMIT_PER_DAY
 }
 
-export const processNotificationDelivery = async (client: any, row: NotificationDeliveryRow) => {
+export const processNotificationDelivery = async (client: SupabaseClient, row: NotificationDeliveryRow) => {
   if (await userRateLimitReached(client, row.user_id)) {
     const retryAt = new Date(Date.now() + 60 * 60_000).toISOString()
     await client.from('notification_delivery_queue').update({

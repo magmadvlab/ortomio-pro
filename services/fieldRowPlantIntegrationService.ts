@@ -109,7 +109,29 @@ function extractRowNumber(rowIdentifier: string): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
 }
 
-function normalizeFieldRow(rawRow: any): FieldRow {
+type RawFieldRow = {
+  id?: string
+  gardenId?: string
+  garden_id?: string
+  name?: string
+  rowNumber?: unknown
+  row_number?: unknown
+  lengthMeters?: unknown
+  length_meters?: unknown
+  distanceFromPreviousRow?: unknown
+  distance_from_previous_row?: unknown
+  cultivar?: string
+  plantSpacing?: unknown
+  plant_spacing?: unknown
+  plantedDate?: string
+  planted_date?: string
+  orientation?: string
+  isActive?: boolean
+  plantCount?: unknown
+  plant_count?: unknown
+}
+
+function normalizeFieldRow(rawRow: RawFieldRow): FieldRow {
   const rowNumber = toNumber(rawRow.rowNumber ?? rawRow.row_number) || extractRowNumber(rawRow.name || rawRow.id || '1')
   const lengthMeters = toNumber(rawRow.lengthMeters ?? rawRow.length_meters) || 0
   const plantSpacing = toNumber(rawRow.plantSpacing ?? rawRow.plant_spacing)
@@ -140,7 +162,7 @@ function normalizeFieldRow(rawRow: any): FieldRow {
 /**
  * Genera un contesto di impianto di default basato sulla data
  */
-function generateDefaultPlantingContext(plantingDate: Date): any {
+function generateDefaultPlantingContext(plantingDate: Date): NonNullable<GardenPlant['plantingContext']> {
   const month = plantingDate.getMonth();
   
   // Determina stagione
@@ -163,7 +185,7 @@ function generateDefaultPlantingContext(plantingDate: Date): any {
   let moonPhase = 'Crescente';
   let moonEmoji = '🌒';
   let illumination = 50;
-  
+
   if (dayOfMonth <= 7) {
     moonPhase = 'Crescente';
     moonEmoji = '🌒';
@@ -181,7 +203,7 @@ function generateDefaultPlantingContext(plantingDate: Date): any {
     moonEmoji = '🌘';
     illumination = 25;
   }
-  
+
   // Ore di luce per stagione
   const daylightByseason = {
     spring: { hours: 13, sunrise: '06:30', sunset: '19:30' },
@@ -189,21 +211,31 @@ function generateDefaultPlantingContext(plantingDate: Date): any {
     autumn: { hours: 11, sunrise: '07:00', sunset: '18:00' },
     winter: { hours: 9, sunrise: '07:30', sunset: '16:30' }
   };
-  
+  const daylight = daylightByseason[season as keyof typeof daylightByseason];
+
   return {
+    timestamp: plantingDate.toISOString(),
     weather: {
-      temp: tempByseason[season as keyof typeof tempByseason],
+      temperature: tempByseason[season as keyof typeof tempByseason],
       humidity: 65,
-      condition: 'sunny'
+      precipitation: 0,
+      windSpeed: 0,
+      condition: 'sunny',
+      pressure: 1013
     },
-    moon: {
+    lunar: {
       phase: moonPhase,
-      emoji: moonEmoji,
+      phaseEmoji: moonEmoji,
       illumination,
-      waxing: dayOfMonth <= 14
+      isWaxing: dayOfMonth <= 14,
+      dayInCycle: dayOfMonth
     },
     season,
-    daylight: daylightByseason[season as keyof typeof daylightByseason]
+    daylight: {
+      sunrise: daylight.sunrise,
+      sunset: daylight.sunset,
+      hoursOfLight: daylight.hours
+    }
   };
 }
 
@@ -386,7 +418,7 @@ export class FieldRowPlantIntegrationService {
    * Aggiorna una pianta
    */
   updatePlant(plantId: string, updates: Partial<GardenPlant>): boolean {
-    for (const [gardenId, plants] of this.plants.entries()) {
+    for (const plants of this.plants.values()) {
       const plantIndex = plants.findIndex(p => p.id === plantId)
       if (plantIndex !== -1) {
         plants[plantIndex] = { ...plants[plantIndex], ...updates, updatedAt: new Date().toISOString() }

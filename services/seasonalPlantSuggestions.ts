@@ -4,18 +4,15 @@
  */
 
 import { SeasonalSunWindow, GardenClassification } from './seasonalSunWindows';
-import { PlantMasterSheet } from '../types';
 import { getAllMasterSheets } from '../data/plantMasterSheets';
 import { calculateDailySunHours, Obstacle3D } from './preciseSunCalculator';
 import { Garden } from '../types';
 import {
   getSoilCompatibility,
-  adjustDateForSoilType,
   calculateSoilWarmingDelay,
 } from '../utils/soilTemperatureUtils';
 import {
   calculateAltitudePlantingDelay,
-  adjustPlantingDates,
 } from '../utils/altitudeUtils';
 
 export interface PlantSuggestionForWindow {
