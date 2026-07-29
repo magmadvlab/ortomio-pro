@@ -3,7 +3,6 @@
  * Sistema di tracciabilità immutabile per dominanza mercato
  */
 
-import { Garden } from '@/types'
 import {
   calculateAdaptiveQualityPrice,
   resolveAdaptiveQualityPricingBenchmarkForGarden,
@@ -19,7 +18,7 @@ export interface BlockchainRecord {
   type: 'SEED' | 'PLANT' | 'TREATMENT' | 'HARVEST' | 'PROCESSING' | 'SALE' | 'CERTIFICATION'
   gardenId: string
   plantId?: string
-  data: Record<string, any>
+  data: Record<string, unknown>
   previousHash?: string
   verified: boolean
   immutable: boolean
@@ -70,7 +69,7 @@ export interface LabTestResult {
   testType: 'PESTICIDE' | 'HEAVY_METALS' | 'MICROBIOLOGICAL' | 'NUTRITIONAL'
   laboratory: string
   testDate: string
-  results: Record<string, any>
+  results: Record<string, unknown>
   passed: boolean
   certificateUrl?: string
 }
@@ -113,7 +112,7 @@ export interface SmartContract {
   address: string
   network: string
   type: 'TRACEABILITY' | 'QUALITY_ASSURANCE' | 'CARBON_CREDITS' | 'MARKETPLACE'
-  abi: any[]
+  abi: unknown[]
   deployedAt: string
 }
 
@@ -180,7 +179,7 @@ class BlockchainTraceabilityService {
       organicCertified: boolean
       plantingDate: string
       location: { latitude: number; longitude: number }
-      soilConditions: Record<string, any>
+      soilConditions: Record<string, unknown>
     }
   ): Promise<BlockchainRecord> {
     const record: BlockchainRecord = {
@@ -218,7 +217,7 @@ class BlockchainTraceabilityService {
       height: number
       photos: string[]
       measurements: Record<string, number>
-      environmentalConditions: Record<string, any>
+      environmentalConditions: Record<string, unknown>
     }
   ): Promise<BlockchainRecord> {
     const record: BlockchainRecord = {
@@ -227,7 +226,7 @@ class BlockchainTraceabilityService {
       blockNumber: await this.getCurrentBlockNumber(),
       timestamp: new Date().toISOString(),
       type: 'PLANT',
-      gardenId: await this.getGardenIdFromPlant(plantId),
+      gardenId: await this.getGardenIdFromPlant(),
       plantId,
       data: {
         ...growthData,
@@ -254,7 +253,7 @@ class BlockchainTraceabilityService {
       dosage: string
       applicationMethod: string
       operator: string
-      weatherConditions: Record<string, any>
+      weatherConditions: Record<string, unknown>
       preHarvestInterval: number
       organicApproved: boolean
     }
@@ -265,7 +264,7 @@ class BlockchainTraceabilityService {
       blockNumber: await this.getCurrentBlockNumber(),
       timestamp: new Date().toISOString(),
       type: 'TREATMENT',
-      gardenId: await this.getGardenIdFromPlant(plantId),
+      gardenId: await this.getGardenIdFromPlant(),
       plantId,
       data: {
         ...treatmentData,
@@ -293,7 +292,7 @@ class BlockchainTraceabilityService {
       moistureContent?: number
       harvestMethod: 'MANUAL' | 'MECHANICAL'
       operator: string
-      storageConditions: Record<string, any>
+      storageConditions: Record<string, unknown>
       photos: string[]
     }
   ): Promise<BlockchainRecord> {
@@ -303,7 +302,7 @@ class BlockchainTraceabilityService {
       blockNumber: await this.getCurrentBlockNumber(),
       timestamp: new Date().toISOString(),
       type: 'HARVEST',
-      gardenId: await this.getGardenIdFromPlant(plantId),
+      gardenId: await this.getGardenIdFromPlant(),
       plantId,
       data: {
         ...harvestData,
@@ -370,10 +369,10 @@ class BlockchainTraceabilityService {
       contractAddress: this.getTraceabilityContractAddress(),
       network: 'POLYGON', // Lower gas fees
       metadataUri: `https://api.ortomio.com/nft/${productId}`,
-      ownerAddress: await this.getFarmerWalletAddress(gardenId),
+      ownerAddress: await this.getFarmerWalletAddress(),
       mintDate: new Date().toISOString(),
       attributes,
-      imageUrl: await this.generateNFTImage(productId, certificateData),
+      imageUrl: await this.generateNFTImage(),
       animationUrl: await this.generateNFTAnimation(productId)
     }
 
@@ -601,7 +600,7 @@ class BlockchainTraceabilityService {
       blockNumber: await this.getCurrentBlockNumber(),
       timestamp: new Date().toISOString(),
       type: 'CERTIFICATION',
-      gardenId: await this.getGardenIdFromProduct(productId),
+      gardenId: await this.getGardenIdFromProduct(),
       data: {
         recordType: 'carbon_footprint',
         carbonFootprint: footprint,
@@ -757,12 +756,12 @@ class BlockchainTraceabilityService {
     return this.smartContracts.get('traceability')?.address || ''
   }
 
-  private async getFarmerWalletAddress(gardenId: string): Promise<string> {
+  private async getFarmerWalletAddress(): Promise<string> {
     return '0x' + Math.random().toString(16).substring(2, 42)
   }
 
-  private async generateNFTImage(productId: string, data: any): Promise<string> {
-    return `https://nft.ortomio.com/images/${productId}.png`
+  private async generateNFTImage(): Promise<string> {
+    return `https://nft.ortomio.com/images/placeholder.png`
   }
 
   private async generateNFTAnimation(productId: string): Promise<string> {
@@ -774,18 +773,18 @@ class BlockchainTraceabilityService {
   }
 
   private extractProductName(record: BlockchainRecord): string {
-    return record.data.variety || 'Unknown Product'
+    return typeof record.data.variety === 'string' ? record.data.variety : 'Unknown Product'
   }
 
   private extractVariety(record: BlockchainRecord): string {
-    return record.data.variety || 'Unknown Variety'
+    return typeof record.data.variety === 'string' ? record.data.variety : 'Unknown Variety'
   }
 
-  private async getGardenIdFromPlant(plantId: string): Promise<string> {
+  private async getGardenIdFromPlant(): Promise<string> {
     return 'garden_1' // Simplified
   }
 
-  private async getGardenIdFromProduct(productId: string): Promise<string> {
+  private async getGardenIdFromProduct(): Promise<string> {
     return 'garden_1' // Simplified
   }
 

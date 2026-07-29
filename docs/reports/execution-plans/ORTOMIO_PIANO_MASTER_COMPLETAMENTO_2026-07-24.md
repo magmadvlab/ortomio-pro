@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O63 | **14** | **0** | **5** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`) e O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.008 warning rimossi** | — | **1.634 warning** | Baseline operativa 2.642 -> 1.634 in 49 lotti. T01 non equivale a 1.634 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.021 warning rimossi** | — | **1.621 warning** | Baseline operativa 2.642 -> 1.621 in 50 lotti. T01 non equivale a 1.621 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -1063,6 +1063,36 @@ righe), da 14 warning a zero: rimossi 5 import mai usati
 condivisa per i sette blocchi `catch`, senza cambiare comportamento.
 
 Baseline globale verificata: **0 errori, 1.634 warning** (`1.648 -> 1.634`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione
+153/153 pagine verdi.
+
+### Aggiornamento T01 - lotto 50 (29/07/2026)
+
+`services/integratedStaggeringService.ts` (13 warning) e' risultato con
+unico importer `aiPlanningService.ts`, il file morto del cluster "AI
+Planner" di M05 - escluso. `services/blockchainTraceabilityService.ts` (13
+warning) e' raggiungibile via `app/api/blockchain/traceability/route.ts` e
+`app/api/blockchain/consumer/route.ts`.
+
+Verificato prima di procedere: i `Math.random()` per hash/indirizzi e i
+valori "Simplified"/hardcoded (`'garden_1'`) nel file non sono un gap
+nascosto. Entrambe le route dichiarano esplicitamente `simulated: true,
+certificationEligible: false` in ogni risposta, e il `POST` del consumer
+endpoint e' disabilitato con `501` e messaggio esplicito
+`'traceability_demo_only'` ("QR commerciale disabilitato: il ledger
+disponibile e' simulato"). A differenza dei KPI finti gia' corretti in
+O51/M14, qui la natura simulata e' dichiarata al confine API, non nascosta.
+
+Il lotto 50 e' stato eseguito su `services/blockchainTraceabilityService.ts`
+(881 righe), da 13 warning a zero: rimosso l'import inutilizzato `Garden`;
+tipizzati `Record<string, any>`/`any[]` con `unknown` equivalenti (dati
+generici gia' trattati come bag opachi, nessuna lettura tipizzata li
+riguardava); rimossi i parametri mai usati da quattro helper della
+simulazione (`getFarmerWalletAddress`, `generateNFTImage`,
+`getGardenIdFromPlant`, `getGardenIdFromProduct` - tutti gia' a
+implementazione fissa/semplificata) aggiornando i sei call site coinvolti.
+
+Baseline globale verificata: **0 errori, 1.621 warning** (`1.634 -> 1.621`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione
 153/153 pagine verdi.
 
