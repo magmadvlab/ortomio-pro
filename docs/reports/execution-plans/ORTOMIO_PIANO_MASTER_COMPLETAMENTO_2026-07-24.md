@@ -1321,6 +1321,31 @@ mai usati dai due stub di ottimizzazione, aggiornando il call site in
 Baseline globale verificata: **0 errori, 1.467 warning** (`1.477 -> 1.467`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 56 (29/07/2026)
+
+`components/planner/SmartPlanner.tsx` (10 warning) e' risultato vivo su
+`/app/planner` - un planner distinto dal vecchio cluster morto
+"AI Planner" (`Planner.tsx`/`PlannerWizard.tsx`/`VisualGardenPlanner.tsx`),
+gia' confermato e usato insieme a `PlannerAISuggestions.tsx` (9 warning,
+stessa route, non ancora affrontato). Verificato prima di procedere:
+previsioni meteo caricate realmente via `smartOperationsService`, nessun
+dato finto.
+
+Il lotto 56 e' stato eseguito su `SmartPlanner.tsx`, da 10 warning a 1:
+rimossi quattro import morti (`CheckCircle`, `Thermometer`, `Wind`,
+`addDays`); introdotta un'interfaccia locale `NewOperationFormData` al
+posto di `any` per il form nuova operazione; sostituiti due cast `as any`
+con union type reali (`SmartOperation['type']`, `typeof activeView`);
+rimosso il parametro `date` mai usato nella callback `onDateClick`
+(il tipo della prop lo rende opzionale). Lasciato intenzionalmente 1
+warning `react-hooks/exhaustive-deps`: `analyzeOperationsWeather` ritorna
+sempre un nuovo array (`.map`), quindi includere `smartOperations` per
+intero nelle dipendenze causerebbe un loop infinito - stesso tipo di
+rischio gia' documentato nel lotto 13.
+
+Baseline globale verificata: **0 errori, 1.458 warning** (`1.467 -> 1.458`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
