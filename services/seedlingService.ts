@@ -3,7 +3,6 @@
  * Gestione batch semenzai con tracking dettagliato
  */
 
-import { PlantMasterSheet, Garden } from '../types';
 import { getMasterSheetSync } from './plantMasterService';
 
 export interface SeedlingBatch {
@@ -72,37 +71,6 @@ export const createSeedlingBatch = (
 };
 
 /**
- * Calcola data semina ottimale per un target di trapianto
- */
-export const calculateOptimalSowingDate = (
-  plantName: string,
-  targetTransplantDate: string,
-  garden: Garden
-): string | null => {
-  const masterData = getMasterSheetSync(plantName);
-  if (!masterData) return null;
-
-  // Calcola giorni necessari (germinazione + nursing + hardening)
-  const avgGerminationDays = (masterData.germination.emergenceDays.min + masterData.germination.emergenceDays.max) / 2;
-  const nursingDays = 30;
-  const hardeningDays = 10;
-  const totalDays = avgGerminationDays + nursingDays + hardeningDays;
-
-  const targetDate = new Date(targetTransplantDate);
-  const optimalSowing = new Date(targetDate);
-  optimalSowing.setDate(optimalSowing.getDate() - totalDays);
-
-  // Verifica che la data non sia nel passato
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (optimalSowing < today) {
-    return null; // Troppo tardi per seminare
-  }
-
-  return optimalSowing.toISOString().split('T')[0];
-};
-
-/**
  * Ottieni timeline per un batch
  */
 export const getSeedlingTimeline = (batch: SeedlingBatch): {
@@ -158,8 +126,7 @@ export const getSeedlingTimeline = (batch: SeedlingBatch): {
  * Verifica se è il momento di iniziare hardening
  */
 export const shouldStartHardening = (
-  batch: SeedlingBatch,
-  garden: Garden
+  batch: SeedlingBatch
 ): { shouldStart: boolean; reason?: string } => {
   const timeline = getSeedlingTimeline(batch);
   
@@ -182,8 +149,7 @@ export const shouldStartHardening = (
  * Verifica se il batch è pronto per trapianto
  */
 export const isReadyToTransplant = (
-  batch: SeedlingBatch,
-  garden: Garden
+  batch: SeedlingBatch
 ): { ready: boolean; reason?: string; warnings?: string[] } => {
   // Piantine acquistate sono sempre pronte (se hanno quantità disponibile)
   if (batch.source === 'nursery') {

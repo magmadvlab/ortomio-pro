@@ -137,7 +137,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
     return Math.round((score / total) * 100);
   }, [formData]);
 
-  const handleInputChange = useCallback((field: keyof BioCertificationData, value: any) => {
+  const handleInputChange = useCallback(<K extends keyof BioCertificationData>(field: K, value: BioCertificationData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
@@ -148,7 +148,11 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
     }
   }, [formData, onSave]);
 
-  const sections = useMemo(() => [
+  const sections = useMemo((): Array<{
+    id: 'company' | 'production' | 'practices' | 'traceability' | 'controls';
+    label: string;
+    icon: typeof FileText;
+  }> => [
     { id: 'company', label: 'Dati Azienda', icon: FileText },
     { id: 'production', label: 'Produzione', icon: Leaf },
     { id: 'practices', label: 'Pratiche', icon: CheckCircle },
@@ -210,7 +214,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
           {sections.map((section) => (
             <button
               key={section.id}
-              onClick={() => setActiveSection(section.id as any)}
+              onClick={() => setActiveSection(section.id)}
               className={`flex items-center gap-2 py-4 px-2 border-b-2 font-medium text-sm ${
                 activeSection === section.id
                   ? 'border-green-500 text-green-600'
@@ -666,7 +670,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
             onClick={() => {
               const prevIndex = sections.findIndex(s => s.id === activeSection);
               if (prevIndex > 0) {
-                setActiveSection(sections[prevIndex - 1].id as any);
+                setActiveSection(sections[prevIndex - 1].id);
               }
             }}
             className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -681,7 +685,7 @@ const BioCertificationForm: React.FC<BioCertificationFormProps> = ({
               onClick={() => {
                 const nextIndex = sections.findIndex(s => s.id === activeSection);
                 if (nextIndex < sections.length - 1) {
-                  setActiveSection(sections[nextIndex + 1].id as any);
+                  setActiveSection(sections[nextIndex + 1].id);
                 }
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

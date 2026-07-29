@@ -14,7 +14,9 @@ import type {
   GlobalGapAuditPackage,
   ChecklistPoint,
   TracedProduct,
-  GlobalGapChecklist
+  GlobalGapChecklist,
+  ChecklistSection,
+  CommunicationTestResult
 } from '../types/globalGapCompliance'
 
 class GlobalGapComplianceService {
@@ -65,7 +67,6 @@ class GlobalGapComplianceService {
     // Calculate compliance percentage
     const compliantPoints = this.countPointsByStatus(assessment.checklist_data, 'compliant')
     const notApplicablePoints = this.countPointsByStatus(assessment.checklist_data, 'not_applicable')
-    const totalApplicablePoints = assessment.total_control_points - notApplicablePoints
 
     const assessmentWithCalculations = {
       ...assessment,
@@ -117,9 +118,9 @@ class GlobalGapComplianceService {
     return data
   }
 
-  private countPointsByStatus(checklist: any, status: string): number {
+  private countPointsByStatus(checklist: GlobalGapChecklist, status: string): number {
     let count = 0
-    Object.values(checklist).forEach((section: any) => {
+    Object.values(checklist).forEach((section: ChecklistSection) => {
       if (section.points) {
         count += section.points.filter((point: ChecklistPoint) => point.status === status).length
       }
@@ -213,7 +214,7 @@ class GlobalGapComplianceService {
   async completeRecallTest(testId: string, results: {
     trace_end_time: string
     traced_products: TracedProduct[]
-    communication_test_results: any[]
+    communication_test_results: CommunicationTestResult[]
     effectiveness_score: number
     improvements_identified?: string
   }) {

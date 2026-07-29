@@ -418,8 +418,8 @@ const SeedlingManager: React.FC<SeedlingManagerProps> = ({ garden, batches, onBa
         ) : (
           batches.map(batch => {
             const detailedTimeline = calculateSeedlingTimeline(batch, garden);
-            const hardeningCheck = shouldStartHardening(batch, garden);
-            const transplantCheck = isReadyToTransplant(batch, garden);
+            const hardeningCheck = shouldStartHardening(batch);
+            const transplantCheck = isReadyToTransplant(batch);
             const photosCount = batch.photoLog?.length || 0;
             const photosLimit = checkLimit('maxPhotosPerBatch', photosCount);
 

@@ -140,7 +140,6 @@ export function calculateDailySunHours(
   // Calcola posizione sole ogni timeStep minuti dalle 6:00 alle 18:00
   const startHour = 6;
   const endHour = 18;
-  const stepsPerHour = 60 / timeStep;
   
   for (let hour = startHour; hour <= endHour; hour += timeStep / 60) {
     const sunPos = calculateSunPosition(lat, lng, date, hour);
@@ -269,9 +268,7 @@ export function calculateOptimalPeriod(
   // Gestisci periodo che attraversa l'anno (dicembre-gennaio)
   if (monthlyHours[11].avgHours >= minSunHours && monthlyHours[0].avgHours >= minSunHours) {
     // Controlla se dicembre e gennaio sono collegati
-    let decemberStart = -1;
     if (monthlyHours[11].avgHours >= minSunHours) {
-      decemberStart = 11;
       let decemberLength = 1;
       for (let i = 0; i < 12 && monthlyHours[i].avgHours >= minSunHours; i++) {
         decemberLength++;
@@ -285,7 +282,6 @@ export function calculateOptimalPeriod(
   
   let bestPeriod: OptimalPeriod | null = null;
   if (bestStart >= 0 && bestLength > 0) {
-    const startMonth = bestStart + 1; // 1-12
     const endMonth = bestStart + bestLength;
     const actualEndMonth = endMonth > 12 ? endMonth - 12 : endMonth;
     
@@ -382,7 +378,6 @@ export function calculateSunHoursInTimeRange(
   timeStep: number = 10
 ): number {
   let sunMinutes = 0;
-  const stepsPerHour = 60 / timeStep;
   
   for (let hour = startHour; hour <= endHour; hour += timeStep / 60) {
     const sunPos = calculateSunPosition(lat, lng, date, hour);

@@ -7,8 +7,7 @@
  * - Dati sensori IoT (opzionale)
  */
 
-import { AlertCheckContext, HealthAlert, AlertType, AlertSeverity } from '@/types/healthAlert'
-import { GardenTask } from '@/types'
+import { AlertCheckContext, HealthAlert } from '@/types/healthAlert'
 import { confidenceForMonitoringSource } from '@/services/healthMonitoringPolicyService'
 
 /**
@@ -358,13 +357,4 @@ function checkSensorAlerts(context: AlertCheckContext): Omit<HealthAlert, 'id' |
   })
 
   return alerts
-}
-
-/**
- * Helper: Calcola giorni tra due date
- */
-function daysBetween(date1: Date, date2: Date): number {
-  const oneDay = 1000 * 60 * 60 * 24
-  const diffMs = Math.abs(date2.getTime() - date1.getTime())
-  return Math.floor(diffMs / oneDay)
 }

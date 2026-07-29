@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { GardenTask, Garden } from '../types';
-import { useTier } from '../packages/core/hooks/useTier';
-import UpgradePrompt from './UpgradePrompt';
 import { FruitTreeCrop, PruningRecord, GraftingRecord } from '../types/fruitTree';
 import { calculateFruitTreeTasks, isChillRequirementMet } from '../logic/fruitTreeEngine';
 import { getMasterSheetSync } from '../services/plantMasterService';
-import { Scissors, TreePine, Calendar, CheckCircle, XCircle, MapPin, AlertCircle } from 'lucide-react';
+import { Scissors, TreePine, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface FruitTreeManagementProps {
   tasks: GardenTask[];
@@ -18,7 +16,6 @@ interface FruitTreeManagementProps {
 const FruitTreeManagement: React.FC<FruitTreeManagementProps> = ({
   tasks,
   garden,
-  onUpdateTask,
   pruningRecords = [],
   graftingRecords = []
 }) => {
