@@ -57,7 +57,7 @@ export const createAPIKey = async (
   service: APIService,
   name: string,
   keyValue: string,
-  config?: Record<string, any>,
+  config?: Record<string, unknown>,
   organizationId?: string
 ): Promise<APIKey> => {
   const supabase = getAPIKeysSupabaseClient();
@@ -213,14 +213,14 @@ export const updateAPIKey = async (
   const supabase = getAPIKeysSupabaseClient();
 
   // If updating keyValue, encrypt it
-  const dbUpdates: any = { ...updates };
+  const dbUpdates: Record<string, unknown> = { ...updates };
   if (updates.keyValue) {
     dbUpdates.key_value = await encryptKey(updates.keyValue);
     delete dbUpdates.keyValue;
   }
 
   // Convert camelCase to snake_case for database
-  const dbFields: any = {};
+  const dbFields: Record<string, unknown> = {};
   Object.keys(dbUpdates).forEach(key => {
     switch (key) {
       case 'userId': dbFields.user_id = dbUpdates[key]; break;
@@ -336,7 +336,7 @@ export const incrementUsageCount = async (keyId: string): Promise<void> => {
 export const testAPIKey = async (
   service: APIService,
   keyValue: string,
-  config?: Record<string, any>
+  config?: Record<string, unknown>
 ): Promise<APIKeyTestResult> => {
   const result: APIKeyTestResult = {
     success: false,
@@ -347,7 +347,7 @@ export const testAPIKey = async (
   try {
     switch (service) {
       case 'OpenAI':
-        result.success = await testOpenAI(keyValue, config);
+        result.success = await testOpenAI(keyValue, config as { organization?: string } | undefined);
         result.message = result.success
           ? 'OpenAI API key is valid'
           : 'Invalid OpenAI API key';
@@ -368,7 +368,7 @@ export const testAPIKey = async (
         break;
 
       case 'SentinelHub':
-        result.success = await testSentinelHub(config);
+        result.success = await testSentinelHub(config as { clientId?: string; clientSecret?: string } | undefined);
         result.message = result.success
           ? 'Sentinel Hub credentials are valid'
           : 'Invalid Sentinel Hub credentials';
@@ -384,9 +384,9 @@ export const testAPIKey = async (
       default:
         result.message = 'Testing not supported for this service';
     }
-  } catch (error: any) {
+  } catch (error) {
     result.success = false;
-    result.message = error.message || 'Test failed';
+    result.message = error instanceof Error ? error.message : 'Test failed';
     result.details = error;
   }
 
@@ -396,7 +396,7 @@ export const testAPIKey = async (
 /**
  * Test OpenAI API key
  */
-const testOpenAI = async (apiKey: string, config?: Record<string, any>): Promise<boolean> => {
+const testOpenAI = async (apiKey: string, config?: { organization?: string }): Promise<boolean> => {
   try {
     const response = await fetch('https://api.openai.com/v1/models', {
       headers: {
@@ -451,7 +451,7 @@ const testGoogleAI = async (apiKey: string): Promise<boolean> => {
 /**
  * Test Sentinel Hub credentials
  */
-const testSentinelHub = async (config?: Record<string, any>): Promise<boolean> => {
+const testSentinelHub = async (config?: { clientId?: string; clientSecret?: string }): Promise<boolean> => {
   if (!config?.clientId || !config?.clientSecret) return false;
   
   try {
