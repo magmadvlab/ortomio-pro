@@ -228,6 +228,51 @@ const nested = (value: unknown, path: string[]) => {
   return current
 }
 
+interface TaskRow {
+  id: string
+  garden_id: string
+  plant_name: string
+  variety?: string | null
+  task_type: string
+  date: string
+  completed: boolean
+  quantity?: number | string | null
+  notes?: string | null
+}
+
+interface WeatherLogRow {
+  log_date: string
+  raw_data?: unknown
+  temperature_max?: number | string | null
+  temperature_min?: number | string | null
+  precipitation_mm?: number | string | null
+}
+
+interface SensorRow {
+  sensor_type: string
+  value: number | string
+}
+
+interface SoilRow {
+  ph_value?: number | string | null
+  electrical_conductivity?: number | string | null
+  nitrogen_ppm?: number | string | null
+  phosphorus_ppm?: number | string | null
+  potassium_ppm?: number | string | null
+  organic_matter_percent?: number | string | null
+  analysis_date: string
+}
+
+interface PlantRow {
+  id: string
+  plant_name: string
+  variety?: string | null
+  health_score?: number | string | null
+  status?: string | null
+  updated_at?: string | null
+  created_at: string
+}
+
 export async function loadCanonicalPredictionInput(
   supabase: SupabaseClient,
   gardenId: string,
@@ -240,18 +285,18 @@ export async function loadCanonicalPredictionInput(
     supabase.from('garden_plants').select('*').eq('garden_id', gardenId).neq('status', 'harvested').neq('status', 'dead').limit(1000),
     supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),
   ])
-  const tasks = (tasksResult.data ?? []).map((row: any) => ({
+  const tasks = ((tasksResult.data ?? []) as TaskRow[]).map((row) => ({
     id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
     taskType: row.task_type, date: row.date, completed: Boolean(row.completed), quantity: finite(row.quantity), notes: row.notes,
   })) as GardenTask[]
-  const weatherRows = weatherResult.data ?? []
-  const latestWeather: any = weatherRows[0]
+  const weatherRows = (weatherResult.data ?? []) as WeatherLogRow[]
+  const latestWeather = weatherRows[0]
   const rawWeather = latestWeather?.raw_data
-  const latestSensors = sensorsResult.data ?? []
-  const sensor = (type: string) => latestSensors.find((row: any) => row.sensor_type === type)
-  const humiditySensor: any = sensor('humidity')
-  const moistureSensor: any = sensor('soil_moisture')
-  const windSensor: any = sensor('wind_speed')
+  const latestSensors = (sensorsResult.data ?? []) as SensorRow[]
+  const sensor = (type: string) => latestSensors.find((row) => row.sensor_type === type)
+  const humiditySensor = sensor('humidity')
+  const moistureSensor = sensor('soil_moisture')
+  const windSensor = sensor('wind_speed')
   const tempCurrent = finite(
     nested(rawWeather, ['snapshot', 'weather', 'temperatureCelsius']),
     latestWeather?.temperature_max !== undefined && latestWeather?.temperature_min !== undefined
@@ -259,8 +304,8 @@ export async function loadCanonicalPredictionInput(
       : undefined
   )
   const humidity = finite(humiditySensor?.value, nested(rawWeather, ['snapshot', 'weather', 'humidityPercentage']), nested(rawWeather, ['humidity']))
-  const forecastTemps = weatherRows.map((row: any) => finite(row.temperature_max, row.temperature_min)).filter((value): value is number => value !== undefined)
-  const forecastRain = weatherRows.map((row: any) => finite(row.precipitation_mm) ?? 0)
+  const forecastTemps = weatherRows.map((row) => finite(row.temperature_max, row.temperature_min)).filter((value): value is number => value !== undefined)
+  const forecastRain = weatherRows.map((row) => finite(row.precipitation_mm) ?? 0)
   const weather = tempCurrent !== undefined && humidity !== undefined ? {
     temperature: {
       current: tempCurrent,
@@ -275,7 +320,7 @@ export async function loadCanonicalPredictionInput(
     uvIndex: finite(nested(rawWeather, ['uvIndex'])) ?? 0,
     soilTemperature: finite(sensor('temperature')?.value, tempCurrent)!,
   } satisfies WeatherData : undefined
-  const soilRow: any = soilResult.data
+  const soilRow = soilResult.data as SoilRow | null
   const soilMoisture = finite(moistureSensor?.value)
   const soil = soilRow && soilMoisture !== undefined ? {
     ph: finite(soilRow.ph_value) ?? 7,
@@ -291,7 +336,7 @@ export async function loadCanonicalPredictionInput(
     compaction: 0,
     lastAnalysis: soilRow.analysis_date,
   } satisfies SoilData : undefined
-  const plants = (plantsResult.data ?? []).map((row: any) => ({
+  const plants = ((plantsResult.data ?? []) as PlantRow[]).map((row) => ({
     plantId: row.id, plantName: row.plant_name, variety: row.variety,
     healthScore: finite(row.health_score) ?? 0, growthStage: row.status || 'unknown',
     stressIndicators: [], diseases: row.status === 'diseased' ? ['observed_status_diseased'] : [], pests: [],
