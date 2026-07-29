@@ -1565,6 +1565,82 @@ suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 spazio (3.3GB liberi su 228GB), nonostante la pulizia worktree del lotto
 57. Da monitorare da vicino nei prossimi lotti.
 
+### Aggiornamento T01 - lotto 63 (29/07/2026)
+
+**Nota disco (inizio sessione):** 8 worktree orfani in `/private/tmp`
+(branch gia' mersati in `main`: `ai-credit-transaction-integrity`,
+`health-alerts-real-data`, `m15-production-evidence`,
+`o45-remove-orphan-tests`, `o46-production-e2e-close`,
+`fix-seedling-batch-actions`, `seedling-runtime-evidence`,
+`fix-soil-state-tillage-404`) rimossi con `git worktree remove`, piu' il
+worktree del lotto 62 (`ortomio-t01-b62`) dopo il merge della PR #119.
+Spazio libero: 8.0GB -> 9.7GB su 228GB (i worktree condividono oggetti
+Git via APFS, quindi il guadagno e' inferiore alla somma dei `du`
+individuali). Ancora da tenere sotto controllo, non piu' in stato
+critico per proseguire.
+
+Classifica ESLint rigenerata su `main` post-lotto 62 (baseline
+confermata: 1.408 warning). In cima alla classifica, 3 nuovi candidati
+a zero importer (nessun riferimento in `app/`/`components/`/`services/`
+al di fuori del file stesso), scartati e registrati per O45:
+`components/garden/ListView.tsx` (18 warning), `services/unifiedAgronomicMemoryService.ts`
+(18 warning, non importato da nessuno nonostante il nome suggerisca un
+ruolo centrale), `components/irrigation/WateringLogFormWithFieldRows.tsx`
+(17 warning). Confermati vivi e scelti come target: `services/prescriptionMapsService.ts`
+(33 warning, montato su `/app/prescription-maps` via `PrescriptionMapsDashboard.tsx`)
+e `services/directorService.ts` (18 warning, usato da `HomeDashboard`,
+`Dashboard`, `Planner`, `ProfessionalDashboard`, `DirectorBriefingWidget`
+e altri). Il cluster "AI Planner" morto (`aiPlanningService.ts`,
+`components/Planner.tsx` incluso in classifica con 19 warning tramite
+l'omonimo file orfano, `AIPlanningWizard.tsx`) e altri orfani gia' noti
+(`AnnualPlanner.tsx`, `Dashboard.tsx` root, `PrescriptionMapsDashboard_Mobile.tsx`,
+`FieldPlantManager.tsx`) restano esclusi per decisione utente/O45 gia'
+registrata nei lotti precedenti.
+
+Entrambi i file portati a zero warning tramite tipizzazione, nessuna
+modifica di comportamento. `directorService.ts`: rimossi i cast `as any`
+in `normalizeLegacyDailyPlanShape` (il tipo `DailyPlan` gia' garantisce
+gli array, i cast erano ridondanti); tipizzato `suggestion.action_priority`
+(gia' union `ActionPriority` identica al campo target, cast rimosso);
+tipizzati `diaryEntry`/`stats` in `generateRecommendations`/`generateSummary`
+con interfacce locali. `prescriptionMapsService.ts`: rimossi 2 import
+inutilizzati (`ZoneGenerationAlgorithm`, `PrescriptionAlgorithm`);
+`storageProvider` tipizzato `IStorageProvider` (costruttore e factory);
+`geometry`/bounds/righe NDVI tipizzati con interfacce locali dedicate;
+rimossi 3 parametri sempre-inutilizzati da `getNDVIData` (`bounds`),
+`getPlantLevelData` e `getSoilData` (tutti e 3 gli argomenti, funzioni
+stub che ritornano sempre `[]`) con aggiornamento dei call site.
+
+**Gap trovati durante la tipizzazione, NON toccati (stesso pattern
+M14/gap-registrati dei lotti precedenti, comportamento invariato):**
+1. `directorService.ts::generateRecommendations`/`generateSummary`:
+   `dailyDiaryService.getDailyEntry()` restituisce sempre
+   `{weather, tracking, events}` — i rami che leggono
+   `diaryEntry.weather_data`/`agronomic_data`/`lunar_phase` sono codice
+   morto permanente, questi campi non esistono mai nella risposta reale
+   e quei blocchi di raccomandazione non scattano mai.
+2. `prescriptionMapsService.ts::getGardenBounds`: prova a derivare i
+   bound geografici da `garden.points`, ma `GardenPoint` (types.ts)
+   espone solo coordinate a griglia `{x,y}` (`position`/`coordinates`),
+   mai lat/lon reali — il ramo "points >= 3" non e' mai raggiungibile,
+   si ricade sempre sul buffer di 0.001° attorno a `garden.coordinates`.
+3. `prescriptionMapsService.ts`: `getNDVIData` riceveva `bounds` ma non
+   lo usava mai (nessun filtro spaziale sulla query NDVI, solo
+   `garden_id`+intervallo date); `getPlantLevelData`/`getSoilData` sono
+   stub che ignorano tutti i parametri e ritornano sempre `[]`.
+4. `prescriptionMapsService.ts::resolveMapOwnerId`: prova
+   `garden.user_id`/`userId`/`ownerId`, ma `Garden` non espone alcun
+   campo owner lato client — il valore reale arriva sempre dalla query
+   Supabase diretta subito dopo.
+5. `prescriptionMapsService.ts::createPrescriptionMapRecord`: legge
+   `data.gardenName`/`data.createdBy`, ma il chiamante (spread di
+   `PrescriptionGenerationRequest`) non li passa mai — restano sempre
+   `undefined` (fallback `'Garden'` per il nome, nessun creator
+   registrato sulla mappa prescrittiva).
+
+Baseline globale verificata: **0 errori, 1.357 warning** (`1.408 -> 1.357`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
