@@ -13,8 +13,6 @@ import type {
   AITransparencyLog,
   AIPerformanceScore,
   SuggestionType,
-  DecisionType,
-  MetricType,
   SuggestionFilter
 } from '@/types/aiFeedback'
 
@@ -209,11 +207,11 @@ class CollaborativeAIService {
   async modifySuggestion(
     userId: string,
     suggestionId: string,
-    originalParameters: Record<string, any>,
-    modifiedParameters: Record<string, any>,
+    originalParameters: Record<string, unknown>,
+    modifiedParameters: Record<string, unknown>,
     reason?: string
   ): Promise<UserDecision | null> {
-    const modifications: Record<string, any> = {}
+    const modifications: Record<string, { original: unknown; modified: unknown }> = {}
     
     // Identifica cosa è stato modificato
     for (const key in modifiedParameters) {
@@ -425,8 +423,8 @@ class CollaborativeAIService {
   async applyLearning(
     userId: string,
     suggestionType: SuggestionType,
-    baseParameters: Record<string, any>
-  ): Promise<Record<string, any>> {
+    baseParameters: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
     try {
       // Carica pattern rilevanti
       const patterns = await this.getLearningPatterns(userId)
@@ -446,7 +444,7 @@ class CollaborativeAIService {
           if (pattern.pattern_data.parameter_adjustments) {
             for (const [key, adjustment] of Object.entries(pattern.pattern_data.parameter_adjustments)) {
               if (adjustedParameters[key] !== undefined) {
-                adjustedParameters[key] = adjustedParameters[key] * (adjustment as number)
+                adjustedParameters[key] = (adjustedParameters[key] as number) * (adjustment as number)
               }
             }
           }
