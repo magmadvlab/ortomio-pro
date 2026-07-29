@@ -3,13 +3,13 @@
  * Modal per export mappe prescrizione in vari formati
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  PrescriptionMap, 
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  PrescriptionMap,
   ExportConfiguration,
-  MachineryCompatibility 
+  MachineryCompatibility
 } from '../../types/prescriptionMaps';
-import { createGeoExportService } from '../../services/geoExportService';
+import { createGeoExportService, ExportResult } from '../../services/geoExportService';
 import { useStorage } from '../../packages/core/hooks/useStorage';
 import { 
   Download, 
@@ -34,7 +34,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
   onClose
 }) => {
   const { storageProvider } = useStorage();
-  const exportService = createGeoExportService(storageProvider);
+  const exportService = useMemo(() => createGeoExportService(storageProvider), [storageProvider]);
   
   // State
   const [exportConfig, setExportConfig] = useState<ExportConfiguration>({
@@ -59,17 +59,11 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
   
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [exportResult, setExportResult] = useState<any>(null);
+  const [exportResult, setExportResult] = useState<ExportResult | null>(null);
   
   const [activeTab, setActiveTab] = useState<'format' | 'machinery' | 'advanced'>('format');
 
-  useEffect(() => {
-    if (selectedMachinery.brand && selectedMachinery.model) {
-      checkMachineryCompatibility();
-    }
-  }, [selectedMachinery, exportConfig.format]);
-
-  const checkMachineryCompatibility = async () => {
+  const checkMachineryCompatibility = useCallback(async () => {
     try {
       const result = await exportService.checkMachineryCompatibility(
         exportConfig.format,
@@ -80,7 +74,13 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
     } catch (error) {
       console.error('Error checking machinery compatibility:', error);
     }
-  };
+  }, [exportConfig.format, selectedMachinery.brand, selectedMachinery.model, exportService]);
+
+  useEffect(() => {
+    if (selectedMachinery.brand && selectedMachinery.model) {
+      checkMachineryCompatibility();
+    }
+  }, [selectedMachinery, exportConfig.format, checkMachineryCompatibility]);
 
   const handleExport = async () => {
     try {
@@ -178,7 +178,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                 ].map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
-                    onClick={() => setActiveTab(key as any)}
+                    onClick={() => setActiveTab(key as typeof activeTab)}
                     className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                       activeTab === key
                         ? 'border-green-500 text-green-600'
@@ -214,7 +214,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                             name="format"
                             value={format}
                             checked={exportConfig.format === format}
-                            onChange={(e) => setExportConfig(prev => ({ ...prev, format: e.target.value as any }))}
+                            onChange={(e) => setExportConfig(prev => ({ ...prev, format: e.target.value as ExportConfiguration['format'] }))}
                             className="sr-only"
                           />
                           
@@ -244,7 +244,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           name="coordinateSystem"
                           value="WGS84"
                           checked={exportConfig.coordinateSystem === 'WGS84'}
-                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as any }))}
+                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as ExportConfiguration['coordinateSystem'] }))}
                           className="mr-3"
                         />
                         <div>
@@ -259,7 +259,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           name="coordinateSystem"
                           value="UTM"
                           checked={exportConfig.coordinateSystem === 'UTM'}
-                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as any }))}
+                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as ExportConfiguration['coordinateSystem'] }))}
                           className="mr-3"
                         />
                         <div>
@@ -456,7 +456,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                               value={exportConfig.kmlOptions?.colorScheme || 'default'}
                               onChange={(e) => setExportConfig(prev => ({
                                 ...prev,
-                                kmlOptions: { ...prev.kmlOptions, colorScheme: e.target.value as any }
+                                kmlOptions: { ...prev.kmlOptions, colorScheme: e.target.value as NonNullable<ExportConfiguration['kmlOptions']>['colorScheme'] }
                               }))}
                               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
@@ -481,7 +481,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                               value={exportConfig.csvOptions?.delimiter || ','}
                               onChange={(e) => setExportConfig(prev => ({
                                 ...prev,
-                                csvOptions: { ...prev.csvOptions, delimiter: e.target.value as any }
+                                csvOptions: { ...prev.csvOptions, delimiter: e.target.value as NonNullable<ExportConfiguration['csvOptions']>['delimiter'] }
                               }))}
                               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
@@ -499,7 +499,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                               value={exportConfig.csvOptions?.coordinateFormat || 'decimal'}
                               onChange={(e) => setExportConfig(prev => ({
                                 ...prev,
-                                csvOptions: { ...prev.csvOptions, coordinateFormat: e.target.value as any }
+                                csvOptions: { ...prev.csvOptions, coordinateFormat: e.target.value as NonNullable<ExportConfiguration['csvOptions']>['coordinateFormat'] }
                               }))}
                               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                             >
@@ -606,6 +606,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                     <div className="mt-3 flex gap-3">
                       <button
                         onClick={() => {
+                          if (!exportResult?.downloadUrl) return;
                           const link = document.createElement('a');
                           link.href = exportResult.downloadUrl;
                           link.download = exportResult.fileName;
@@ -616,9 +617,10 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                         <Download size={16} />
                         Download
                       </button>
-                      
+
                       <button
                         onClick={() => {
+                          if (!exportResult?.downloadUrl) return;
                           navigator.clipboard.writeText(exportResult.downloadUrl);
                           alert('Link copiato negli appunti');
                         }}
