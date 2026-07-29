@@ -1,16 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  Shield, 
-  CheckCircle, 
-  AlertTriangle, 
-  FileText, 
-  Users, 
-  RotateCcw, 
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  Shield,
+  CheckCircle,
+  AlertTriangle,
+  FileText,
+  RotateCcw,
   Download,
-  Plus,
-  Calendar,
   TrendingUp,
   Award,
   Clock,
@@ -33,11 +30,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
   const [creatingDocument, setCreatingDocument] = useState<string | null>(null)
   const [completingAction, setCompletingAction] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadComplianceOverview()
-  }, [gardenId])
-
-  const loadComplianceOverview = async () => {
+  const loadComplianceOverview = useCallback(async () => {
     try {
       setLoading(true)
       const [afOverview, completeData] = await Promise.all([
@@ -51,14 +44,18 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
     } finally {
       setLoading(false)
     }
-  }
+  }, [gardenId])
+
+  useEffect(() => {
+    loadComplianceOverview()
+  }, [loadComplianceOverview])
 
   const handleExportAuditPackage = async () => {
     const params = new URLSearchParams({ garden_id: gardenId, dataset: 'certification_dossier' })
     window.location.assign(`/api/export/csv?${params.toString()}`)
   }
 
-  const handleCreateDocument = async (requirementId: string, documentType: string) => {
+  const handleCreateDocument = async (requirementId: string) => {
     try {
       setCreatingDocument(requirementId)
       
@@ -353,13 +350,13 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
         <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6">
             {[
-              { id: 'overview', label: 'Panoramica', icon: TrendingUp },
-              { id: 'requirements', label: 'Requisiti', icon: FileText },
-              { id: 'actions', label: 'Azioni', icon: Target }
+              { id: 'overview' as const, label: 'Panoramica', icon: TrendingUp },
+              { id: 'requirements' as const, label: 'Requisiti', icon: FileText },
+              { id: 'actions' as const, label: 'Azioni', icon: Target }
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-green-500 text-green-600'
@@ -502,7 +499,7 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                           Template non persistente
                         </span>
                         <button
-                          onClick={() => handleCreateDocument(requirement.id, requirement.action)}
+                          onClick={() => handleCreateDocument(requirement.id)}
                           disabled={creatingDocument === requirement.id}
                           className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                         >

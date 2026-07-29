@@ -1641,6 +1641,85 @@ M14/gap-registrati dei lotti precedenti, comportamento invariato):**
 Baseline globale verificata: **0 errori, 1.357 warning** (`1.408 -> 1.357`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 64 (29/07/2026)
+
+**Nota disco:** rimosso il worktree del lotto 63 dopo il merge della PR
+#120 e aperto quello del lotto 64 da `origin/main` aggiornato. Spazio
+libero salito autonomamente da 9.7GB a 37GB su 228GB durante la
+sessione (probabile scadenza di snapshot di sistema, non attribuibile
+alla pulizia worktree) — non piu' un vincolo per questo lotto.
+
+Classifica ESLint rigenerata (baseline confermata: 1.357 warning). La
+verifica di raggiungibilita' su ~30 candidati in classifica ha
+**scoperto 14 nuovi file orfani** (zero importer reali, verificato con
+grep su `app/`/`components/`/`services/`), oltre ai gia' noti: `components/planner/tabs/PlannerWizard.tsx`,
+`services/integratedStaggeringService.ts` (importato solo da `aiPlanningService.ts`,
+gia' nel cluster morto), `components/shared/GeographicMatchingWidget.tsx`,
+`components/AromaticHarvest.tsx`, `services/autoBackupService.ts`,
+`components/OliveHarvest.tsx`, `components/VineHarvest.tsx`,
+`components/analytics/PredictiveDashboard.tsx` (raggiungibile solo via
+`components/analytics/UnifiedDashboard.tsx`, anch'esso orfano),
+`components/analytics/UnifiedDashboard.tsx`, `services/intelligentNotificationService.ts`
+(raggiungibile solo via `components/monitoring/ContinuousMonitoringDashboard.tsx`,
+anch'esso orfano — nonostante fosse stato portato a zero warning nel
+lotto 2 il 24/07/2026, quando era ancora vivo), `components/monitoring/ContinuousMonitoringDashboard.tsx`,
+`components/fieldrows/QuickOperationModal.tsx`, `components/plants/PlantPhotoTimeline.tsx`,
+`lib/reports/exportReportPDF.ts`, `components/plants/MaturityTracker.tsx`
+(non confondere con `components/vineyard/GrapeMaturityTracker.tsx`, vivo
+e diverso), `components/plants/TreatmentTracker.tsx`, `components/plants/BrixTracker.tsx`,
+`components/shared/GardenBedsWidget.tsx`, `components/HarvestLog.tsx`
+(non confondere col tipo `HarvestLogData`, vivo e diverso),
+`components/compliance/SelfAssessmentForm.tsx`, `components/fieldrows/IntegratedFieldOperationsModal.tsx`,
+`components/health/HealthDashboard.tsx`, `components/ndvi/MultiGardenNDVIDashboard.tsx`,
+`components/planner/ZoneMappingTool.tsx` (raggiungibile solo via
+`VisualGardenPlanner.tsx`, gia' noto come morto), `components/compliance/RiskManagementPlan.tsx`
+e `components/compliance/RecallProcedure.tsx` (gia' segnalato nel lotto
+13 come "non ancora analizzato per O45", ora confermato morto). Tutti
+registrati qui per il censimento O45; nessuna rimozione fatta in questo
+lotto, solo classificazione.
+
+Confermati vivi e scelti come target: le 3 route `app/app/health/page.tsx`,
+`app/app/olives/page.tsx`, `app/app/planner/page.tsx` (vive per
+definizione, sono pagine montate), piu' 4 componenti verificati con
+grep: `components/professional/TreatmentRegisterForm.tsx` (vivo via
+`TreatmentRegister.tsx`), `components/compliance/GlobalGapDashboard.tsx`
+(vivo via `CertificationsDashboard.tsx`), `components/garden/PlantsView.tsx`
+(vivo via `/app/plants` e `GardenView.tsx`), `components/gardens/BedManager.tsx`
+(vivo via `GardenView.tsx`). Tutti e 7 portati a zero warning (46 -> 0,
+salvo 2 lasciati intenzionalmente, vedi sotto): import morti rimossi,
+`exhaustive-deps` risolto con `useCallback` (spostando le funzioni
+prima degli effect che le referenziano, altrimenti si crea un
+riferimento a variabile non ancora inizializzata nello stesso render),
+`as any` sostituiti con union type reali o intersezioni per campi
+legacy (vedi gap sotto), parametro `_orchardId` mai usato rimosso da
+`handleWizardComplete` (il tipo della prop `onComplete` accetta comunque
+una funzione con meno parametri), funzione `getUpcomingTasks` rimossa
+per intero in `planner/page.tsx` (risultato calcolato e mai
+consumato, insieme ai 4 import `date-fns` diventati orfani di
+conseguenza).
+
+**2 warning lasciati intenzionalmente** in `app/app/health/page.tsx`
+(`no-img-element` su foto catturate da fotocamera, data-URI/blob:
+stesso pattern gia' documentato nel lotto 8, la conversione a
+`next/image` e' un cambio di comportamento non un fix lint).
+
+**Gap trovati durante la tipizzazione, NON toccati (stesso pattern dei
+lotti precedenti, comportamento invariato):**
+1. `app/app/health/page.tsx` e `components/garden/PlantsView.tsx`:
+   `Garden` non ha mai avuto `slopePercentage`/`slopeClass` (la
+   pendenza si calcola altrove, es. `environmentalMonitoringService.ts`) —
+   restano sempre `null` nel contesto costruito per health/maturity.
+2. `components/garden/PlantsView.tsx`: `GardenTask` non ha mai avuto
+   `fieldRowId` (solo `rowId`) — il fallback e' sempre vuoto, si usa
+   sempre `rowId`.
+3. `app/app/olives/page.tsx`: `GardenTask` non ha mai avuto
+   `fieldRowSectionId`/`fieldRowId` (solo `zoneId`) — il filtro per
+   posizione selezionata funziona di fatto solo sulla zona, gli altri
+   due livelli (sezione filare, filare) non hanno mai avuto effetto.
+
+Baseline globale verificata: **0 errori, 1.313 warning** (`1.357 -> 1.313`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
