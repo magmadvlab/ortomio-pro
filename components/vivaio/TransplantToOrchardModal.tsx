@@ -3,10 +3,11 @@
  * Modal per trapiantare dal vivaio all'orto con monitoraggio individuale
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { Garden } from '@/types'
+import type { FieldRow } from '@/types/fieldRow'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { transplantOrchestrationService, TransplantResult } from '@/services/transplantOrchestrationService'
 import { 
@@ -40,37 +41,27 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
   const availableQuantity = batch.survivingQuantity ?? batch.currentQuantity ?? batch.quantity ?? 0
   
   // State
-  const [fieldRows, setFieldRows] = useState<any[]>([])
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
   const [selectedFieldRow, setSelectedFieldRow] = useState<string>('')
   const [quantityToTransplant, setQuantityToTransplant] = useState<number>(availableQuantity)
   const [plantSpacing, setPlantSpacing] = useState(50) // cm
   const [startingPosition, setStartingPosition] = useState(1)
   const [loading, setLoading] = useState(false)
   const [calculating, setCalculating] = useState(false)
-  
+
   // Calculated values
-  const [calculatedPositions, setCalculatedPositions] = useState<number>(0)
+  const [, setCalculatedPositions] = useState<number>(0)
   const [estimatedRowLength, setEstimatedRowLength] = useState<number>(0)
-  
-  useEffect(() => {
-    if (isOpen) {
-      loadFieldRows()
-    }
-  }, [isOpen, garden.id])
-  
-  useEffect(() => {
-    calculatePlantPositions()
-  }, [quantityToTransplant, plantSpacing, startingPosition])
-  
-  const loadFieldRows = async () => {
+
+  const loadFieldRows = useCallback(async () => {
     try {
       console.log('🌾 TransplantModal: Caricamento filari per orto:', garden.name, garden.id)
       const rows = await storageProvider.getFieldRows?.(garden.id) || []
       console.log('🌾 TransplantModal: Filari caricati:', rows.length, rows.map(r => ({ id: r.id, name: r.name, cultivar: r.cultivar })))
       setFieldRows(rows)
-      
+
       // Auto-select compatible row if available
-      const compatibleRow = rows.find((row: any) => 
+      const compatibleRow = rows.find((row) =>
         row.cultivar?.toLowerCase().includes(batch.plantName.toLowerCase()) ||
         !row.cultivar // Empty row
       )
@@ -86,20 +77,30 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
     } catch (error) {
       console.error('❌ TransplantModal: Errore caricamento filari:', error)
     }
-  }
-  
-  const calculatePlantPositions = () => {
+  }, [garden, storageProvider, batch.plantName])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadFieldRows()
+    }
+  }, [isOpen, loadFieldRows])
+
+  const calculatePlantPositions = useCallback(() => {
     setCalculating(true)
-    
+
     // Calcola posizioni e lunghezza necessaria
     const positions = quantityToTransplant || 0
     const lengthNeeded = (positions * plantSpacing) / 100 // metri
-    
+
     setCalculatedPositions(positions)
     setEstimatedRowLength(lengthNeeded)
-    
+
     setTimeout(() => setCalculating(false), 300)
-  }
+  }, [quantityToTransplant, plantSpacing])
+
+  useEffect(() => {
+    calculatePlantPositions()
+  }, [startingPosition, calculatePlantPositions])
   
   const handleTransplant = async () => {
     if (!selectedFieldRow) {
@@ -166,11 +167,14 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
         
         // 6. Aggiorna filare con nuova configurazione
         console.log('🔄 TransplantModal: Aggiornamento filare...')
-        const updatedFieldRow = {
+        const updatedFieldRow: Partial<FieldRow> & {
+          // Nessun campo FieldRow corrispondente: metadata extra non persistito dallo schema attuale.
+          last_transplant?: { date: string; batchId: string; quantity: number; operationId: string }
+        } = {
           ...fieldRow,
           cultivar: batch.plantName + (batch.variety ? ` ${batch.variety}` : ''),
           plant_spacing: plantSpacing,
-          plant_count: (fieldRow.plant_count || 0) + (quantityToTransplant || 0),
+          plantCount: (fieldRow.plantCount || 0) + (quantityToTransplant || 0),
           planted_date: operation.transplantDate,
           last_transplant: {
             date: operation.transplantDate,
@@ -213,8 +217,8 @@ export const TransplantToOrchardModal: React.FC<TransplantToOrchardModalProps> =
   if (!isOpen) return null
   
   const selectedRow = fieldRows.find(row => row.id === selectedFieldRow)
-  const canFitInRow = selectedRow ? 
-    (estimatedRowLength <= selectedRow.length_meters) : true
+  const canFitInRow = selectedRow ?
+    (estimatedRowLength <= (selectedRow.length_meters ?? 0)) : true
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

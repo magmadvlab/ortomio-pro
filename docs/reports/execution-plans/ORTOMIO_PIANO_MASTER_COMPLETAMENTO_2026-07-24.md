@@ -1785,6 +1785,93 @@ resta un gap di prodotto non affrontato qui.
 Baseline globale verificata: **0 errori, 1.270 warning** (`1.313 -> 1.270`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 66 (29/07/2026)
+
+**Scoperta rilevante: `components/garden/GardenView.tsx` risulta ora
+completamente orfano** (zero riferimenti in tutto `app/`/`components/`,
+verificato con grep sull'intero albero) — non solo un file isolato ma
+la vecchia vista giardino "monolitica" che il piano master cita
+ripetutamente come componente vivo nei lotti passati (es. lotto 64:
+"BedManager.tsx vivo via GardenView.tsx"). Non e' chiaro quando sia
+stata scollegata; le route reali del giardino oggi passano da altri
+componenti (`/app/garden` monta `GardenHubPage`, non `GardenView`).
+Cascata di orfani conseguente, tutti verificati zero-importer dopo
+GardenView: `components/sunExposure/EnvironmentalPlanningSection.tsx`
+(unico importer era GardenView), `components/sunExposure/SunExposureWidget.tsx`
+(importer erano solo `components/Dashboard.tsx`, gia' morto, e
+`EnvironmentalPlanningSection.tsx`, ora morto anch'esso),
+`components/sunExposure/SunExposureDetailModal.tsx` (unico importer
+era SunExposureWidget). Tutti e 4 registrati per O45. **Nota
+metodologica per O45: quando si verifica un file di grandi dimensioni
+gia' dato per vivo in lotti precedenti, riverificare comunque — lo
+stato di raggiungibilita' del codebase cambia rapidamente con i
+refactor in corso.**
+
+Classifica ESLint rigenerata (baseline confermata: 1.270 warning).
+Confermati vivi con grep ricorsivo (nessuno dipende da GardenView):
+`components/agronomist/ConsultationForm.tsx` (via `Advice.tsx`,
+`/app/advice`), `components/diary/AutomatedDiaryViewer.tsx` (via
+`/app/diary`), `components/harvest/HarvestDashboard.tsx` (via
+`/app/harvest`), `components/ndvi/NDVIDashboard.tsx` (via `/app/ndvi`),
+`components/phyto/TreatmentPlanner.tsx` (via `/app/nutrition`),
+`components/planner/TaskCalendar.tsx` (via `/app/planner-classic` e
+`/app/planner`), `components/vineyard/VineyardWizard.tsx` (via
+`/app/vineyard`), `components/vivaio/TransplantToOrchardModal.tsx`
+(via `SeedlingManager.tsx`, montato da `HomeDashboard.tsx`). Altri
+candidati verificati vivi ma non scelti in questo lotto (restano
+disponibili per il 67): `useDeviceOrientation.ts`, `useProductCards.ts`,
+`services/biologicalControlService.ts`, `components/planner/PlannerAIChat.tsx`
+(via `DiaryPlannerIntegration.tsx` -> `UnifiedTimelineDiary.tsx`,
+`/app/diary`), `components/prescription/CostOptimizationPanel.tsx`
+(via `PrescriptionMapsDashboard.tsx`, `/app/prescription-maps`).
+
+40 -> 0 warning sugli 8 file (nessun warning intenzionale lasciato
+questa volta). Import morti rimossi, `exhaustive-deps` risolto con
+`useCallback` (per funzioni pure senza dipendenze da stato/props,
+usata la function-declaration hoisted invece di `useCallback`, es.
+`buildDiaryEntries` in `AutomatedDiaryViewer.tsx` — ma quando la
+funzione chiude su stato/props del componente, la hoisted declaration
+NON basta: ESLint la considera comunque instabile e richiede comunque
+`useCallback` anche su di lei, vedi `loadHarvests` in
+`HarvestDashboard.tsx`), `as any` sostituiti con union type reali o
+interfacce dedicate, coppie `useState` con getter morto ma setter vivo
+ridotte al solo binding necessario, variabile calcolata e mai
+consumata rimossa (`averageQuality` in `HarvestDashboard.tsx`,
+superata da `harvestAnalysis.averageQualityRating`).
+
+**2 bug reali trovati e corretti (non solo gap registrati), stesso
+principio D9/lotto 5/lotto 65:**
+1. `components/phyto/TreatmentPlanner.tsx::loadRecommendation`:
+   `suggestPhytoProduct`/`checkTreatmentTiming` si aspettano le
+   previsioni meteo di **un singolo giorno** (`{tempMin, tempMax,
+   precipitation, wind}`), ma ricevevano l'intero **array** `WeatherForecast[]`
+   restituito da `getWeatherForecast` — e per giunta lo stato
+   `weatherForecast` non ancora aggiornato (chiusura sullo state
+   precedente, non sul valore appena caricato). Risultato: ogni
+   controllo di sicurezza meteo (pioggia/temperatura/vento) prima di
+   raccomandare o registrare un trattamento fitosanitario era
+   silenziosamente disattivato, sempre. Anche la UI mostrava sempre
+   "0mm/0°C/0 km/h" invece delle previsioni reali. Corretto passando
+   `forecast?.[0]` (previsione di oggi, dal valore appena caricato) a
+   entrambe le funzioni e alla UI.
+2. `components/vivaio/TransplantToOrchardModal.tsx::handleTransplant`:
+   il conteggio piante del filare veniva aggiornato scrivendo
+   `plant_count`, un campo che non esiste su `FieldRow` (il campo
+   reale e' `plantCount`) — l'incremento non veniva mai persistito.
+   Corretto.
+
+**1 metadato extra senza campo schema corrispondente, lasciato
+invariato:** `TransplantToOrchardModal.tsx` scrive anche
+`last_transplant` (data/batch/quantita'/operationId) nell'update del
+filare, ma `FieldRow` non ha alcun campo con questo nome ne' un
+equivalente — probabilmente ignorato dal layer di persistenza.
+Tipizzato come metadato extra opzionale per non alterare il
+comportamento, non rimosso ne' collegato a un campo reale (richiede
+decisione di prodotto/schema).
+
+Baseline globale verificata: **0 errori, 1.230 warning** (`1.270 -> 1.230`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

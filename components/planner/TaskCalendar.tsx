@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, ChevronLeft, ChevronRight, Edit, Trash2, Check, Clock, Moon } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Trash2, Check, Moon } from 'lucide-react'
 import { Garden, GardenTask } from '@/types'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isSameMonth, isToday } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -78,7 +78,6 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
   // Ottieni i giorni del mese corrente
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
-  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
   // Aggiungi giorni del mese precedente e successivo per completare la griglia
   const startDate = new Date(monthStart)
@@ -151,7 +150,7 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
     const task: Omit<GardenTask, 'id'> = {
       gardenId: garden.id,
       plantName: newTask.plantName,
-      taskType: newTask.taskType as any,
+      taskType: newTask.taskType as GardenTask['taskType'],
       date: newTask.date,
       notes: newTask.notes,
       variety: newTask.variety || undefined,
@@ -191,7 +190,7 @@ export default function TaskCalendar({ garden, tasks, onTaskUpdate, onTaskCreate
     const updatedTask: GardenTask = {
       ...editingTask,
       plantName: newTask.plantName,
-      taskType: newTask.taskType as any,
+      taskType: newTask.taskType as GardenTask['taskType'],
       date: newTask.date,
       nextDueDate: newTask.date,
       notes: preserveAgronomicQueueTaskMetadata(editingTask.notes, newTask.notes),

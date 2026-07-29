@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Garden } from '../../types';
 import { NDVISatelliteService, NDVIReading, NDVIZoneAnalysis } from '../../services/ndviSatelliteService';
 import SentinelHubStatus from './SentinelHubStatus';
 import NDVIMap from './NDVIMap';
-import ActionButton, { ActionContext } from '../actions/ActionButton';
+import ActionButton, { ActionContext, ActionType } from '../actions/ActionButton';
 import InterventionWizard, { InterventionData } from '../actions/InterventionWizard';
 import MobileTabNavigation from '../shared/MobileTabNavigation';
 import { interventionService } from '../../services/interventionService';
@@ -18,20 +18,16 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
   const [ndviData, setNdviData] = useState<NDVIReading | null>(null);
   const [zones, setZones] = useState<NDVIZoneAnalysis[]>([]);
   const [trend, setTrend] = useState<Array<{ date: string; ndvi: number; health: string }>>([]);
-  const [stressAreas, setStressAreas] = useState<any[]>([]);
+  const [stressAreas, setStressAreas] = useState<Awaited<ReturnType<typeof NDVISatelliteService.detectStressAreas>>>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'zones' | 'trend' | 'stress'>('overview');
   const [apiConnected, setApiConnected] = useState<boolean>(false);
-  
+
   // Wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<any>(null);
+  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
   const [actionContext, setActionContext] = useState<ActionContext | null>(null);
 
-  useEffect(() => {
-    loadNDVIData();
-  }, [garden.id]);
-
-  const loadNDVIData = async () => {
+  const loadNDVIData = useCallback(async () => {
     setLoading(true);
     try {
       const ndvi = await NDVISatelliteService.getLatestNDVI(garden);
@@ -50,7 +46,11 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [garden]);
+
+  useEffect(() => {
+    loadNDVIData();
+  }, [loadNDVIData]);
 
   const getHealthColor = (health: string) => {
     switch (health) {
@@ -82,7 +82,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
     return <Minus className="w-4 h-4 text-gray-600" />;
   };
 
-  const handleActionSelected = (actionType: any, context: ActionContext) => {
+  const handleActionSelected = (actionType: ActionType, context: ActionContext) => {
     setSelectedAction(actionType);
     setActionContext(context);
     setWizardOpen(true);
@@ -250,7 +250,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
         <MobileTabNavigation
           tabs={ndviTabs}
           activeTab={activeTab}
-          onTabChange={(tabId) => setActiveTab(tabId as any)}
+          onTabChange={(tabId) => setActiveTab(tabId as 'overview' | 'map' | 'zones' | 'trend' | 'stress')}
           className="border-b border-gray-200 px-6 py-4"
         />
 
@@ -487,7 +487,9 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                           <ActionButton
                             sourceType="ndvi"
                             sourceData={{
-                              ndvi_value: area.avg_ndvi || 0.3,
+                              // `detectStressAreas` non ritorna mai `avg_ndvi` (ne' produce mai
+                              // aree, e' uno stub che ritorna sempre []): fallback sempre usato.
+                              ndvi_value: (area as typeof area & { avg_ndvi?: number }).avg_ndvi || 0.3,
                               stress_type: area.stress_type,
                               severity: area.severity,
                               affected_area_m2: area.affected_area_m2,

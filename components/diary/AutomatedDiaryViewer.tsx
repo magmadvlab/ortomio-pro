@@ -1,15 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { 
-  Calendar, 
-  Cloud, 
-  Droplets, 
-  Wind, 
-  Sun, 
-  Moon,
-  TrendingUp,
-  TrendingDown,
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  Calendar,
+  Droplets,
+  Wind,
+  Sun,
   AlertTriangle,
   CheckCircle,
   Thermometer,
@@ -55,11 +51,7 @@ export default function AutomatedDiaryViewer({ gardenId, gardenName }: Automated
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month')
   const [selectedEntry, setSelectedEntry] = useState<DailyDiaryEntry | null>(null)
 
-  useEffect(() => {
-    loadDiaryEntries()
-  }, [gardenId, selectedPeriod])
-
-  const loadDiaryEntries = async () => {
+  const loadDiaryEntries = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -85,13 +77,17 @@ export default function AutomatedDiaryViewer({ gardenId, gardenName }: Automated
     } finally {
       setLoading(false)
     }
-  }
+  }, [gardenId, selectedPeriod])
 
-  const buildDiaryEntries = (
+  useEffect(() => {
+    loadDiaryEntries()
+  }, [loadDiaryEntries])
+
+  function buildDiaryEntries(
     weather: DailyWeatherLog[],
     tracking: CultivationDailyTracking[],
     events: DiaryEvent[]
-  ): DailyDiaryEntry[] => {
+  ): DailyDiaryEntry[] {
     const trackingByDate = new Map<string, CultivationDailyTracking[]>()
     const eventsByDate = new Map<string, DiaryEvent[]>()
 

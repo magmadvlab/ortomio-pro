@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, Weight, TrendingUp, Package, Edit2, Trash2, Sprout, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Weight, TrendingUp, Package, Edit2, Trash2, Sprout, AlertCircle } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
 import { HarvestRegistrationModal } from './HarvestRegistrationModal';
 import type { HarvestLaunchRequest } from './HarvestRegistrationModal';
@@ -60,9 +60,78 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
   const [filterPeriod, setFilterPeriod] = useState<'week' | 'month' | 'year' | 'all'>('month');
   const [filterType, setFilterType] = useState<'all' | 'tracked' | 'manual'>('all');
 
+  const loadHarvests = useCallback(async () => {
+    if (!supabase) {
+      // Fallback per sviluppo locale senza Supabase
+      setHarvests([]);
+      return;
+    }
+
+    try {
+      let query = supabase
+        .from('harvest_logs')
+        .select('*')
+        .order('harvest_date', { ascending: false });
+
+      // Filtra per giardino se specificato
+      if (gardenId) {
+        query = query.eq('garden_id', gardenId);
+      }
+
+      // Apply date filter
+      if (filterPeriod !== 'all') {
+        const now = new Date();
+        const startDate = new Date();
+
+        switch (filterPeriod) {
+          case 'week':
+            startDate.setDate(now.getDate() - 7);
+            break;
+          case 'month':
+            startDate.setMonth(now.getMonth() - 1);
+            break;
+          case 'year':
+            startDate.setFullYear(now.getFullYear() - 1);
+            break;
+        }
+
+        query = query.gte('harvest_date', startDate.toISOString().split('T')[0]);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setHarvests(data || []);
+
+    } catch (error) {
+      console.error('Error loading harvests:', error);
+      setHarvests([]);
+    }
+  }, [supabase, gardenId, filterPeriod]);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Carica raccolti
+      await loadHarvests();
+
+      // Carica colture piantate se abbiamo un gardenId
+      if (gardenId && storageProvider) {
+        const tasks = await storageProvider.getTasks(gardenId);
+        setPlantedCrops(tasks);
+      }
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [gardenId, storageProvider, loadHarvests]);
+
   useEffect(() => {
     loadData();
-  }, [gardenId, filterPeriod]);
+  }, [loadData]);
 
   useEffect(() => {
     const loadQualityAdjustment = async () => {
@@ -101,75 +170,6 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
     setEditingHarvest(null);
     setShowModal(true);
   }, [openCreate]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      
-      // Carica raccolti
-      await loadHarvests();
-      
-      // Carica colture piantate se abbiamo un gardenId
-      if (gardenId && storageProvider) {
-        const tasks = await storageProvider.getTasks(gardenId);
-        setPlantedCrops(tasks);
-      }
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadHarvests = async () => {
-    if (!supabase) {
-      // Fallback per sviluppo locale senza Supabase
-      setHarvests([]);
-      return;
-    }
-
-    try {
-      let query = supabase
-        .from('harvest_logs')
-        .select('*')
-        .order('harvest_date', { ascending: false });
-
-      // Filtra per giardino se specificato
-      if (gardenId) {
-        query = query.eq('garden_id', gardenId);
-      }
-
-      // Apply date filter
-      if (filterPeriod !== 'all') {
-        const now = new Date();
-        const startDate = new Date();
-        
-        switch (filterPeriod) {
-          case 'week':
-            startDate.setDate(now.getDate() - 7);
-            break;
-          case 'month':
-            startDate.setMonth(now.getMonth() - 1);
-            break;
-          case 'year':
-            startDate.setFullYear(now.getFullYear() - 1);
-            break;
-        }
-        
-        query = query.gte('harvest_date', startDate.toISOString().split('T')[0]);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setHarvests(data || []);
-
-    } catch (error) {
-      console.error('Error loading harvests:', error);
-      setHarvests([]);
-    }
-  };
 
   const refreshTrackedCrops = async () => {
     if (!gardenId || !storageProvider) {
@@ -382,9 +382,6 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
   // Calculate statistics
   const totalQuantity = filteredHarvests.reduce((sum, h) => sum + h.quantity, 0);
   const uniquePlants = new Set(filteredHarvests.map(h => h.plant_name)).size;
-  const averageQuality = filteredHarvests.length > 0 
-    ? filteredHarvests.filter(h => h.rating).reduce((sum, h) => sum + (h.rating || 0), 0) / filteredHarvests.filter(h => h.rating).length
-    : 0;
   const trackedHarvests = filteredHarvests.filter(h => h.is_tracked).length;
   const harvestAnalysis = HarvestTrackingService.analyzeHarvestPerformance(
     filteredHarvests,
@@ -530,7 +527,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
             <label className="text-sm font-medium text-gray-700">Periodo:</label>
             <select
               value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value as any)}
+              onChange={(e) => setFilterPeriod(e.target.value as 'week' | 'month' | 'year' | 'all')}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             >
               <option value="week">Ultima settimana</option>
@@ -544,7 +541,7 @@ export const HarvestDashboard: React.FC<HarvestDashboardProps> = ({
             <label className="text-sm font-medium text-gray-700">Tipo:</label>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
+              onChange={(e) => setFilterType(e.target.value as 'all' | 'tracked' | 'manual')}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             >
               <option value="all">Tutti</option>
