@@ -3,10 +3,10 @@
  * Algoritmi avanzati per ottimizzazione costi precision farming
  */
 
+import type { IStorageProvider } from '../packages/core/storage/interface';
 import {
   PrescriptionMap,
-  PrescriptionZone,
-  PrescriptionCostAnalysis
+  PrescriptionZone
 } from '../types/prescriptionMaps';
 
 export interface CostOptimizationRequest {
@@ -148,13 +148,28 @@ export interface RealTimeOptimization {
   estimatedTimeRemaining: number; // seconds
 }
 
+type CostOptimizationStorageProvider = Pick<IStorageProvider, 'getPrescriptionMap'>;
+
+interface OptimizationProblem {
+  variables: Array<{
+    id: string;
+    currentRate: number;
+    minRate: number;
+    maxRate: number;
+    area: number;
+  }>;
+  objectives: CostOptimizationRequest['optimizationGoals'];
+  constraints: CostOptimizationRequest['constraints'];
+  bounds: Record<string, unknown>;
+}
+
 /**
  * COST OPTIMIZATION SERVICE
  */
 export class CostOptimizationService {
-  private storageProvider: any;
+  private storageProvider: CostOptimizationStorageProvider;
 
-  constructor(storageProvider: any) {
+  constructor(storageProvider: CostOptimizationStorageProvider) {
     this.storageProvider = storageProvider;
   }
 
@@ -185,24 +200,16 @@ export class CostOptimizationService {
       );
       
       // 5. Calculate optimized metrics
-      const optimized = await this.calculateOptimizedMetrics(
-        prescriptionMap,
-        optimizationResult.solution
-      );
+      const optimized = await this.calculateOptimizedMetrics();
       
       // 6. Generate implementation plan
       const implementationPlan = await this.generateImplementationPlan(
         prescriptionMap,
-        optimizationResult.solution,
-        baseline,
-        optimized
-      );
-      
-      // 7. Perform sensitivity analysis
-      const sensitivityAnalysis = await this.performSensitivityAnalysis(
-        optimizationProblem,
         optimizationResult.solution
       );
+
+      // 7. Perform sensitivity analysis
+      const sensitivityAnalysis = await this.performSensitivityAnalysis();
       
       // 8. Calculate improvements
       const improvements = this.calculateImprovements(baseline, optimized);
@@ -239,24 +246,20 @@ export class CostOptimizationService {
     objectives: Array<{name: string, weight: number, target: number}>
   ): Promise<MultiObjectiveOptimization> {
     try {
-      const prescriptionMap = await this.loadPrescriptionMap(prescriptionMapId);
-      
+      // La mappa non serve piu' a valle (i calcoli sono mock), ma il caricamento
+      // resta per validare che prescriptionMapId esista davvero (lancia se assente).
+      await this.loadPrescriptionMap(prescriptionMapId);
+
       // Generate Pareto frontier
-      const paretoFrontier = await this.generateParetoFrontier(
-        prescriptionMap,
-        objectives
-      );
-      
+      const paretoFrontier = await this.generateParetoFrontier();
+
       // Find recommended solution
-      const recommendedSolution = this.findRecommendedSolution(
-        paretoFrontier,
-        objectives
-      );
-      
+      const recommendedSolution = this.findRecommendedSolution();
+
       return {
         objectives: objectives.map(obj => ({
           ...obj,
-          currentValue: this.getCurrentObjectiveValue(prescriptionMap, obj.name),
+          currentValue: this.getCurrentObjectiveValue(),
           targetValue: obj.target,
           unit: this.getObjectiveUnit(obj.name)
         })),
@@ -347,9 +350,9 @@ export class CostOptimizationService {
   }> {
     // Calculate current metrics
     const totalCost = map.costAnalysis?.totalInputCost || 0;
-    const expectedYield = this.calculateExpectedYield(map);
+    const expectedYield = this.calculateExpectedYield();
     const environmentalScore = map.costAnalysis?.environmentalScore || 0;
-    const efficiencyScore = this.calculateEfficiencyScore(map);
+    const efficiencyScore = this.calculateEfficiencyScore();
     
     return {
       totalCost,
@@ -363,7 +366,7 @@ export class CostOptimizationService {
     map: PrescriptionMap,
     goals: CostOptimizationRequest['optimizationGoals'],
     constraints: CostOptimizationRequest['constraints']
-  ): any {
+  ): OptimizationProblem {
     // Set up optimization problem structure
     return {
       variables: map.zones.map(zone => ({
@@ -375,12 +378,12 @@ export class CostOptimizationService {
       })),
       objectives: goals,
       constraints,
-      bounds: this.calculateVariableBounds(map, constraints)
+      bounds: this.calculateVariableBounds()
     };
   }
 
   private async runOptimizationAlgorithm(
-    problem: any,
+    problem: OptimizationProblem,
     algorithm: string
   ): Promise<{
     solution: Record<string, number>;
@@ -393,24 +396,22 @@ export class CostOptimizationService {
       case 'simulated_annealing':
         return this.runSimulatedAnnealing(problem);
       case 'particle_swarm':
-        return this.runParticleSwarmOptimization(problem);
+        return this.runParticleSwarmOptimization();
       case 'gradient_descent':
-        return this.runGradientDescent(problem);
+        return this.runGradientDescent();
       default:
         throw new Error(`Unknown optimization algorithm: ${algorithm}`);
     }
   }
 
-  private async runGeneticAlgorithm(problem: any): Promise<{
+  private async runGeneticAlgorithm(problem: OptimizationProblem): Promise<{
     solution: Record<string, number>;
     quality: CostOptimizationResult['quality'];
   }> {
     // Simplified genetic algorithm implementation
     const populationSize = 50;
     const generations = 100;
-    const mutationRate = 0.1;
-    const crossoverRate = 0.8;
-    
+
     // Initialize population
     let population = this.initializePopulation(problem, populationSize);
     
@@ -431,7 +432,7 @@ export class CostOptimizationService {
       }
       
       // Selection, crossover, and mutation
-      population = this.evolvePopulation(population, fitnessScores, crossoverRate, mutationRate);
+      population = this.evolvePopulation(population);
     }
     
     return {
@@ -445,7 +446,7 @@ export class CostOptimizationService {
     };
   }
 
-  private async runSimulatedAnnealing(problem: any): Promise<{
+  private async runSimulatedAnnealing(problem: OptimizationProblem): Promise<{
     solution: Record<string, number>;
     quality: CostOptimizationResult['quality'];
   }> {
@@ -494,7 +495,7 @@ export class CostOptimizationService {
     };
   }
 
-  private async runParticleSwarmOptimization(problem: any): Promise<{
+  private async runParticleSwarmOptimization(): Promise<{
     solution: Record<string, number>;
     quality: CostOptimizationResult['quality'];
   }> {
@@ -510,7 +511,7 @@ export class CostOptimizationService {
     };
   }
 
-  private async runGradientDescent(problem: any): Promise<{
+  private async runGradientDescent(): Promise<{
     solution: Record<string, number>;
     quality: CostOptimizationResult['quality'];
   }> {
@@ -526,15 +527,12 @@ export class CostOptimizationService {
     };
   }
 
-  private async calculateOptimizedMetrics(
-    map: PrescriptionMap,
-    solution: Record<string, number>
-  ): Promise<CostOptimizationResult['optimized']> {
+  private async calculateOptimizedMetrics(): Promise<CostOptimizationResult['optimized']> {
     // Calculate metrics for optimized solution
-    const totalCost = this.calculateOptimizedCost(map, solution);
-    const expectedYield = this.calculateOptimizedYield(map, solution);
-    const environmentalScore = this.calculateOptimizedEnvironmentalScore(map, solution);
-    const efficiencyScore = this.calculateOptimizedEfficiencyScore(map, solution);
+    const totalCost = this.calculateOptimizedCost();
+    const expectedYield = this.calculateOptimizedYield();
+    const environmentalScore = this.calculateOptimizedEnvironmentalScore();
+    const efficiencyScore = this.calculateOptimizedEfficiencyScore();
     
     return {
       totalCost,
@@ -546,9 +544,7 @@ export class CostOptimizationService {
 
   private async generateImplementationPlan(
     map: PrescriptionMap,
-    solution: Record<string, number>,
-    baseline: any,
-    optimized: any
+    solution: Record<string, number>
   ): Promise<CostOptimizationResult['implementationPlan']> {
     // Generate phased implementation plan
     const phases = [
@@ -597,37 +593,36 @@ export class CostOptimizationService {
     };
   }
 
-  private async performSensitivityAnalysis(
-    problem: any,
-    solution: Record<string, number>
-  ): Promise<CostOptimizationResult['sensitivityAnalysis']> {
+  private async performSensitivityAnalysis(): Promise<CostOptimizationResult['sensitivityAnalysis']> {
     const parameters = ['product_price', 'yield_response', 'application_cost', 'weather_factor'];
     const analysis: CostOptimizationResult['sensitivityAnalysis'] = [];
-    
+
     for (const parameter of parameters) {
       const scenarios = [];
       for (const change of [-20, -10, 0, 10, 20]) {
-        const modifiedProblem = this.modifyProblemParameter(problem, parameter, change);
-        const impact = this.evaluateParameterImpact(modifiedProblem, solution);
-        
+        const impact = this.evaluateParameterImpact();
+
         scenarios.push({
           change,
           costImpact: impact.costImpact,
           yieldImpact: impact.yieldImpact
         });
       }
-      
+
       analysis.push({
         parameter,
-        impact: this.calculateParameterSensitivity(scenarios),
+        impact: this.calculateParameterSensitivity(),
         scenarios
       });
     }
-    
+
     return analysis;
   }
 
-  private calculateImprovements(baseline: any, optimized: any): CostOptimizationResult['improvements'] {
+  private calculateImprovements(
+    baseline: CostOptimizationResult['optimized'],
+    optimized: CostOptimizationResult['optimized']
+  ): CostOptimizationResult['improvements'] {
     const costReduction = ((baseline.totalCost - optimized.totalCost) / baseline.totalCost) * 100;
     const yieldIncrease = ((optimized.expectedYield - baseline.expectedYield) / baseline.expectedYield) * 100;
     const environmentalImprovement = ((optimized.environmentalScore - baseline.environmentalScore) / baseline.environmentalScore) * 100;
@@ -670,34 +665,34 @@ export class CostOptimizationService {
   }
 
   // Additional helper methods...
-  private calculateExpectedYield(map: PrescriptionMap): number {
+  private calculateExpectedYield(): number {
     return 4.2; // Mock value
   }
 
-  private calculateEfficiencyScore(map: PrescriptionMap): number {
+  private calculateEfficiencyScore(): number {
     return 75; // Mock value
   }
 
-  private calculateVariableBounds(map: PrescriptionMap, constraints: any): any {
+  private calculateVariableBounds(): Record<string, unknown> {
     return {};
   }
 
-  private initializePopulation(problem: any, size: number): any[] {
+  private initializePopulation(problem: OptimizationProblem, size: number): number[][] {
     return Array(size).fill(null).map(() => this.generateRandomSolution(problem));
   }
 
-  private generateRandomSolution(problem: any): any[] {
-    return problem.variables.map((variable: any) => 
+  private generateRandomSolution(problem: OptimizationProblem): number[] {
+    return problem.variables.map((variable) =>
       variable.minRate + Math.random() * (variable.maxRate - variable.minRate)
     );
   }
 
-  private evaluateFitness(individual: any[], problem: any): number {
+  private evaluateFitness(individual: number[], problem: OptimizationProblem): number {
     // Multi-objective fitness evaluation
-    const cost = this.calculateSolutionCost(individual, problem);
-    const yieldValue = this.calculateSolutionYieldValue(individual, problem);
-    const environmental = this.calculateSolutionEnvironmental(individual, problem);
-    const efficiency = this.calculateSolutionEfficiency(individual, problem);
+    const cost = this.calculateSolutionCost();
+    const yieldValue = this.calculateSolutionYieldValue();
+    const environmental = this.calculateSolutionEnvironmental();
+    const efficiency = this.calculateSolutionEfficiency();
     
     // Weighted combination based on objectives
     return (
@@ -708,20 +703,20 @@ export class CostOptimizationService {
     );
   }
 
-  private evolvePopulation(population: any[], fitness: number[], crossoverRate: number, mutationRate: number): any[] {
+  private evolvePopulation(population: number[][]): number[][] {
     // Selection, crossover, and mutation operations
     return population; // Simplified
   }
 
-  private convertToSolution(individual: any[], problem: any): Record<string, number> {
+  private convertToSolution(individual: number[], problem: OptimizationProblem): Record<string, number> {
     const solution: Record<string, number> = {};
-    problem.variables.forEach((variable: any, index: number) => {
+    problem.variables.forEach((variable, index) => {
       solution[variable.id] = individual[index];
     });
     return solution;
   }
 
-  private generateNeighborSolution(current: any[], problem: any): any[] {
+  private generateNeighborSolution(current: number[], problem: OptimizationProblem): number[] {
     const neighbor = [...current];
     const index = Math.floor(Math.random() * neighbor.length);
     const variable = problem.variables[index];
@@ -733,32 +728,27 @@ export class CostOptimizationService {
     return neighbor;
   }
 
-  private calculateOptimizedCost(map: PrescriptionMap, solution: Record<string, number>): number {
+  private calculateOptimizedCost(): number {
     return 2340; // Mock value
   }
 
-  private calculateOptimizedYield(map: PrescriptionMap, solution: Record<string, number>): number {
+  private calculateOptimizedYield(): number {
     return 4.5; // Mock value
   }
 
-  private calculateOptimizedEnvironmentalScore(map: PrescriptionMap, solution: Record<string, number>): number {
+  private calculateOptimizedEnvironmentalScore(): number {
     return 85; // Mock value
   }
 
-  private calculateOptimizedEfficiencyScore(map: PrescriptionMap, solution: Record<string, number>): number {
+  private calculateOptimizedEfficiencyScore(): number {
     return 88; // Mock value
   }
 
-  private modifyProblemParameter(problem: any, parameter: string, change: number): any {
-    // Create modified problem for sensitivity analysis
-    return { ...problem };
-  }
-
-  private evaluateParameterImpact(problem: any, solution: Record<string, number>): any {
+  private evaluateParameterImpact(): { costImpact: number; yieldImpact: number } {
     return { costImpact: 0, yieldImpact: 0 };
   }
 
-  private calculateParameterSensitivity(scenarios: any[]): number {
+  private calculateParameterSensitivity(): number {
     return 0.15; // Mock sensitivity value
   }
 
@@ -795,33 +785,37 @@ export class CostOptimizationService {
     return Math.max(0.6, 1 - changeRatio);
   }
 
-  private calculateSolutionCost(individual: any[], problem: any): number {
+  private calculateSolutionCost(): number {
     return 2500; // Mock value
   }
 
-  private calculateSolutionYieldValue(individual: any[], problem: any): number {
+  private calculateSolutionYieldValue(): number {
     return 4.0; // Mock value
   }
 
-  private calculateSolutionEnvironmental(individual: any[], problem: any): number {
+  private calculateSolutionEnvironmental(): number {
     return 0.8; // Mock value
   }
 
-  private calculateSolutionEfficiency(individual: any[], problem: any): number {
+  private calculateSolutionEfficiency(): number {
     return 0.75; // Mock value
   }
 
+  // optimizationId/request non ancora letti: l'esecuzione in background e' uno stub
+  // dichiarato ("This would run..."), non implementato. Rimuoverli richiederebbe
+  // cambiare la firma pubblica di startRealTimeOptimization, un cambio funzionale
+  // fuori perimetro per un lotto lint.
   private async runRealTimeOptimization(optimizationId: string, request: CostOptimizationRequest): Promise<void> {
     // This would run optimization in background with progress updates
     // Implementation would use web workers or similar for non-blocking execution
   }
 
-  private async generateParetoFrontier(map: PrescriptionMap, objectives: any[]): Promise<any[]> {
+  private async generateParetoFrontier(): Promise<MultiObjectiveOptimization['paretoFrontier']> {
     // Generate Pareto frontier for multi-objective optimization
     return [];
   }
 
-  private findRecommendedSolution(paretoFrontier: any[], objectives: any[]): any {
+  private findRecommendedSolution(): MultiObjectiveOptimization['recommendedSolution'] {
     // Find best compromise solution from Pareto frontier
     return {
       solution: {},
@@ -830,7 +824,7 @@ export class CostOptimizationService {
     };
   }
 
-  private getCurrentObjectiveValue(map: PrescriptionMap, objectiveName: string): number {
+  private getCurrentObjectiveValue(): number {
     // Get current value for objective
     return 0;
   }
@@ -850,7 +844,7 @@ export class CostOptimizationService {
  * UTILITY FUNCTIONS
  */
 
-export const createCostOptimizationService = (storageProvider: any) => {
+export const createCostOptimizationService = (storageProvider: CostOptimizationStorageProvider) => {
   return new CostOptimizationService(storageProvider);
 };
 
