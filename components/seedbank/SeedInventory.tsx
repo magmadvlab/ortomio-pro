@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Garden } from '@/types'
-import { 
-  Package, Plus, X, Edit2, Trash2, AlertTriangle, CheckCircle, 
-  Filter, Search, Calendar, TrendingDown, Box, ExternalLink
+import {
+  Package, Plus, X, Edit2, Trash2, AlertTriangle,
+  Search, Calendar, TrendingDown, Box
 } from 'lucide-react'
 import { seedInventoryService } from '@/services/seedInventoryService'
 import { SeedPacket } from '@/types/seedInventory'
@@ -33,20 +33,7 @@ export default function SeedInventory({ garden, plantName, variety }: SeedInvent
     gardenId: garden.id
   })
 
-  useEffect(() => {
-    loadPackets()
-  }, [garden.id])
-
-  useEffect(() => {
-    if (plantName) {
-      setNewPacket(prev => ({ ...prev, varietyName: plantName }))
-    }
-    if (variety) {
-      setNewPacket(prev => ({ ...prev, speciesName: variety }))
-    }
-  }, [plantName, variety])
-
-  const loadPackets = async () => {
+  const loadPackets = useCallback(async () => {
     try {
       setLoading(true)
       const loaded = await seedInventoryService.getSeedPackets(garden.id)
@@ -56,7 +43,20 @@ export default function SeedInventory({ garden, plantName, variety }: SeedInvent
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden.id])
+
+  useEffect(() => {
+    loadPackets()
+  }, [loadPackets])
+
+  useEffect(() => {
+    if (plantName) {
+      setNewPacket(prev => ({ ...prev, varietyName: plantName }))
+    }
+    if (variety) {
+      setNewPacket(prev => ({ ...prev, speciesName: variety }))
+    }
+  }, [plantName, variety])
 
   const handleAdd = async () => {
     if (!newPacket.varietyName || !newPacket.speciesName) return

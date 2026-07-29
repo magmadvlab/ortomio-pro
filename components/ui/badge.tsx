@@ -2,10 +2,12 @@
 
 import React from 'react'
 
+export type BadgeVariant = 'default' | 'secondary' | 'success' | 'warning' | 'error' | 'outline'
+
 interface BadgeProps {
   children: React.ReactNode
   className?: string
-  variant?: 'default' | 'secondary' | 'success' | 'warning' | 'error' | 'outline'
+  variant?: BadgeVariant
 }
 
 export function Badge({ 

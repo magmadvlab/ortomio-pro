@@ -5,7 +5,7 @@
  * Visualizza lo storico delle colture e suggerimenti di rotazione
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   fieldRowCropHistoryService,
   CropHistoryEntry,
@@ -28,18 +28,14 @@ export default function FieldRowCropHistoryPanel({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'history' | 'suggestions'>('history');
 
-  useEffect(() => {
-    loadData();
-  }, [rowId, zoneId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [historyData, suggestionsData] = await Promise.all([
         fieldRowCropHistoryService.getFieldRowHistory(rowId, zoneId),
         fieldRowCropHistoryService.getRotationSuggestions(rowId, zoneId)
       ]);
-      
+
       setHistory(historyData);
       setSuggestions(suggestionsData);
     } catch (error) {
@@ -47,29 +43,11 @@ export default function FieldRowCropHistoryPanel({
     } finally {
       setLoading(false);
     }
-  };
+  }, [rowId, zoneId]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const getRotationScoreColor = (score?: number) => {
-    if (!score) return 'text-gray-400';
-    if (score >= 80) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getRotationScoreLabel = (score?: number) => {
-    if (!score) return 'N/D';
-    if (score >= 80) return 'Ottimo';
-    if (score >= 50) return 'Accettabile';
-    return 'Sconsigliato';
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return (

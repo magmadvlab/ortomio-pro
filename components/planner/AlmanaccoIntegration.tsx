@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Calendar, Sun, Moon, Cloud, Droplets, Thermometer, Wind, Eye } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Calendar, Sun, Moon, Droplets, Thermometer } from 'lucide-react'
 import { calculateMoonPhase, getMoonPhaseEmoji } from '@/logic/lunarCalendar'
 
 interface AlmanaccoData {
@@ -42,10 +42,6 @@ export const AlmanaccoIntegration: React.FC<AlmanaccoIntegrationProps> = ({
 }) => {
   const [almanaccoData, setAlmanaccoData] = useState<AlmanaccoData | null>(null)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadAlmanaccoData(selectedDate)
-  }, [selectedDate])
 
   const getLunarAdvice = (moonPhase: AlmanaccoData['moonPhase']) => {
     if (moonPhase.isWaxing) {
@@ -120,7 +116,7 @@ export const AlmanaccoIntegration: React.FC<AlmanaccoIntegrationProps> = ({
     }
   }
 
-  const loadAlmanaccoData = async (date: Date) => {
+  const loadAlmanaccoData = useCallback(async (date: Date) => {
     try {
       setLoading(true)
       
@@ -197,7 +193,11 @@ export const AlmanaccoIntegration: React.FC<AlmanaccoIntegrationProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadAlmanaccoData(selectedDate)
+  }, [selectedDate, loadAlmanaccoData])
 
   if (loading) {
     return (
