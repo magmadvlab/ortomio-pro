@@ -3,19 +3,19 @@
  * Pannello per ottimizzazione avanzata costi precision farming
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStorage } from '../../packages/core/hooks/useStorage';
-import { 
+import {
   PrescriptionMap,
   CostOptimizationRequest,
   CostOptimizationResult,
   RealTimeOptimization
 } from '../../types/prescriptionMaps';
 import { createCostOptimizationService } from '../../services/costOptimizationService';
-import { 
-  Target, 
-  TrendingUp, 
-  DollarSign, 
+import {
+  Target,
+  TrendingUp,
+  DollarSign,
   Leaf,
   Zap,
   Settings,
@@ -23,10 +23,8 @@ import {
   Pause,
   BarChart3,
   AlertTriangle,
-  CheckCircle,
   X,
-  Download,
-  RefreshCw
+  Download
 } from 'lucide-react';
 
 interface CostOptimizationPanelProps {
@@ -41,7 +39,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
   onOptimizationComplete
 }) => {
   const { storageProvider } = useStorage();
-  const optimizationService = createCostOptimizationService(storageProvider);
+  const optimizationService = useMemo(() => createCostOptimizationService(storageProvider), [storageProvider]);
   
   // State
   const [optimizationGoals, setOptimizationGoals] = useState({
@@ -89,7 +87,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [optimizing, realTimeStatus]);
+  }, [optimizing, realTimeStatus, optimizationService]);
 
   const handleStartOptimization = async () => {
     try {
@@ -361,7 +359,7 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                         name="algorithm"
                         value={algorithm}
                         checked={optimizationAlgorithm === algorithm}
-                        onChange={(e) => setOptimizationAlgorithm(e.target.value as any)}
+                        onChange={(e) => setOptimizationAlgorithm(e.target.value as 'genetic' | 'simulated_annealing' | 'particle_swarm' | 'gradient_descent')}
                         className="mt-1 mr-3"
                       />
                       <div>
@@ -462,13 +460,13 @@ const CostOptimizationPanel: React.FC<CostOptimizationPanelProps> = ({
                 <div className="border-b border-gray-200 mb-6">
                   <nav className="flex space-x-8">
                     {[
-                      { key: 'results', label: 'Risultati', icon: BarChart3 },
-                      { key: 'implementation', label: 'Implementazione', icon: Settings },
-                      { key: 'sensitivity', label: 'Sensibilità', icon: AlertTriangle }
+                      { key: 'results' as const, label: 'Risultati', icon: BarChart3 },
+                      { key: 'implementation' as const, label: 'Implementazione', icon: Settings },
+                      { key: 'sensitivity' as const, label: 'Sensibilità', icon: AlertTriangle }
                     ].map(({ key, label, icon: Icon }) => (
                       <button
                         key={key}
-                        onClick={() => setActiveTab(key as any)}
+                        onClick={() => setActiveTab(key)}
                         className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                           activeTab === key
                             ? 'border-green-500 text-green-600'

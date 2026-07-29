@@ -1872,6 +1872,41 @@ decisione di prodotto/schema).
 Baseline globale verificata: **0 errori, 1.230 warning** (`1.270 -> 1.230`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 67 (29/07/2026)
+
+Nessuna nuova classificazione: il lotto ha usato i 5 candidati vivi
+gia' verificati e registrati nel lotto 66 (`useDeviceOrientation.ts`
+via `GardenOnboarding.tsx`, `useProductCards.ts` via
+`TreatmentCalendarIntegration.tsx` -> `TaskCalendar.tsx`,
+`services/biologicalControlService.ts` via `BiologicalControlDashboard.tsx`,
+`components/planner/PlannerAIChat.tsx` via `DiaryPlannerIntegration.tsx`
+-> `UnifiedTimelineDiary.tsx`, `components/prescription/CostOptimizationPanel.tsx`
+via `PrescriptionMapsDashboard.tsx`), piu' 3 nuovi verificati con grep:
+`lib/auth.server.ts` (vivo da molte route `app/api/**`), `services/cropRotationService.ts`
+(vivo via `CropRotationPlanner.tsx` e `classicPlannerService.ts`),
+`services/organizationService.ts` (vivo via `app/accept-invitation/page.tsx`
+e `OrganizationManager.tsx`).
+
+38 -> 0 warning sugli 8 file. Pattern ricorrente: molte mapper
+DB->dominio con `data: any` tipizzate con l'interfaccia snake_case
+della riga reale invece di un tipo generico; payload di update
+dinamici (`dbUpdates: any`) tipizzati con `Record<string, unknown>`;
+estensione non standard iOS `DeviceOrientationEvent.requestPermission`
+(assente dai tipi DOM di TypeScript) tipizzata con un'interfaccia
+locale invece di `any` ripetuto 4 volte.
+
+**Nota di tipizzazione non banale:** in `organizationService.ts::hasPermission`/`getUserAccessibleGardens`,
+il join Supabase `roles!inner(permissions)` viene dedotto dal type
+checker come array (`{permissions}[]`) anche se a runtime e' un
+oggetto singolo (foreign key 1:1) — la funzione autorizzativa
+funziona in produzione trattandolo come oggetto singolo, quindi il
+comportamento e' quello corretto e il cast e' passato tramite
+`unknown` per bypassare la deduzione imprecisa del client Supabase su
+questa versione, senza usare `any`.
+
+Baseline globale verificata: **0 errori, 1.191 warning** (`1.230 -> 1.191`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

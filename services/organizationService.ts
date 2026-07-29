@@ -164,7 +164,7 @@ export const updateOrganization = async (
   const supabase = getSupabase();
 
   // Convert camelCase to snake_case for database
-  const dbUpdates: any = {};
+  const dbUpdates: Record<string, unknown> = {};
   (Object.keys(updates) as Array<keyof Organization>).forEach(key => {
     const value = updates[key];
     switch (key) {
@@ -213,7 +213,7 @@ export const createSystemRoles = async (organizationId: string): Promise<Role[]>
   const supabase = getSupabase();
   const roles: Role[] = [];
 
-  for (const [key, roleData] of Object.entries(SYSTEM_ROLES)) {
+  for (const roleData of Object.values(SYSTEM_ROLES)) {
     const role: Role = {
       id: crypto.randomUUID(),
       organizationId,
@@ -353,7 +353,7 @@ export const updateRole = async (
   const supabase = getSupabase();
 
   // Convert camelCase to snake_case for database
-  const dbUpdates: any = {};
+  const dbUpdates: Record<string, unknown> = {};
   (Object.keys(updates) as Array<keyof Role>).forEach(key => {
     const value = updates[key];
     switch (key) {
@@ -793,8 +793,8 @@ export const hasPermission = async (
       return false;
     }
 
-    const role = member.roles as any;
-    const permissions = role.permissions as Permission[];
+    const role = member.roles as unknown as { permissions: Permission[] };
+    const permissions = role.permissions;
 
     // Check permissions
     for (const permission of permissions) {
@@ -874,8 +874,8 @@ export const getUserAccessibleGardens = async (
       return [];
     }
 
-    const role = member.roles as any;
-    const permissions = role.permissions as Permission[];
+    const role = member.roles as unknown as { permissions: Permission[] };
+    const permissions = role.permissions;
 
     // Check if user has access to all gardens
     for (const permission of permissions) {

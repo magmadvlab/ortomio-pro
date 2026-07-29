@@ -6,6 +6,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// Estensione non standard iOS 13+: `requestPermission` non e' nei tipi DOM di TypeScript.
+type DeviceOrientationEventIOS = typeof DeviceOrientationEvent & {
+  requestPermission?: () => Promise<'granted' | 'denied'>;
+};
+
 export interface DeviceOrientationResult {
   heading: number | null; // 0-360°, 0 = Nord magnetico
   isCalibrated: boolean;
@@ -37,15 +42,15 @@ export function useDeviceOrientation(): DeviceOrientationResult {
     // Verifica permessi (richiesto su iOS 13+)
     const requestPermission = async () => {
       if (
-        typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+        typeof (DeviceOrientationEvent as DeviceOrientationEventIOS).requestPermission === 'function'
       ) {
         try {
-          const permission = await (DeviceOrientationEvent as any).requestPermission();
+          const permission = await (DeviceOrientationEvent as DeviceOrientationEventIOS).requestPermission!();
           if (permission !== 'granted') {
             setError('Permesso bussola negato');
             return false;
           }
-        } catch (err) {
+        } catch {
           setError('Errore richiesta permesso bussola');
           return false;
         }
@@ -116,10 +121,10 @@ export async function getDeviceHeadingOnce(): Promise<number | null> {
 
     const requestPermission = async () => {
       if (
-        typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+        typeof (DeviceOrientationEvent as DeviceOrientationEventIOS).requestPermission === 'function'
       ) {
         try {
-          const permission = await (DeviceOrientationEvent as any).requestPermission();
+          const permission = await (DeviceOrientationEvent as DeviceOrientationEventIOS).requestPermission!();
           return permission === 'granted';
         } catch {
           return false;

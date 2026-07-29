@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Bot, Send, Loader2, MessageCircle, X, Sparkles, Lightbulb, Calendar, Leaf } from 'lucide-react'
+import { Bot, Send, Loader2, MessageCircle, X, Sparkles, Lightbulb } from 'lucide-react'
 import { requestPlannerAIResponse } from '@/services/plannerAIChatService'
+import type { Garden, GardenTask } from '@/types'
 
 interface ChatMessage {
   id: string
@@ -16,8 +17,8 @@ interface ChatMessage {
 }
 
 interface PlannerAIChatProps {
-  garden?: any
-  tasks?: any[]
+  garden?: Garden
+  tasks?: GardenTask[]
   isOpen: boolean
   onToggle: () => void
 }
@@ -89,7 +90,7 @@ export default function PlannerAIChat({ garden, tasks, isOpen, onToggle }: Plann
       }
 
       setMessages(prev => [...prev, aiMessage])
-    } catch (error) {
+    } catch {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
