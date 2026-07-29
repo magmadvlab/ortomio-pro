@@ -96,18 +96,15 @@ export default function NutritionAISuggestionsWidget({
   }
 
   const extractBenefit = (suggestion: AISuggestion) => {
-    try {
-      const outcomes = JSON.parse(suggestion.expected_outcomes as any)
-      const mainBenefit = outcomes[0]
-      if (mainBenefit) {
-        return {
-          metric: mainBenefit.metric,
-          value: mainBenefit.expectedValue,
-          unit: mainBenefit.unit,
-          timeframe: mainBenefit.timeframe
-        }
+    const mainBenefit = (suggestion.expected_outcomes || [])[0]
+    if (mainBenefit) {
+      return {
+        metric: mainBenefit.metric,
+        value: mainBenefit.expectedValue,
+        unit: mainBenefit.unit,
+        timeframe: mainBenefit.timeframe
       }
-    } catch (e) {}
+    }
     return null
   }
 

@@ -5,23 +5,30 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Lightbulb, Filter, Calendar, CheckCircle, XCircle, Eye, AlertTriangle, TrendingUp } from 'lucide-react'
-import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useState, useEffect, useCallback } from 'react'
+import { Lightbulb, Filter, Calendar, CheckCircle, XCircle, Eye, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
+import type { Garden, GardenTask } from '@/types'
 
 interface PlannerAISuggestionsProps {
-  garden: any
-  tasks: any[]
-  onCreateTasks?: (tasks: any[]) => Promise<void>
+  garden: Garden
+  tasks: GardenTask[]
+  onCreateTasks?: (tasks: GardenTask[]) => Promise<void>
 }
 
-export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: PlannerAISuggestionsProps) {
+// Tipi di suggerimenti rilevanti per il planner
+const PLANNING_TYPES: Array<'PLANTING_PLAN' | 'HARVEST_TIMING' | 'ROTATION_PLAN'> = [
+  'PLANTING_PLAN',
+  'HARVEST_TIMING',
+  'ROTATION_PLAN'
+]
+
+export default function PlannerAISuggestions({ garden }: PlannerAISuggestionsProps) {
   const { user } = useAuth()
   const { storageProvider } = useStorage()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
@@ -35,31 +42,18 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Tipi di suggerimenti rilevanti per il planner
-  const planningTypes: Array<'PLANTING_PLAN' | 'HARVEST_TIMING' | 'ROTATION_PLAN'> = [
-    'PLANTING_PLAN',
-    'HARVEST_TIMING',
-    'ROTATION_PLAN'
-  ]
-
-  useEffect(() => {
-    if (garden && user) {
-      loadSuggestions()
-    }
-  }, [garden, user])
-
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (!garden || !user?.id) return
-    
+
     try {
       setLoading(true)
       const resolvedContext = await resolveGardenContext(storageProvider, garden.id).catch(() => null)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
         statuses: ['PENDING'],
-        types: planningTypes,
+        types: PLANNING_TYPES,
         gardenId: garden.id
       })
-      
+
       setSuggestions(
         suggs.map((suggestion) => ({
           ...suggestion,
@@ -73,32 +67,38 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden, user, storageProvider])
+
+  useEffect(() => {
+    if (garden && user) {
+      loadSuggestions()
+    }
+  }, [garden, user, loadSuggestions])
 
   const handleAccept = async (suggestionId: string) => {
-    if (!garden) return
-    
+    if (!garden || !user?.id) return
+
     await collaborativeAIService.acceptSuggestion(
-      garden.user_id,
+      user.id,
       suggestionId,
       'Accettato dal Planner'
     )
-    
+
     loadSuggestions()
   }
 
   const handleReject = async (suggestionId: string) => {
-    if (!garden) return
-    
+    if (!garden || !user?.id) return
+
     const reason = prompt('Perché rifiuti questo suggerimento?')
     if (!reason) return
-    
+
     await collaborativeAIService.rejectSuggestion(
-      garden.user_id,
+      user.id,
       suggestionId,
       reason
     )
-    
+
     loadSuggestions()
   }
 
@@ -296,9 +296,9 @@ export default function PlannerAISuggestions({ garden, tasks, onCreateTasks }: P
                           <TrendingUp size={14} />
                           Confidenza: {(suggestion.confidence_score * 100).toFixed(0)}%
                         </div>
-                        {suggestion.expected_outcomes && (
+                        {suggestion.expected_outcomes && suggestion.expected_outcomes.length > 0 && (
                           <div>
-                            Risultati attesi: {JSON.parse(suggestion.expected_outcomes as any).length} metriche
+                            Risultati attesi: {suggestion.expected_outcomes.length} metriche
                           </div>
                         )}
                       </div>

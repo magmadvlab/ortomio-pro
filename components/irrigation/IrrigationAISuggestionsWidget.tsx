@@ -96,20 +96,17 @@ export default function IrrigationAISuggestionsWidget({
   }
 
   const extractSavings = (suggestion: AISuggestion) => {
-    try {
-      const outcomes = JSON.parse(suggestion.expected_outcomes as any)
-      const waterSaving = outcomes.find((o: any) => 
-        o.metric.toLowerCase().includes('acqua') || 
-        o.metric.toLowerCase().includes('risparmio')
-      )
-      if (waterSaving) {
-        return {
-          value: waterSaving.expectedValue,
-          unit: waterSaving.unit,
-          timeframe: waterSaving.timeframe
-        }
+    const waterSaving = (suggestion.expected_outcomes || []).find((o) =>
+      o.metric.toLowerCase().includes('acqua') ||
+      o.metric.toLowerCase().includes('risparmio')
+    )
+    if (waterSaving) {
+      return {
+        value: waterSaving.expectedValue,
+        unit: waterSaving.unit,
+        timeframe: waterSaving.timeframe
       }
-    } catch (e) {}
+    }
     return null
   }
 
