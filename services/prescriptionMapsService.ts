@@ -13,8 +13,6 @@ import {
   NDVIDataPoint,
   PlantDataPoint,
   SoilDataPoint,
-  ZoneGenerationAlgorithm,
-  PrescriptionAlgorithm,
   PrescriptionCostAnalysis
 } from '../types/prescriptionMaps';
 import {
@@ -28,6 +26,54 @@ import { getPersistedZoneEnvironmentalHistorySummary } from '@/services/environm
 import { getAgronomicMeasuredFeedbackRecords } from './agronomicMeasuredFeedbackService';
 import { getAgronomicProfileLearningSnapshots } from './agronomicProfileLearningService';
 import { buildPrescriptionAgronomicIntelligenceSummary } from './prescriptionAgronomicIntelligenceService';
+import type { IStorageProvider } from '@/packages/core/storage/interface'
+import type { Garden } from '@/types'
+
+interface PolygonGeometry {
+  coordinates: number[][][];
+}
+
+interface GardenBounds {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+}
+
+// `GardenPoint` (types.ts) espone solo coordinate a griglia (`position`/`coordinates` in {x,y}),
+// mai lat/lon reali: questi campi legacy non esistono mai a runtime, il filtro sotto scarta
+// sempre questi punti e la funzione ricade sul buffer attorno a `garden.coordinates`.
+type LegacyGeoPoint = {
+  latitude?: number;
+  longitude?: number;
+  coordinates?: { latitude?: number; longitude?: number };
+};
+
+type FusedDataPoint = DataFusionResult['dataPoints'][number];
+
+// `data.createdBy` non e' mai popolato dal chiamante (spread di `PrescriptionGenerationRequest`,
+// che non ha questo campo): resta sempre `undefined`, coerente col comportamento attuale.
+type PrescriptionMapRecordInput = PrescriptionGenerationRequest & {
+  zones: PrescriptionZone[];
+  costAnalysis: PrescriptionCostAnalysis;
+  quality: DataFusionResult['quality'];
+  algorithmMetadata: PrescriptionMap['algorithmMetadata'];
+  contentChecksum: string;
+  // Non passati dal chiamante (spread di `PrescriptionGenerationRequest`, che non li ha): sempre
+  // `undefined` a runtime, coerente col comportamento attuale (`data.gardenName || 'Garden'`).
+  gardenName?: string;
+  createdBy?: string;
+};
+
+interface NDVICacheRow {
+  latitude: number;
+  longitude: number;
+  ndvi_value: number;
+  data_date: string;
+  data_quality: number;
+  source_kind: NDVIDataPoint['sourceKind'];
+  algorithm_version: string;
+}
 
 export interface DataFusionResult {
   dataPoints: Array<{
@@ -47,7 +93,7 @@ export interface DataFusionResult {
 export interface ZoneGenerationResult {
   zones: Array<{
     id: string;
-    geometry: any;
+    geometry: PolygonGeometry;
     centroid: { latitude: number; longitude: number };
     area: number;
     averageValue: number;
@@ -74,9 +120,9 @@ export interface PrescriptionMapFieldOpsSummary {
  * PRESCRIPTION MAPS SERVICE
  */
 export class PrescriptionMapsService {
-  private storageProvider: any;
+  private storageProvider: IStorageProvider;
 
-  constructor(storageProvider: any) {
+  constructor(storageProvider: IStorageProvider) {
     this.storageProvider = storageProvider;
   }
 
@@ -207,7 +253,11 @@ export class PrescriptionMapsService {
     }
 
     if (this.storageProvider?.getGarden) {
-      const garden = await this.storageProvider.getGarden(map.gardenId).catch(() => null)
+      // `Garden` non espone alcun campo owner lato client (proprieta' gestita via RLS/auth):
+      // questi tre fallback sono sempre `undefined`, il valore reale arriva dalla query Supabase sotto.
+      const garden = await this.storageProvider.getGarden(map.gardenId).catch(() => null) as
+        | (Garden & { user_id?: string; userId?: string; ownerId?: string })
+        | null
       const ownerId = garden?.user_id || garden?.userId || garden?.ownerId
       if (typeof ownerId === 'string' && ownerId) {
         return ownerId
@@ -501,8 +551,7 @@ export class PrescriptionMapsService {
       ndviData = await this.getNDVIData(
         request.gardenId,
         request.analysisPeriod.startDate,
-        request.analysisPeriod.endDate,
-        gardenBounds
+        request.analysisPeriod.endDate
       );
       const distinctLocations = new Set(ndviData.map(point => `${point.latitude.toFixed(6)}:${point.longitude.toFixed(6)}`))
       const distinctValues = new Set(ndviData.map(point => point.ndviValue.toFixed(4)))
@@ -514,17 +563,13 @@ export class PrescriptionMapsService {
     // Collect plant-level data
     let plantData: PlantDataPoint[] = [];
     if (request.dataSources.plantHealthWeight > 0) {
-      plantData = await this.getPlantLevelData(
-        request.gardenId,
-        request.analysisPeriod.startDate,
-        request.analysisPeriod.endDate
-      );
+      plantData = await this.getPlantLevelData();
     }
 
     // Collect soil data
     let soilData: SoilDataPoint[] = [];
     if (request.dataSources.soilWeight > 0) {
-      soilData = await this.getSoilData(request.gardenId, gardenBounds);
+      soilData = await this.getSoilData();
     }
 
     // Create spatial grid for data fusion
@@ -777,20 +822,19 @@ export class PrescriptionMapsService {
     return errors;
   }
 
-  private async getGardenBounds(gardenId: string): Promise<{
-    minLat: number; maxLat: number; minLon: number; maxLon: number;
-  }> {
+  private async getGardenBounds(gardenId: string): Promise<GardenBounds> {
     if (!this.storageProvider?.getGarden) throw new Error('Garden storage richiesto per la geometria prescrittiva')
     const garden = await this.storageProvider.getGarden(gardenId)
     if (!garden) throw new Error('Garden non trovato')
-    const points = Array.isArray(garden.points) ? garden.points.flatMap((point: any) => {
-      const latitude = Number(point.latitude ?? point.coordinates?.latitude)
-      const longitude = Number(point.longitude ?? point.coordinates?.longitude)
+    const points = Array.isArray(garden.points) ? garden.points.flatMap((point) => {
+      const legacyPoint = point as LegacyGeoPoint
+      const latitude = Number(legacyPoint.latitude ?? legacyPoint.coordinates?.latitude)
+      const longitude = Number(legacyPoint.longitude ?? legacyPoint.coordinates?.longitude)
       return Number.isFinite(latitude) && Number.isFinite(longitude) ? [{ latitude, longitude }] : []
     }) : []
     if (points.length >= 3) return {
-      minLat: Math.min(...points.map((point: any) => point.latitude)), maxLat: Math.max(...points.map((point: any) => point.latitude)),
-      minLon: Math.min(...points.map((point: any) => point.longitude)), maxLon: Math.max(...points.map((point: any) => point.longitude)),
+      minLat: Math.min(...points.map((point) => point.latitude)), maxLat: Math.max(...points.map((point) => point.latitude)),
+      minLon: Math.min(...points.map((point) => point.longitude)), maxLon: Math.max(...points.map((point) => point.longitude)),
     }
     const latitude = Number(garden.coordinates?.latitude)
     const longitude = Number(garden.coordinates?.longitude)
@@ -802,8 +846,7 @@ export class PrescriptionMapsService {
   private async getNDVIData(
     gardenId: string,
     startDate: string,
-    endDate: string,
-    bounds: any
+    endDate: string
   ): Promise<NDVIDataPoint[]> {
     const supabase = getSupabaseClient()
     if (!supabase) return []
@@ -812,29 +855,25 @@ export class PrescriptionMapsService {
       .eq('garden_id', gardenId).eq('source_kind', 'real').in('quality_status', ['accepted', 'warning'])
       .gte('data_date', startDate).lte('data_date', endDate).order('data_date', { ascending: false }).limit(5000)
     if (error) throw new Error(`NDVI cache read failed: ${error.message}`)
-    return (data ?? []).map((row: any) => ({
+    return ((data ?? []) as NDVICacheRow[]).map((row) => ({
       latitude: Number(row.latitude), longitude: Number(row.longitude), ndviValue: Number(row.ndvi_value),
       date: row.data_date, quality: Number(row.data_quality), sourceKind: row.source_kind, algorithmVersion: row.algorithm_version,
     }));
   }
 
-  private async getPlantLevelData(
-    gardenId: string,
-    startDate: string,
-    endDate: string
-  ): Promise<PlantDataPoint[]> {
+  private async getPlantLevelData(): Promise<PlantDataPoint[]> {
     // This would query individual plant data
     // For now, return sample data
     return [];
   }
 
-  private async getSoilData(gardenId: string, bounds: any): Promise<SoilDataPoint[]> {
+  private async getSoilData(): Promise<SoilDataPoint[]> {
     // This would query soil data
     // For now, return sample data
     return [];
   }
 
-  private createSpatialGrid(bounds: any, gridSize: number): Array<{
+  private createSpatialGrid(bounds: GardenBounds, gridSize: number): Array<{
     latitude: number; longitude: number;
   }> {
     const grid: Array<{ latitude: number; longitude: number }> = [];
@@ -993,7 +1032,7 @@ export class PrescriptionMapsService {
     return clusters.filter(cluster => cluster.points.length > 0);
   }
 
-  private createPolygonFromPoints(points: Array<{ latitude: number; longitude: number }>): any {
+  private createPolygonFromPoints(points: Array<{ latitude: number; longitude: number }>): PolygonGeometry {
     // Create convex hull polygon from points
     // Simplified implementation - in production would use proper convex hull algorithm
     
@@ -1044,7 +1083,7 @@ export class PrescriptionMapsService {
     };
   }
 
-  private calculatePolygonArea(geometry: any): number {
+  private calculatePolygonArea(geometry: PolygonGeometry): number {
     // Simplified area calculation
     // In production would use proper geographic area calculation
     
@@ -1060,11 +1099,11 @@ export class PrescriptionMapsService {
     return Math.max(100, width * height * 0.7); // 70% of bounding box area
   }
 
-  private calculateDataCompleteness(dataPoints: any[], totalGridCells: number): number {
+  private calculateDataCompleteness(dataPoints: FusedDataPoint[], totalGridCells: number): number {
     return Math.min(100, (dataPoints.length / totalGridCells) * 100);
   }
 
-  private calculateDataAccuracy(dataPoints: any[]): number {
+  private calculateDataAccuracy(dataPoints: FusedDataPoint[]): number {
     // Simplified accuracy calculation based on confidence scores
     if (dataPoints.length === 0) return 0;
     
@@ -1073,7 +1112,6 @@ export class PrescriptionMapsService {
   }
 
   private calculateTemporalRelevance(startDate: string, endDate: string): number {
-    const start = new Date(startDate);
     const end = new Date(endDate);
     const now = new Date();
     
@@ -1086,9 +1124,9 @@ export class PrescriptionMapsService {
     return 40;
   }
 
-  private calculateVariabilityIndex(zones: any[]): number {
+  private calculateVariabilityIndex(zones: ZoneGenerationResult['zones']): number {
     if (zones.length <= 1) return 0;
-    
+
     const values = zones.map(z => z.averageValue);
     const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
     const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
@@ -1096,7 +1134,7 @@ export class PrescriptionMapsService {
     return Math.round(Math.sqrt(variance) * 100);
   }
 
-  private calculateOverallQuality(fusionQuality: any, zones: any[]): number {
+  private calculateOverallQuality(fusionQuality: DataFusionResult['quality'], zones: PrescriptionZone[]): number {
     const qualityScores = [
       fusionQuality.completeness,
       fusionQuality.accuracy,
@@ -1119,8 +1157,8 @@ export class PrescriptionMapsService {
     return costs[productName.toLowerCase()] || costs.generic;
   }
 
-  private async createPrescriptionMapRecord(data: any): Promise<PrescriptionMap> {
-    const totalAreaSqm = data.zones.reduce((sum: number, zone: any) => sum + zone.areaSqm, 0);
+  private async createPrescriptionMapRecord(data: PrescriptionMapRecordInput): Promise<PrescriptionMap> {
+    const totalAreaSqm = data.zones.reduce((sum, zone) => sum + zone.areaSqm, 0);
 
     const builtMap: Omit<PrescriptionMap, 'id' | 'createdAt' | 'updatedAt'> = {
       gardenId: data.gardenId,
@@ -1150,8 +1188,8 @@ export class PrescriptionMapsService {
       areaHectares: totalAreaSqm / 10000,
       zonesCount: data.zones.length,
       applicationRate: {
-        min: Math.min(...data.zones.map((z: any) => z.prescription.applicationRate)),
-        max: Math.max(...data.zones.map((z: any) => z.prescription.applicationRate)),
+        min: Math.min(...data.zones.map((z) => z.prescription.applicationRate)),
+        max: Math.max(...data.zones.map((z) => z.prescription.applicationRate)),
         unit: data.zones[0]?.prescription.unit || data.prescriptionConfig.unit
       },
       costSavings: data.costAnalysis?.savingsVsUniform || 0,
@@ -1178,7 +1216,7 @@ export class PrescriptionMapsService {
  * UTILITY FUNCTIONS
  */
 
-export const createPrescriptionMapsService = (storageProvider: any) => {
+export const createPrescriptionMapsService = (storageProvider: IStorageProvider) => {
   return new PrescriptionMapsService(storageProvider);
 };
 

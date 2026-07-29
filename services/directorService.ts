@@ -108,6 +108,22 @@ export interface PrioritizedAction {
   actionComparisonExplanation?: string | null
 }
 
+// `dailyDiaryService.getDailyEntry` non espone `weather_data`/`agronomic_data`/`lunar_phase`:
+// questi campi legacy sono qui solo perche' il codice a valle li legge ancora (sempre `undefined`
+// a runtime, i rami if non scattano mai). Tipizzati come opzionali per non alterare il comportamento.
+type DiaryEntrySummary = Awaited<ReturnType<typeof dailyDiaryService.getDailyEntry>> & {
+  weather_data?: { precipitation_mm?: number; temp_max?: number; temp_min?: number }
+  agronomic_data?: { heat_stress_hours?: number; water_stress_index?: number; gdd_base_10?: number }
+  lunar_phase?: { favorable_for?: string[] }
+}
+
+interface DailyBriefingStats {
+  totalSuggestions: number
+  criticalCount: number
+  highCount: number
+  avgConfidence: number
+}
+
 export interface DailyBriefing {
   date: Date
   gardenId: string
@@ -613,13 +629,13 @@ class DirectorService {
   private normalizeLegacyDailyPlanShape(plan: Awaited<ReturnType<typeof getDailyGardenPlan>>) {
     return {
       ...plan,
-      urgentAlerts: Array.isArray((plan as any)?.urgentAlerts) ? (plan as any).urgentAlerts : [],
-      climateWarnings: Array.isArray((plan as any)?.climateWarnings) ? (plan as any).climateWarnings : [],
-      lifecycleTasks: Array.isArray((plan as any)?.lifecycleTasks) ? (plan as any).lifecycleTasks : [],
-      nutrientTasks: Array.isArray((plan as any)?.nutrientTasks) ? (plan as any).nutrientTasks : [],
-      healthTasks: Array.isArray((plan as any)?.healthTasks) ? (plan as any).healthTasks : [],
-      baselinePrompts: Array.isArray((plan as any)?.baselinePrompts) ? (plan as any).baselinePrompts : [],
-      irrigationTasks: Array.isArray((plan as any)?.irrigationTasks) ? (plan as any).irrigationTasks : [],
+      urgentAlerts: Array.isArray(plan.urgentAlerts) ? plan.urgentAlerts : [],
+      climateWarnings: Array.isArray(plan.climateWarnings) ? plan.climateWarnings : [],
+      lifecycleTasks: Array.isArray(plan.lifecycleTasks) ? plan.lifecycleTasks : [],
+      nutrientTasks: Array.isArray(plan.nutrientTasks) ? plan.nutrientTasks : [],
+      healthTasks: Array.isArray(plan.healthTasks) ? plan.healthTasks : [],
+      baselinePrompts: Array.isArray(plan.baselinePrompts) ? plan.baselinePrompts : [],
+      irrigationTasks: Array.isArray(plan.irrigationTasks) ? plan.irrigationTasks : [],
     }
   }
   
@@ -756,7 +772,7 @@ class DirectorService {
     
     return {
       id: suggestion.id,
-      type: suggestion.action_priority as any || 'MEDIUM',
+      type: suggestion.action_priority || 'MEDIUM',
       title: suggestion.title,
       description: suggestion.description || '',
       urgency: priorityResult.score,
@@ -1125,7 +1141,7 @@ class DirectorService {
    * Genera raccomandazioni testuali basate su dati
    */
   private generateRecommendations(
-    diaryEntry: any,
+    diaryEntry: DiaryEntrySummary,
     actions: PrioritizedAction[],
     environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null,
     lunarPhase?: LunarPhase
@@ -1136,32 +1152,32 @@ class DirectorService {
     if (diaryEntry?.weather_data) {
       const weather = diaryEntry.weather_data
       
-      if (weather.precipitation_mm > 20) {
+      if ((weather.precipitation_mm ?? 0) > 20) {
         recommendations.push('⛈️ Pioggia abbondante prevista: evita irrigazioni e trattamenti')
       }
-      
-      if (weather.temp_max > 35) {
+
+      if ((weather.temp_max ?? 0) > 35) {
         recommendations.push('🌡️ Temperature elevate: aumenta frequenza irrigazioni')
       }
-      
-      if (weather.temp_min < 5) {
+
+      if ((weather.temp_min ?? 100) < 5) {
         recommendations.push('❄️ Rischio gelate: proteggi piante sensibili')
       }
     }
-    
+
     // Raccomandazioni agronomiche
     if (diaryEntry?.agronomic_data) {
       const agro = diaryEntry.agronomic_data
-      
-      if (agro.heat_stress_hours > 4) {
+
+      if ((agro.heat_stress_hours ?? 0) > 4) {
         recommendations.push('🔥 Stress termico rilevato: ombreggia piante sensibili')
       }
-      
-      if (agro.water_stress_index > 0.7) {
+
+      if ((agro.water_stress_index ?? 0) > 0.7) {
         recommendations.push('💧 Stress idrico elevato: irrigazione urgente necessaria')
       }
-      
-      if (agro.gdd_base_10 > 100) {
+
+      if ((agro.gdd_base_10 ?? 0) > 100) {
         recommendations.push('📈 Accumulo GDD significativo: monitora sviluppo colture')
       }
     }
@@ -1236,9 +1252,9 @@ class DirectorService {
    * Genera summary testuale
    */
   private generateSummary(
-    diaryEntry: any,
+    diaryEntry: DiaryEntrySummary,
     actions: PrioritizedAction[],
-    stats: any
+    stats: DailyBriefingStats
   ): string {
     const parts: string[] = []
     
@@ -1246,7 +1262,7 @@ class DirectorService {
     if (diaryEntry?.weather_data) {
       const w = diaryEntry.weather_data
       parts.push(`Meteo: ${w.temp_min}°-${w.temp_max}°C`)
-      if (w.precipitation_mm > 0) {
+      if ((w.precipitation_mm ?? 0) > 0) {
         parts.push(`${w.precipitation_mm}mm pioggia`)
       }
     }
