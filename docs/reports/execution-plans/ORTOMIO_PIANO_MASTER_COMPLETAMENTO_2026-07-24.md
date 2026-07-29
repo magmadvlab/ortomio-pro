@@ -1537,6 +1537,34 @@ l'oggetto filtri tipizzato sulla firma reale di
 Baseline globale verificata: **0 errori, 1.415 warning** (`1.422 -> 1.415`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 62 (29/07/2026)
+
+`services/apiKeysService.ts` (7 warning) e' risultato vivo: consumato da
+`components/settings/APIKeysManager.tsx`, montato su `/app/settings`.
+Verificato prima di procedere: cripta/decripta chiavi con Web Crypto reale
+(fallback a encoding semplice solo se l'API non e' disponibile, con
+warning esplicito in console) e testa le chiavi contro gli endpoint reali
+dei provider (OpenAI, Anthropic, Google AI, Sentinel Hub, Weather API) -
+nessun dato finto.
+
+Il lotto 62 e' stato eseguito su `apiKeysService.ts`, da 7 warning a
+zero: tipizzati con `Record<string, unknown>` i bag di configurazione
+generici (`config` in `createAPIKey`/`testAPIKey`, `dbUpdates`/`dbFields`
+nel mapper camelCase->snake_case di `updateAPIKey`); tipizzati con
+interfacce locali specifiche i parametri di `testOpenAI`
+(`{ organization?: string }`) e `testSentinelHub`
+(`{ clientId?: string; clientSecret?: string }`), con cast mirato nello
+switch di `testAPIKey` dove il bag generico viene instradato al test del
+provider corretto; sostituito `catch (error: any)` con `catch (error)` e
+narrowing esplicito.
+
+Baseline globale verificata: **0 errori, 1.408 warning** (`1.415 -> 1.408`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
+**Nota disco:** al termine di questo lotto il Mac risultava al 99% di
+spazio (3.3GB liberi su 228GB), nonostante la pulizia worktree del lotto
+57. Da monitorare da vicino nei prossimi lotti.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
