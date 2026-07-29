@@ -16,7 +16,7 @@ export interface SmartOperation {
   status: 'scheduled' | 'weather_warning' | 'ready' | 'completed' | 'cancelled'
   weatherWarning?: string
   aiSuggestion?: string
-  parameters?: Record<string, any>
+  parameters?: Record<string, unknown>
 }
 
 export interface WeatherData {
@@ -243,7 +243,7 @@ export class SmartOperationsService {
   /**
    * Genera suggerimenti AI basati su dati storici e condizioni attuali
    */
-  generateAISuggestions(operations: SmartOperation[], weather: WeatherData[], gardenData?: any) {
+  generateAISuggestions(operations: SmartOperation[], weather: WeatherData[]) {
     const suggestions = []
 
     // Analisi irrigazione

@@ -5,6 +5,8 @@
 
 import { AuthError, RegistrationErrorType } from '@/types/auth';
 
+type UnknownAuthError = { message?: string; code?: string } | null | undefined;
+
 /**
  * Tipi di errore sessione
  */
@@ -24,7 +26,8 @@ export class AuthErrorHandler {
   /**
    * Gestione errori registrazione
    */
-  public handleRegistrationError(error: any): AuthError {
+  public handleRegistrationError(rawError: unknown): AuthError {
+    const error = rawError as UnknownAuthError;
     if (error?.message?.includes('Error sending confirmation email')) {
       return {
         type: RegistrationErrorType.DATABASE_ERROR,
@@ -113,7 +116,8 @@ export class AuthErrorHandler {
   /**
    * Gestione errori login
    */
-  public handleLoginError(error: any): AuthError {
+  public handleLoginError(rawError: unknown): AuthError {
+    const error = rawError as UnknownAuthError;
     if (error?.code) {
       switch (error.code) {
         case 'invalid_credentials':
@@ -156,7 +160,8 @@ export class AuthErrorHandler {
   /**
    * Gestione errori reset password
    */
-  public handlePasswordResetError(error: any): AuthError {
+  public handlePasswordResetError(rawError: unknown): AuthError {
+    const error = rawError as UnknownAuthError;
     if (error?.message?.includes('Error sending recovery email')) {
       return {
         type: RegistrationErrorType.DATABASE_ERROR,

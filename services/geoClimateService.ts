@@ -1,15 +1,19 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type GenerateContentRequest } from '@google/generative-ai';
 import { isApiKeyConfigured } from "./geminiService";
 import { findAltitudeByComune, findAltitudeByCoordinates } from "../data/italianComunesAltitude";
 
 // Support both Next.js and Vite environments
 // In Next.js, use process.env.NEXT_PUBLIC_* for client-side
 // In Vite, use import.meta.env.VITE_* (but this file should work in Next.js)
+interface ViteEnvGlobal {
+  __VITE_ENV__?: { VITE_GEMINI_API_KEY?: string };
+}
+
 const getApiKey = () => {
   if (typeof window !== 'undefined') {
     // Client-side: Next.js or Vite
-    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || 
-           (typeof (globalThis as any).__VITE_ENV__ !== 'undefined' ? (globalThis as any).__VITE_ENV__.VITE_GEMINI_API_KEY : undefined);
+    const viteEnv = (globalThis as ViteEnvGlobal).__VITE_ENV__;
+    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || viteEnv?.VITE_GEMINI_API_KEY;
   } else {
     // Server-side: Next.js only
     return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -21,7 +25,7 @@ const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 const generateGeoClimateContent = async (request: {
   model: string;
-  contents: any;
+  contents: string;
   config?: Record<string, unknown>;
 }): Promise<{ text: string }> => {
   if (!ai) {
@@ -32,7 +36,7 @@ const generateGeoClimateContent = async (request: {
   const result = await modelClient.generateContent({
     contents: request.contents,
     generationConfig: request.config,
-  });
+  } as unknown as GenerateContentRequest);
 
   return {
     text: result.response.text() || '',

@@ -3,10 +3,8 @@
  * Analizza i task esistenti nel giardino per determinare se esiste già una configurazione
  */
 
-import { Garden, GardenTask } from '../types';
+import { GardenTask } from '../types';
 import { FruitTreeCrop } from '../types/fruitTree';
-import { OliveCrop } from '../types/olive';
-import { VineCrop } from '../types/vine';
 import { FruitTreeCategory } from '../types/orchardTypes';
 import { getMasterSheet } from './plantMasterService';
 import { getCategoryForMasterSheet } from './fruitTreeCategoryService';

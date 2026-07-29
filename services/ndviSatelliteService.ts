@@ -72,6 +72,14 @@ export interface SatelliteImageRequest {
   resolution_preference: 'high' | 'medium' | 'low';
 }
 
+export interface NDVIStressArea {
+  coordinates: [number, number][];
+  stress_type: 'water' | 'nutrient' | 'disease' | 'pest';
+  severity: 'low' | 'medium' | 'high';
+  affected_area_m2: number;
+  recommendations: string[];
+}
+
 export class NDVISatelliteService {
   /**
    * Recupera ultima immagine NDVI per garden
@@ -177,13 +185,7 @@ export class NDVISatelliteService {
   /**
    * Identifica aree con stress colturale
    */
-  static async detectStressAreas(garden: Garden, reading?: NDVIReading | null): Promise<Array<{
-    coordinates: [number, number][];
-    stress_type: 'water' | 'nutrient' | 'disease' | 'pest';
-    severity: 'low' | 'medium' | 'high';
-    affected_area_m2: number;
-    recommendations: string[];
-  }>> {
+  static async detectStressAreas(garden: Garden, reading?: NDVIReading | null): Promise<NDVIStressArea[]> {
     try {
       const ndviReading = reading === undefined ? await this.getLatestNDVI(garden) : reading;
       if (!ndviReading) return [];
@@ -208,7 +210,7 @@ export class NDVISatelliteService {
       last_update: string;
     };
     zones: NDVIZoneAnalysis[];
-    stress_areas: any[];
+    stress_areas: NDVIStressArea[];
     recommendations: string[];
     next_analysis_date: string;
   }> {
@@ -359,7 +361,7 @@ export class NDVISatelliteService {
   }
 
 
-  private static calculateTrendDirection(trend: any[]): 'improving' | 'stable' | 'declining' {
+  private static calculateTrendDirection(trend: Array<{ date: string; ndvi: number; health: string }>): 'improving' | 'stable' | 'declining' {
     if (trend.length < 2) return 'stable';
     
     const recentWindow = trend.slice(-5);
@@ -374,7 +376,7 @@ export class NDVISatelliteService {
     return 'stable';
   }
 
-  private static generateRecommendations(ndviReading: NDVIReading | null, stressAreas: any[]): string[] {
+  private static generateRecommendations(ndviReading: NDVIReading | null, stressAreas: NDVIStressArea[]): string[] {
     const recommendations = [];
     
     if (!ndviReading) {
