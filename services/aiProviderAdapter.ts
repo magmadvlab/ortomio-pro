@@ -5,42 +5,53 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getActiveAPIConfiguration, type AIServiceType } from './apiConfigurationService';
+import { getActiveAPIConfiguration, type AIServiceType, type APIConfiguration } from './apiConfigurationService';
 
 // Fallback a variabili ambiente se non ci sono configurazioni personalizzate
 const getDefaultGeminiKey = (): string | null => {
   if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || 
-           (import.meta as any)?.env?.VITE_GEMINI_API_KEY || null;
+    return process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+           (import.meta as unknown as { env?: { VITE_GEMINI_API_KEY?: string } })?.env?.VITE_GEMINI_API_KEY ||
+           null;
   }
   return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || null;
 };
 
-export interface AIProvider {
-  generateContent: (prompt: string, options?: {
-    model?: string;
-    temperature?: number;
-    maxTokens?: number;
-    systemInstruction?: string;
-  }) => Promise<{ text: string }>;
-  generateContentWithSchema?: (prompt: string, schema: any, options?: any) => Promise<any>;
+export interface GenerateContentOptions {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  systemInstruction?: string;
 }
+
+export interface AIProvider {
+  generateContent: (prompt: string, options?: GenerateContentOptions) => Promise<{ text: string }>;
+  generateContentWithSchema?: (
+    prompt: string,
+    schema: Record<string, unknown>,
+    options?: GenerateContentOptions
+  ) => Promise<{ text: string }>;
+}
+
+type ProviderConfig = APIConfiguration['config'];
 
 /**
  * Crea provider Gemini
  */
-function createGeminiProvider(apiKey: string, config?: any): AIProvider {
+function createGeminiProvider(apiKey: string, config?: ProviderConfig): AIProvider {
   const ai = new GoogleGenerativeAI(apiKey);
   const model = config?.model || 'gemini-2.5-flash';
 
   const generateGeminiContent = async (request: {
-    contents: any;
-    config?: Record<string, unknown>;
+    contents: string;
+    generationConfig?: Record<string, unknown>;
+    systemInstruction?: string;
   }) => {
     const modelClient = ai.getGenerativeModel({ model });
     const result = await modelClient.generateContent({
-      contents: request.contents,
-      generationConfig: request.config,
+      contents: [{ role: 'user', parts: [{ text: request.contents }] }],
+      generationConfig: request.generationConfig,
+      systemInstruction: request.systemInstruction,
     });
 
     return {
@@ -49,26 +60,27 @@ function createGeminiProvider(apiKey: string, config?: any): AIProvider {
   };
 
   return {
-    async generateContent(prompt: string, options?: any) {
+    async generateContent(prompt: string, options?: GenerateContentOptions) {
       const response = await generateGeminiContent({
         contents: prompt,
-        config: {
+        generationConfig: {
           temperature: options?.temperature || 0.7,
           maxOutputTokens: options?.maxTokens || 2048,
-          systemInstruction: options?.systemInstruction,
         },
+        systemInstruction: options?.systemInstruction,
       });
       return response;
     },
-    async generateContentWithSchema(prompt: string, schema: any, options?: any) {
+    async generateContentWithSchema(prompt: string, schema: Record<string, unknown>, options?: GenerateContentOptions) {
       // Per Gemini, usa responseMimeType e responseSchema nel config
       const response = await generateGeminiContent({
         contents: prompt,
-        config: {
+        generationConfig: {
           temperature: options?.temperature || 0.7,
           responseMimeType: 'application/json',
           responseSchema: schema,
         },
+        systemInstruction: options?.systemInstruction,
       });
       return response;
     },
@@ -78,12 +90,12 @@ function createGeminiProvider(apiKey: string, config?: any): AIProvider {
 /**
  * Crea provider OpenAI
  */
-function createOpenAIProvider(apiKey: string, config?: any): AIProvider {
+function createOpenAIProvider(apiKey: string, config?: ProviderConfig): AIProvider {
   const model = config?.model || 'gpt-4';
   const baseURL = config?.base_url || 'https://api.openai.com/v1';
 
   return {
-    async generateContent(prompt: string, options?: any) {
+    async generateContent(prompt: string, options?: GenerateContentOptions) {
       const response = await fetch(`${baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -114,12 +126,12 @@ function createOpenAIProvider(apiKey: string, config?: any): AIProvider {
 /**
  * Crea provider Ollama (Open Source locale)
  */
-function createOllamaProvider(apiKey: string, config?: any): AIProvider {
+function createOllamaProvider(apiKey: string, config?: ProviderConfig): AIProvider {
   const model = config?.model || 'llama3';
   const baseURL = config?.base_url || 'http://localhost:11434';
 
   return {
-    async generateContent(prompt: string, options?: any) {
+    async generateContent(prompt: string, options?: GenerateContentOptions) {
       const response = await fetch(`${baseURL}/api/generate`, {
         method: 'POST',
         headers: {
@@ -171,11 +183,11 @@ function createOllamaProvider(apiKey: string, config?: any): AIProvider {
 /**
  * Crea provider Anthropic (Claude)
  */
-function createAnthropicProvider(apiKey: string, config?: any): AIProvider {
+function createAnthropicProvider(apiKey: string, config?: ProviderConfig): AIProvider {
   const model = config?.model || 'claude-3-opus-20240229';
 
   return {
-    async generateContent(prompt: string, options?: any) {
+    async generateContent(prompt: string, options?: GenerateContentOptions) {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {

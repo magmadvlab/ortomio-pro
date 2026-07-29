@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O62 | **14** | **0** | **4** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`) e O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **979 warning rimossi** | — | **1.663 warning** | Baseline operativa 2.642 -> 1.663 in 47 lotti. T01 non equivale a 1.663 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **994 warning rimossi** | — | **1.648 warning** | Baseline operativa 2.642 -> 1.648 in 48 lotti. T01 non equivale a 1.648 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -999,6 +999,47 @@ codice morto M05 insieme al resto del sotto-sistema.
 Baseline globale verificata: **0 errori, 1.663 warning** (`1.680 -> 1.663`);
 test mirato `unifiedOperationsService.test.ts` 3/3, suite `test:release`
 434/434 (9 suite), type-check e build produzione 153/153 pagine verdi.
+
+### Aggiornamento T01 - lotto 48 (29/07/2026)
+
+`components/irrigation/WateringLogFormWithFieldRows.tsx` (17 warning, in
+classifica dopo i quattro esclusi noti) e' risultato a zero importer,
+coerente con la nota gia' registrata nel lotto 25 - confermato morto,
+escluso. `components/planner/tabs/PlannerWizard.tsx` e
+`components/VisualGardenPlanner.tsx` (15 warning), controllati durante la
+selezione, sono risultati rispettivamente a zero importer e con unico
+importer `Planner.tsx` (il file morto del cluster "AI Planner" di M05) -
+entrambi morti, esclusi. Confermato ancora vivo `services/aiProviderAdapter.ts`
+(usato da `geminiService.ts`, `contextAwareAIService.ts`, `aiProxyService.ts`,
+`complianceAIService.ts`).
+
+Il lotto 48 e' stato eseguito su `services/aiProviderAdapter.ts` (253 righe),
+da 15 warning a zero: tipizzati i quattro costruttori di provider
+(Gemini/OpenAI/Ollama/Anthropic) con `APIConfiguration['config']` gia'
+esistente in `apiConfigurationService.ts`, estratta l'interfaccia condivisa
+`GenerateContentOptions` al posto di quattro copie inline. Il file fa parte
+del perimetro gia' noto di O48 (le chiavi provider arrivano in chiaro al
+client): la tipizzazione non tocca ne' peggiora quel gate, gia' registrato.
+
+**Bug reale trovato e corretto tipizzando il provider Gemini:** la richiesta
+al SDK (`@google/generative-ai`) passava `contents` come stringa semplice e
+`systemInstruction` annidato dentro `generationConfig`, mentre il tipo reale
+del SDK richiede `contents: Content[]` (`{role, parts}`) e `systemInstruction`
+come campo di primo livello della request, non dentro `generationConfig`.
+Con `any` l'errore era silenzioso: l'istruzione di sistema personalizzata
+veniva costruita e passata ma il provider Gemini custom la ignorava sempre,
+rispondendo con il comportamento generico del modello. L'impatto e' reale e
+ampio: `contextAwareAIService.ts`, `complianceAIService.ts` (assistente
+GlobalG.A.P. certificazioni/rischio/richiamo/formazione),
+`aiProxyService.ts` e `geminiService.ts` passano tutti `systemInstruction`
+attraverso questo adapter quando e' configurato un provider Gemini
+personalizzato. Corretto costruendo `contents` nel formato richiesto dal SDK
+e spostando `systemInstruction` a livello della request; verificato con
+`tsc --noEmit` contro i tipi ufficiali del pacchetto.
+
+Baseline globale verificata: **0 errori, 1.648 warning** (`1.663 -> 1.648`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione
+153/153 pagine verdi.
 
 ## 6. Verifica trasversale dopo M15
 
