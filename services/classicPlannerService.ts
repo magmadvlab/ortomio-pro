@@ -70,7 +70,7 @@ class ClassicPlannerService {
   async createPlan(data: Partial<PlantingPlan>): Promise<PlantingPlan> {
     try {
       // Check rotation if field row specified
-      let rotationInfo: any = {}
+      let rotationInfo: Partial<Awaited<ReturnType<typeof this.checkRotation>>> = {}
       if (data.fieldRowId && data.plantName && data.plantFamily) {
         rotationInfo = await this.checkRotation(
           data.gardenId!,
@@ -246,7 +246,13 @@ class ClassicPlannerService {
       notes?: string
     }
   ): Promise<PlantingPlan> {
-    const updates: any = {
+    const updates: {
+      status: PlantingPlan['status']
+      updated_at: string
+      actual_planting_date?: string
+      actual_harvest_date?: string
+      notes?: string
+    } = {
       status,
       updated_at: new Date().toISOString()
     }
@@ -289,11 +295,8 @@ class ClassicPlannerService {
 
   async getSuggestionsForLocation(
     gardenId: string,
-    fieldRowId?: string,
-    zoneId?: string
+    fieldRowId?: string
   ): Promise<PlantingSuggestion[]> {
-    const suggestions: PlantingSuggestion[] = []
-
     // If field row specified, use rotation service
     if (fieldRowId) {
       const history = await cropRotationService.getHistoryByRow(fieldRowId)
@@ -314,7 +317,7 @@ class ClassicPlannerService {
             reason: `Rotazione ottimale dopo ${lastCrop.plantName}`,
             benefits: crop.benefits,
             warnings: [],
-            idealPlantingDates: this.getIdealPlantingDates(crop.plantName)
+            idealPlantingDates: this.getIdealPlantingDates()
           }))
         } else {
           // Generate new rotation plan
@@ -332,7 +335,7 @@ class ClassicPlannerService {
             reason: plan.reasoning,
             benefits: crop.benefits,
             warnings: [],
-            idealPlantingDates: this.getIdealPlantingDates(crop.plantName)
+            idealPlantingDates: this.getIdealPlantingDates()
           }))
         }
       }
@@ -356,7 +359,7 @@ class ClassicPlannerService {
           reason: 'Periodo ideale per semina pomodori',
           benefits: ['Temperatura ottimale', 'Lunga stagione di crescita'],
           warnings: [],
-          idealPlantingDates: this.getIdealPlantingDates('Pomodoro')
+          idealPlantingDates: this.getIdealPlantingDates()
         },
         {
           plantName: 'Lattuga',
@@ -365,7 +368,7 @@ class ClassicPlannerService {
           reason: 'Ottimo per raccolti primaverili',
           benefits: ['Crescita rapida', 'Tollera temperature fresche'],
           warnings: [],
-          idealPlantingDates: this.getIdealPlantingDates('Lattuga')
+          idealPlantingDates: this.getIdealPlantingDates()
         }
       ]
     }
@@ -373,7 +376,7 @@ class ClassicPlannerService {
     return []
   }
 
-  private getIdealPlantingDates(plantName: string): {
+  private getIdealPlantingDates(): {
     start: string
     end: string
     optimal: string
@@ -445,7 +448,29 @@ class ClassicPlannerService {
 
   // ===== MAPPING =====
 
-  private mapPlanFromDb(data: any): PlantingPlan {
+  private mapPlanFromDb(data: {
+    id: string
+    garden_id: string
+    zone_id?: string
+    field_row_id?: string
+    field_row_section_id?: string
+    plant_variety_id?: string
+    plant_name: string
+    plant_family: string
+    quantity: number
+    planned_planting_date: string
+    planned_harvest_date?: string
+    actual_planting_date?: string
+    actual_harvest_date?: string
+    status: PlantingPlan['status']
+    rotation_plan_id?: string
+    follows_rotation_advice: boolean
+    rotation_score?: number
+    rotation_warnings?: string[]
+    notes?: string
+    created_at: string
+    updated_at: string
+  }): PlantingPlan {
     return {
       id: data.id,
       gardenId: data.garden_id,

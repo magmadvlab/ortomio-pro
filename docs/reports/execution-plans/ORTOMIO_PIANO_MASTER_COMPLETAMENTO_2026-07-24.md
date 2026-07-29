@@ -1720,6 +1720,71 @@ lotti precedenti, comportamento invariato):**
 Baseline globale verificata: **0 errori, 1.313 warning** (`1.357 -> 1.313`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 65 (29/07/2026)
+
+Classifica ESLint rigenerata (baseline confermata: 1.313 warning). In
+cima erano quasi tutti candidati gia' noti come morti/orfani (cluster
+AI Planner, i 14+ orfani registrati nei lotti 63-64). Verificati con
+grep ricorsivo ~20 candidati ulteriori: confermati vivi e scelti come
+target `components/garden/ActivityRegistry.tsx` (vivo via `/app/analytics`),
+`components/planner/ClassicPlannerWithRotation.tsx` (vivo via
+`/app/planner-classic`, route mai censita prima in questa campagna),
+`components/smart/IntegratedSmartHub.tsx` (vivo via `/app/smart`),
+`components/sunExposure/AdvancedSunExposureWizard.tsx` (vivo via
+`GardenOnboarding.tsx`, a sua volta vivo via `GardenTypeWizard.tsx`),
+`services/classicPlannerService.ts` (vivo via `ClassicPlannerWithRotation.tsx`),
+`services/vineyardService.ts` (vivo via `VineManager.tsx`, `/app/vineyard`),
+`services/plantFuzzySearchService.ts` (vivo via `/api/plants/search`).
+Scartati durante la stessa verifica, nuovi orfani per O45: `SpecializedCropForm.tsx`
+e `AccessoriesSuggestionsSection.tsx` (unico importer `components/Planner.tsx`,
+cluster morto), `CollaborativeAIDashboard.tsx`, `SoilAnalysisForm.tsx`,
+`IrrigationZoneWizard.tsx`, `OliveManagementDashboard.tsx` (zero importer),
+`components/DataBackup.tsx` (zero importer, rende morto anche
+`services/importService.ts` che importava solo da li'), l'intera catena
+`services/aiProxyService.ts` -> `services/productCardService.ts` ->
+`services/integratedTreatmentService.ts` -> `components/treatments/SmartTreatmentWizard.tsx`
+-> `components/treatments/TreatmentDashboardWidget.tsx` (zero importer
+in fondo alla catena, quindi tutti e 5 irraggiungibili nonostante
+`aiProxyService.ts` fosse stato attivamente corretto nel D9 del 22/07 —
+il codice che lo consumava a quella data si e' da allora scollegato).
+
+44 -> 1 warning sui 7 file (1 lasciato intenzionalmente su
+`AdvancedSunExposureWizard.tsx`: `no-img-element` su foto 360° caricata
+dall'utente, data-URI, stesso pattern lotto 8/63/64). Import morti
+rimossi, `exhaustive-deps` risolto con `useCallback` (funzioni spostate
+prima degli effect), `as any` sostituiti con union type reali o
+interfacce locali per le righe Supabase grezze, coppie `useState` con
+getter morto ma setter vivo (o viceversa) ridotte al solo binding
+necessario, 2 parametri sempre-inutilizzati rimossi da funzioni con
+un solo chiamante (`getIdealPlantingDates`, `getSuggestionsForLocation`)
+aggiornando i call site.
+
+**Bug reale trovato e corretto (non solo un gap registrato) in
+`services/vineyardService.ts::createVineyardFromWizard`:** le viti
+create in blocco dal wizard vigneto venivano costruite con campi
+snake_case (`vineyard_id`, `garden_id`, `is_active`, `needs_pruning`,
+...) prima di passare per `bulkCreateVines` -> `mapVineToDatabase`,
+che pero' legge campi camelCase (`vineyardId`, `gardenId`, `isActive`,
+...) per poi ri-convertirli lui stesso in snake_case per l'insert. Il
+doppio mapping faceva si' che ogni vite creata in blocco finisse nel
+database con `vineyard_id`/`garden_id` nulli e `is_active` nullo (la
+dashboard filtra `is_active = true`, quindi queste viti sarebbero
+risultate invisibili). Corretto passando i campi in camelCase come
+richiesto dal mapper interno, rimuovendo il cast `as any` che
+nascondeva il disallineamento di tipo.
+
+**Gap trovato durante la tipizzazione, NON toccato:**
+`services/classicPlannerService.ts::getIdealPlantingDates` accetta
+(accettava) un parametro `plantName` mai usato nel corpo — la funzione
+ritorna sempre la stessa finestra di date fisse (oggi+7/+37/+22 giorni)
+indipendentemente dalla pianta, nonostante il nome suggerisca un
+calcolo specifico per specie. Parametro rimosso per pulizia lint
+(nessun altro effetto), ma la mancata differenziazione per pianta
+resta un gap di prodotto non affrontato qui.
+
+Baseline globale verificata: **0 errori, 1.270 warning** (`1.313 -> 1.270`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

@@ -20,7 +20,8 @@ import {
   Package,
   Bug,
   Thermometer,
-  X
+  X,
+  type LucideIcon
 } from 'lucide-react'
 import { GardenTask } from '@/types'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
@@ -28,6 +29,15 @@ import type { OperationalLedgerSummary, OperationalLedgerUnifiedEvent } from '@/
 import { getOperationalLedgerSummary } from '@/services/operationalLedgerService'
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
+
+// `GardenTask` non ha mai avuto questi 4 campi (esiste solo `durationMinutes`, non usato qui):
+// restano sempre i default/fallback qui sotto.
+type LegacyTaskActivityFields = {
+  location?: string
+  unit?: string
+  estimatedDuration?: number
+  assignedTo?: string
+}
 
 interface ActivityRecord {
   id: string
@@ -131,24 +141,27 @@ export default function ActivityRegistry({
       return
     }
 
-    const activityRecords: ActivityRecord[] = tasks.map(task => ({
-      id: task.id,
-      date: task.actualCompletedDate || task.date,
-      type: 'task',
-      category: getTaskCategory(task.taskType),
-      title: `${task.taskType} - ${task.plantName}`,
-      description: task.notes || `${task.taskType} per ${task.plantName}`,
-      plantName: task.plantName,
-      location: (task as any).location || 'Non specificata',
-      quantity: (task as any).quantity,
-      unit: (task as any).unit,
-      duration: (task as any).estimatedDuration,
-      operator: (task as any).assignedTo || 'Utente',
-      notes: task.notes,
-      completed: task.completed,
-      completedAt: task.actualCompletedDate,
-      linkedTaskId: task.id
-    }))
+    const activityRecords: ActivityRecord[] = tasks.map(task => {
+      const legacyTask = task as GardenTask & LegacyTaskActivityFields
+      return {
+        id: task.id,
+        date: task.actualCompletedDate || task.date,
+        type: 'task',
+        category: getTaskCategory(task.taskType),
+        title: `${task.taskType} - ${task.plantName}`,
+        description: task.notes || `${task.taskType} per ${task.plantName}`,
+        plantName: task.plantName,
+        location: legacyTask.location || 'Non specificata',
+        quantity: task.quantity,
+        unit: legacyTask.unit,
+        duration: legacyTask.estimatedDuration,
+        operator: legacyTask.assignedTo || 'Utente',
+        notes: task.notes,
+        completed: task.completed,
+        completedAt: task.actualCompletedDate,
+        linkedTaskId: task.id
+      }
+    })
 
     setActivities(activityRecords)
   }, [ledgerSummary, tasks])
@@ -258,7 +271,7 @@ export default function ActivityRegistry({
   }
 
   const getTypeIcon = (type: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, LucideIcon> = {
       'task': Activity,
       'observation': Eye,
       'harvest': Package,
@@ -364,13 +377,13 @@ export default function ActivityRegistry({
             {/* View Mode Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               {[
-                { id: 'list', icon: FileText, label: 'Lista' },
-                { id: 'timeline', icon: Clock, label: 'Timeline' },
-                { id: 'stats', icon: BarChart3, label: 'Statistiche' }
+                { id: 'list' as const, icon: FileText, label: 'Lista' },
+                { id: 'timeline' as const, icon: Clock, label: 'Timeline' },
+                { id: 'stats' as const, icon: BarChart3, label: 'Statistiche' }
               ].map(mode => (
                 <button
                   key={mode.id}
-                  onClick={() => setViewMode(mode.id as any)}
+                  onClick={() => setViewMode(mode.id)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === mode.id
                       ? 'bg-white text-gray-900 shadow-sm'

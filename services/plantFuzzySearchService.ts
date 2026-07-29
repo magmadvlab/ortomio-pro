@@ -4,10 +4,33 @@
  * Usa pg_trgm per fuzzy matching su Supabase
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeText, similarity } from '../utils/textNormalizer';
 import { getSupabaseClient } from '../config/supabase';
 import { ArchetypeId } from '../types/archetypes';
 import { plantSynonymsSeed, plantTaxonomySeed } from '../data/plantTaxonomySeed';
+
+// `confidence`/`similarity_score` arrivano dall'RPC Postgres come colonne `numeric`, serializzate
+// come stringa dal client Supabase: da qui il `parseFloat` gia' presente prima di questo fix.
+interface PlantSynonymSearchRow {
+  plant_id: string;
+  plant_name: string;
+  archetype_id: string;
+  family_id: string;
+  functional_category: string;
+  confidence: string;
+  similarity_score?: string;
+  synonym: string;
+}
+
+interface PlantCanonicalSearchRow {
+  plant_id: string;
+  plant_name: string;
+  archetype_id: string;
+  family_id: string;
+  functional_category: string;
+  similarity_score?: string;
+}
 
 /**
  * Risultato della ricerca fuzzy
@@ -98,7 +121,7 @@ export async function fuzzySearchPlant(
  * Cerca nei sinonimi usando funzione SQL search_plant_synonyms
  */
 async function searchSynonyms(
-  supabase: any,
+  supabase: SupabaseClient,
   normalized: string,
   locale: string,
   archetypeId?: ArchetypeId
@@ -117,16 +140,16 @@ async function searchSynonyms(
       return [];
     }
 
-    return (data || []).map((row: any) => ({
+    return ((data || []) as PlantSynonymSearchRow[]).map((row) => ({
       plantId: row.plant_id,
       plantName: row.plant_name,
       archetypeId: row.archetype_id,
       familyId: row.family_id,
       functionalCategory: row.functional_category,
-      confidence: parseFloat(row.confidence) * (row.similarity_score || 1.0),
+      confidence: parseFloat(row.confidence) * parseFloat(row.similarity_score || '1'),
       matchType: 'synonym' as const,
       matchedText: row.synonym,
-      similarityScore: parseFloat(row.similarity_score || 0)
+      similarityScore: parseFloat(row.similarity_score || '0')
     }));
   } catch (error) {
     console.error('Error in searchSynonyms:', error);
@@ -138,7 +161,7 @@ async function searchSynonyms(
  * Cerca nei nomi canonici usando funzione SQL search_plant_canonical
  */
 async function searchCanonical(
-  supabase: any,
+  supabase: SupabaseClient,
   normalized: string,
   archetypeId?: ArchetypeId
 ): Promise<FuzzySearchResult[]> {
@@ -155,16 +178,16 @@ async function searchCanonical(
       return [];
     }
 
-    return (data || []).map((row: any) => ({
+    return ((data || []) as PlantCanonicalSearchRow[]).map((row) => ({
       plantId: row.plant_id,
       plantName: row.plant_name,
       archetypeId: row.archetype_id,
       familyId: row.family_id,
       functionalCategory: row.functional_category,
-      confidence: parseFloat(row.similarity_score || 0.8),
+      confidence: parseFloat(row.similarity_score || '0.8'),
       matchType: 'canonical' as const,
       matchedText: row.plant_name,
-      similarityScore: parseFloat(row.similarity_score || 0)
+      similarityScore: parseFloat(row.similarity_score || '0')
     }));
   } catch (error) {
     console.error('Error in searchCanonical:', error);
@@ -187,13 +210,13 @@ function fuzzySearchLocal(
   for (const synonym of plantSynonymsSeed) {
     if (synonym.locale !== locale && synonym.locale !== 'it') continue;
     if (archetypeId) {
-      const taxonomy = plantTaxonomySeed.find((p: any) => p.plantId === synonym.plantId);
+      const taxonomy = plantTaxonomySeed.find((p) => p.plantId === synonym.plantId);
       if (taxonomy?.archetypeId !== archetypeId) continue;
     }
 
     const sim = similarity(normalized, synonym.normalizedSynonym);
     if (sim >= 0.7) {
-      const taxonomy = plantTaxonomySeed.find((p: any) => p.plantId === synonym.plantId);
+      const taxonomy = plantTaxonomySeed.find((p) => p.plantId === synonym.plantId);
       if (taxonomy) {
         results.push({
           plantId: taxonomy.plantId,

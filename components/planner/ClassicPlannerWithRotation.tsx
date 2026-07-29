@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Calendar,
   Plus,
@@ -9,8 +9,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Leaf,
-  MapPin,
-  Clock,
   TrendingUp,
   RefreshCw
 } from 'lucide-react'
@@ -42,26 +40,14 @@ export default function ClassicPlannerWithRotation() {
   const [filterStatus, setFilterStatus] = useState<PlantingPlan['status'] | 'ALL'>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    if (activeGarden) {
-      loadPlans()
-    }
-  }, [activeGarden, filterStatus])
-
-  useEffect(() => {
-    if (selectedLocation.fieldRowId) {
-      loadSuggestions()
-    }
-  }, [selectedLocation])
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     if (!activeGarden) return
-    
+
     try {
       setLoading(true)
-      const filters: any = {}
+      const filters: Parameters<typeof classicPlannerService.getPlans>[1] = {}
       if (filterStatus !== 'ALL') filters.status = filterStatus
-      
+
       const data = await classicPlannerService.getPlans(activeGarden.id, filters)
       setPlans(data)
     } catch (error) {
@@ -69,22 +55,33 @@ export default function ClassicPlannerWithRotation() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden, filterStatus])
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (!activeGarden) return
-    
+
     try {
       const data = await classicPlannerService.getSuggestionsForLocation(
         activeGarden.id,
-        selectedLocation.fieldRowId,
-        selectedLocation.zoneId
+        selectedLocation.fieldRowId
       )
       setSuggestions(data)
     } catch (error) {
       console.error('Error loading suggestions:', error)
     }
-  }
+  }, [activeGarden, selectedLocation])
+
+  useEffect(() => {
+    if (activeGarden) {
+      loadPlans()
+    }
+  }, [activeGarden, filterStatus, loadPlans])
+
+  useEffect(() => {
+    if (selectedLocation.fieldRowId) {
+      loadSuggestions()
+    }
+  }, [selectedLocation, loadSuggestions])
 
   const handleCreatePlan = async () => {
     if (!activeGarden || !newPlan.plantName) return
@@ -118,7 +115,7 @@ export default function ClassicPlannerWithRotation() {
 
   const handleUpdateStatus = async (planId: string, status: PlantingPlan['status']) => {
     try {
-      const data: any = {}
+      const data: Parameters<typeof classicPlannerService.updatePlanStatus>[2] = {}
       if (status === 'PLANTED') {
         data.actualPlantingDate = new Date().toISOString().split('T')[0]
       } else if (status === 'HARVESTED') {
@@ -242,7 +239,7 @@ export default function ClassicPlannerWithRotation() {
           <Filter size={20} className="text-gray-400" />
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
+            onChange={(e) => setFilterStatus(e.target.value as PlantingPlan['status'] | 'ALL')}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           >
             <option value="ALL">Tutti gli stati</option>
