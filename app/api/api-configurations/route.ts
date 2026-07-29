@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .from('api_configurations')
       .select('*')
       .eq('user_id', user.id)
-      .order('service_type', { ascending: true })
+      .order('service_name', { ascending: true })
       .order('is_default', { ascending: false });
     
     if (error) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const safeConfigs = (configurations || []).map((config: any) => ({
       id: config.id,
       user_id: config.user_id,
-      service_type: config.service_type,
+      service_type: config.service_name,
       provider_name: config.provider_name,
       config: config.config,
       is_active: config.is_active,
@@ -117,15 +117,15 @@ export async function POST(request: NextRequest) {
         .from('api_configurations')
         .update({ is_default: false })
         .eq('user_id', user.id)
-        .eq('service_type', service_type)
+        .eq('service_name', service_type)
         .eq('is_default', true);
     }
-    
+
     const { data: configuration, error } = await supabase
       .from('api_configurations')
       .insert({
         user_id: user.id,
-        service_type,
+        service_name: service_type,
         provider_name,
         api_key_encrypted: encryptedKey,
         config: config || {},
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     const safeConfig = {
       id: configuration.id,
       user_id: configuration.user_id,
-      service_type: configuration.service_type,
+      service_type: configuration.service_name,
       provider_name: configuration.provider_name,
       config: configuration.config,
       is_active: configuration.is_active,

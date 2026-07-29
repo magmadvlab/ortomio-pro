@@ -130,7 +130,7 @@ export async function saveAPIConfiguration(
       .from('api_configurations')
       .update({ is_default: false })
       .eq('user_id', user.id)
-      .eq('service_type', config.service_type)
+      .eq('service_name', config.service_type)
       .eq('is_default', true);
   }
 
@@ -138,7 +138,7 @@ export async function saveAPIConfiguration(
     .from('api_configurations')
     .insert({
       user_id: user.id,
-      service_type: config.service_type,
+      service_name: config.service_type,
       provider_name: config.provider_name,
       api_key_encrypted: encryptedKey,
       config: config.config || {},
@@ -155,7 +155,7 @@ export async function saveAPIConfiguration(
   return {
     id: data.id,
     user_id: data.user_id,
-    service_type: data.service_type as ServiceType,
+    service_type: data.service_name as ServiceType,
     provider_name: data.provider_name,
     api_key: decryptApiKey(data.api_key_encrypted), // Decripta per restituire
     config: data.config,
@@ -200,7 +200,7 @@ export async function updateAPIConfiguration(
         .from('api_configurations')
         .update({ is_default: false })
         .eq('user_id', user.id)
-        .eq('service_type', updates.service_type || '')
+        .eq('service_name', updates.service_type || '')
         .neq('id', id)
         .eq('is_default', true);
     }
@@ -221,7 +221,7 @@ export async function updateAPIConfiguration(
   return {
     id: data.id,
     user_id: data.user_id,
-    service_type: data.service_type as ServiceType,
+    service_type: data.service_name as ServiceType,
     provider_name: data.provider_name,
     api_key: decryptApiKey(data.api_key_encrypted),
     config: data.config,
@@ -274,7 +274,7 @@ export async function getUserAPIConfigurations(): Promise<APIConfiguration[]> {
     .from('api_configurations')
     .select('*')
     .eq('user_id', user.id)
-    .order('service_type', { ascending: true })
+    .order('service_name', { ascending: true })
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -285,7 +285,7 @@ export async function getUserAPIConfigurations(): Promise<APIConfiguration[]> {
   return data.map((row) => ({
     id: row.id,
     user_id: row.user_id,
-    service_type: row.service_type as ServiceType,
+    service_type: row.service_name as ServiceType,
     provider_name: row.provider_name,
     api_key: decryptApiKey(row.api_key_encrypted), // Decripta per uso
     config: row.config,
@@ -355,7 +355,7 @@ export async function getActiveAPIConfiguration(
     .from('api_configurations')
     .select('*')
     .eq('user_id', user.id)
-    .eq('service_type', serviceType)
+    .eq('service_name', serviceType)
     .eq('is_active', true)
     .order('is_default', { ascending: false })
     .order('last_used_at', { ascending: false, nullsFirst: false })
@@ -369,7 +369,7 @@ export async function getActiveAPIConfiguration(
   return {
     id: data.id,
     user_id: data.user_id,
-    service_type: data.service_type as ServiceType,
+    service_type: data.service_name as ServiceType,
     provider_name: data.provider_name,
     api_key: decryptApiKey(data.api_key_encrypted),
     config: data.config,

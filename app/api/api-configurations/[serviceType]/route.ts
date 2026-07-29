@@ -37,7 +37,7 @@ export async function GET(
       .from('api_configurations')
       .select('*')
       .eq('user_id', user.id)
-      .eq('service_type', serviceType)
+      .eq('service_name', serviceType)
       .eq('is_active', true)
       .order('is_default', { ascending: false })
       .order('last_used_at', { ascending: false, nullsFirst: false })
@@ -61,7 +61,7 @@ export async function GET(
       configuration: {
         id: configuration.id,
         user_id: configuration.user_id,
-        service_type: configuration.service_type,
+        service_type: configuration.service_name,
         provider_name: configuration.provider_name,
         api_key: apiKey,
         config: configuration.config,
