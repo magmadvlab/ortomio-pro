@@ -1,9 +1,18 @@
 import { PlantSuggestion, TreatmentAdvice, SpecificPlantInfo } from "../types";
-import { findSpecies, findVariety, getVarietyInfo, suggestVarieties } from "./plantDatabaseService";
-import { generateCompleteGuide, getVarietyInfo as getMasterVarietyInfo, findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
-import { getSeasonForDate } from "../utils/seasonalAdjustment";
+import { findSpecies, getVarietyInfo } from "./plantDatabaseService";
+import { findSpeciesFromVariety, generateCompleteGuideSync, getVarietyInfoSync, convertMasterSheetToSpecificInfo } from "./plantMasterService";
 import { getAIProvider as getCustomAIProvider, isAIProviderAvailable } from "./aiProviderAdapter";
 import type { CreditFeature } from "../lib/credits";
+
+type GeminiContentPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+type LegacyGeminiContents = string | { parts: GeminiContentPart[] };
+
+interface ErrorLike {
+  message?: string;
+}
 
 // Il default dell'app non usa più una chiave client-side: le chiamate Gemini
 // legacy passano dalla route server-side /api/ai/generate (tier + crediti),
@@ -14,7 +23,7 @@ export const isApiKeyConfigured = (): boolean => true;
 
 const generateWithLegacyGemini = async (request: {
   model: string;
-  contents: any;
+  contents: LegacyGeminiContents;
   config?: Record<string, unknown>;
   feature: CreditFeature;
 }): Promise<{ text: string }> => {
@@ -222,7 +231,7 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
   try {
     // Usa provider attivo (personalizzato o default)
     const customProvider = await getCustomAIProvider('ai_gemini');
-    let response: any;
+    let response: { text: string };
     
     if (customProvider && customProvider.generateContentWithSchema) {
       // Usa provider personalizzato con schema
@@ -250,9 +259,9 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
     const text = response.text;
     if (!text) return [];
     return JSON.parse(text) as PlantSuggestion[];
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Suggestion Error:", error);
-    const errorMessage = error?.message || "Errore sconosciuto";
+    const errorMessage = (error as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env o nelle Impostazioni > API Keys");
     }
@@ -600,9 +609,9 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
     }
     
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Specific Plant Error:", error);
-    const errorMessage = error?.message || "Errore sconosciuto";
+    const errorMessage = (error as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env");
     }
@@ -641,9 +650,9 @@ export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice
     const text = response.text;
     if (!text) return null;
     return JSON.parse(text) as TreatmentAdvice;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Treatment Error:", error);
-    const errorMessage = error?.message || "Errore sconosciuto";
+    const errorMessage = (error as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env");
     }
@@ -752,9 +761,9 @@ export const analyzePlantImage = async (
     });
 
     return response.text || "Impossibile analizzare l'immagine.";
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Vision Error:", error);
-    const errorMessage = error?.message || "Errore sconosciuto";
+    const errorMessage = (error as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       return "Chiave API non valida. Verifica la configurazione in .env";
     }
@@ -806,9 +815,9 @@ export const diagnosePlantHealth = async (base64Image: string): Promise<Treatmen
     const text = response.text;
     if (!text) return null;
     return JSON.parse(text) as TreatmentAdvice;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gemini Diagnosis Error:", error);
-    const errorMessage = error?.message || "Errore sconosciuto";
+    const errorMessage = (error as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       throw new Error("Chiave API non valida o scaduta. Verifica la configurazione in .env");
     }
@@ -836,8 +845,8 @@ export const checkHarvestReadiness = async (plantName: string, brix: number): Pr
       contents: prompt,
     });
     return response.text || "Analisi non disponibile";
-  } catch (e: any) {
-    const errorMessage = e?.message || "Errore sconosciuto";
+  } catch (e: unknown) {
+    const errorMessage = (e as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       return "Chiave API non valida. Verifica la configurazione in .env";
     }
@@ -867,8 +876,8 @@ export const analyzeSensorData = async (moisture: number, temperature: number, g
       contents: prompt,
     });
     return response.text || "Dati ricevuti.";
-  } catch (e: any) {
-    const errorMessage = e?.message || "Errore sconosciuto";
+  } catch (e: unknown) {
+    const errorMessage = (e as ErrorLike)?.message || "Errore sconosciuto";
     if (errorMessage.includes("API_KEY") || errorMessage.includes("401") || errorMessage.includes("403")) {
       return "Chiave API non valida. Verifica la configurazione in .env";
     }
