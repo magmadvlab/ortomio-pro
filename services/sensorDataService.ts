@@ -4,6 +4,7 @@
  * Integra dati sensori con dati meteo API per calcolo temperatura effettiva
  */
 
+import { PostgrestError } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../config/supabase';
 import { Garden } from '../types';
 import { getWeatherForecast } from './weatherService';
@@ -204,7 +205,7 @@ export function validatePercentageMetric(value?: number): boolean {
   return value >= 0 && value <= 100;
 }
 
-function mapSensorReadingFromDb(data: {
+type SensorReadingRow = {
   id: string;
   garden_id: string;
   zone_id?: string | null;
@@ -220,7 +221,9 @@ function mapSensorReadingFromDb(data: {
   calibration_status?: string | null;
   battery_level_percentage?: number | string | null;
   signal_strength?: number | string | null;
-}): SensorReading {
+};
+
+function mapSensorReadingFromDb(data: SensorReadingRow): SensorReading {
   return {
     id: data.id,
     garden_id: data.garden_id,
@@ -480,7 +483,7 @@ type SensorReadingQueryOptions = {
 async function fetchSensorReadingsWithLegacyFallback(
   supabase: ReturnType<typeof getSupabaseClient>,
   options: SensorReadingQueryOptions
-): Promise<any[] | null> {
+): Promise<SensorReadingRow[] | null> {
   const primaryResult = await runSensorReadingQuery(supabase, options, true);
   if (!primaryResult.error) {
     return primaryResult.data;
@@ -502,9 +505,17 @@ async function runSensorReadingQuery(
   supabase: ReturnType<typeof getSupabaseClient>,
   options: SensorReadingQueryOptions,
   filterRealSensors: boolean
-): Promise<{ data: any[] | null; error: any }> {
+): Promise<{ data: SensorReadingRow[] | null; error: PostgrestError | null }> {
   if (!supabase) {
-    return { data: null, error: new Error('Supabase client not available') };
+    return {
+      data: null,
+      error: new PostgrestError({
+        message: 'Supabase client not available',
+        details: '',
+        hint: '',
+        code: 'CLIENT_UNAVAILABLE',
+      }),
+    };
   }
 
   let query = supabase
@@ -535,7 +546,7 @@ async function runSensorReadingQuery(
   return { data: data || null, error };
 }
 
-function isMissingIsSimulatedColumnError(error: any): boolean {
+function isMissingIsSimulatedColumnError(error: PostgrestError | null): boolean {
   const message = typeof error?.message === 'string' ? error.message : '';
   return error?.code === '42703' && message.includes('sensor_readings.is_simulated');
 }
@@ -608,7 +619,7 @@ function applyMicroclimateModifiers(
     const config = garden.greenhouseConfig;
     // Gestisce sia configurazione singola che multipla
     const hasHeating = Array.isArray(config)
-      ? config.some((s: any) => s.hasHeating)
+      ? config.some((s: unknown) => (s as { hasHeating?: boolean }).hasHeating)
       : config.hasHeating;
 
     if (hasHeating) {

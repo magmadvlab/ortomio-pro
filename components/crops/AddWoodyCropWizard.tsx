@@ -8,7 +8,14 @@ import { FruitTreeCrop } from '../../types/fruitTree';
 import { OliveCrop } from '../../types/olive';
 import { VineCrop } from '../../types/vine';
 import { isChillRequirementMet } from '../../logic/fruitTreeEngine';
-import { detectExistingOrchard, detectExistingOliveGrove, detectExistingVineyard } from '../../services/orchardDetectionService';
+import {
+  detectExistingOrchard,
+  detectExistingOliveGrove,
+  detectExistingVineyard,
+  type OrchardDetectionResult,
+  type OliveGroveDetectionResult,
+  type VineyardDetectionResult
+} from '../../services/orchardDetectionService';
 import { CreateOrchardWizard } from './CreateOrchardWizard';
 import { X, ArrowRight, ArrowLeft, TreePine, CircleDot, Grape, AlertCircle, CheckCircle, Info } from 'lucide-react';
 
@@ -36,7 +43,9 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
   
   // Rilevamento frutteto/oliveto/vigneto
   const [showOrchardWizard, setShowOrchardWizard] = useState(false);
-  const [detectionResult, setDetectionResult] = useState<any>(null);
+  const [detectionResult, setDetectionResult] = useState<
+    OrchardDetectionResult | OliveGroveDetectionResult | VineyardDetectionResult | null
+  >(null);
   const [isChecking, setIsChecking] = useState(false);
   
   // Dettagli comuni
@@ -152,7 +161,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
           pruningType: 'Formative',
           pruningSeason: 'Winter'
         },
-        archetypeId: 'L3' as any,
+        archetypeId: 'L3',
       } as GardenTask;
       await storageProvider.createTask(task);
       onComplete(task);
@@ -165,7 +174,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
           harvestMethod: oliveData.harvestMethod || 'Manual',
           pruningType: 'Winter'
         },
-        archetypeId: 'L2' as any,
+        archetypeId: 'L2',
       } as GardenTask;
       await storageProvider.createTask(task);
       onComplete(task);
@@ -178,7 +187,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
           pruningType: 'Winter',
           operationType: 'Pruning'
         },
-        archetypeId: 'L1' as any,
+        archetypeId: 'L1',
       } as GardenTask;
       await storageProvider.createTask(task);
       onComplete(task);
@@ -301,9 +310,9 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
                     <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
                     <div className="text-sm">
                       <p className="font-semibold text-blue-900 mb-1">
-                        {cropType === 'FruitTree' && `Frutteto esistente: ${detectionResult.category || 'Misto'}`}
-                        {cropType === 'Olive' && `Oliveto esistente: ${detectionResult.type || 'Misto'}`}
-                        {cropType === 'Vine' && `Vigneto esistente: ${detectionResult.type || 'Misto'}`}
+                        {cropType === 'FruitTree' && `Frutteto esistente: ${(detectionResult as OrchardDetectionResult).category || 'Misto'}`}
+                        {cropType === 'Olive' && `Oliveto esistente: ${(detectionResult as OliveGroveDetectionResult).type || 'Misto'}`}
+                        {cropType === 'Vine' && `Vigneto esistente: ${(detectionResult as VineyardDetectionResult).type || 'Misto'}`}
                       </p>
                       <p className="text-blue-700">
                         {detectionResult.count} {cropType === 'Vine' ? 'viti' : 'alberi'} già presenti.
@@ -392,7 +401,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
                       </label>
                       <select
                         value={trainingSystem}
-                        onChange={(e) => setTrainingSystem(e.target.value as any)}
+                        onChange={(e) => setTrainingSystem(e.target.value as 'Guyot' | 'Cordon' | 'Pergola' | 'Alberello')}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       >
                         <option value="Guyot">Guyot</option>
@@ -412,7 +421,7 @@ export const AddWoodyCropWizard: React.FC<AddWoodyCropWizardProps> = ({
                   </label>
                   <select
                     value={varietyTypeOlive}
-                    onChange={(e) => setVarietyTypeOlive(e.target.value as any)}
+                    onChange={(e) => setVarietyTypeOlive(e.target.value as 'Oil' | 'Table' | 'Dual-purpose')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                   >
                     <option value="Oil">Da Olio</option>

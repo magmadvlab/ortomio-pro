@@ -15,6 +15,7 @@ import { GardenPlant, PlantOperation } from '@/types/individualPlant'
 import { directorService } from '@/services/directorService'
 import { sendNotification, NotificationData } from './notificationService'
 import { getWeatherForecast } from './weatherService'
+import { getSupabaseClient } from '../config/supabase'
 
 export interface MonitoringAlert {
   id: string
@@ -632,7 +633,12 @@ export class ContinuousMonitoringService {
     }
 
     console.log(`📧 Notification prepared for alert: ${alert.title}`)
-    void sendNotification(notification, {}).catch((error) => {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      console.error('Error sending monitoring notification: Supabase client not available')
+      return
+    }
+    void sendNotification(notification, supabase).catch((error) => {
       console.error('Error sending monitoring notification:', error)
     })
   }

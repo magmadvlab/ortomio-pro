@@ -1907,6 +1907,100 @@ questa versione, senza usare `any`.
 Baseline globale verificata: **0 errori, 1.191 warning** (`1.230 -> 1.191`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 68 (29/07/2026)
+
+7 file vivi verificati con grep sui reali importer (non per inferenza dal
+nome): `services/exifReader.ts` (via `GardenOnboarding.tsx`, live),
+`services/fieldRowCropHistoryService.ts` (via `app/app/advice/page.tsx`,
+route reale), `components/crops/AddWoodyCropWizard.tsx` (via
+`AddCropWizard.tsx`, live dal lotto 13), `services/notificationService.ts`
+(via le route `app/api/cron/**`), `services/operationExecutionBridgeService.ts`
+(via `app/app/irrigation/page.tsx` e `HomeDashboard.tsx`),
+`services/sensorDataService.ts` (via `app/app/smart/page.tsx` e
+`app/api/sensors/readings/route.ts`), `services/apiConfigurationService.ts`
+(vivo transitivamente: `aiProviderAdapter.ts` -> `geminiService.ts` ->
+`app/api/ai/generate/route.ts`, route reale).
+
+33 -> 0 warning sugli 7 file. Pattern ricorrente: `supabaseClient: any` tipizzato
+con `SupabaseClient` da `@supabase/supabase-js`; payload di update dinamici
+tipizzati con l'interfaccia reale della riga o un `Partial<Pick<...>>` mirato;
+`catch (error: any)` sostituito da `catch (error)` con `error instanceof Error`;
+cast `as any` su union discriminate (esito rilevamento frutteto/oliveto/vigneto,
+valori di `<select>`) sostituiti con l'union reale o il cast al tipo specifico.
+
+**Bug reale trovato e corretto, in codice altrimenti morto:**
+`services/continuousMonitoringService.ts::sendAlertNotification` chiamava
+`sendNotification(notification, {})`, passando un oggetto vuoto al posto del
+client Supabase — prima invisibile perche' il parametro era tipizzato `any`
+in `notificationService.ts`; tipizzandolo `SupabaseClient` il type-check ha
+smascherato la chiamata come non valida. Se mai eseguito, questo codice
+sarebbe andato in crash immediato (`{}.from is not a function`). Corretto
+recuperando un client reale con `getSupabaseClient()` e uscendo con log se
+non disponibile. **Attenzione:** durante la verifica di raggiungibilita' e'
+emerso che `components/monitoring/ContinuousMonitoringDashboard.tsx` (portato
+vivo a zero warning nel lotto 2 del 24/07/2026) e' ora **completamente
+orfano** (zero importer in tutto il repo) — stesso pattern gia' visto su
+`components/garden/GardenView.tsx` in questa sessione: il codebase si
+ristruttura rapidamente e le note "vivo" di lotti precedenti vanno riverificate,
+mai date per assunte. Di conseguenza anche `services/intelligentNotificationService.ts`
+(unico consumer: la dashboard ormai orfana) e' orfano transitivamente. Nessuna
+rimozione eseguita, solo il fix del tipo/bug per sbloccare `tsc --noEmit`;
+entrambi i file sono nuovi candidati O45.
+
+**Nuovi candidati codice morto emersi durante la selezione (verificati con
+grep sui reali importer, non toccati, candidati O45):**
+`components/garden/ListView.tsx` (18 warning; il solo "importer" trovato via
+grep era un falso positivo, una funzione locale omonima `renderListView` in
+`PlannerCalendar.tsx`, non un import), `components/VisualGardenPlanner.tsx`
+(15; unico importer `components/Planner.tsx`, gia' noto cluster morto "AI
+Planner"), `components/planner/SimplifiedPlantingForm.tsx` e
+`components/SpecializedCropForm.tsx` (stesso motivo, importati solo da
+`Planner.tsx`), `components/compliance/RecallProcedure.tsx` (7; i riferimenti
+trovati via grep erano al tipo `GlobalGapRecallProcedure` in
+`complianceAIService.ts`/`globalGapComplianceService.ts`, non al componente),
+`components/plants/MaturityTracker.tsx` e
+`components/plantTracking/WeeklyPhotoReminder.tsx` (stesso pattern, i grep
+hit erano su file omonimi diversi: `GrapeMaturityTracker`/`OliveMaturityTracker`
+e l'interfaccia `WeeklyPhotoReminder` in `services/weeklyPhotoReminder.ts`),
+`services/integratedStaggeringService.ts` (unico importer `aiPlanningService.ts`,
+cluster morto), `components/ai/AIActionButton.tsx` (importato solo da
+`Planner.tsx`/`PlannerWithAI.tsx`, cluster morto) e quindi
+`services/aiProxyService.ts` (raggiungibile solo tramite l'orfano
+`AIActionButton.tsx` e il cluster morto), `components/gardens/BedManager.tsx`
+e `components/gardens/RowManagerModal.tsx` (unico importer
+`components/garden/GardenView.tsx`, confermato orfano in questa sessione),
+`components/treatments/TreatmentDashboardWidget.tsx` e di conseguenza
+`components/treatments/SmartTreatmentWizard.tsx` (zero importer),
+`components/analytics/UnifiedDashboard.tsx` e quindi
+`components/analytics/PredictiveDashboard.tsx` (zero importer),
+`components/DataBackup.tsx` e quindi `services/importService.ts` (zero
+importer), `components/settings/APIConfigurationForm.tsx` (zero importer;
+il servizio sottostante `apiConfigurationService.ts` resta vivo per altra via,
+vedi sopra). Zero importer diretti, senza catena di analisi ulteriore:
+`components/irrigation/WateringLogFormWithFieldRows.tsx`,
+`components/shared/GeographicMatchingWidget.tsx`, `components/OliveHarvest.tsx`,
+`components/VineHarvest.tsx`, `lib/reports/exportReportPDF.ts`,
+`components/fieldrows/QuickOperationModal.tsx`, `components/plants/BrixTracker.tsx`,
+`components/olives/OliveManagementDashboard.tsx`,
+`components/vineyard/VineyardManagementDashboard.tsx`,
+`components/compliance/SelfAssessmentForm.tsx`, `components/shared/GardenBedsWidget.tsx`,
+`components/soilAnalysis/SoilAnalysisForm.tsx`, `services/composterService.ts`.
+
+**Gap noto, non toccato:** `services/fieldRowCropHistoryService.ts::getRotationSuggestions`
+accetta un parametro `zoneId` (passato da un chiamante reale,
+`FieldRowCropHistoryPanel.tsx`), ma la RPC Postgres `get_rotation_suggestions`
+(vedi `supabase/migrations/20260330143000_patch_remote_schema_drift.sql`)
+accetta solo `row_id` — non esiste alcun filtro per zona lato database. Non e'
+un bug di wiring lato client (il dato non c'e' proprio nello schema): i
+suggerimenti di rotazione restano sempre a livello di intero filare,
+indipendentemente dalla zona passata. Richiede una nuova RPC/migrazione per
+essere chiuso, non un fix di lint. Parametro mantenuto nella firma pubblica
+(con `void zoneId` esplicito) per non rompere i chiamanti.
+
+Baseline globale verificata: **0 errori, 1.158 warning** (`1.191 -> 1.158`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione (153
+pagine) verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
