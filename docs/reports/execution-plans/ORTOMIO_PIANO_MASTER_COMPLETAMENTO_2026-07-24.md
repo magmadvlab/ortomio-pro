@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O67 | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.543 warning rimossi** | — | **1.099 warning** | Baseline operativa 2.642 -> 1.099 in 70 lotti. T01 non equivale a 1.099 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.576 warning rimossi** | — | **1.066 warning** | Baseline operativa 2.642 -> 1.066 in 71 lotti. T01 non equivale a 1.066 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -2117,6 +2117,54 @@ stagione/fase lunare stessa, solo alla forma dell'oggetto restituito.
 Baseline globale verificata: **0 errori, 1.099 warning** (`1.126 -> 1.099`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione (153
 pagine) verdi.
+
+### Aggiornamento T01 - lotto 71 (29/07/2026)
+
+Nove file vivi portati da 36 warning complessivi a 3 (lasciati intenzionali):
+`services/plantingDensityService.ts` 4 -> 0, `components/ai/AISuggestionsWidget.tsx`
+4 -> 0, `components/director/DirectorBriefingWidget.tsx` 4 -> 0,
+`components/fieldrows/FieldRowCropHistoryPanel.tsx` 4 -> 0,
+`components/planner/AlmanaccoIntegration.tsx` 4 -> 0,
+`components/plants/PlantHealthHeatmap.tsx` 4 -> 1, `components/seedbank/SeedInventory.tsx`
+4 -> 0, `components/settings/OrganizationManager.tsx` 4 -> 1,
+`components/sunExposure/CompassCalibrator.tsx` 4 -> 1. Pattern ricorrente:
+import morti, loader stabilizzati con `useCallback`, `as any` sostituiti con
+i tipi reali gia' dichiarati nel dominio. Lasciati intenzionali 2 `no-img-element`
+(foto dichiarate URL o base64, origine non verificata in questo lotto) e 1
+`exhaustive-deps` su un effect mount-only che chiama `loadOrganizations` (la
+quale a sua volta setta `selectedOrg`): includerla tra le dipendenze
+causerebbe un refetch ad ogni cambio di `selectedOrg`, stesso pattern gia'
+visto su `AddCropWizard` nel lotto 13.
+
+**Bug reale trovato e corretto in codice vivo:** `DirectorBriefingWidget.tsx`
+(montato in `HomeDashboard.tsx`, route `/app`) calcolava la variante del
+`Badge` per priorita' e urgenza con due funzioni (`priorityColor`,
+`urgencyTone`) che per i casi piu' critici (`CRITICAL`, `immediate`)
+restituivano la stringa `'destructive'` — valore assente nell'union type
+del componente (`default|secondary|success|warning|error|outline`).
+`variantClasses[variant]` risultava quindi `undefined` e il badge perdeva
+silenziosamente ogni colore per esattamente le azioni piu' urgenti del
+briefing giornaliero, senza errori a runtime. Corretto mappando su
+`'error'` (la variante rossa esistente piu' vicina) ed esportando un tipo
+`BadgeVariant` da `components/ui/badge.tsx` cosi' che l'incoerenza sia
+rilevata a compile-time in futuro.
+
+Verificata la raggiungibilita' di ogni candidato prima di toccarlo (BFS
+sugli import fino alle route `app/**/page.tsx`): scartati per
+irraggiungibilita' `services/composterService.ts`, `services/diaryPredictiveEngine.ts`,
+`services/iotSensorService.ts`, `services/photoLogService.ts` (unico
+importer `PhotoTimelapse.tsx`, a sua volta orfano), `services/vineyardBudLoadService.ts`,
+`services/continuousMonitoringService.ts` (unico importer vivo apparente
+`ContinuousMonitoringDashboard.tsx`, gia' orfano dal lotto 68),
+`services/geographicMatchingService.ts` (importer `components/Planner.tsx`,
+parte del cluster "AI Planner" morto M05, escluso su decisione utente).
+`services/zoneManagementService.ts` e' vivo ma resta il gap noto **O67**
+(query su tabelle inesistenti) — lasciato intatto, richiede una sessione
+dedicata.
+
+Baseline globale verificata: **0 errori, 1.066 warning** (`1.099 -> 1.066`);
+`npx tsc --noEmit` sull'intero progetto senza errori; lint mirato sui 9
+file 3/36 residui (tutti intenzionali).
 
 ## 6. Verifica trasversale dopo M15
 

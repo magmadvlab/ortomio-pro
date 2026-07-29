@@ -756,3 +756,39 @@ Vercel Production verde: O59 e' chiuso.
 | Warning | 1768 |
 | Riduzione lotto | 23 |
 | Riduzione dalla baseline operativa 2642 | 874 |
+
+## Nota: lotti 43-70 non registrati in questo file
+
+Questo file non e' stato aggiornato dal lotto 42 (28/07/2026) al lotto 70
+(29/07/2026): il lavoro e' proseguito regolarmente (cronaca lotto-per-lotto
+nelle sezioni "Aggiornamento T01 - lotto N" del piano master
+`ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md` e nei messaggi di commit
+`git log --grep "T01 lotto"` su `main`). Alla chiusura del lotto 70
+(PR #127, 29/07/2026) la baseline globale era **0 errori, 1.099 warning**.
+
+## Lotto 71 (29/07/2026) - chiuso
+
+Nove file live portati da 36 warning complessivi a 3 (lasciati intenzionali):
+
+- `services/plantingDensityService.ts` 4 -> 0: import morto, parametri privati mai usati rimossi da firma e call site, binding `_` sostituito con placeholder posizionale.
+- `components/ai/AISuggestionsWidget.tsx` 4 -> 0: import morto, prop `compact` mai renderizzata rimossa dalla destrutturazione (mantenuta nell'interfaccia), `types` tipizzato con `SuggestionType[]` al posto di `as any`, loader stabilizzato con `useCallback`.
+- `components/director/DirectorBriefingWidget.tsx` 4 -> 0: import morto, loader stabilizzato con `useCallback`. **Bug reale in codice vivo:** `priorityColor`/`urgencyTone` restituivano `'destructive'`, valore assente nell'union type di `Badge` (`default|secondary|success|warning|error|outline`) — i badge per priorita' CRITICAL e urgenza "immediate" perdevano silenziosamente ogni colore (className conteneva `undefined`). Corretto mappando su `'error'` ed esportando `BadgeVariant` da `components/ui/badge.tsx`.
+- `components/fieldrows/FieldRowCropHistoryPanel.tsx` 4 -> 0: tre funzioni (`formatDate`, `getRotationScoreColor`, `getRotationScoreLabel`) duplicate e mai chiamate a livello di componente padre (shadowed da copie identiche/diverse dentro `CropHistoryCard`) rimosse; loader stabilizzato con `useCallback`.
+- `components/planner/AlmanaccoIntegration.tsx` 4 -> 0: tre import icona morti rimossi, loader stabilizzato con `useCallback` (riordinato prima dell'`useEffect` che lo usa per evitare un errore TDZ).
+- `components/plants/PlantHealthHeatmap.tsx` 4 -> 1: due import morti e un'interfaccia mai referenziata rimossi; lasciato intenzionale 1 `no-img-element` (foto piante dichiarate `string[]` "URLs" ma origine non verificata in questo lotto).
+- `components/seedbank/SeedInventory.tsx` 4 -> 0: tre import icona morti rimossi, loader stabilizzato con `useCallback`.
+- `components/settings/OrganizationManager.tsx` 4 -> 1: due `as any` sostituiti (`tab.id` con array `as const`, `type` di form con `Organization['type']`). Lasciato intenzionale 1 `exhaustive-deps` sull'effect di mount che chiama `loadOrganizations` (che a sua volta setta `selectedOrg`): includerla tra le dipendenze causerebbe un refetch ad ogni cambio di `selectedOrg`, stesso pattern gia' visto su `AddCropWizard` nel lotto 13.
+- `components/sunExposure/CompassCalibrator.tsx` 4 -> 1: tre variabili (`centerX` x2, `rect`) calcolate e mai lette rimosse. Lasciato intenzionale 1 `no-img-element` (stesso motivo, foto "URL o base64").
+
+Verificata la raggiungibilita' di ogni candidato prima di toccarlo: scartati per irraggiungibilita' `services/composterService.ts`, `services/diaryPredictiveEngine.ts`, `services/iotSensorService.ts`, `services/photoLogService.ts` (unico importer `PhotoTimelapse.tsx`, a sua volta orfano), `services/vineyardBudLoadService.ts`, `services/continuousMonitoringService.ts` (unico importer vivo apparente `ContinuousMonitoringDashboard.tsx`, gia' orfano dal lotto 68), `services/geographicMatchingService.ts` (importer `components/Planner.tsx`, parte del cluster "AI Planner" morto M05, escluso su decisione utente). `services/zoneManagementService.ts` e' vivo ma e' il gap noto O67 (query su tabelle inesistenti) — lasciato intatto, richiede una sessione dedicata.
+
+Verifiche: lint mirato sui 9 file 3/36, `npx tsc --noEmit` sull'intero progetto zero errori, lint globale reale **0 errori e 1.066 warning**.
+
+## Stato dopo il lotto 71
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1066 |
+| Riduzione lotto | 33 |
+| Riduzione dalla baseline operativa 2642 | 1576 |
