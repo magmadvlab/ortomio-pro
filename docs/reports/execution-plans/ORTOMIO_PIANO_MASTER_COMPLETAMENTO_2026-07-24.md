@@ -1481,6 +1481,32 @@ accettato nel lotto 8.
 Baseline globale verificata: **0 errori, 1.429 warning** (`1.435 -> 1.429`);
 suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
 
+### Aggiornamento T01 - lotto 60 (29/07/2026)
+
+`services/collaborativeAIService.ts` (7 warning) e' risultato vivo:
+consumato da `PlannerAISuggestions.tsx` (lotto 57),
+`IrrigationAISuggestionsWidget.tsx`, `NutritionAISuggestionsWidget.tsx`,
+`CollaborativeAIDashboard.tsx` e `directorService.ts`.
+
+Osservazione (non un gap da registrare, nessun dato falso mostrato):
+`applyLearning` - il metodo pubblico che applica aggiustamenti appresi dai
+pattern di correzione dell'utente ai parametri di un nuovo suggerimento -
+non ha alcun chiamante in tutto il codebase. La logica esiste ed e'
+corretta, ma il sistema di "apprendimento dalle correzioni" non e' mai
+invocato dalla pipeline dei suggerimenti; coerente con O66 (accettare un
+suggerimento non crea nemmeno i task), la parte "collaborativa" del
+sistema AI risulta poco cablata nel flusso reale. Non registrato come
+nuovo O-item per non duplicare O66, che copre gia' la stessa area.
+
+Il lotto 60 e' stato eseguito su `collaborativeAIService.ts`, da 7
+warning a zero: rimossi due import di tipi mai usati (`DecisionType`,
+`MetricType`); tipizzati `originalParameters`/`modifiedParameters`/
+`baseParameters` con `Record<string, unknown>` (gia' il tipo reale di
+`AISuggestion.suggested_parameters`) al posto di `any`.
+
+Baseline globale verificata: **0 errori, 1.422 warning** (`1.429 -> 1.422`);
+suite `test:release` 434/434 (9 suite), type-check e build produzione verdi.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
