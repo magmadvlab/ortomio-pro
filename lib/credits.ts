@@ -13,6 +13,10 @@ export type CreditFeature =
   | 'seasonal_suggestions'
   | 'harvest_readiness'
   | 'sensor_analysis'
+  | 'compliance_assessment'
+  | 'compliance_risk_plan'
+  | 'compliance_recall_procedure'
+  | 'compliance_training'
 
 export const CREDIT_COSTS: Record<CreditFeature, number> = {
   chat: 1,
@@ -24,6 +28,10 @@ export const CREDIT_COSTS: Record<CreditFeature, number> = {
   seasonal_suggestions: 1,
   harvest_readiness: 1,
   sensor_analysis: 1,
+  compliance_assessment: 2,
+  compliance_risk_plan: 2,
+  compliance_recall_procedure: 2,
+  compliance_training: 1,
 } as const
 
 /**

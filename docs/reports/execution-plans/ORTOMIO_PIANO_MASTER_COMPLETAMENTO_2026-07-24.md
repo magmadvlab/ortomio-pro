@@ -2598,10 +2598,47 @@ in 9 cluster con raccomandazione, presentati come artifact
    limitazione RLS/`.env.local` gia' documentata nella decisione sul
    cluster 2 (GardenView).
 
-**Cluster restanti (`complianceAIService.ts`, tracker piante duplicati,
-trattamenti duplicati, standalone — circa 9.750 righe complessive) restano
-da approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
-approfondita prima di decidere se ricollegare o rimuovere, non ancora
+7. **`services/complianceAIService.ts` — riscritto e ricollegato.** Ogni
+   metodo (`generateComplianceAssessment`, `generateGlobalGapRiskManagementPlan`,
+   `generateGlobalGapRecallProcedure`, `generateTrainingContent`) chiamava
+   davvero Gemini con un prompt reale, ma poi **scartava sistematicamente
+   `response.text`** e restituiva sempre lo stesso oggetto hardcoded
+   (commento nel sorgente: `// For now, return a mock structure`) —
+   stesso pattern gia' trovato in `costOptimizationService.ts` (M14) e
+   nell'`optimizePlan()` dell'AI Planner: chiamata AI reale + risposta
+   scartata, non un semplice "form scollegato". Riscritto per usare
+   `generateContentWithSchema` (provider custom) con fallback alla route
+   server-side gia' esistente `/api/ai/generate` (stesso pattern gia' in
+   uso in `geminiService.ts`), con schema JSON reale per ciascun metodo e
+   parsing vero (`JSON.parse`) invece del mock. Aggiunte 4 nuove
+   `CreditFeature` in `lib/credits.ts` (`compliance_assessment`,
+   `compliance_risk_plan`, `compliance_recall_procedure`,
+   `compliance_training`, costo 1-2 crediti) cosi' la route esistente le
+   gate automaticamente per tier/crediti senza modifiche alla route stessa.
+   Per il piano rischi e la procedura di richiamo, id, punteggi di rischio,
+   date di implementazione e contatti (telefono/email) **non sono affidati
+   all'AI**: sono assemblati/lasciati vuoti lato codice dopo la risposta,
+   perche' il modello non e' una fonte affidabile per identificatori
+   stabili, date di calendario o recapiti reali — l'AI genera solo il
+   contenuto sostanziale (rischi, procedure, eventi scatenanti, timeline).
+   Ricollegato con bottoni "Genera bozza con AI" in `RiskManagementPlan.tsx`
+   e `RecallProcedure.tsx` (leggono `gardenType`/`location`/`primaryCrop`
+   dal garden reale via `storageProvider.getGarden`, popolano una bozza che
+   l'utente rivede e salva manualmente, mai auto-salvata) e "Genera analisi
+   AI" nella tab Panoramica di `GlobalGapDashboard.tsx`, esplicitamente
+   etichettata come suggerimento separato dalla panoramica reale persistita
+   (non la sostituisce). `generateTrainingContent` e' stato riscritto con
+   lo stesso schema/parsing reale per coerenza, ma **non ricollegato a
+   nessuna UI**: non esiste nel prodotto una pagina/route di formazione a
+   cui agganciarlo, costruirne una sarebbe una feature nuova fuori dal
+   perimetro di questo censimento. Verificato: `tsc --noEmit` pulito,
+   `next build` verde, `test:release` 229/229; verifica E2E nel browser
+   non eseguita per la stessa limitazione RLS/`.env.local` del worktree.
+
+**Cluster restanti (tracker piante duplicati, trattamenti duplicati,
+standalone — circa 9.286 righe complessive) restano da approfondire**, su
+richiesta esplicita dell'utente di un'analisi piu' approfondita prima di
+decidere se ricollegare o rimuovere, non ancora
 affrontata in questa sessione.
 
 ## 6. Verifica trasversale dopo M15
