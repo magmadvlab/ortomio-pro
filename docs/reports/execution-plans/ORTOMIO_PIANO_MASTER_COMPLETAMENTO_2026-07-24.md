@@ -2256,6 +2256,35 @@ Baseline globale verificata: **0 errori, 978 warning** (`999 -> 978`);
 `npx tsc --noEmit` sull'intero progetto senza errori. Dettaglio completo in
 `docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`.
 
+### Aggiornamento T01 - lotto 75 (30/07/2026)
+
+Il lotto 75 porta 11 file vivi (`app/app/garden/rows/page.tsx`,
+`app/api/api-configurations/route.ts`, `components/ndvi/SentinelHubStatus.tsx`,
+`components/GardenOnboarding.tsx`, `services/visualSunInputConverter.ts`,
+`services/soilAnalysisService.ts`, `services/seedInventoryService.ts`,
+`services/registrationValidator.ts`, `services/plantTaxonomyService.ts`,
+`services/plantOperationsService.ts`, `services/plannerAIChatService.ts`)
+da 24 warning complessivi a 0 (i 3 `no-img-element` residui in
+`GardenOnboarding.tsx` sono lasciati intenzionali: preview di foto in
+base64/FileReader, `next/image` richiederebbe `unoptimized` + dimensioni
+fisse, rischio non giustificato per warning stilistici).
+
+**Bug reale trovato e corretto:** tipizzando `fieldRows` in
+`app/app/garden/rows/page.tsx` con l'interfaccia reale `FieldRow`, la UI
+leggeva `row.irrigationConfig.enabled` / `.irrigationType` / `.totalFlowRate`
+/ `.schedule` — campi che non esistono mai a runtime. `SupabaseStorageProvider
+.getFieldRows` mappa `irrigationConfig` da `db.irrigation_line`, che ha solo
+`{lineType, pipeDiameterMm, emitterSpacingCm, emitterFlowRateLph}`. Risultato:
+il contatore "Con Irrigazione" e la sezione "Sistema Irrigazione Attivo" non
+si attivavano mai nella pagina filari, anche per filari con irrigazione
+configurata. Corretto usando i campi reali del modello dati (`lineType`,
+`emitterFlowRateLph`, `emitterSpacingCm`); rimossa la sezione "Programmazione"
+che leggeva un campo `schedule` mai esistito nel modello dati dei filari.
+
+Baseline globale verificata: **954 warning** (`978 -> 954`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR:
+https://github.com/magmadvlab/ortomio-pro/pull/135
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
