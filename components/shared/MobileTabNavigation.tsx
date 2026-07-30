@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { ChevronDown, ChevronUp, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, X, type LucideIcon } from 'lucide-react'
 
 interface TabItem {
   id: string
   label: string
   emoji?: string
-  icon?: React.ComponentType<any>
+  icon?: LucideIcon
   badge?: number
 }
 
@@ -126,7 +126,7 @@ export default function MobileTabNavigation({
               </div>
               
               {/* Lista tab */}
-              {tabs.map((tab, index) => {
+              {tabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
                 return (

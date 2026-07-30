@@ -3,10 +3,7 @@
  * Gestisce memoria contestuale profonda per zone, alberi, pattern e correlazioni
  */
 
-import { ZoneMemory, TreeMemory, PlantingRecord, Correlation, LocalPattern, SeasonAnalysis } from '../types/memory';
-import { Garden, GardenTask, HarvestLogData } from '../types';
-import { CustomCrop } from '../types/customCrop';
-import { useStorage } from '../packages/core/hooks/useStorage';
+import { ZoneMemory, TreeMemory, PlantingRecord, Correlation } from '../types/memory';
 import { getSupabaseClient } from '@/config/supabase';
 
 type MemoryScope = 'zone' | 'tree';
@@ -230,7 +227,7 @@ function calculateZonePatterns(memory: ZoneMemory): void {
   });
 
   memory.patterns.recurringProblems = Array.from(problemCounts.entries())
-    .filter(([_, data]) => data.count >= 2) // Almeno 2 occorrenze
+    .filter(([, data]) => data.count >= 2) // Almeno 2 occorrenze
     .map(([problem, data]) => ({
       problem,
       frequency: data.count,

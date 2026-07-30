@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const challengeDate = new Date(new Date().getFullYear(), mese - 1, giorno);
+    // const challengeDate = new Date(new Date().getFullYear(), mese - 1, giorno);
     // const challenge = getChallengeForDate(challengeDate); // REMOVED: gamification
     const challenge = null; // Gamification removed
     
@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
       task_ids: taskIds,
       message: `Creati ${taskIds.length} task nel calendario`
     });
-  } catch (error: any) {
+  } catch (error) {
     const accessResponse = accessErrorResponse(error);
     if (accessResponse) return accessResponse;
     console.error('Error converting challenge to tasks:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

@@ -3,7 +3,11 @@
  * Gestione avanzata delle zone per prescription maps
  */
 
-import { createClient } from '@supabase/supabase-js';
+// NOTA (T01 lotto 76): questo servizio interroga tabelle ('zones', 'zone_fields', 'zone_rows')
+// mai esistite in supabase/migrations, ed e' istanziato da ZoneManagementPanel.tsx passando
+// IStorageProvider anziche' un vero SupabaseClient. Bug di runtime preesistente, mascherato
+// dal tipo `any` — vedi piano master T01 per il dettaglio. Non risolto in questo lotto:
+// richiede una decisione di prodotto (schema reale da definire o feature da isolare).
 
 export interface Zone {
   id: string;

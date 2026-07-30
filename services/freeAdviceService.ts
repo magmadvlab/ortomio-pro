@@ -4,7 +4,7 @@
  */
 
 // Placeholder data structure - will be populated by generateAIDatabase script
-interface AdviceResponse {
+export interface AdviceResponse {
   plant: string
   issue: string
   cause: string
@@ -47,7 +47,7 @@ export function searchAdvice(query: {
 }): AdviceResponse[] {
   const results: Array<{ advice: AdviceResponse; score: number }> = []
   
-  for (const [key, advice] of Object.entries(aiResponses)) {
+  for (const advice of Object.values(aiResponses)) {
     let score = 0
     
     // Match plant
@@ -78,16 +78,6 @@ export function searchAdvice(query: {
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
     .map(r => r.advice)
-}
-
-/**
- * Calculate similarity score between symptoms and issue
- */
-function calculateSimilarity(symptoms: string[], issue: string): number {
-  const issueWords = issue.toLowerCase().split(/[-_\s]+/)
-  return symptoms.filter(symptom =>
-    issueWords.some(word => symptom.toLowerCase().includes(word) || word.includes(symptom.toLowerCase()))
-  ).length
 }
 
 // Initialize on module load
