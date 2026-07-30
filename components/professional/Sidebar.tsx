@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { getEnabledFeaturesForAccess } from '@/config/capabilities'
@@ -47,7 +48,7 @@ export function ProfessionalSidebar() {
     {open && <button className="fixed inset-0 bg-black/50 lg:hidden" style={{ zIndex: UI_LAYERS.sidebarOverlay }} onClick={() => setOpen(false)} aria-label="Chiudi menu" />}
     <aside className={`fixed inset-y-0 left-0 min-h-screen w-[280px] overflow-y-auto border-r bg-white transition-transform lg:static lg:w-64 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} style={{ zIndex: UI_LAYERS.sidebar }}>
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-white p-4">
-        <img src="/logo.png" alt="OrtoMio" className="h-10 w-10 object-contain" />
+        <Image src="/logo.png" alt="OrtoMio" width={40} height={40} className="h-10 w-10 object-contain" />
         <div><h2 className="font-bold">OrtoMio</h2><p className="text-xs text-gray-500">Gestione agricola</p></div>
       </div>
       <nav className="space-y-5 p-4">
