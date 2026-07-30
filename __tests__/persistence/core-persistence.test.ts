@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { OperationalDiaryService } from '@/services/operationalDiaryService'
-import { createUnifiedAgronomicMemoryService } from '@/services/unifiedAgronomicMemoryService'
 import { createBulkOperation, updatePlantsHealthAfterTreatment } from '@/services/plantOperationsService'
 import { registerTreatment, checkSafetyInterval } from '@/services/treatmentRegistryService'
 import { addPhytoProduct, getPhytoInventory } from '@/services/phytoInventoryService'
@@ -34,13 +33,6 @@ test('plant, treatment and inventory writers reject browser-local persistence', 
   assert.match(plantResult.errors?.[0] || '', /durable cloud storage/)
   await assert.rejects(() => registerTreatment(local, 'garden-1', { product: bioFungicides[0], plantName: 'Pomodoro', treatmentDate: new Date(), dosage: '20 g', applicationMethod: 'foliar', targetPestDisease: 'peronospora' }), /durable cloud storage/)
   await assert.rejects(() => getPhytoInventory(local, 'garden-1'), /durable cloud storage/)
-})
-
-test('agronomic memory writes through canonical event storage, not preferences', async () => {
-  const events: any[] = []
-  const service = createUnifiedAgronomicMemoryService({ async createAgronomicMemoryEvent(event: any) { events.push(event); return event }, async getAgronomicMemoryEvents() { return events } } as any)
-  await service.appendEvent({ gardenId: 'garden-1', type: 'outcome', sourceService: 'test', summary: 'Measured outcome', payload: { confidence: 0.9 } })
-  assert.equal(events.length, 1)
 })
 
 test('bulk plant operation is idempotent at the writer boundary and does not assume health improvement', async () => {

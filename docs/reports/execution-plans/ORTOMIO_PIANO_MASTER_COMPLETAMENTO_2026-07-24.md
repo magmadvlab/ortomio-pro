@@ -2535,11 +2535,49 @@ in 9 cluster con raccomandazione, presentati come artifact
    via `/app/orchard`/`/app/olives` (frutteto/oliveto/aromatiche). PR:
    https://github.com/magmadvlab/ortomio-pro/pull/143
 
-**Cluster 5-9 (form compliance, monitoring/notifiche, tracker piante
-duplicati, trattamenti duplicati, standalone — circa 15.000 righe
-complessive) restano da approfondire**, su richiesta esplicita
-dell'utente di un'analisi più approfondita prima di decidere se
-ricollegare o rimuovere, non ancora affrontata in questa sessione.
+4. **Cluster "Professional Dashboard legacy" (catena `TreatmentRegisterForm`)**
+   — riverificato: il censimento precedente (lotto 64) lo segnava
+   erroneamente come vivo "via `GardenView.tsx`"; la catena reale si
+   interrompe a `components/professional/Dashboard.tsx`, mai importato da
+   nessuna parte. Confermati a zero importer anche `ROISummary.tsx`,
+   `AnalyticsTable.tsx`, `TreatmentRegister.tsx`,
+   `TreatmentRegisterForm.tsx` e il test testuale orfano
+   `__tests__/persistence/professionalTreatmentRegister.test.ts`.
+   Sostituito da tempo da `components/professional/ProfessionalDashboard.tsx`
+   (file diverso, stesso nome concettuale, basato su `directorService`,
+   vivo via `GardenView.tsx`). **Su richiesta esplicita dell'utente per un
+   recupero facile, spostato in quarantena** (`_quarantine/M05-professional-dashboard-legacy/`,
+   escluso da `tsconfig.json`) invece di eliminato. PR (mergiata):
+   https://github.com/magmadvlab/ortomio-pro/pull/144
+
+5. **Cluster "monitoraggio continuo" (4 file, 3.313 righe)** — riverificato
+   da zero con BFS statica (nessuna decisione precedente valida era
+   registrata in questo documento; un riferimento a una presunta
+   sostituzione via cron `app/api/cron/health-check/route.ts` circolato in
+   chat non trovava riscontro qui ed e' stato scartato). Confermati zero
+   importer da qualunque route in `app/`: `components/monitoring/ContinuousMonitoringDashboard.tsx`
+   (818 righe, zero importer ovunque), `services/continuousMonitoringService.ts`
+   (875 righe, usato solo dal Dashboard sopra e da `unifiedAgronomicMemoryService.ts`),
+   `services/intelligentNotificationService.ts` (721 righe, usato solo dal
+   Dashboard sopra e da un test), `services/unifiedAgronomicMemoryService.ts`
+   (678 righe, usato solo da 2 test — era il "caso ambiguo" registrato in
+   memoria di sessioni precedenti come "ben fatto ma senza consumer": in
+   realta' appartiene proprio a questo cluster). Nessun `import()` dinamico
+   o `require` runtime su nessuno dei 4 file. **Decisione dell'utente:
+   rimozione diretta** (non quarantena). Rimossi i 4 file sorgente e i 2
+   test orfani (`__tests__/precision-hub/unifiedAgronomicMemoryService.test.ts`,
+   `__tests__/rollout-observability/notificationDeliverySemantics.test.ts`);
+   rimosso anche un solo test residuo in `__tests__/persistence/core-persistence.test.ts`
+   che importava `unifiedAgronomicMemoryService` per verificarne il
+   contratto, senza toccare gli altri test nello stesso file (ancora vivi).
+   Verificato: `tsc --noEmit` pulito, `next build` verde, `test:persistence`
+   78/78, `test:release` 229/229.
+
+**Cluster restanti (form compliance, tracker piante duplicati, trattamenti
+duplicati, standalone — circa 11.700 righe complessive) restano da
+approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
+approfondita prima di decidere se ricollegare o rimuovere, non ancora
+affrontata in questa sessione.
 
 ## 6. Verifica trasversale dopo M15
 
@@ -2567,6 +2605,24 @@ Ordine operativo aggiornato al 28/07/2026:
 
 M10, M11 e M15 non sono piu' da “implementare”: il loro codice e' gia'
 presente. Restano le prove provider, staging ed E2E indicate nel cruscotto.
+
+### 7.1 Riposizionamento esplicito dell'obiettivo (30/07/2026)
+
+Decisione dell'utente: il piano Supabase resta **Free** per ora (“poi
+vediamo”), quindi O06-O15 (staging isolato, backup provider, restore
+drill) restano bloccati per vincolo di piano, non per mancanza di lavoro.
+Di conseguenza l'obiettivo immediato **non e'** la certificazione
+commerciale 1.0 con `deployReady=true` — l'utente lo dice esplicitamente:
+“non sarà facile il lancio commerciale di questo prodotto”. L'obiettivo
+realistico e prioritario e' arrivare a **una beta realmente utilizzabile e
+testabile** (codice vivo pulito, nessun dato finto in produzione, nessun
+cluster morto residuo con manutenzione fantasma), rimandando M06-M08/M12
+e la riesecuzione di M16 a quando un piano Supabase superiore o un
+soggetto esterno rendera' disponibili staging/backup/pilot reali. Questo
+non cambia i criteri di uscita gia' definiti per ciascun milestone (§2),
+cambia solo quale sotto-insieme del piano viene lavorato adesso: la coda
+eseguibile senza soggetti esterni (T01, censimento M05, O48) resta la
+priorita' concreta.
 
 ## 8. Deploy in produzione 24/07/2026 (decisione esplicita, gate O06 non soddisfatto)
 
