@@ -62,6 +62,7 @@ export function MechanicalWorkLogForm({
   // Carica aiuole e file dal giardino
   useEffect(() => {
     loadGardenStructure()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [garden.id])
 
   const loadGardenStructure = async () => {

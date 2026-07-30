@@ -121,7 +121,7 @@ const GardenBounds: React.FC<{ garden: Garden }> = ({ garden }) => {
   );
 };
 
-const NDVIMap: React.FC<NDVIMapProps> = ({ garden, onBoundsChange }) => {
+const NDVIMap: React.FC<NDVIMapProps> = ({ garden }) => {
   const [showNDVI, setShowNDVI] = useState(true);
   const [opacity, setOpacity] = useState(0.8);
   const [mapKey, setMapKey] = useState(0);

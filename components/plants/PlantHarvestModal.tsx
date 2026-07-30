@@ -149,7 +149,7 @@ const PlantHarvestModal: React.FC<PlantHarvestModalProps> = ({
               {qualityOptions.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => setQuality(option.value as any)}
+                  onClick={() => setQuality(option.value as 'excellent' | 'good' | 'fair' | 'poor')}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     quality === option.value
                       ? option.color + ' border-current'

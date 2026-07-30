@@ -140,6 +140,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
       const areaPerBed = (bedLength * bedWidth) / 10000; // m²
       setBedsAreaSqMeters(bedCount * areaPerBed);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Solo al mount
 
   // Calcola superficie totale SOMMANDO tutte le aree configurate

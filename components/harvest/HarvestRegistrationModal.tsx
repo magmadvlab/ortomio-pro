@@ -180,6 +180,7 @@ export const HarvestRegistrationModal: React.FC<HarvestRegistrationModalProps> =
       removeEscListener();
       document.body.style.overflow = 'unset';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [harvest, launchContext, onClose]);
 
   useEffect(() => {

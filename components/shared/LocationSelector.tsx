@@ -125,14 +125,22 @@ export default function LocationSelector({
         if (error) throw error
         
         // Trasforma i dati per includere zone_name
-        const transformedData = (data || []).map((row: any) => ({
+        const transformedData = (data || []).map((row: {
+          id: string
+          name: string
+          length_meters?: number
+          plant_spacing_cm?: number
+          row_number?: number
+          zone_id?: string
+          garden_zones?: { name?: string }[] | { name?: string } | null
+        }) => ({
           id: row.id,
           name: row.name,
-          length_meters: row.length_meters,
+          length_meters: row.length_meters ?? 0,
           plant_spacing_cm: row.plant_spacing_cm,
           row_number: row.row_number,
           zone_id: row.zone_id,
-          zone_name: row.garden_zones?.name
+          zone_name: Array.isArray(row.garden_zones) ? row.garden_zones[0]?.name : row.garden_zones?.name
         }))
         
         setFieldRows(transformedData)

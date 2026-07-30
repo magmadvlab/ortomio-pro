@@ -24,6 +24,7 @@ export default function APIKeysManager() {
 
   useEffect(() => {
     loadAPIKeys()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const getCurrentUserId = async (): Promise<string | null> => {
