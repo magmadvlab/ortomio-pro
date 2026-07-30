@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
@@ -36,10 +36,6 @@ export default function VineyardPage() {
   const selectedGarden = selectedContext?.garden
 
   useEffect(() => {
-    loadGardens()
-  }, [storageProvider])
-
-  useEffect(() => {
     if (contexts.length === 0) {
       setSelectedGardenId('')
       setSelectedVineyard(null)
@@ -68,15 +64,15 @@ export default function VineyardPage() {
     }
   }, [selectedContext, selectedVineyard])
 
-  const loadGardens = async () => {
+  const loadGardens = useCallback(async () => {
     try {
       setLoading(true)
       const allGardens = await storageProvider.getGardens()
       setAllGardens(allGardens)
       const resolvedContexts = await resolveVineyardGardenContexts(allGardens)
       setContexts(resolvedContexts)
-      if (!creationGardenId && allGardens.length > 0) {
-        setCreationGardenId(allGardens[0].id)
+      if (allGardens.length > 0) {
+        setCreationGardenId((current) => current || allGardens[0].id)
       }
     } catch (error) {
       console.error('Error loading vineyard gardens:', error)
@@ -85,7 +81,11 @@ export default function VineyardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [storageProvider])
+
+  useEffect(() => {
+    loadGardens()
+  }, [loadGardens])
 
   const handleCreateVineyard = () => {
     if (!selectedGardenId && !creationGardenId) {
@@ -94,7 +94,7 @@ export default function VineyardPage() {
     setShowWizard(true)
   }
 
-  const handleWizardComplete = async (_vineyardId: string) => {
+  const handleWizardComplete = async () => {
     setShowWizard(false)
     setSelectedVineyard(null)
     setViewMode('dashboard')

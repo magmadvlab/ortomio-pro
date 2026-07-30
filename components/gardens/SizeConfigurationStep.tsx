@@ -332,7 +332,7 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
   }, [onAeroponicConfigChange]);
 
   // Costruisce oggetto StructureConfig completo da tutti gli stati
-  const buildStructureConfig = (): StructureConfig => {
+  const buildStructureConfig = useCallback((): StructureConfig => {
     const config: StructureConfig = {};
 
     // Campo aperto
@@ -401,14 +401,6 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
     }
 
     return config;
-  };
-
-  // Notifica cambiamenti nella configurazione strutture
-  useEffect(() => {
-    if (onStructureConfigChange) {
-      const config = buildStructureConfig();
-      onStructureConfigChange(config);
-    }
   }, [
     openFieldSize,
     openFieldUnit,
@@ -429,9 +421,16 @@ export const SizeConfigurationStep: React.FC<SizeConfigurationStepProps> = ({
     tankLength,
     tankWidth,
     tankHeight,
-    tankHoles,
-    onStructureConfigChange
+    tankHoles
   ]);
+
+  // Notifica cambiamenti nella configurazione strutture
+  useEffect(() => {
+    if (onStructureConfigChange) {
+      const config = buildStructureConfig();
+      onStructureConfigChange(config);
+    }
+  }, [buildStructureConfig, onStructureConfigChange]);
 
   // Calcola superficie totale per il riepilogo
   const calculateTotalArea = (): number => {

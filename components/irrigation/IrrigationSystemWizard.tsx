@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog } from '@/components/ui/Dialog'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { IrrigationSystem } from '@/types/irrigation'
+import { IrrigationSystem, IrrigationWaterSource } from '@/types/irrigation'
 import { GardenBed, GardenRow } from '@/types'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { X, ChevronLeft, ChevronRight, MapPin, Sprout, TreePine, Grape, Leaf, Layers } from 'lucide-react'
@@ -582,7 +581,7 @@ export function IrrigationSystemWizard({ gardenId, initialSystem, onComplete, on
                       </label>
                       <Select
                         value={formData.waterSource || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, waterSource: e.target.value as any || undefined }))}
+                        onChange={(e) => setFormData(prev => ({ ...prev, waterSource: (e.target.value || undefined) as IrrigationWaterSource | undefined }))}
                       >
                         <option value="">Seleziona fonte acqua...</option>
                         <option value="Municipal">🏙️ Acquedotto comunale</option>

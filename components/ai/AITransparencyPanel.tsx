@@ -8,7 +8,6 @@ import {
   X,
   Brain,
   Database,
-  TrendingUp,
   AlertCircle,
   CheckCircle,
   GitBranch,
@@ -63,15 +62,15 @@ export default function AITransparencyPanel({
         {/* Tabs */}
         <div className="border-b border-gray-200 bg-gray-50">
           <div className="flex">
-            {[
+            {([
               { id: 'overview', label: 'Panoramica', icon: Brain },
               { id: 'data', label: 'Dati Usati', icon: Database },
               { id: 'calculations', label: 'Calcoli', icon: Calculator },
               { id: 'alternatives', label: 'Alternative', icon: GitBranch }
-            ].map((tab) => (
+            ] as const).map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'text-purple-600 border-b-2 border-purple-600 bg-white'

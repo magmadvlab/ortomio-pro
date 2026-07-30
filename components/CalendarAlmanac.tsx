@@ -7,12 +7,12 @@
  * - Almanacco integrato come componente accessorio
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isSameDay, isToday, addMonths, subMonths, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { getDettiForDate } from '../data/dettiContadini';
 import { getSeasonalEventForDate } from '../logic/seasonalEvents';
-import { calculateMoonPhase, MoonPhaseInfo } from '../logic/lunarCalendar';
+import { calculateMoonPhase } from '../logic/lunarCalendar';
 import { GardenTask } from '../types';
 import { calculateNutrientNeeds } from '../logic/nutrientEngine';
 import { calculateHealthStrategy } from '../logic/healthEngine';

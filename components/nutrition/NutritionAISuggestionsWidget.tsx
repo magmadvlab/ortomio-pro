@@ -5,16 +5,17 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Leaf, TrendingUp, CheckCircle, XCircle, Eye, Lightbulb, AlertTriangle } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { collaborativeAIService } from '@/services/collaborativeAIService'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
+import type { Garden } from '@/types'
 
 interface NutritionAISuggestionsWidgetProps {
-  garden?: any
+  garden?: Garden | null
   maxItems?: number
 }
 
@@ -33,15 +34,9 @@ export default function NutritionAISuggestionsWidget({
   const [showTransparency, setShowTransparency] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (garden && user) {
-      loadSuggestions()
-    }
-  }, [garden, user])
-
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (!garden || !user?.id) return
-    
+
     try {
       setLoading(true)
       const suggs = await collaborativeAIService.getSuggestions(user.id, {
@@ -50,39 +45,45 @@ export default function NutritionAISuggestionsWidget({
         priorities: ['CRITICAL', 'HIGH', 'MEDIUM'],
         gardenId: garden.id
       })
-      
+
       setSuggestions(suggs.slice(0, maxItems))
     } catch (error) {
       console.error('Error loading nutrition suggestions:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden, user, maxItems])
+
+  useEffect(() => {
+    if (garden && user) {
+      loadSuggestions()
+    }
+  }, [garden, user, loadSuggestions])
 
   const handleAccept = async (suggestionId: string) => {
-    if (!garden) return
-    
+    if (!garden || !user?.id) return
+
     await collaborativeAIService.acceptSuggestion(
-      garden.user_id,
+      user.id,
       suggestionId,
       'Accettato da Nutrizione'
     )
-    
+
     loadSuggestions()
   }
 
   const handleReject = async (suggestionId: string) => {
-    if (!garden) return
-    
+    if (!garden || !user?.id) return
+
     const reason = prompt('Perché rifiuti questo suggerimento?')
     if (!reason) return
-    
+
     await collaborativeAIService.rejectSuggestion(
-      garden.user_id,
+      user.id,
       suggestionId,
       reason
     )
-    
+
     loadSuggestions()
   }
 
