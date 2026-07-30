@@ -2285,6 +2285,44 @@ Baseline globale verificata: **954 warning** (`978 -> 954`); `npx tsc --noEmit`
 e `npx next build` sull'intero progetto senza errori. PR:
 https://github.com/magmadvlab/ortomio-pro/pull/135
 
+### Aggiornamento T01 - lotto 76 (30/07/2026)
+
+Il lotto 76 porta 12 file vivi (`services/gardenMemoryService.ts`,
+`services/zoneManagementService.ts`, `services/geoExportService.ts`,
+`services/learningEngine.ts`, `services/geolocationService.ts`,
+`services/gardenSuggestionsService.ts`, `services/freeAdviceService.ts`,
+`services/environmentalMonitoringService.ts`,
+`services/controlledEnvironmentExecutionService.ts`,
+`components/shared/MobileTabNavigation.tsx`,
+`app/api/challenges/convert-to-tasks/route.ts`,
+`app/api/advice/free/route.ts`) da 31 warning complessivi a 0.
+
+**Scoperta non risolta (documentata, non corretta):**
+`services/zoneManagementService.ts` interroga tabelle Supabase (`zones`,
+`zone_fields`, `zone_rows`) mai esistite in `supabase/migrations` (verificato
+con grep sull'intera cartella migrazioni), ed e' istanziato da
+`components/prescription/ZoneManagementPanel.tsx` — componente live,
+raggiungibile da `/app/prescription-maps` tramite
+`PrescriptionMapsDashboard.tsx` — passando `storageProvider`
+(un `IStorageProvider`, lo stesso oggetto passato correttamente a
+`PrescriptionMapsService` nello stesso file) al posto di un vero
+`SupabaseClient`. Tentando di tipizzare rigorosamente il costruttore con
+`SupabaseClient` (il tipo che il corpo della classe richiede davvero, con
+`this.supabase.from(...)`), `tsc` fallisce esattamente sulla chiamata da
+`ZoneManagementPanel.tsx` — prova diretta che il servizio non puo'
+funzionare a runtime con l'oggetto che riceve oggi (nessun metodo
+`.from()` su un `IStorageProvider`). Bug preesistente mascherato dal tipo
+`any`, lasciato intenzionalmente non tipizzato (`any` reintrodotto con
+commento esplicativo) invece di forzare un tipo che avrebbe solo nascosto
+l'errore di compilazione senza risolvere il problema reale: serve una
+decisione di prodotto (definire lo schema reale zone/campi/filari per
+questo servizio, o isolare/rimuovere la feature) prima di poter tipizzare
+o correggere per davvero — fuori scope per un lotto di lint.
+
+Baseline globale verificata: **923 warning** (`954 -> 923`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR:
+https://github.com/magmadvlab/ortomio-pro/pull/136
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
