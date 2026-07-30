@@ -2688,6 +2688,46 @@ approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
 approfondita prima di decidere se ricollegare o rimuovere, non ancora
 affrontata in questa sessione.
 
+### Bug di navigazione trasversale scoperto durante l'analisi "parita' Vigneto/Oliveto vs Frutteto" (30/07/2026)
+
+L'utente ha chiesto di dare a Vigneto e Oliveto la stessa profondita' del
+Frutteto (zone, filari, impianti irrigui, trattamenti, predittivita').
+Verifica concreta:
+
+- **Filari**: il dato (`FieldRow`) e' gia' generico e condiviso; `VineManager.tsx`
+  lo usa gia' internamente per creare/aggiornare filari in batch. Manca
+  pero' una tab "Filari" dedicata come quella del Frutteto
+  (`OrchardRowsView`) sia per Vigneto sia per Oliveto — non affrontato in
+  questa sessione.
+- **Analytics**: anche il Frutteto ce l'ha solo come stub
+  ("Funzionalita' in sviluppo") — non e' un gap specifico di Vigneto/Oliveto.
+- **Irrigazione impianto per filare**: il Frutteto ha un sistema reale e
+  specifico di configurazione linea irrigua per filare
+  (`FieldRow.irrigationLine`, con calcolo erogatori/portata) integrato
+  direttamente in `app/app/orchard/page.tsx`. Vigneto e Oliveto non hanno
+  un equivalente — il dato (`irrigationLine` su `FieldRow`) e' gia'
+  generico, manca solo la UI. Non affrontato in questa sessione.
+- **Bug reale trovato, non specifico di una coltura**: sia
+  `/app/irrigation` sia `/app/nutrition` (la vera destinazione dei
+  trattamenti — `/app/treatments` e' solo una pagina di redirect
+  "congelata") caricavano sempre e solo `gardens[0]`, **senza alcun
+  selettore di orto** — nessun componente "cambia orto attivo" esiste da
+  nessuna parte nell'app. Un utente con piu' di un orto (es. un orto
+  misto + un vigneto) non poteva raggiungere irrigazione o trattamenti
+  per l'orto che non fosse il primo della lista, indipendentemente dalla
+  coltura. **Corretto**: aggiunto lo stesso selettore gia' usato in
+  `/app/orchard`/`/app/olives` (`<select>` con `gardens.map`, visibile solo
+  se `gardens.length > 1`) a entrambe le pagine; in `/app/nutrition` la
+  selezione richiama anche `resolveGardenContext` come faceva gia' il
+  caricamento iniziale, per non perdere il contesto arricchito.
+  Verificato: `tsc --noEmit` pulito, `next build` verde, `test:release`
+  229/229.
+
+Restano aperti: tab Filari per Vigneto/Oliveto, UI impianto irriguo per
+filare su Vigneto/Oliveto, motore predittivo (gap trasversale gia'
+registrato in M14: altitudine/sole/ostacoli mai usati, finestra raccolta
+fissa a 60 giorni per qualunque coltura).
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
