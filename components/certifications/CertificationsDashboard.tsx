@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Shield, Leaf, Award, FileText, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Shield, Leaf, Award, FileText, TrendingUp, CheckCircle } from 'lucide-react';
 import GlobalGapDashboard from '../compliance/GlobalGapDashboard';
 import BioCertificationForm, { BioCertificationData } from './BioCertificationForm';
 import { bioCertificationService, BioCertificationRecord } from '../../services/bioCertificationService';

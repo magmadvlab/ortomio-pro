@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { AquaponicSystemConfig, AquaponicSystemType } from '@/types/indoorGrowing';
-import { InfoTooltip } from '../shared/InfoTooltip';
 
 interface AquaponicConfigFormProps {
   initialConfig?: AquaponicSystemConfig;

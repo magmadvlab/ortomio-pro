@@ -72,10 +72,10 @@ export async function GET(
         usage_count: configuration.usage_count,
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('API configuration GET error:', error);
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

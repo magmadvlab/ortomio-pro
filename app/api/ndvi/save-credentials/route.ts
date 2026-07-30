@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       { status: 410 },
     );
 
-  } catch (error: any) {
+  } catch (error) {
     if (isAccessError(error)) {
       return NextResponse.json({ error: error.code }, { status: error.status });
     }

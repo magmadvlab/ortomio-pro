@@ -24,6 +24,7 @@ export default function HarvestPage() {
 
   useEffect(() => {
     loadActiveGarden();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageProvider]);
 
   useEffect(() => {

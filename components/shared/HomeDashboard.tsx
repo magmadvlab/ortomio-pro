@@ -1186,7 +1186,6 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
                 <ExoticFruitManagement
                   tasks={tasks}
                   garden={activeGarden}
-                  onUpdateTask={onUpdateTask}
                 />
               )}
               {showSpecializedCropManagement === 'Aromatic' && (

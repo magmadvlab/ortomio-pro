@@ -2418,6 +2418,39 @@ Baseline globale verificata: **895 warning** (`907 -> 895`); `npx tsc --noEmit`
 e `npx next build` sull'intero progetto senza errori. PR:
 https://github.com/magmadvlab/ortomio-pro/pull/139
 
+### Aggiornamento T01 - lotto 79 (30/07/2026)
+
+Il lotto 79 porta 19 file vivi (`app/(auth)/confirm/page.tsx`,
+`app/(auth)/forgot-password/page.tsx`,
+`app/api/api-configurations/[serviceType]/route.ts`,
+`app/api/iot/devices/command/route.ts`,
+`app/api/ndvi/config-status/route.ts`, `app/api/ndvi/save-credentials/route.ts`,
+`app/api/ndvi/setup-credentials/route.ts`, `app/app/diary/page.tsx`,
+`app/app/harvest/page.tsx`, `app/app/settings/page.tsx`,
+`app/auth/callback/page.tsx`, `components/ExoticFruitManagement.tsx`,
+`components/UpgradePrompt.tsx`, `components/VacationMode.tsx`,
+`components/ai/GlobalAIChat.tsx`,
+`components/ai/predictions/ResourceOptimizationCard.tsx`,
+`components/certifications/CertificationsDashboard.tsx`,
+`components/gardens/AeroponicConfigForm.tsx`,
+`components/gardens/AquaponicConfigForm.tsx`) da 19 warning complessivi a 0.
+
+**Gap trovato e corretto:** `components/ExoticFruitManagement.tsx` riceveva
+una prop `onUpdateTask` mai usata nel corpo del componente — il pannello
+mostra solo consigli in sola lettura (task suggeriti con scadenza e
+istruzioni), nessun bottone di completamento. Verificato che lo stesso
+identico pattern (prop dichiarata ma mai usata) esiste anche nei
+componenti gemelli `AromaticManagement.tsx` e `RaspberryManagement.tsx`
+(stesso "showSpecializedCropManagement" in `HomeDashboard.tsx`) — non
+toccati, fuori scope per questo lotto, ma segnalati qui per eventuale
+censimento futuro se si decide di aggiungere interattività a questi
+pannelli. Rimossa la prop e aggiornato il chiamante `HomeDashboard.tsx`.
+
+Baseline globale verificata: **876 warning** (`895 -> 876`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR (base
+`agent/t01-lint-batch-78`, non ancora mersata a `main`):
+https://github.com/magmadvlab/ortomio-pro/pull/140
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

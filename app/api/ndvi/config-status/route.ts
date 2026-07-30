@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(config);
-  } catch (error: any) {
+  } catch (error) {
     if (isAccessError(error)) {
       return NextResponse.json({ error: error.code }, { status: error.status });
     }
