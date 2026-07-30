@@ -1,41 +1,42 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Bug, Calendar, AlertTriangle, TrendingUp, Plus } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Bug, Calendar, AlertTriangle, Plus } from 'lucide-react'
+import {
+  getFlyTraps,
+  createFlyTrap,
+  getFlyMonitoringReadings,
+  createFlyMonitoringReading
+} from '../../services/oliveAdvancedFeaturesService'
+import type { OliveFlyMonitoring } from '../../types/olive'
 
 interface OliveFlyMonitorProps {
   oliveGroveId: string
   oliveGroveName?: string
 }
 
-interface TrapReading {
-  id: string
-  date: Date
-  trapNumber: number
-  fliesCount: number
-  temperature: number
-  notes: string
+function getRiskLevel(fliesCount: number) {
+  if (fliesCount === 0) return { level: 'Assente', color: 'text-green-600', bg: 'bg-green-50', action: 'Nessun trattamento' }
+  if (fliesCount <= 5) return { level: 'Basso', color: 'text-blue-600', bg: 'bg-blue-50', action: 'Monitoraggio' }
+  if (fliesCount <= 15) return { level: 'Medio', color: 'text-yellow-600', bg: 'bg-yellow-50', action: 'Preparare trattamento' }
+  if (fliesCount <= 30) return { level: 'Alto', color: 'text-orange-600', bg: 'bg-orange-50', action: 'Trattamento consigliato' }
+  return { level: 'Critico', color: 'text-red-600', bg: 'bg-red-50', action: 'Trattamento urgente' }
+}
+
+/** Maps the same capture thresholds shown to the user onto the persisted damage/intervention fields. */
+function damageAssessmentFor(fliesCount: number): Pick<OliveFlyMonitoring, 'damage_level' | 'threshold_exceeded' | 'intervention_recommended' | 'intervention_urgency'> {
+  if (fliesCount === 0) return { damage_level: 'none', threshold_exceeded: false, intervention_recommended: false, intervention_urgency: 'none' }
+  if (fliesCount <= 5) return { damage_level: 'low', threshold_exceeded: false, intervention_recommended: false, intervention_urgency: 'monitor' }
+  if (fliesCount <= 15) return { damage_level: 'medium', threshold_exceeded: true, intervention_recommended: true, intervention_urgency: 'plan' }
+  if (fliesCount <= 30) return { damage_level: 'high', threshold_exceeded: true, intervention_recommended: true, intervention_urgency: 'plan' }
+  return { damage_level: 'severe', threshold_exceeded: true, intervention_recommended: true, intervention_urgency: 'immediate' }
 }
 
 export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveFlyMonitorProps) {
-  const [readings, setReadings] = useState<TrapReading[]>([
-    {
-      id: '1',
-      date: new Date('2026-06-15'),
-      trapNumber: 1,
-      fliesCount: 3,
-      temperature: 24,
-      notes: 'Prima cattura stagionale'
-    },
-    {
-      id: '2',
-      date: new Date('2026-07-01'),
-      trapNumber: 1,
-      fliesCount: 12,
-      temperature: 28,
-      notes: 'Aumento popolazione'
-    }
-  ])
+  const [readings, setReadings] = useState<OliveFlyMonitoring[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [showForm, setShowForm] = useState(false)
   const [newReading, setNewReading] = useState({
@@ -45,39 +46,84 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
     notes: ''
   })
 
-  const addReading = () => {
-    if (!newReading.fliesCount || !newReading.temperature) return
-
-    const reading: TrapReading = {
-      id: Date.now().toString(),
-      date: new Date(),
-      trapNumber: parseInt(newReading.trapNumber),
-      fliesCount: parseInt(newReading.fliesCount),
-      temperature: parseFloat(newReading.temperature),
-      notes: newReading.notes
+  const loadReadings = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await getFlyMonitoringReadings(oliveGroveId)
+      setReadings(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossibile caricare le letture delle trappole')
+    } finally {
+      setLoading(false)
     }
+  }, [oliveGroveId])
 
-    setReadings([...readings, reading])
-    setNewReading({ trapNumber: '1', fliesCount: '', temperature: '', notes: '' })
-    setShowForm(false)
+  useEffect(() => {
+    loadReadings()
+  }, [loadReadings])
+
+  const findOrCreateTrap = async (trapNumber: number) => {
+    const trapCode = `T-${trapNumber}`
+    const existingTraps = await getFlyTraps(oliveGroveId)
+    const existing = existingTraps.find(trap => trap.trap_code === trapCode)
+    if (existing) return existing
+
+    return createFlyTrap(oliveGroveId, {
+      trap_code: trapCode,
+      trap_type: 'chromotropic',
+      installation_date: new Date(),
+      location: `Trappola ${trapNumber}`
+    })
   }
 
-  const getRiskLevel = (fliesCount: number) => {
-    if (fliesCount === 0) return { level: 'Assente', color: 'text-green-600', bg: 'bg-green-50', action: 'Nessun trattamento' }
-    if (fliesCount <= 5) return { level: 'Basso', color: 'text-blue-600', bg: 'bg-blue-50', action: 'Monitoraggio' }
-    if (fliesCount <= 15) return { level: 'Medio', color: 'text-yellow-600', bg: 'bg-yellow-50', action: 'Preparare trattamento' }
-    if (fliesCount <= 30) return { level: 'Alto', color: 'text-orange-600', bg: 'bg-orange-50', action: 'Trattamento consigliato' }
-    return { level: 'Critico', color: 'text-red-600', bg: 'bg-red-50', action: 'Trattamento urgente' }
+  const addReading = async () => {
+    if (!newReading.fliesCount || !newReading.temperature) return
+
+    const fliesCount = parseInt(newReading.fliesCount)
+    const trapNumber = parseInt(newReading.trapNumber)
+
+    try {
+      setSaving(true)
+      setError(null)
+      const trap = await findOrCreateTrap(trapNumber)
+      const created = await createFlyMonitoringReading(oliveGroveId, {
+        trap_id: trap.id,
+        inspection_date: new Date(),
+        adults_captured: fliesCount,
+        temperature: parseFloat(newReading.temperature),
+        notes: newReading.notes || undefined,
+        ...damageAssessmentFor(fliesCount)
+      })
+      setReadings(prev => [...prev, created])
+      setNewReading({ trapNumber: '1', fliesCount: '', temperature: '', notes: '' })
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossibile salvare la lettura')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const latestReading = readings[readings.length - 1]
-  const riskLevel = latestReading ? getRiskLevel(latestReading.fliesCount) : null
+  const riskLevel = latestReading ? getRiskLevel(latestReading.adults_captured) : null
 
-  // Calculate average flies per week
+  // Calculate average flies per week over the last 4 inspections
   const recentReadings = readings.slice(-4)
-  const avgFlies = recentReadings.length > 0 
-    ? recentReadings.reduce((sum, r) => sum + r.fliesCount, 0) / recentReadings.length 
+  const avgFlies = recentReadings.length > 0
+    ? recentReadings.reduce((sum, r) => sum + r.adults_captured, 0) / recentReadings.length
     : 0
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -107,6 +153,12 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+          {error}
+        </div>
+      )}
+
       {/* Current Status */}
       {latestReading && riskLevel && (
         <div className={`rounded-xl border p-6 ${riskLevel.bg} border-${riskLevel.color.replace('text-', '')}-200`}>
@@ -119,7 +171,7 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
             <div>
               <div className="text-sm text-gray-600 mb-1">Catture Ultima Trappola</div>
               <div className={`text-4xl font-bold ${riskLevel.color}`}>
-                {latestReading.fliesCount}
+                {latestReading.adults_captured}
               </div>
             </div>
 
@@ -157,7 +209,7 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
       {showForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Nuova Lettura Trappola</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -216,10 +268,10 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
           <div className="flex gap-2">
             <button
               onClick={addReading}
-              disabled={!newReading.fliesCount || !newReading.temperature}
+              disabled={!newReading.fliesCount || !newReading.temperature || saving}
               className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300"
             >
-              Salva Lettura
+              {saving ? 'Salvando...' : 'Salva Lettura'}
             </button>
             <button
               onClick={() => setShowForm(false)}
@@ -234,52 +286,56 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
       {/* Readings History */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Storico Catture</h3>
-        
-        <div className="space-y-3">
-          {readings.slice().reverse().map((reading) => {
-            const risk = getRiskLevel(reading.fliesCount)
-            return (
-              <div key={reading.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="text-gray-400" size={16} />
-                    <span className="text-sm font-medium text-gray-900">
-                      {reading.date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+
+        {readings.length === 0 ? (
+          <p className="text-sm text-gray-500">Nessuna lettura registrata. Aggiungi la prima ispezione trappola per iniziare.</p>
+        ) : (
+          <div className="space-y-3">
+            {readings.slice().reverse().map((reading) => {
+              const risk = getRiskLevel(reading.adults_captured)
+              return (
+                <div key={reading.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="text-gray-400" size={16} />
+                      <span className="text-sm font-medium text-gray-900">
+                        {reading.inspection_date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${risk.color} ${risk.bg}`}>
+                      {risk.level}
                     </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${risk.color} ${risk.bg}`}>
-                    {risk.level}
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-2">
-                  <div>
-                    <span className="text-xs text-gray-600">Trappola:</span>
-                    <span className="ml-2 font-semibold text-gray-900">#{reading.trapNumber}</span>
+                  <div className="grid grid-cols-3 gap-4 mb-2">
+                    <div>
+                      <span className="text-xs text-gray-600">Catture:</span>
+                      <span className="ml-2 font-semibold text-gray-900">{reading.adults_captured}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-600">Temp:</span>
+                      <span className="ml-2 font-semibold text-gray-900">{reading.temperature ?? '—'}°C</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-600">Danno:</span>
+                      <span className="ml-2 font-semibold text-gray-900">{reading.damage_level}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs text-gray-600">Catture:</span>
-                    <span className="ml-2 font-semibold text-gray-900">{reading.fliesCount}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-600">Temp:</span>
-                    <span className="ml-2 font-semibold text-gray-900">{reading.temperature}°C</span>
-                  </div>
-                </div>
 
-                {reading.notes && (
-                  <p className="text-sm text-gray-600 mt-2">{reading.notes}</p>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                  {reading.notes && (
+                    <p className="text-sm text-gray-600 mt-2">{reading.notes}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Risk Level Guide */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Soglie di Intervento</h3>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -323,7 +379,7 @@ export default function OliveFlyMonitor({ oliveGroveId, oliveGroveName }: OliveF
       {/* Treatment Options */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Opzioni di Trattamento</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 border border-green-200 rounded-lg bg-green-50">
             <h4 className="font-semibold text-green-900 mb-2">🌿 Metodi Biologici</h4>
