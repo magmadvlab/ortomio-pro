@@ -2573,9 +2573,34 @@ in 9 cluster con raccomandazione, presentati come artifact
    Verificato: `tsc --noEmit` pulito, `next build` verde, `test:persistence`
    78/78, `test:release` 229/229.
 
-**Cluster restanti (form compliance, tracker piante duplicati, trattamenti
-duplicati, standalone — circa 11.700 righe complessive) restano da
-approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
+6. **Cluster "form compliance" (SelfAssessmentForm.tsx 483 righe,
+   RiskManagementPlan.tsx 744 righe, RecallProcedure.tsx 719 righe;
+   ~1.946 righe) — ricollegati, non rimossi.** Verificato che `GlobalGapDashboard.tsx`
+   (vivo via `CertificationsDashboard.tsx` -> `/app/certifications`) nella
+   tab "Requisiti" apriva, per i requisiti mancanti, solo un download di
+   `.txt` statico con testo hardcoded (nessuna scrittura reale) invece dei
+   tre form gia' esistenti e gia' collegati al contratto persistito reale
+   di `globalGapComplianceService.ts` (`createSelfAssessment`,
+   `getRiskManagementPlans`/`createRiskManagementPlan`,
+   `getRecallProcedures`/`createRecallProcedure`, tutti gia' usati
+   correttamente dai tre form). **Decisione dell'utente: vanno collegati,
+   non rimossi** ("il GlobalGap esiste, e' vivo e servira'"). Aggiunto un
+   modal in `GlobalGapDashboard.tsx` che apre il form corretto per
+   requisito (AF1.2.2 -> `RiskManagementPlan`, AF2.2 -> `SelfAssessmentForm`,
+   AF9.1 -> `RecallProcedure`) al posto del download statico, con refresh
+   di `loadComplianceOverview()` al salvataggio. I requisiti senza form
+   dedicato (AF4.5.1, AF11.1) mantengono il download template esistente,
+   non toccato. `services/complianceAIService.ts` (464 righe, assistente AI
+   compliance mai chiamato da nessun componente, nemmeno dai tre form)
+   resta fuori perimetro, non ricollegato in questa modifica. Verificato:
+   `tsc --noEmit` pulito, `next build` verde, `test:release` 229/229;
+   verifica E2E nel browser non eseguita in questo worktree per la
+   limitazione RLS/`.env.local` gia' documentata nella decisione sul
+   cluster 2 (GardenView).
+
+**Cluster restanti (`complianceAIService.ts`, tracker piante duplicati,
+trattamenti duplicati, standalone — circa 9.750 righe complessive) restano
+da approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
 approfondita prima di decidere se ricollegare o rimuovere, non ancora
 affrontata in questa sessione.
 

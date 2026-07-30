@@ -17,9 +17,18 @@ import { globalGapComplianceService } from '../../services/globalGapComplianceSe
 import { globalGapCbFvService } from '../../services/globalGapCbFvService'
 import type { ComplianceOverview } from '../../types/globalGapCompliance'
 import type { CompleteComplianceOverview } from '../../types/globalGapCbFv'
+import SelfAssessmentForm from './SelfAssessmentForm'
+import RiskManagementPlan from './RiskManagementPlan'
+import RecallProcedure from './RecallProcedure'
 
 interface GlobalGapDashboardProps {
   gardenId: string
+}
+
+const REQUIREMENT_FORM: Record<string, 'self_assessment' | 'risk_management_plan' | 'recall_procedure'> = {
+  'AF1.2.2': 'risk_management_plan',
+  'AF2.2': 'self_assessment',
+  'AF9.1': 'recall_procedure'
 }
 
 export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps) {
@@ -29,6 +38,7 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
   const [activeTab, setActiveTab] = useState<'overview' | 'requirements' | 'actions'>('overview')
   const [creatingDocument, setCreatingDocument] = useState<string | null>(null)
   const [completingAction, setCompletingAction] = useState<string | null>(null)
+  const [openForm, setOpenForm] = useState<'AF1.2.2' | 'AF2.2' | 'AF9.1' | null>(null)
 
   const loadComplianceOverview = useCallback(async () => {
     try {
@@ -495,23 +505,34 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                     </div>
                     {requirement.status === 'missing' && (
                       <div className="ml-4 flex flex-col items-end gap-2">
-                        <span className="text-[11px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                          Template non persistente
-                        </span>
-                        <button
-                          onClick={() => handleCreateDocument(requirement.id)}
-                          disabled={creatingDocument === requirement.id}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          {creatingDocument === requirement.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                              Creando...
-                            </>
-                          ) : (
-                            `Template: ${requirement.action}`
-                          )}
-                        </button>
+                        {REQUIREMENT_FORM[requirement.id] ? (
+                          <button
+                            onClick={() => setOpenForm(requirement.id as 'AF1.2.2' | 'AF2.2' | 'AF9.1')}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors flex items-center gap-2"
+                          >
+                            {requirement.action}
+                          </button>
+                        ) : (
+                          <>
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                              Template non persistente
+                            </span>
+                            <button
+                              onClick={() => handleCreateDocument(requirement.id)}
+                              disabled={creatingDocument === requirement.id}
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {creatingDocument === requirement.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                  Creando...
+                                </>
+                              ) : (
+                                `Template: ${requirement.action}`
+                              )}
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -595,6 +616,48 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
           )}
         </div>
       </div>
+
+      {openForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-gray-50 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-4">
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setOpenForm(null)}
+                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+              >
+                Chiudi
+              </button>
+            </div>
+            {openForm === 'AF1.2.2' && (
+              <RiskManagementPlan
+                gardenId={gardenId}
+                onSave={() => {
+                  setOpenForm(null)
+                  loadComplianceOverview()
+                }}
+              />
+            )}
+            {openForm === 'AF2.2' && (
+              <SelfAssessmentForm
+                gardenId={gardenId}
+                onSave={() => {
+                  setOpenForm(null)
+                  loadComplianceOverview()
+                }}
+              />
+            )}
+            {openForm === 'AF9.1' && (
+              <RecallProcedure
+                gardenId={gardenId}
+                onSave={() => {
+                  setOpenForm(null)
+                  loadComplianceOverview()
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
