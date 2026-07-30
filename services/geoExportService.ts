@@ -101,9 +101,7 @@ export class GeoExportService {
 
       // Transform coordinates if needed
       const transformedZones = await this.transformCoordinates(
-        prescriptionMap.zones,
-        config.coordinateSystem,
-        config.utmZone
+        prescriptionMap.zones
       );
 
       let result: ExportResult;
@@ -471,7 +469,7 @@ export class GeoExportService {
       
       if (machineryBrand && machineryModel) {
         // Look up specific machinery
-        compatibility = await this.getMachineryCompatibility(machineryBrand, machineryModel);
+        compatibility = await this.getMachineryCompatibility();
       }
       
       const recommendations: string[] = [];
@@ -554,9 +552,7 @@ export class GeoExportService {
   }
 
   private async transformCoordinates(
-    zones: PrescriptionZone[],
-    targetSystem: string,
-    utmZone?: string
+    zones: PrescriptionZone[]
   ): Promise<PrescriptionZone[]> {
     // For now, return zones as-is (WGS84)
     // In production, would implement coordinate transformation
@@ -796,7 +792,7 @@ export class GeoExportService {
            { widely_supported: false, notes: 'Unknown format compatibility' };
   }
 
-  private async getMachineryCompatibility(brand: string, model: string): Promise<MachineryCompatibility | null> {
+  private async getMachineryCompatibility(): Promise<MachineryCompatibility | null> {
     // Query machinery compatibility database
     // For now, return null
     return null;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAdvice, searchAdvice } from '@/services/freeAdviceService'
+import { getAdvice, searchAdvice, AdviceResponse } from '@/services/freeAdviceService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Try exact match first
-    let results: any[] = []
+    let results: AdviceResponse[] = []
     
     if (plant && issue) {
       const exactMatch = getAdvice(plant, issue)
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
       advice: results,
       source: 'pre_generated',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Free advice error:', error)
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

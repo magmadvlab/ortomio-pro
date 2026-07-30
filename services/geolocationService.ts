@@ -19,7 +19,6 @@ export interface GeolocationResult {
 let pendingRequest: Promise<GeolocationResult> | null = null;
 let lastSuccessResult: GeolocationResult | null = null;
 let lastSuccessTime: number = 0;
-const CACHE_DURATION = 300000; // 5 minuti
 
 /**
  * Rileva se siamo su dispositivo mobile
@@ -27,7 +26,7 @@ const CACHE_DURATION = 300000; // 5 minuti
 const isMobileDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+  const userAgent = navigator.userAgent || navigator.vendor || (window as unknown as { opera?: string }).opera || '';
   const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
   
   // Verifica anche la larghezza dello schermo

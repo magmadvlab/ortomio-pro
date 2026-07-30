@@ -8,7 +8,6 @@ import type {
   EnvironmentalZoneLedgerEntry,
   PersistedDailyWeatherLike,
   PersistedForecastSnapshot,
-  PersistedWeatherDataSource,
   PersistedWeatherLineage,
   SiteWeatherBinding,
   WeatherSnapshot,
@@ -38,9 +37,6 @@ const toFiniteNumber = (value: unknown): number | undefined => {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : undefined
 }
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value))
 
 export function buildPersistedForecastSnapshots(
   forecast: {

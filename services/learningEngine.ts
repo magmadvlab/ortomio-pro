@@ -3,7 +3,7 @@
  * Analizza pattern e genera suggerimenti basati su apprendimento automatico
  */
 
-import { CustomCrop, CropLearningEvent, LearnedPatterns } from '../types/customCrop';
+import { CustomCrop, CropLearningEvent } from '../types/customCrop';
 import { updateLearnedPatterns, getSuggestions } from './customCropService';
 import { IStorageProvider } from '../packages/core/storage/interface';
 
@@ -89,15 +89,17 @@ export const findCorrelations = (crop: CustomCrop): Array<{
 /**
  * Genera suggerimenti contestuali basati su pattern appresi
  */
-export const generateSuggestions = (crop: CustomCrop): {
+interface GeneratedSuggestions {
   planting?: string;
   harvest?: string;
   works?: string[];
   treatments?: string[];
   problems?: string[];
-} => {
+}
+
+export const generateSuggestions = (crop: CustomCrop): GeneratedSuggestions => {
   const suggestions = getSuggestions(crop);
-  const result: any = {};
+  const result: GeneratedSuggestions = {};
   
   if (suggestions.planting) {
     result.planting = suggestions.planting.message;

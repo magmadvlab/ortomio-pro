@@ -37,13 +37,12 @@ export class GardenSuggestionsService {
     // Analizza stato task
     const overdueTasks = this.getOverdueTasks(tasks, currentTime)
     const todayTasks = this.getTodayTasks(tasks, currentTime)
-    const upcomingTasks = this.getUpcomingTasks(tasks, currentTime)
-    
+
     // 1. SUGGERIMENTI URGENTI
     suggestions.push(...this.generateUrgentSuggestions(overdueTasks, todayTasks))
     
     // 2. SUGGERIMENTI OTTIMALI BASATI SU ORARIO
-    suggestions.push(...this.generateTimeBasedSuggestions(hour, garden))
+    suggestions.push(...this.generateTimeBasedSuggestions(hour))
     
     // 3. SUGGERIMENTI STAGIONALI
     suggestions.push(...this.generateSeasonalSuggestions(month, dayOfYear, garden))
@@ -96,8 +95,7 @@ export class GardenSuggestionsService {
   }
   
   private static generateTimeBasedSuggestions(
-    hour: number,
-    garden: Garden
+    hour: number
   ): SmartSuggestion[] {
     const suggestions: SmartSuggestion[] = []
     

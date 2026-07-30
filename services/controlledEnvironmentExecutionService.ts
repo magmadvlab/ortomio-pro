@@ -1,6 +1,7 @@
 import type {
   ControlledEnvironmentExecution,
 } from '../types/controlledEnvironment';
+import type { IStorageProvider } from '@/packages/core/storage/interface';
 
 const STORAGE_KEY = 'ortoControlledEnvironmentExecutions';
 
@@ -50,7 +51,7 @@ const writeFallbackExecutions = (executions: ControlledEnvironmentExecution[]) =
 };
 
 export class ControlledEnvironmentExecutionService {
-  constructor(private readonly storageProvider: any) {}
+  constructor(private readonly storageProvider: Partial<IStorageProvider>) {}
 
   async createExecution(
     input: CreateControlledEnvironmentExecutionInput
@@ -86,6 +87,6 @@ export class ControlledEnvironmentExecutionService {
   }
 }
 
-export const createControlledEnvironmentExecutionService = (storageProvider: any) => {
+export const createControlledEnvironmentExecutionService = (storageProvider: Partial<IStorageProvider>) => {
   return new ControlledEnvironmentExecutionService(storageProvider);
 };
