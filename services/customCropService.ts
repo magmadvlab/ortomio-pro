@@ -77,19 +77,6 @@ export const updateLearnedPatterns = async (
       
     case 'harvest':
       patterns.harvestTiming.successfulDates.push(event.event_data.date);
-      if (event.outcome?.yield) {
-        const yields = patterns.harvestTiming.successfulDates
-          .map(d => {
-            // Trova evento harvest corrispondente per ottenere yield
-            return event.outcome?.yield || 0;
-          })
-          .filter(y => y > 0);
-        if (yields.length > 0) {
-          const avgYield = yields.reduce((a, b) => a + b, 0) / yields.length;
-          // Calcola giorni medi a raccolta se abbiamo date di planting
-          // Questo richiederebbe di correlare con eventi planting
-        }
-      }
       patterns.harvestTiming.confidence = Math.min(0.9, patterns.harvestTiming.successfulDates.length / 5);
       break;
       
@@ -165,13 +152,15 @@ export const updateLearnedPatterns = async (
 /**
  * Ottiene suggerimenti basati su pattern appresi
  */
-export const getSuggestions = (crop: CustomCrop): {
+interface CropSuggestions {
   planting?: { month: number; confidence: number; message: string };
   harvest?: { avgDays: number; confidence: number; message: string };
   works?: Array<{ workType: string; timing: string; message: string }>;
   treatments?: Array<{ productName: string; problem: string; message: string }>;
-} => {
-  const suggestions: any = {};
+}
+
+export const getSuggestions = (crop: CustomCrop): CropSuggestions => {
+  const suggestions: CropSuggestions = {};
   
   // Suggerimento semina
   if (crop.learned_patterns.plantingTiming.bestMonth !== undefined && 

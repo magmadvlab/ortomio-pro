@@ -112,7 +112,7 @@ export default function DiaryPlannerIntegration({
     const currentMonth = new Date().getMonth()
     const seasonalData = analytics?.correlations?.seasonalPatterns?.[currentMonth]
     
-    if (seasonalData?.bestOperations?.length > 0) {
+    if (seasonalData?.bestOperations && seasonalData.bestOperations.length > 0) {
       insights.push({
         id: 'seasonal_opportunity',
         type: 'suggestion',

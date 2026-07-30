@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Garden } from '../types';
 import type { SeedPacket } from '../types/seedInventory';
 import { 
@@ -10,9 +10,9 @@ import {
 } from '@/services/seedInventoryService';
 import { varietyMappings } from '../data/varietyMappings';
 import { parseQuantity, formatQuantity, getEstimatedQuantity } from '../utils/quantityParser';
-import { 
-  Package, Plus, X, Edit2, Trash2, AlertTriangle, CheckCircle, 
-  Filter, Search, Calendar, TrendingDown, Box
+import {
+  Package, Plus, X, Edit2, Trash2, AlertTriangle,
+  Search, Calendar, TrendingDown, Box
 } from 'lucide-react';
 
 interface SeedInventoryProps {
@@ -36,18 +36,18 @@ const SeedInventory: React.FC<SeedInventoryProps> = ({ garden }) => {
     gardenId: garden.id
   });
 
-  useEffect(() => {
-    loadPackets();
-  }, [garden.id]);
-
-  const loadPackets = async () => {
+  const loadPackets = useCallback(async () => {
     try {
       setPackets(await getSeedPackets(garden.id));
     } catch (error) {
       console.error('Error loading seed packets:', error);
       setPackets([]);
     }
-  };
+  }, [garden.id]);
+
+  useEffect(() => {
+    loadPackets();
+  }, [loadPackets]);
 
   const handleAdd = async () => {
     if (!newPacket.varietyName || !newPacket.speciesName) return;

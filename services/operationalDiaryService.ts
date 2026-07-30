@@ -10,7 +10,11 @@ export interface DiaryAnalytics {
   totalROI: number
   topPerformingOperations: DiaryEvent[]
   recentTrends: { efficiency: number; effectiveness: number; issues: number }
-  correlations: { operationToResult: any[]; weatherImpact: any[]; seasonalPatterns: any[] }
+  correlations: {
+    operationToResult: unknown[]
+    weatherImpact: unknown[]
+    seasonalPatterns: Array<{ bestOperations?: string[] }>
+  }
 }
 
 export interface AutoEntry {

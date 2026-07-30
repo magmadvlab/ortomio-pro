@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { GardenTask, Garden } from '../types';
-import { useTier } from '../packages/core/hooks/useTier';
-import UpgradePrompt from './UpgradePrompt';
 import { StrawberryCrop } from '../types/strawberry';
 import { calculateStrawberryTasks, isOptimalHarvestTime, calculateNextRenovationDate } from '../logic/strawberryEngine';
 import { getMasterSheetSync } from '../services/plantMasterService';
@@ -13,7 +11,7 @@ interface StrawberryManagementProps {
   onUpdateTask: (task: GardenTask) => void;
 }
 
-const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, garden, onUpdateTask }) => {
+const StrawberryManagement: React.FC<StrawberryManagementProps> = ({ tasks, onUpdateTask }) => {
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);
 
   // Filtra solo task di fragole

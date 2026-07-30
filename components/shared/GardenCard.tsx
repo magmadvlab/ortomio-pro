@@ -13,9 +13,10 @@ interface GardenCardProps {
 
 export function GardenCard({ garden, tasks, weatherAlerts = [] }: GardenCardProps) {
   const handleTaskClick = (taskId: string) => {
-    // Naviga al task specifico o apri modal
+    // I suggerimenti non hanno un task/route reale a cui puntare (id statici
+    // generati da GardenSuggestionsService/WeatherAlert, non riferimenti a
+    // GardenTask esistenti): il click espande la card in DailyGardenReport.
     console.log('Task clicked:', taskId)
-    // Potresti implementare navigazione o apertura modal qui
   }
   
   return (
