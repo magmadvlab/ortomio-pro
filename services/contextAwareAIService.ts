@@ -3,7 +3,7 @@
  * Manages conversation context and provides intelligent assistance across the platform
  */
 
-import { Garden, GardenTask, UserProfile, PlantMasterSheet } from '../types';
+import { Garden, GardenTask, UserProfile } from '../types';
 import { getAIProvider } from './aiProviderAdapter';
 import { EnhancedPromptService, PromptContext } from './enhancedPromptService';
 import { getWeatherForecast } from './weatherService';

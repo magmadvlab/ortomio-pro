@@ -5,7 +5,7 @@
 
 import { CropArchetype, CropProfile, ArchetypeId } from '../types/archetypes';
 import { archetypes, getArchetypeById as getArchetypeByIdData, getMainArchetypes, getSubArchetypes, hasSubArchetypes } from '../data/archetypes';
-import { archetypeProfiles, getProfileByArchetypeId } from '../data/archetypeProfiles';
+import { getProfileByArchetypeId } from '../data/archetypeProfiles';
 
 /**
  * Ottiene archetipo per ID

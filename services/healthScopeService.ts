@@ -1,5 +1,4 @@
-import type { Garden, GardenTask, GardenZone } from '@/types'
-import type { FieldRow } from '@/types/fieldRow'
+import type { Garden, GardenTask } from '@/types'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import {
   getScopedHealthMicroclimateSnapshot,
@@ -7,13 +6,9 @@ import {
   type HealthMicroclimateSnapshot,
   type HealthRiskLevel,
 } from '@/services/healthMicroclimateService'
-import type { SmartDevice } from '@/types'
+import type { IStorageProvider } from '@/packages/core/storage/interface'
 
-type HealthScopeStorageProvider = {
-  getGardenZones?: (gardenId: string) => Promise<GardenZone[]>
-  getFieldRows?: (gardenId?: string, zoneId?: string) => Promise<FieldRow[]>
-  getDevices?: (gardenId?: string) => Promise<SmartDevice[]>
-}
+type HealthScopeStorageProvider = IStorageProvider
 
 export interface HealthScopeInsight {
   scopeType: 'zone' | 'field_row'
@@ -84,7 +79,7 @@ export async function getHealthScopeInsights(
     }
   })
 
-  const resolvedContext = await resolveGardenContext(storageProvider as any, garden.id).catch(() => null)
+  const resolvedContext = await resolveGardenContext(storageProvider ?? null, garden.id).catch(() => null)
   const sourceGarden = resolvedContext?.garden || garden
 
   const [zones, fieldRows] = await Promise.all([

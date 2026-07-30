@@ -119,16 +119,18 @@ function distributeTasksAcrossWeek(count: number, startDate: Date): Date[] {
 /**
  * Inferisce il tipo di task dall'azione usando keyword matching
  */
+type ChallengeTaskType = 'semina' | 'irrigazione' | 'raccolta' | 'potatura' | 'concimazione' | 'trattamento' | 'altro';
+
 function inferTaskType(
-  actionText: string, 
-  typeMap: Record<string, string>
-): 'semina' | 'irrigazione' | 'raccolta' | 'potatura' | 'concimazione' | 'trattamento' | 'altro' {
+  actionText: string,
+  typeMap: Record<string, ChallengeTaskType>
+): ChallengeTaskType {
   const lowerText = actionText.toLowerCase();
-  
+
   // Cerca keyword nel testo
   for (const [keyword, type] of Object.entries(typeMap)) {
     if (lowerText.includes(keyword)) {
-      return type as any;
+      return type;
     }
   }
   

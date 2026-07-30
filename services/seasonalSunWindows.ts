@@ -4,7 +4,6 @@
  */
 
 import {
-  calculateMonthlySunHours,
   calculateDailySunHours,
   calculateSunPosition,
   Obstacle3D,
@@ -121,7 +120,6 @@ function aggregateMonths(
   const allHours: number[] = [];
   
   for (const month of months) {
-    const monthly = calculateMonthlySunHours(lat, lng, year, month, obstacles);
     // Campiona alcuni giorni per avere più dati
     const daysInMonth = new Date(year, month, 0).getDate();
     const sampleDays = [5, 15, 25].filter(d => d <= daysInMonth);

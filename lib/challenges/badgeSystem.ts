@@ -87,7 +87,7 @@ export function getUserBadges(userId: string): BadgeInfo[] {
     if (!stored) return [];
     
     const badges = JSON.parse(stored);
-    return badges.map((b: any) => ({
+    return badges.map((b: { id?: string; badge_id?: string; nome?: string; badge_name?: string; emoji?: string; badge_emoji?: string; descrizione?: string; badge_description?: string; earned_at?: string }) => ({
       id: b.id || b.badge_id,
       nome: b.nome || b.badge_name,
       emoji: b.emoji || b.badge_emoji,

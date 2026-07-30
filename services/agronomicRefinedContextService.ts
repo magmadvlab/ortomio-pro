@@ -95,12 +95,6 @@ const normalizeProductionIntent = (
     .map((entry) => normalizeKey(entry))
     .filter((entry): entry is string => Boolean(entry))
     .join(' ')
-  const referencesVine =
-    haystack.includes('vite') ||
-    haystack.includes('uva') ||
-    haystack.includes('grape') ||
-    haystack.includes('vineyard') ||
-    haystack.includes('vigneto')
   const referencesOlive =
     haystack.includes('olivo') ||
     haystack.includes('oliva') ||

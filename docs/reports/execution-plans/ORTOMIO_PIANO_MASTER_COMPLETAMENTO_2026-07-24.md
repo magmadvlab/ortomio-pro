@@ -225,6 +225,10 @@ e la riesecuzione M16.
   - `components/vineyard/VineyardPruningManager.tsx` (630 righe) — non ha un sostituto diretto: la potatura vigneto oggi passa dalla pagina condivisa `/app/mechanical-work?filter=Pruning`, non da un componente Manager dedicato. L'orchard ha invece `components/orchard/PruningManager.tsx` (958 righe, vivo, sistemato in T01 lotto 7) che resta specifico frutteto/oliveto.
   - `components/MigrationWizard.tsx` (338 righe) — non e' un doppione di nulla: e' un tool one-shot per migrare dati da `localStorage` a Supabase, da un'epoca pre-cloud del progetto. Nessuna route lo referenzia e il provider cloud e' ormai lo standard esclusivo (vedi M09). Candidato a rimozione diretta piu' che a "quale versione tenere".
   - **Nessuna azione presa**: solo censimento verificato, in attesa di decisione esplicita dell'utente su rimozione vs classificazione demo/legacy per M05.
+- **Scoperte T01 lotto 77 (30/07/2026), registrate qui e non ancora implementate su decisione esplicita dell'utente ("i gap li mettiamo in fondo... la cosa saggia sarebbe colmarli ora solo se possono influenzare altre scelte" — valutato che non le influenzano, quindi restano in coda):**
+  - `services/plantingWindowOptimizer.ts::findPlantingWindows` accetta un parametro `historicalWeather` (dati meteo storici) passato realmente da `logic/solarClassificationHelper.ts`, ma non lo usa mai nel corpo della funzione per aggiustare le finestre di impianto calcolate. Il dato viene raccolto dal chiamante e scartato silenziosamente. Implementarlo richiede una decisione agronomica (es. quanto un anno di gelate tardive/anomalie meteo pregresse dovrebbe spostare le finestre di semina consigliate), non un fix meccanico.
+  - `services/fertilizerInventoryService.ts::checkLowStock` accetta un parametro `season` calcolato realmente da `logic/director.ts` tramite `getSeasonForDate` (importata con l'alias `checkFertilizerStock` — motivo per cui un primo grep letterale sul nome della funzione non l'aveva trovata, emerso solo da un errore concreto di `tsc --noEmit` dopo un tentativo di rimozione), ma non la usa mai per calcolare le soglie di scorta minima. Implementarlo richiede una decisione su come la stagione dovrebbe influenzare l'urgenza degli alert (es. concimazione più urgente prima della ripresa vegetativa primaverile).
+  - Entrambi i parametri restano nella firma con un commento esplicativo nel codice; nessun comportamento cambiato. Candidati per un lotto dedicato quando si deciderà di implementare la logica reale, non per un futuro lotto di puro lint.
 
 ### M06 - Riconciliazione completa delle migrazioni
 
@@ -2322,6 +2326,66 @@ o correggere per davvero — fuori scope per un lotto di lint.
 Baseline globale verificata: **923 warning** (`954 -> 923`); `npx tsc --noEmit`
 e `npx next build` sull'intero progetto senza errori. PR:
 https://github.com/magmadvlab/ortomio-pro/pull/136
+
+### Bug produzione fuori campagna T01: primo login dopo deploy bloccato (30/07/2026)
+
+Segnalato dall'utente: dopo ogni deploy, il primo login (riprodotto su
+Safari, Brave, Chrome) scriveva il cookie di sessione correttamente ma
+non navigava verso `/app` — serviva rifare il login più volte poi un
+refresh manuale (Cmd+R) per entrare; da lì in poi tutti i login
+funzionavano senza sforzo. Causa: `app/(auth)/auth/page.tsx::handleLogin`
+usava `router.push('/app')` (navigazione soft) dopo il login. Se `/app`
+era già stato visitato/prefetchato prima del login (quando `proxy.ts`,
+il middleware — rinominato da `middleware.ts` in Next.js 16 — lo
+rimbalzava su `/auth?redirect=/app` per assenza di sessione), la Router
+Cache di Next.js poteva riservire quella risposta negativa invece di
+rifare la richiesta al server con il cookie fresco. Un refresh manuale
+bypassa quella cache: da qui l'intermittenza cross-browser (comportamento
+del router client-side, non di un singolo browser) e il fatto che
+sparisse dopo il primo accesso per sessione, ricomparendo "al primo
+login dopo il deploy" (prima visita di `/app` sul nuovo build). Fix:
+sostituito `router.push('/app')` con `window.location.href` (hard
+navigation, stesso pattern già usato nel flusso di registrazione nello
+stesso file), rispettando anche `?redirect=` con validazione anti
+open-redirect. PR mersata e deployata:
+https://github.com/magmadvlab/ortomio-pro/pull/137 — confermato
+risolto dall'utente in produzione.
+
+### Aggiornamento T01 - lotto 77 (30/07/2026)
+
+Il lotto 77 porta 14 file vivi (`services/gardenContextResolverService.ts`,
+`services/irrigationService.ts`, `services/healthScopeService.ts`,
+`services/contextAwareAIService.ts`, `services/challengeTaskConverter.ts`,
+`services/archetypeService.ts`, `services/agronomicRefinedContextService.ts`,
+`services/storageService.ts`, `services/seasonalSunWindows.ts`,
+`services/predictiveAnalyticsService.ts`, `lib/credits.ts`,
+`lib/challenges/badgeSystem.ts`, `components/ui/dropdown-menu.tsx`,
+`components/ui/ortomio-adapter.tsx`, `components/ui/Dialog.tsx`,
+`components/sunExposure/VisualSunInput.tsx`) da 16 warning complessivi a 0.
+
+**Due scoperte reali documentate, non risolte:** tentando di rimuovere
+due parametri come lint-fix meccanico, `tsc --noEmit` ha segnalato
+chiamate reali che passano dati calcolati (non placeholder morti) — la
+firma non poteva essere ridotta senza rompere un chiamante reale:
+- `services/plantingWindowOptimizer.ts::findPlantingWindows` riceve
+  `historicalWeather` da `logic/solarClassificationHelper.ts` ma non lo
+  usa mai per aggiustare le finestre di impianto.
+- `services/fertilizerInventoryService.ts::checkLowStock` riceve una
+  `season` calcolata realmente da `logic/director.ts` (via
+  `getSeasonForDate`, chiamata con l'alias `checkFertilizerStock`) ma non
+  la usa mai per le soglie di scorta minima.
+
+Entrambi richiedono una decisione agronomica su come quel dato dovrebbe
+influenzare il calcolo — parametri ripristinati con commento esplicativo,
+non implementati. **Lezione per lotti futuri: grep di un nome di funzione
+prima di rimuovere un parametro deve includere anche import con alias
+(`import { x as y }`) — il primo grep su `checkLowStock(` aveva mancato
+la chiamata da `logic/director.ts` proprio perché lì è importata come
+`checkFertilizerStock`.**
+
+Baseline globale verificata: **907 warning** (`923 -> 907`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR:
+https://github.com/magmadvlab/ortomio-pro/pull/138
 
 ## 6. Verifica trasversale dopo M15
 
