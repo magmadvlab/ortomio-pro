@@ -2323,6 +2323,66 @@ Baseline globale verificata: **923 warning** (`954 -> 923`); `npx tsc --noEmit`
 e `npx next build` sull'intero progetto senza errori. PR:
 https://github.com/magmadvlab/ortomio-pro/pull/136
 
+### Bug produzione fuori campagna T01: primo login dopo deploy bloccato (30/07/2026)
+
+Segnalato dall'utente: dopo ogni deploy, il primo login (riprodotto su
+Safari, Brave, Chrome) scriveva il cookie di sessione correttamente ma
+non navigava verso `/app` — serviva rifare il login più volte poi un
+refresh manuale (Cmd+R) per entrare; da lì in poi tutti i login
+funzionavano senza sforzo. Causa: `app/(auth)/auth/page.tsx::handleLogin`
+usava `router.push('/app')` (navigazione soft) dopo il login. Se `/app`
+era già stato visitato/prefetchato prima del login (quando `proxy.ts`,
+il middleware — rinominato da `middleware.ts` in Next.js 16 — lo
+rimbalzava su `/auth?redirect=/app` per assenza di sessione), la Router
+Cache di Next.js poteva riservire quella risposta negativa invece di
+rifare la richiesta al server con il cookie fresco. Un refresh manuale
+bypassa quella cache: da qui l'intermittenza cross-browser (comportamento
+del router client-side, non di un singolo browser) e il fatto che
+sparisse dopo il primo accesso per sessione, ricomparendo "al primo
+login dopo il deploy" (prima visita di `/app` sul nuovo build). Fix:
+sostituito `router.push('/app')` con `window.location.href` (hard
+navigation, stesso pattern già usato nel flusso di registrazione nello
+stesso file), rispettando anche `?redirect=` con validazione anti
+open-redirect. PR mersata e deployata:
+https://github.com/magmadvlab/ortomio-pro/pull/137 — confermato
+risolto dall'utente in produzione.
+
+### Aggiornamento T01 - lotto 77 (30/07/2026)
+
+Il lotto 77 porta 14 file vivi (`services/gardenContextResolverService.ts`,
+`services/irrigationService.ts`, `services/healthScopeService.ts`,
+`services/contextAwareAIService.ts`, `services/challengeTaskConverter.ts`,
+`services/archetypeService.ts`, `services/agronomicRefinedContextService.ts`,
+`services/storageService.ts`, `services/seasonalSunWindows.ts`,
+`services/predictiveAnalyticsService.ts`, `lib/credits.ts`,
+`lib/challenges/badgeSystem.ts`, `components/ui/dropdown-menu.tsx`,
+`components/ui/ortomio-adapter.tsx`, `components/ui/Dialog.tsx`,
+`components/sunExposure/VisualSunInput.tsx`) da 16 warning complessivi a 0.
+
+**Due scoperte reali documentate, non risolte:** tentando di rimuovere
+due parametri come lint-fix meccanico, `tsc --noEmit` ha segnalato
+chiamate reali che passano dati calcolati (non placeholder morti) — la
+firma non poteva essere ridotta senza rompere un chiamante reale:
+- `services/plantingWindowOptimizer.ts::findPlantingWindows` riceve
+  `historicalWeather` da `logic/solarClassificationHelper.ts` ma non lo
+  usa mai per aggiustare le finestre di impianto.
+- `services/fertilizerInventoryService.ts::checkLowStock` riceve una
+  `season` calcolata realmente da `logic/director.ts` (via
+  `getSeasonForDate`, chiamata con l'alias `checkFertilizerStock`) ma non
+  la usa mai per le soglie di scorta minima.
+
+Entrambi richiedono una decisione agronomica su come quel dato dovrebbe
+influenzare il calcolo — parametri ripristinati con commento esplicativo,
+non implementati. **Lezione per lotti futuri: grep di un nome di funzione
+prima di rimuovere un parametro deve includere anche import con alias
+(`import { x as y }`) — il primo grep su `checkLowStock(` aveva mancato
+la chiamata da `logic/director.ts` proprio perché lì è importata come
+`checkFertilizerStock`.**
+
+Baseline globale verificata: **907 warning** (`923 -> 907`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR:
+https://github.com/magmadvlab/ortomio-pro/pull/138
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
