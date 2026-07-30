@@ -27,7 +27,7 @@ export function PlantLifecycleTimeline({
       <div className="flex items-center gap-3 mb-4">
         <Calendar className="text-ortomio-green-600" size={20} />
         <h4 className="font-bold text-gray-700 text-sm uppercase tracking-wider">
-          Ciclo Colturale
+          Ciclo Colturale — {plantName}{variety ? ` (${variety})` : ''}
         </h4>
       </div>
 

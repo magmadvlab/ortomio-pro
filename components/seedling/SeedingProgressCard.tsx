@@ -4,18 +4,17 @@ import React, { useRef, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { CardContent, CardHeader, CardTitle, Badge } from '@/components/ui/ortomio-adapter'
 import { Button } from '@/components/ui/Button'
-import { 
-  Sprout, 
-  Camera, 
-  Edit3, 
-  CheckCircle, 
-  Clock, 
+import {
+  Sprout,
+  Camera,
+  Edit3,
+  CheckCircle,
+  Clock,
   AlertTriangle,
   Calendar,
   TrendingUp,
   Droplets,
-  Sun,
-  Thermometer
+  Sun
 } from 'lucide-react'
 
 interface SeedlingBatch {
