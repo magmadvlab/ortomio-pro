@@ -2635,10 +2635,57 @@ in 9 cluster con raccomandazione, presentati come artifact
    `next build` verde, `test:release` 229/229; verifica E2E nel browser
    non eseguita per la stessa limitazione RLS/`.env.local` del worktree.
 
-**Cluster restanti (tracker piante duplicati, trattamenti duplicati,
-standalone — circa 9.286 righe complessive) restano da approfondire**, su
-richiesta esplicita dell'utente di un'analisi piu' approfondita prima di
-decidere se ricollegare o rimuovere, non ancora
+8. **Cluster "tracker piante duplicati" (parte olive) — implementato e
+   ricollegato, non solo wiring.** Verificato con BFS reale: 7 file morti
+   nel cluster originario, in due gruppi. Gruppo generico senza sostituto
+   (`components/plants/TreatmentTracker.tsx` 368 righe,
+   `components/plants/BrixTracker.tsx` 387 righe,
+   `components/plants/MaturityTracker.tsx` 401 righe,
+   `components/plantTracking/GerminationNotification.tsx` 153 righe — il
+   *service* `germinationTracker.ts` resta vivo via il cron
+   `germination-check`, solo il componente notifica non era mai montato) —
+   **non toccati in questa modifica**, restano da decidere. Gruppo
+   "Olive Management Dashboard legacy"
+   (`components/olives/OliveManagementDashboard.tsx` 577 righe, zero
+   importer da nessuna route; `OliveMaturityTracker.tsx` 352 righe e
+   `OliveFlyMonitor.tsx` 364 righe, importati solo dal Dashboard morto) —
+   **verificato che `/app/olives` non ha mai avuto una vista
+   maturazione/mosca olearia** (solo overview/alberi/potature/raccolte/
+   piante individuali). Ma i due componenti stessi **non persistevano
+   nulla**: `useState` locale inizializzato con letture finte hardcoded,
+   perse al refresh — stesso problema di fondo di M02, non un semplice
+   "form scollegato" come GlobalGap. Trovato pero' che una migrazione
+   reale gia' esiste (`20260119020000_create_olive_advanced_features.sql`:
+   tabelle `olive_maturity_tracking`, `olive_fly_traps`,
+   `olive_fly_monitoring`, con RLS) e i tipi TypeScript corrispondenti
+   (`types/olive.ts`), mai consumati da nessun service. **Questa migrazione
+   risulta `pending_preflight` nel registro M06**
+   (`M06_MIGRATION_RECONCILIATION_2026-07-24.csv`), quindi non confermata
+   applicata in produzione; il connettore Supabase disponibile in questa
+   sessione ha permessi solo su un altro progetto (non ortomio-pro) e non
+   ha potuto verificarlo direttamente — **trattare come `[L]` locale,
+   gate di applicazione migrazione aperto**, stesso stato di M09-M11.
+   Scritto `services/oliveAdvancedFeaturesService.ts` (CRUD reale contro
+   lo schema canonico); riscritti `OliveMaturityTracker.tsx` (deriva
+   `color_stage`/`harvest_recommendation` dall'Indice di Jaén inserito
+   dall'utente con una mappatura documentata, non inventa dati) e
+   `OliveFlyMonitor.tsx` (crea/riusa una trappola per numero, deriva
+   `damage_level`/`intervention_urgency` dalle stesse soglie catture gia'
+   mostrate in UI); collegati in `/app/olives/page.tsx` con due nuove voci
+   di navigazione ("Maturazione", "Mosca Olearia"), su `selectedGarden.id`
+   (lo stesso FK `olive_grove_id -> gardens.id` della migrazione).
+   `OliveManagementDashboard.tsx` resta non toccato/non rimosso in questa
+   modifica (le sue funzionalita' reali sono ora servite direttamente da
+   `/app/olives`, ma rimuoverlo e' una decisione separata). Verificato:
+   `tsc --noEmit` pulito, `next build` verde, `test:release` 229/229;
+   verifica E2E nel browser non eseguita per la limitazione RLS/`.env.local`
+   gia' documentata.
+
+**Cluster restanti (tracker piante generici senza sostituto, Olive
+Management Dashboard legacy da rimuovere/quarantenare, trattamenti
+duplicati, standalone — circa 8.286 righe complessive) restano da
+approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
+approfondita prima di decidere se ricollegare o rimuovere, non ancora
 affrontata in questa sessione.
 
 ## 6. Verifica trasversale dopo M15

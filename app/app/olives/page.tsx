@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
+  Bug,
   Calendar,
   CircleDot,
   Droplets,
@@ -24,6 +25,8 @@ import OrchardWizard from '@/components/orchard/OrchardWizard'
 import TreeManager from '@/components/orchard/TreeManager'
 import PruningManager from '@/components/orchard/PruningManager'
 import HarvestManager from '@/components/orchard/HarvestManager'
+import OliveMaturityTracker from '@/components/olives/OliveMaturityTracker'
+import OliveFlyMonitor from '@/components/olives/OliveFlyMonitor'
 import { GardenTask, MechanicalWorkRecord } from '@/types'
 import { getMasterSheetSync } from '@/services/plantMasterService'
 import { orchardService } from '@/services/orchardService'
@@ -32,7 +35,7 @@ import {
   resolveOliveGardenContexts,
 } from '@/services/woodyGardenResolverService'
 
-type ViewMode = 'overview' | 'trees' | 'pruning' | 'harvest' | 'individual-plants'
+type ViewMode = 'overview' | 'trees' | 'pruning' | 'harvest' | 'individual-plants' | 'maturity' | 'fly-monitoring'
 type SelectedLocation = Parameters<React.ComponentProps<typeof LocationSelector>['onLocationChange']>[0]
 
 interface OliveSummary {
@@ -210,6 +213,8 @@ export default function OlivesPage() {
     const items: Array<{ key: ViewMode; label: string; icon: React.ReactNode }> = [
       { key: 'overview', label: 'Panoramica', icon: <CircleDot size={16} /> },
       { key: 'individual-plants', label: 'Olivi Individuali', icon: <Users size={16} /> },
+      { key: 'maturity', label: 'Maturazione', icon: <CircleDot size={16} /> },
+      { key: 'fly-monitoring', label: 'Mosca Olearia', icon: <Bug size={16} /> },
     ]
 
     if (selectedOrchard) {
@@ -611,6 +616,10 @@ export default function OlivesPage() {
             </div>
             <SmartPlantManager garden={selectedGarden} />
           </div>
+        ) : viewMode === 'maturity' ? (
+          <OliveMaturityTracker oliveGroveId={selectedGarden.id} oliveGroveName={selectedGarden.name} />
+        ) : viewMode === 'fly-monitoring' ? (
+          <OliveFlyMonitor oliveGroveId={selectedGarden.id} oliveGroveName={selectedGarden.name} />
         ) : (
           renderOverview()
         )}
