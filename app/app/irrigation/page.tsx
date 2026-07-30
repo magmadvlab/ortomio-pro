@@ -35,6 +35,7 @@ const IRRIGATION_TABS = [
 export default function IrrigationPage() {
   const { storageProvider } = useStorage()
   const searchParams = useSearchParams()
+  const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [showConfigWizard, setShowConfigWizard] = useState(false)
   const [editingSystem, setEditingSystem] = useState<IrrigationSystem | null>(null)
@@ -100,6 +101,7 @@ export default function IrrigationPage() {
     const loadGardens = async () => {
       try {
         const loadedGardens = await storageProvider.getGardens()
+        setGardens(loadedGardens)
         if (loadedGardens.length > 0) {
           setActiveGarden(loadedGardens[0])
         }
@@ -241,6 +243,28 @@ export default function IrrigationPage() {
         </h1>
         <p className="text-gray-600 mt-1">Gestisci l'irrigazione automatica delle tue colture</p>
       </div>
+
+      {gardens.length > 1 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleziona Giardino
+          </label>
+          <select
+            value={activeGarden?.id || ''}
+            onChange={(e) => {
+              const garden = gardens.find((g) => g.id === e.target.value) || null
+              setActiveGarden(garden)
+            }}
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            {gardens.map((garden) => (
+              <option key={garden.id} value={garden.id}>
+                {garden.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {taskExecutionContext && (
         <TaskExecutionBanner

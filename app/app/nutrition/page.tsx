@@ -38,6 +38,7 @@ const MOBILE_SECONDARY_TABS = DESKTOP_TABS.slice(3)
 export default function NutritionPage() {
   const { storageProvider } = useStorage()
   const searchParams = useSearchParams()
+  const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeTab, setActiveTab] = useState<NutritionTab>('dashboard')
   const [nutritionTreatments, setNutritionTreatments] = useState<TreatmentRecordDB[] | null>(null)
@@ -47,20 +48,25 @@ export default function NutritionPage() {
   const [consumedLaunchSignature, setConsumedLaunchSignature] = useState<string | null>(null)
   const [taskExecutionContext, setTaskExecutionContext] = useState<TaskExecutionContext | null>(null)
 
+  const selectGarden = useCallback(async (garden: Garden) => {
+    const resolved = await resolveGardenContext(storageProvider, garden.id).catch(() => null)
+    setActiveGarden(resolved?.garden || garden)
+  }, [storageProvider])
+
   useEffect(() => {
     const loadGardens = async () => {
       try {
         const loadedGardens = await storageProvider.getGardens()
+        setGardens(loadedGardens)
         if (loadedGardens.length > 0) {
-          const resolved = await resolveGardenContext(storageProvider, loadedGardens[0].id).catch(() => null)
-          setActiveGarden(resolved?.garden || loadedGardens[0])
+          await selectGarden(loadedGardens[0])
         }
       } catch (error) {
         console.error('Error loading gardens:', error)
       }
     }
     loadGardens()
-  }, [storageProvider])
+  }, [storageProvider, selectGarden])
 
   const resumeTaskAwarePlanner = useCallback((context: TaskExecutionContext) => {
     if (!activeGarden) {
@@ -161,6 +167,28 @@ export default function NutritionPage() {
         </h1>
         <p className="text-gray-600 mt-1">Gestisci fertilizzazioni e trattamenti delle tue colture</p>
       </div>
+
+      {gardens.length > 1 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Seleziona Giardino
+          </label>
+          <select
+            value={activeGarden?.id || ''}
+            onChange={(e) => {
+              const garden = gardens.find((g) => g.id === e.target.value)
+              if (garden) void selectGarden(garden)
+            }}
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          >
+            {gardens.map((garden) => (
+              <option key={garden.id} value={garden.id}>
+                {garden.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {taskExecutionContext && (
         <TaskExecutionBanner
