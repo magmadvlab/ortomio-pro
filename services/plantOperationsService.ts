@@ -3,12 +3,11 @@
  * Servizio per gestire operazioni su piante individuali
  */
 
-import { 
-  GardenPlant, 
-  PlantOperation, 
-  PlantHarvest, 
+import {
+  GardenPlant,
+  PlantOperation,
   BulkRowOperation,
-  BulkOperationResult 
+  BulkOperationResult
 } from '../types/individualPlant';
 import type { IStorageProvider } from '@/packages/core/storage/interface';
 
@@ -48,7 +47,7 @@ export const createPlantOperation = async (
     weatherConditions: operation.weatherConditions,
     photos: operation.photos || [],
     notes: operation.notes,
-    idempotencyKey: (operation as any).idempotencyKey || crypto.randomUUID(),
+    idempotencyKey: operation.idempotencyKey || crypto.randomUUID(),
     sourceType: operation.sourceType || 'manual',
     actorType: operation.actorType || 'manual',
     recordedBy: operation.recordedBy || 'user',

@@ -101,14 +101,10 @@ function applyObstacleReduction(
  * Converte input visivo completo in ore di sole stimate
  * 
  * @param input Dati input visivo dell'utente
- * @param lat Latitudine (opzionale, per calcoli futuri)
- * @param lng Longitudine (opzionale, per calcoli futuri)
  * @returns Ore di sole stimate per giorno
  */
 export function convertVisualInputToSunHours(
-  input: VisualSunInputData,
-  lat?: number,
-  lng?: number
+  input: VisualSunInputData
 ): number {
   // Stima base da slider
   const baseHours = estimateSunHoursFromVisual(

@@ -263,11 +263,6 @@ export class RegistrationValidator {
     }
 
     const today = new Date();
-    const todayUtc = Date.UTC(
-      today.getUTCFullYear(),
-      today.getUTCMonth(),
-      today.getUTCDate()
-    );
     const minBirthDateUtc = Date.UTC(
       today.getUTCFullYear() - 120,
       today.getUTCMonth(),
@@ -319,7 +314,7 @@ export class RegistrationValidator {
   /**
    * Validazione real-time per singolo campo
    */
-  public validateField(field: string, value: any, data: RegistrationData): AuthError | null {
+  public validateField(field: string, value: string, data: RegistrationData): AuthError | null {
     switch (field) {
       case 'email':
         return !this.isValidEmail(value) ? {

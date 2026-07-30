@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Satellite, CheckCircle, AlertCircle, Loader2, Wifi } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Satellite, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { Garden } from '@/types';
 
 interface SentinelHubStatusProps {
@@ -12,11 +12,7 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ garden, onStatusC
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  useEffect(() => {
-    checkConnection();
-  }, []);
-
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     setStatus('checking');
     try {
       if (!garden.coordinates) {
@@ -61,13 +57,17 @@ const SentinelHubStatus: React.FC<SentinelHubStatusProps> = ({ garden, onStatusC
       }
       
       setLastCheck(new Date());
-    } catch (error: any) {
+    } catch (error) {
       setStatus('error');
-      setErrorMessage(error.message);
+      setErrorMessage(error instanceof Error ? error.message : 'Errore sconosciuto');
       setLastCheck(new Date());
       onStatusChange?.(false);
     }
-  };
+  }, [garden.coordinates, garden.id, onStatusChange]);
+
+  useEffect(() => {
+    checkConnection();
+  }, [checkConnection]);
 
   const getStatusConfig = () => {
     switch (status) {

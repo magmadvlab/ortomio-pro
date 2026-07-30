@@ -1,6 +1,27 @@
 import { SeedPacket, SeedConsumption, SeedAlert, SeedInventoryStats, SeedSearchFilters } from '@/types/seedInventory'
 import { getSupabaseClient } from '@/config/supabase'
 
+interface SeedPacketDBRow {
+  id: string
+  variety_id: string
+  variety_name: string
+  species_name: string
+  purchase_date: string
+  expiry_year: number
+  is_open: boolean
+  quantity_remaining: SeedPacket['quantityRemaining']
+  source: SeedPacket['source']
+  supplier?: string
+  notes?: string
+  garden_id: string
+  initial_quantity?: number
+  current_quantity?: number
+  quantity_display?: string
+  quantity_min?: number
+  quantity_max?: number
+  quantity_exact?: number
+}
+
 const normalizeForLookup = (value?: string) => (value || '').trim().toLowerCase()
 
 const getSupabaseOrThrow = () => {
@@ -286,7 +307,7 @@ export class SeedInventoryService {
     }
   }
 
-  private mapFromDatabase(data: any): SeedPacket {
+  private mapFromDatabase(data: SeedPacketDBRow): SeedPacket {
     return {
       id: data.id,
       varietyId: data.variety_id,
@@ -309,7 +330,7 @@ export class SeedInventoryService {
     }
   }
 
-  private mapToDatabase(packet: Partial<SeedPacket>): any {
+  private mapToDatabase(packet: Partial<SeedPacket>): Partial<SeedPacketDBRow> {
     return {
       variety_id: packet.varietyId,
       variety_name: packet.varietyName,

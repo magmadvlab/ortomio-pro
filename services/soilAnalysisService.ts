@@ -217,7 +217,7 @@ export async function updateSoilAnalysis(
   analysisId: string,
   updates: Partial<CreateSoilAnalysisInput>
 ): Promise<SoilAnalysis> {
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
 
   if (updates.analysisDate !== undefined) updateData.analysis_date = updates.analysisDate;
   if (updates.labName !== undefined) updateData.lab_name = updates.labName;
@@ -401,7 +401,35 @@ function calculateRecommendations(
 /**
  * Mappa dati da database a tipo TypeScript
  */
-function mapSoilAnalysisFromDB(db: any): SoilAnalysis {
+interface SoilAnalysisDBRow {
+  id: string;
+  zone_id: string;
+  garden_id: string;
+  analysis_date: string;
+  lab_name?: string;
+  analysis_type?: 'basic' | 'complete' | 'professional';
+  nitrogen_n?: number | string | null;
+  phosphorus_p?: number | string | null;
+  potassium_k?: number | string | null;
+  iron_fe?: number | string | null;
+  manganese_mn?: number | string | null;
+  zinc_zn?: number | string | null;
+  copper_cu?: number | string | null;
+  boron_b?: number | string | null;
+  ph?: number | string | null;
+  organic_matter_percent?: number | string | null;
+  organic_carbon_percent?: number | string | null;
+  cec?: number | string | null;
+  sand_percent?: number | string | null;
+  silt_percent?: number | string | null;
+  clay_percent?: number | string | null;
+  notes?: string;
+  recommendations?: SoilAnalysis['recommendations'];
+  created_at: string;
+  updated_at: string;
+}
+
+function mapSoilAnalysisFromDB(db: SoilAnalysisDBRow): SoilAnalysis {
   return {
     id: db.id,
     zoneId: db.zone_id,

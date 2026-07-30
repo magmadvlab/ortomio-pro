@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyTier } from '@/lib/auth.server';
 import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server';
 
+interface ApiConfigurationRow {
+  id: string;
+  user_id: string;
+  service_name: string;
+  provider_name: string;
+  config: Record<string, unknown>;
+  is_active: boolean;
+  is_default: boolean;
+  last_used_at: string | null;
+  last_error: string | null;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     if (!isSupabaseAvailable()) {
@@ -36,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Non restituire api_key_encrypted per sicurezza
-    const safeConfigs = (configurations || []).map((config: any) => ({
+    const safeConfigs = (configurations || []).map((config: ApiConfigurationRow) => ({
       id: config.id,
       user_id: config.user_id,
       service_type: config.service_name,
@@ -52,10 +67,10 @@ export async function GET(request: NextRequest) {
     }));
     
     return NextResponse.json({ configurations: safeConfigs });
-  } catch (error: any) {
+  } catch (error) {
     console.error('API configurations GET error:', error);
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -154,10 +169,10 @@ export async function POST(request: NextRequest) {
     };
     
     return NextResponse.json({ configuration: safeConfig }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('API configurations POST error:', error);
     return NextResponse.json(
-      { error: 'internal_error', message: error.message },
+      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

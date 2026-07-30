@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { ArrowLeft, Save, Trash2, Settings, Droplets, Sprout, Plus, Edit2, Brain, TrendingUp, History, Calendar } from 'lucide-react'
+import { FieldRow } from '@/types/fieldRow'
+import { ArrowLeft, Trash2, Settings, Droplets, Sprout, Plus, Edit2, Brain, TrendingUp, History } from 'lucide-react'
 import Link from 'next/link'
 import { useFieldRowPredictions } from '@/services/fieldRowPredictiveService'
 import FieldRowPredictionWidget from '@/components/fieldrows/FieldRowPredictionWidget'
@@ -14,9 +15,9 @@ export default function GardenRowsPage() {
   const { storageProvider } = useStorage()
   const searchParams = useSearchParams()
   const router = useRouter()
-  
+
   const [gardens, setGardens] = useState<Garden[]>([])
-  const [fieldRows, setFieldRows] = useState<any[]>([])
+  const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGarden, setSelectedGarden] = useState<Garden | null>(null)
   const [showPredictions, setShowPredictions] = useState(false)
@@ -26,7 +27,7 @@ export default function GardenRowsPage() {
   const gardenId = searchParams.get('garden')
 
   // AI Predictions
-  const { predictions, loading: predictionsLoading, error: predictionsError, reload: reloadPredictions } = useFieldRowPredictions(selectedGarden?.id || '')
+  const { predictions, loading: predictionsLoading, error: predictionsError } = useFieldRowPredictions(selectedGarden?.id || '')
 
   useEffect(() => {
     const loadData = async () => {
@@ -305,7 +306,7 @@ export default function GardenRowsPage() {
                   <div>
                     <p className="text-sm font-medium text-blue-700">Con Irrigazione</p>
                     <p className="text-3xl font-bold text-blue-900">
-                      {fieldRows.filter(row => row.irrigationConfig?.enabled).length}
+                      {fieldRows.filter(row => row.irrigationConfig?.lineType).length}
                     </p>
                   </div>
                 </div>
@@ -365,15 +366,15 @@ export default function GardenRowsPage() {
                         <div className="flex items-center justify-between text-sm text-green-100 mb-2">
                           <span>Visualizzazione Piante</span>
                           {row.plant_spacing && (
-                            <span>~{Math.floor((row.length_meters * 100) / row.plant_spacing)} piante</span>
+                            <span>~{Math.floor(((row.length_meters || 0) * 100) / row.plant_spacing)} piante</span>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {Array.from({ length: Math.min(20, Math.floor((row.length_meters * 100) / (row.plant_spacing || 50))) }).map((_, i) => (
+                          {Array.from({ length: Math.min(20, Math.floor(((row.length_meters || 0) * 100) / (row.plant_spacing || 50))) }).map((_, i) => (
                             <span key={i} className="text-lg">🌱</span>
                           ))}
-                          {Math.floor((row.length_meters * 100) / (row.plant_spacing || 50)) > 20 && (
-                            <span className="text-green-200 text-sm">+{Math.floor((row.length_meters * 100) / (row.plant_spacing || 50)) - 20}</span>
+                          {Math.floor(((row.length_meters || 0) * 100) / (row.plant_spacing || 50)) > 20 && (
+                            <span className="text-green-200 text-sm">+{Math.floor(((row.length_meters || 0) * 100) / (row.plant_spacing || 50)) - 20}</span>
                           )}
                         </div>
                       </div>
@@ -393,7 +394,7 @@ export default function GardenRowsPage() {
 
                       {/* Status Badges */}
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {row.irrigationConfig?.enabled && (
+                        {row.irrigationConfig?.lineType && (
                           <span className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-100 text-cyan-700 text-sm font-medium rounded-full">
                             <Droplets size={14} />
                             Irrigato
@@ -452,19 +453,19 @@ export default function GardenRowsPage() {
                       </div>
 
                       {/* Irrigation Details */}
-                      {row.irrigationConfig?.enabled && (
+                      {row.irrigationConfig?.lineType && (
                         <div className="mb-4 p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <Droplets className="text-cyan-600" size={16} />
                             <span className="font-medium text-cyan-800">Sistema Irrigazione Attivo</span>
                           </div>
                           <div className="text-sm text-cyan-700 space-y-1">
-                            <div>Tipo: {row.irrigationConfig.irrigationType === 'drip' ? 'Goccia a Goccia' : row.irrigationConfig.irrigationType}</div>
-                            {row.irrigationConfig.totalFlowRate > 0 && (
-                              <div>Portata: {row.irrigationConfig.totalFlowRate} L/h</div>
+                            <div>Tipo: {row.irrigationConfig.lineType === 'Dripline' ? 'Goccia a Goccia' : row.irrigationConfig.lineType}</div>
+                            {!!row.irrigationConfig.emitterFlowRateLph && row.irrigationConfig.emitterFlowRateLph > 0 && (
+                              <div>Portata gocciolatore: {row.irrigationConfig.emitterFlowRateLph} L/h</div>
                             )}
-                            {row.irrigationConfig.schedule && (
-                              <div>Programmazione: {row.irrigationConfig.schedule.frequency} alle {row.irrigationConfig.schedule.times?.[0] || '08:00'}</div>
+                            {!!row.irrigationConfig.emitterSpacingCm && (
+                              <div>Spaziatura gocciolatori: {row.irrigationConfig.emitterSpacingCm} cm</div>
                             )}
                           </div>
                         </div>
