@@ -2779,6 +2779,27 @@ vigneto (richiede migrazione, non affrontato), motore predittivo (gap
 trasversale gia' registrato in M14: altitudine/sole/ostacoli mai usati,
 finestra raccolta fissa a 60 giorni per qualunque coltura).
 
+9. **Cluster "trattamenti duplicati" — rimosso, non ricollegato.**
+   Verificato con BFS reale: 3 componenti diversi si chiamano tutti
+   `TreatmentPlanner` in 3 cartelle diverse (`nutrition/`, `treatments/`,
+   `phyto/`) — solo `components/nutrition/TreatmentPlanner.tsx` e' vivo
+   (montato da `/app/nutrition`, il percorso reale gia' verificato nella
+   decisione sul selettore orto). Gli altri due sono relitti isolati:
+   `components/treatments/TreatmentDashboardWidget.tsx` (273 righe, zero
+   importer) -> `SmartTreatmentWizard.tsx` (798 righe, usato solo dal
+   widget sopra) e, separatamente, `components/treatments/TreatmentDashboard.tsx`
+   (329 righe, zero importer) -> `components/treatments/TreatmentPlanner.tsx`
+   (275 righe, usato solo dal dashboard sopra). Standalone in
+   `components/phyto/`: `TreatmentPlanner.tsx` (205 righe, zero importer,
+   terzo omonimo), `TreatmentRegistry.tsx` (215 righe, zero importer —
+   l'interfaccia *type* omonima in `types/microzoneTracking.ts` e' viva
+   ma e' tutt'altra cosa, solo coincidenza di nome) e `PhytoInventory.tsx`
+   (293 righe, zero importer — il *servizio* `phytoInventoryService.ts`
+   resta vivo e usato altrove, solo questo componente UI non era mai
+   montato). Nessun `import()` dinamico o test reale su nessuno dei 7.
+   **Decisione dell'utente: rimozione diretta.** Verificato: `tsc --noEmit`
+   pulito, `next build` verde, `test:release` 229/229.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
