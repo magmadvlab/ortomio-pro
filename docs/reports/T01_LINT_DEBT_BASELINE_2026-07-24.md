@@ -858,3 +858,33 @@ Verifiche: lint mirato sui 12 file 1/27 residuo (intenzionale), `npx tsc --noEmi
 | Warning | 999 |
 | Riduzione lotto | 25 |
 | Riduzione dalla baseline operativa 2642 | 1643 |
+
+## Lotto 74 (30/07/2026) - chiuso
+
+Dodici file live portati da 24 warning complessivi a 3 (lasciati intenzionali):
+
+- `app/(auth)/verify-email/page.tsx` 2 -> 0: `checkVerificationStatus` stabilizzato con `useCallback` (riordinato prima dell'effect), `catch (err: any)` tipizzato `unknown` con narrowing.
+- `components/ai/predictions/AIPredictionsDashboard.tsx` 2 -> 0: import morto, `loadPredictions` stabilizzato con `useCallback`.
+- `components/photo/PhotoTimeline.tsx` 2 -> 1: prop `plantName` a livello di componente mai letta rimossa dalla destrutturazione (il `photo.plantName` per-foto e' un campo diverso, usato correttamente). Lasciato intenzionale 1 `no-img-element` (`photo.url`, origine non verificata).
+- `components/planner/PlantLifecycleTimeline.tsx` 2 -> 0: **gap UX reale**, vedi sotto.
+- `components/planner/TaskList.tsx` 2 -> 0: `onSave: (taskData: any)` tipizzato `Omit<GardenTask, 'id'>` (gia' il tipo reale atteso dai chiamanti `onTaskCreate`/`onTaskUpdate`), `as any` su `taskType` rimosso di conseguenza.
+- `components/seedling/SeedingProgressCard.tsx` 2 -> 1: import morto. Lasciato intenzionale 1 `no-img-element` (foto batch semenzaio).
+- `components/settings/SatelliteCredentialsManager.tsx` 2 -> 0: due `catch (error: any)` tipizzati `unknown` con narrowing.
+- `components/shared/GardenSelectorCard.tsx` 2 -> 0: due import morti (`date-fns`/locale mai usati).
+- `components/shared/HarvestPromptModal.tsx` 2 -> 1: `as any` su `unit` sostituito col tipo reale gia' dichiarato nello state. Lasciato intenzionale 1 `no-img-element` (foto raccolto caricata dall'utente).
+- `components/sunExposure/ObstacleManager.tsx` 2 -> 0: import morto, `as any` su `type` sostituito col tipo reale.
+- `components/weather/WeatherWidget.tsx` 2 -> 0: `garden?: any` tipizzato `Garden | null`, `loadWeather` stabilizzato con `useCallback` (verificato che l'unico chiamante live, `app/app/health/page.tsx`, non passa affatto la prop `garden` — nessun rischio di loop).
+- `config/supabase.ts` 2 -> 0: due `(import.meta as any)?.env?.VITE_*` tipizzati con un tipo inline (`Record<string, string | undefined>`) invece di `any`, mantenendo lo stesso comportamento di fallback Vite/Next.
+
+**Gap UX reale trovato e corretto:** `components/planner/PlantLifecycleTimeline.tsx` riceveva `plantName`/`variety` come prop richieste ma non le mostrava mai — il componente e' renderizzato una volta per pianta unica in `components/diary/UnifiedTimelineDiary.tsx` (`getUniqueePlants().map(plantName => <PlantLifecycleTimeline key={plantName} plantName={plantName} .../>)`), quindi ogni card nella pagina diario mostrava lo stesso titolo generico "Ciclo Colturale" senza alcun modo per l'utente di distinguere a quale pianta si riferisse ciascuna. Corretto mostrando il nome pianta (e varieta' se presente) nel titolo. **Non toccato**, perche' piu' profondo e fuori scope: nello stesso file chiamante i mesi di semina/trapianto/raccolta passati a ogni card sono valori di esempio hardcoded identici per tutte le piante (commento esplicito nel codice: "Esempio: Mar-Apr-Mag") invece di dati fenologici reali per specie — richiederebbe una sorgente dati botanica dedicata per coltura, candidato per un lotto/censimento futuro.
+
+Verifiche: lint mirato sui 12 file 3/24 residui (tutti intenzionali), `npx tsc --noEmit` sull'intero progetto zero errori, lint globale reale **0 errori e 978 warning**.
+
+## Stato dopo il lotto 74
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 978 |
+| Riduzione lotto | 21 |
+| Riduzione dalla baseline operativa 2642 | 1664 |
