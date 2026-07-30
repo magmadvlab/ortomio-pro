@@ -16,10 +16,12 @@ import {
   Clock
 } from 'lucide-react'
 import { globalGapComplianceService } from '../../services/globalGapComplianceService'
-import type { 
-  GlobalGapRiskManagementPlan, 
-  RiskItem, 
-  ControlProcedure 
+import { ComplianceAIService } from '../../services/complianceAIService'
+import { useStorage } from '../../packages/core/hooks/useStorage'
+import type {
+  GlobalGapRiskManagementPlan,
+  RiskItem,
+  ControlProcedure
 } from '../../types/globalGapCompliance'
 
 interface RiskManagementPlanProps {
@@ -29,6 +31,7 @@ interface RiskManagementPlanProps {
 }
 
 export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskManagementPlanProps) {
+  const { storageProvider } = useStorage()
   const [plan, setPlan] = useState<Partial<GlobalGapRiskManagementPlan>>({
     garden_id: gardenId,
     plan_name: 'Piano Gestione Rischi Sito',
@@ -42,9 +45,28 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [generatingAI, setGeneratingAI] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'risks' | 'procedures' | 'monitoring'>('risks')
   const [editingRisk, setEditingRisk] = useState<RiskItem | null>(null)
   const [editingProcedure, setEditingProcedure] = useState<ControlProcedure | null>(null)
+
+  const generateWithAI = async () => {
+    try {
+      setGeneratingAI(true)
+      setAiError(null)
+      const garden = await storageProvider.getGarden(gardenId)
+      const gardenType = garden?.gardenType || 'Vegetable'
+      const location = garden?.location || ''
+      const existingRisks = (plan.identified_risks || []).map(risk => risk.description)
+      const draft = await ComplianceAIService.generateGlobalGapRiskManagementPlan(gardenType, location, existingRisks)
+      setPlan(prev => ({ ...prev, ...draft }))
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Generazione AI non riuscita')
+    } finally {
+      setGeneratingAI(false)
+    }
+  }
 
   useEffect(() => {
     if (planId) {
@@ -219,6 +241,14 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
           </div>
           <div className="flex gap-3">
             <button
+              onClick={generateWithAI}
+              disabled={generatingAI}
+              className="flex items-center gap-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              <Shield size={16} />
+              {generatingAI ? 'Generando...' : 'Genera bozza con AI'}
+            </button>
+            <button
               onClick={exportPDF}
               className="flex items-center gap-3 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
@@ -235,6 +265,12 @@ export default function RiskManagementPlan({ gardenId, planId, onSave }: RiskMan
             </button>
           </div>
         </div>
+
+        {aiError && (
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+            {aiError}
+          </div>
+        )}
 
         {/* Plan Info */}
         <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-4 gap-4">

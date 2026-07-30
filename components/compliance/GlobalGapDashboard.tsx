@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import { globalGapComplianceService } from '../../services/globalGapComplianceService'
 import { globalGapCbFvService } from '../../services/globalGapCbFvService'
+import { ComplianceAIService, type ComplianceAssessmentResult } from '../../services/complianceAIService'
+import { useStorage } from '../../packages/core/hooks/useStorage'
 import type { ComplianceOverview } from '../../types/globalGapCompliance'
 import type { CompleteComplianceOverview } from '../../types/globalGapCbFv'
 import SelfAssessmentForm from './SelfAssessmentForm'
@@ -32,6 +34,7 @@ const REQUIREMENT_FORM: Record<string, 'self_assessment' | 'risk_management_plan
 }
 
 export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps) {
+  const { storageProvider } = useStorage()
   const [overview, setOverview] = useState<ComplianceOverview | null>(null)
   const [completeOverview, setCompleteOverview] = useState<CompleteComplianceOverview | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,6 +42,24 @@ export default function GlobalGapDashboard({ gardenId }: GlobalGapDashboardProps
   const [creatingDocument, setCreatingDocument] = useState<string | null>(null)
   const [completingAction, setCompletingAction] = useState<string | null>(null)
   const [openForm, setOpenForm] = useState<'AF1.2.2' | 'AF2.2' | 'AF9.1' | null>(null)
+  const [aiAssessment, setAiAssessment] = useState<ComplianceAssessmentResult | null>(null)
+  const [generatingAssessment, setGeneratingAssessment] = useState(false)
+  const [aiAssessmentError, setAiAssessmentError] = useState<string | null>(null)
+
+  const generateAiAssessment = async () => {
+    try {
+      setGeneratingAssessment(true)
+      setAiAssessmentError(null)
+      const garden = await storageProvider.getGarden(gardenId)
+      const gardenType = garden?.gardenType || 'Vegetable'
+      const result = await ComplianceAIService.generateComplianceAssessment(gardenType, overview?.critical_gaps || [])
+      setAiAssessment(result)
+    } catch (error) {
+      setAiAssessmentError(error instanceof Error ? error.message : 'Generazione AI non riuscita')
+    } finally {
+      setGeneratingAssessment(false)
+    }
+  }
 
   const loadComplianceOverview = useCallback(async () => {
     try {
@@ -432,6 +453,52 @@ Personalizza questo documento secondo le tue esigenze specifiche.`
                 <div className="text-xs opacity-75">
                   Ultima valutazione: {new Date().toLocaleDateString('it-IT')}
                 </div>
+              </div>
+
+              {/* AI Assessment (suggestion only, not part of the persisted overview) */}
+              <div className="border border-purple-200 bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-purple-900">
+                    Analisi AI (suggerimento, non sostituisce la panoramica reale)
+                  </h3>
+                  <button
+                    onClick={generateAiAssessment}
+                    disabled={generatingAssessment}
+                    className="flex items-center gap-2 px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    {generatingAssessment ? 'Generando...' : 'Genera analisi AI'}
+                  </button>
+                </div>
+                {aiAssessmentError && (
+                  <div className="text-sm text-red-800 bg-red-50 border border-red-200 rounded p-2 mb-2">
+                    {aiAssessmentError}
+                  </div>
+                )}
+                {aiAssessment && (
+                  <div className="space-y-3 text-sm text-purple-900">
+                    <div>
+                      <strong>Punteggio stimato dall'AI:</strong> {aiAssessment.overallScore}%
+                    </div>
+                    <div>
+                      <strong>Gap segnalati:</strong>
+                      <ul className="list-disc list-inside">
+                        {aiAssessment.gaps.map((gap, index) => <li key={index}>{gap}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>Raccomandazioni:</strong>
+                      <ul className="list-disc list-inside">
+                        {aiAssessment.recommendations.map((rec, index) => <li key={index}>{rec}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>Priorità:</strong>
+                      <ul className="list-disc list-inside">
+                        {aiAssessment.priorityActions.map((action, index) => <li key={index}>{action}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -4,17 +4,23 @@
  */
 
 import { getAIProvider } from './aiProviderAdapter';
-import { EnhancedPromptService } from './enhancedPromptService';
-import { 
-  GlobalGapSelfAssessment, 
+import type { CreditFeature } from '@/lib/credits';
+import type {
   GlobalGapRiskManagementPlan,
-  GlobalGapRecallProcedure 
+  GlobalGapRecallProcedure,
+  RiskItem,
+  ControlProcedure,
+  MonitoringSchedule,
+  TriggerEvent,
+  DecisionMaker,
+  EscalationStep,
+  TemplateMessage
 } from '../types/globalGapCompliance';
 
 export interface ComplianceAIRequest {
   type: 'assessment' | 'risk_analysis' | 'documentation' | 'training' | 'audit_prep';
   context: {
-    gardenType: 'Vegetable' | 'Vineyard' | 'OliveGrove' | 'Orchard';
+    gardenType: string;
     complianceLevel: 'AF' | 'CB' | 'FV' | 'ALL';
     currentRecords?: any[];
     specificRequirement?: string;
@@ -22,8 +28,200 @@ export interface ComplianceAIRequest {
   query: string;
 }
 
+export interface ComplianceAssessmentResult {
+  overallScore: number;
+  gaps: string[];
+  recommendations: string[];
+  priorityActions: string[];
+}
+
+export interface TrainingContentResult {
+  title: string;
+  objectives: string[];
+  content: string[];
+  practicalExercises: string[];
+  assessmentQuestions: string[];
+}
+
+/**
+ * Calls the active AI provider with a JSON schema and returns the parsed
+ * response. Uses the client-side custom provider when configured, otherwise
+ * falls back to the credit-gated server route `/api/ai/generate`.
+ */
+async function generateStructured<T>(
+  prompt: string,
+  schema: Record<string, unknown>,
+  systemInstruction: string,
+  feature: CreditFeature,
+  options: { temperature?: number; maxTokens?: number } = {}
+): Promise<T> {
+  const provider = await getAIProvider('ai_gemini');
+
+  let text: string;
+  if (provider?.generateContentWithSchema) {
+    const response = await provider.generateContentWithSchema(prompt, schema, {
+      systemInstruction,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens
+    });
+    text = response.text;
+  } else {
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        feature,
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+          systemInstruction,
+          temperature: options.temperature
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || error.error || 'Richiesta AI non riuscita');
+    }
+
+    const data = await response.json();
+    text = data.text;
+  }
+
+  if (!text) {
+    throw new Error('Risposta AI vuota');
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('La risposta AI non era in un formato JSON valido');
+  }
+}
+
+const assessmentSchema = {
+  type: 'object',
+  properties: {
+    overallScore: { type: 'number', description: 'Stima percentuale di conformità, 0-100' },
+    gaps: { type: 'array', items: { type: 'string' } },
+    recommendations: { type: 'array', items: { type: 'string' } },
+    priorityActions: { type: 'array', items: { type: 'string' } }
+  },
+  required: ['overallScore', 'gaps', 'recommendations', 'priorityActions']
+};
+
+const riskManagementPlanSchema = {
+  type: 'object',
+  properties: {
+    plan_name: { type: 'string' },
+    identified_risks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          category: { type: 'string', enum: ['environmental', 'contamination', 'physical', 'biological', 'chemical'] },
+          description: { type: 'string' },
+          severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+          probability: { type: 'string', enum: ['unlikely', 'possible', 'likely', 'certain'] },
+          source: { type: 'string' }
+        },
+        required: ['category', 'description', 'severity', 'probability', 'source']
+      }
+    },
+    control_procedures: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          procedure_description: { type: 'string' },
+          responsible_person: { type: 'string' },
+          monitoring_frequency: { type: 'string', enum: ['daily', 'weekly', 'monthly', 'quarterly', 'annually'] },
+          effectiveness_indicators: { type: 'array', items: { type: 'string' } },
+          documentation_required: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['procedure_description', 'responsible_person', 'monitoring_frequency', 'effectiveness_indicators', 'documentation_required']
+      }
+    }
+  },
+  required: ['plan_name', 'identified_risks', 'control_procedures']
+};
+
+const recallProcedureSchema = {
+  type: 'object',
+  properties: {
+    trigger_events: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          event_type: { type: 'string' },
+          description: { type: 'string' },
+          severity_level: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+          automatic_trigger: { type: 'boolean' },
+          notification_required: { type: 'boolean' }
+        },
+        required: ['event_type', 'description', 'severity_level', 'automatic_trigger', 'notification_required']
+      }
+    },
+    decision_makers: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          position: { type: 'string' },
+          authority_level: { type: 'string', enum: ['local', 'regional', 'national', 'international'] }
+        },
+        required: ['position', 'authority_level']
+      }
+    },
+    escalation_timeline: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          time_from_detection: { type: 'number', description: 'Minuti dalla rilevazione' },
+          action_required: { type: 'string' },
+          responsible_person: { type: 'string' },
+          notification_targets: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['time_from_detection', 'action_required', 'responsible_person', 'notification_targets']
+      }
+    },
+    template_messages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          message_type: { type: 'string', enum: ['initial_alert', 'customer_notification', 'authority_report', 'all_clear'] },
+          template_text: { type: 'string' },
+          required_fields: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['message_type', 'template_text', 'required_fields']
+      }
+    },
+    traceability_method: { type: 'string' },
+    stock_reconciliation_method: { type: 'string' }
+  },
+  required: ['trigger_events', 'decision_makers', 'escalation_timeline', 'template_messages', 'traceability_method', 'stock_reconciliation_method']
+};
+
+const trainingContentSchema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    objectives: { type: 'array', items: { type: 'string' } },
+    content: { type: 'array', items: { type: 'string' } },
+    practicalExercises: { type: 'array', items: { type: 'string' } },
+    assessmentQuestions: { type: 'array', items: { type: 'string' } }
+  },
+  required: ['title', 'objectives', 'content', 'practicalExercises', 'assessmentQuestions']
+};
+
 export class ComplianceAIService {
-  
+
   /**
    * Generate AI-powered compliance assessment
    */
@@ -31,18 +229,8 @@ export class ComplianceAIService {
     gardenType: string,
     currentRecords: any[],
     targetStandard: 'AF' | 'CB' | 'FV' | 'ALL' = 'ALL'
-  ): Promise<{
-    overallScore: number;
-    gaps: string[];
-    recommendations: string[];
-    priorityActions: string[];
-  }> {
-    const provider = await getAIProvider('ai_gemini');
-    if (!provider) {
-      throw new Error('AI provider not available');
-    }
-
-    const systemInstruction = `Sei un consulente esperto in certificazioni GlobalG.A.P. IFA V5.2 specializzato in agricoltura italiana. 
+  ): Promise<ComplianceAssessmentResult> {
+    const systemInstruction = `Sei un consulente esperto in certificazioni GlobalG.A.P. IFA V5.2 specializzato in agricoltura italiana.
     Analizza lo stato di conformità e fornisci raccomandazioni specifiche e attuabili.`;
 
     const prompt = `
@@ -68,40 +256,34 @@ FOCUS SU:
 - Documentazione mancante o insufficiente
 - Procedure non implementate
 - Formazione del personale
-- Sistemi di tracciabilità
-
-Fornisci risposta strutturata in JSON con i campi richiesti.`;
+- Sistemi di tracciabilità`;
 
     try {
-      const response = await provider.generateContent(prompt, {
+      return await generateStructured<ComplianceAssessmentResult>(
+        prompt,
+        assessmentSchema,
         systemInstruction,
-        temperature: 0.3, // Lower temperature for more consistent compliance advice
-        maxTokens: 1500
-      });
-
-      // Parse AI response (in a real implementation, you'd use a structured schema)
-      const analysis = this.parseComplianceResponse(response.text);
-      return analysis;
+        'compliance_assessment',
+        { temperature: 0.3, maxTokens: 1500 }
+      );
     } catch (error) {
       console.error('Compliance AI analysis failed:', error);
-      throw new Error('Errore nell\'analisi di conformità AI');
+      throw new Error(error instanceof Error ? error.message : 'Errore nell\'analisi di conformità AI');
     }
   }
 
   /**
-   * Generate risk management plan with AI assistance
+   * Generate a risk management plan draft with AI assistance.
+   * Dates, ids and cross-references are assembled locally after the AI
+   * response: the model is not a reliable source for stable identifiers or
+   * calendar dates, only for the substantive risk/procedure content.
    */
   static async generateGlobalGapRiskManagementPlan(
     gardenType: string,
     location: string,
     existingRisks: string[] = []
   ): Promise<Partial<GlobalGapRiskManagementPlan>> {
-    const provider = await getAIProvider('ai_gemini');
-    if (!provider) {
-      throw new Error('AI provider not available');
-    }
-
-    const systemInstruction = `Sei un esperto in gestione dei rischi agricoli secondo GlobalG.A.P. AF 1.2.2. 
+    const systemInstruction = `Sei un esperto in gestione dei rischi agricoli secondo GlobalG.A.P. AF 1.2.2.
     Crea piani di gestione rischi specifici per l'Italia considerando clima, normative locali e best practices.`;
 
     const prompt = `
@@ -112,120 +294,128 @@ RISCHI IDENTIFICATI: ${existingRisks.join(', ') || 'Da identificare'}
 
 REQUISITO AF 1.2.2: "Piano di gestione che stabilisce strategie per minimizzare i rischi identificati"
 
-GENERA PIANO COMPLETO:
+GENERA:
+1. Un elenco di rischi specifici per ${gardenType} in ${location || 'Italia'} (climatici, biologici, chimici, fisici, operativi)
+2. Per ciascun rischio, una procedura di controllo con misure preventive, monitoraggio e documentazione richiesta
 
-1. IDENTIFICAZIONE RISCHI SPECIFICI per ${gardenType} in Italia:
-   - Rischi climatici (gelo, siccità, grandine, vento)
-   - Rischi biologici (parassiti, malattie, infestanti)
-   - Rischi chimici (contaminazione suolo/acqua, deriva fitofarmaci)
-   - Rischi fisici (inondazioni, erosione, contaminazione fisica)
-   - Rischi operativi (errori umani, guasti attrezzature)
+Sii concreto e specifico per il contesto agricolo italiano, non generico.`;
 
-2. STRATEGIE PREVENZIONE per ogni rischio:
-   - Misure preventive specifiche
-   - Monitoraggio e soglie di intervento
-   - Procedure operative standard
+    const raw = await generateStructured<{
+      plan_name: string;
+      identified_risks: Array<Omit<RiskItem, 'id' | 'risk_score'>>;
+      control_procedures: Array<Omit<ControlProcedure, 'risk_id' | 'implementation_date'>>;
+    }>(
+      prompt,
+      riskManagementPlanSchema,
+      systemInstruction,
+      'compliance_risk_plan',
+      { temperature: 0.4, maxTokens: 2000 }
+    );
 
-3. PIANI CONTINGENZA:
-   - Azioni immediate in caso di evento
-   - Responsabilità e comunicazioni
-   - Risorse necessarie
+    const severityWeight: Record<string, number> = { low: 1, medium: 2, high: 3, critical: 4 };
+    const probabilityWeight: Record<string, number> = { unlikely: 1, possible: 2, likely: 3, certain: 4 };
 
-4. DOCUMENTAZIONE RICHIESTA:
-   - Registri di monitoraggio
-   - Procedure scritte
-   - Formazione personale
+    const identifiedRisks: RiskItem[] = raw.identified_risks.map((risk, index) => ({
+      ...risk,
+      id: `ai-risk-${index + 1}`,
+      risk_score: (severityWeight[risk.severity] || 1) * (probabilityWeight[risk.probability] || 1)
+    }));
 
-Struttura la risposta per implementazione pratica immediata.`;
+    const implementationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const controlProcedures: ControlProcedure[] = raw.control_procedures.map((procedure, index) => ({
+      ...procedure,
+      risk_id: identifiedRisks[index]?.id || identifiedRisks[0]?.id || 'ai-risk-1',
+      implementation_date: implementationDate
+    }));
 
-    try {
-      const response = await provider.generateContent(prompt, {
-        systemInstruction,
-        temperature: 0.4,
-        maxTokens: 2000
-      });
+    const monitoringSchedule: MonitoringSchedule[] = controlProcedures.map((procedure, index) => ({
+      procedure_id: `${procedure.risk_id}-procedure-${index + 1}`,
+      frequency: procedure.monitoring_frequency,
+      next_check_date: implementationDate,
+      responsible_person: procedure.responsible_person,
+      checklist_items: procedure.effectiveness_indicators
+    }));
 
-      return this.parseGlobalGapRiskManagementPlan(response.text);
-    } catch (error) {
-      console.error('Risk management AI generation failed:', error);
-      throw new Error('Errore nella generazione del piano di gestione rischi');
-    }
+    return {
+      plan_name: raw.plan_name,
+      risk_assessment_date: new Date().toISOString().split('T')[0],
+      plan_implementation_date: implementationDate,
+      identified_risks: identifiedRisks,
+      control_procedures: controlProcedures,
+      monitoring_schedule: monitoringSchedule,
+      responsible_person: '',
+      next_review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'active' as const
+    };
   }
 
   /**
-   * Generate recall procedure with AI assistance
+   * Generate a recall procedure draft with AI assistance. Contact details
+   * (phone/email) are never invented by the model and are left blank for
+   * the user to fill in the form.
    */
   static async generateGlobalGapRecallProcedure(
     gardenType: string,
     products: string[],
     distributionChannels: string[]
   ): Promise<Partial<GlobalGapRecallProcedure>> {
-    const provider = await getAIProvider('ai_gemini');
-    if (!provider) {
-      throw new Error('AI provider not available');
-    }
-
-    const systemInstruction = `Sei un esperto in procedure di richiamo prodotti secondo GlobalG.A.P. AF 9.1. 
+    const systemInstruction = `Sei un esperto in procedure di richiamo prodotti secondo GlobalG.A.P. AF 9.1.
     Crea procedure specifiche per l'Italia considerando normative HACCP, tracciabilità e comunicazioni obbligatorie.`;
 
     const prompt = `
 PROCEDURA RICHIAMO PRODOTTI - GLOBALGAP AF 9.1
 
 AZIENDA: ${gardenType}
-PRODOTTI: ${products.join(', ')}
-CANALI DISTRIBUZIONE: ${distributionChannels.join(', ')}
+PRODOTTI: ${products.join(', ') || 'non specificati'}
+CANALI DISTRIBUZIONE: ${distributionChannels.join(', ') || 'non specificati'}
 
 REQUISITO AF 9.1: "Procedure documentate per gestire/avviare richiamo prodotti certificati"
 
-GENERA PROCEDURA COMPLETA:
+GENERA:
+1. Eventi scatenanti che richiedono un richiamo (contaminazione, corpi estranei, superamento limiti residui, problemi etichettatura)
+2. Ruoli decisionali (posizione e livello di autorità, senza inventare nomi o contatti reali)
+3. Timeline di escalation con tempi in minuti dalla rilevazione
+4. Modelli di messaggio di comunicazione (allerta iniziale, notifica clienti, notifica autorità)
+5. Metodo di tracciabilità e riconciliazione scorte, specifico per ${gardenType} con canali ${distributionChannels.join(', ') || 'misti'}`;
 
-1. TRIGGER EVENTI che richiedono richiamo:
-   - Contaminazione microbiologica/chimica
-   - Presenza corpi estranei
-   - Superamento limiti residui
-   - Problemi etichettatura/tracciabilità
+    const raw = await generateStructured<{
+      trigger_events: TriggerEvent[];
+      decision_makers: Array<Pick<DecisionMaker, 'position' | 'authority_level'>>;
+      escalation_timeline: EscalationStep[];
+      template_messages: TemplateMessage[];
+      traceability_method: string;
+      stock_reconciliation_method: string;
+    }>(
+      prompt,
+      recallProcedureSchema,
+      systemInstruction,
+      'compliance_recall_procedure',
+      { temperature: 0.3, maxTokens: 2500 }
+    );
 
-2. RESPONSABILITÀ E DECISIONI:
-   - Chi decide il richiamo (ruoli specifici)
-   - Criteri di valutazione gravità
-   - Autorità da informare (ASL, NAS, Regione)
+    const decisionMakers: DecisionMaker[] = raw.decision_makers.map(maker => ({
+      name: '',
+      position: maker.position,
+      contact_info: { phone: '', email: '' },
+      authority_level: maker.authority_level
+    }));
 
-3. COMUNICAZIONI OBBLIGATORIE:
-   - Clienti/distributori (entro 24h)
-   - Organismi certificazione GlobalG.A.P.
-   - Autorità competenti italiane
-   - Consumatori (se necessario)
-
-4. TRACCIABILITÀ E IDENTIFICAZIONE:
-   - Sistema identificazione lotti
-   - Registri vendite e destinazioni
-   - Quantità da richiamare
-
-5. AZIONI OPERATIVE:
-   - Blocco produzione/spedizioni
-   - Recupero prodotto dal mercato
-   - Segregazione e smaltimento
-   - Azioni correttive
-
-6. TEST ANNUALE PROCEDURA:
-   - Simulazione richiamo
-   - Verifica tempi risposta
-   - Aggiornamento procedure
-
-Includi modelli di comunicazione e checklist operative.`;
-
-    try {
-      const response = await provider.generateContent(prompt, {
-        systemInstruction,
-        temperature: 0.3,
-        maxTokens: 2500
-      });
-
-      return this.parseGlobalGapRecallProcedure(response.text);
-    } catch (error) {
-      console.error('Recall procedure AI generation failed:', error);
-      throw new Error('Errore nella generazione della procedura di richiamo');
-    }
+    return {
+      procedure_version: '1.0',
+      last_updated: new Date().toISOString().split('T')[0],
+      trigger_events: raw.trigger_events,
+      decision_makers: decisionMakers,
+      communication_plan: {
+        internal_contacts: [],
+        external_contacts: [],
+        notification_methods: ['phone', 'email', 'sms'],
+        escalation_timeline: raw.escalation_timeline,
+        template_messages: raw.template_messages
+      },
+      traceability_method: raw.traceability_method,
+      stock_reconciliation_method: raw.stock_reconciliation_method,
+      status: 'active' as const
+    };
   }
 
   /**
@@ -235,25 +425,14 @@ Includi modelli di comunicazione e checklist operative.`;
     topic: string,
     targetAudience: 'owner' | 'workers' | 'supervisors',
     complianceStandard: 'AF' | 'CB' | 'FV'
-  ): Promise<{
-    title: string;
-    objectives: string[];
-    content: string[];
-    practicalExercises: string[];
-    assessmentQuestions: string[];
-  }> {
-    const provider = await getAIProvider('ai_gemini');
-    if (!provider) {
-      throw new Error('AI provider not available');
-    }
-
+  ): Promise<TrainingContentResult> {
     const audienceMap = {
-      'owner': 'Titolare/Responsabile aziendale',
-      'workers': 'Operatori agricoli',
-      'supervisors': 'Capi squadra/Supervisori'
+      owner: 'Titolare/Responsabile aziendale',
+      workers: 'Operatori agricoli',
+      supervisors: 'Capi squadra/Supervisori'
     };
 
-    const systemInstruction = `Sei un formatore esperto in GlobalG.A.P. e sicurezza alimentare. 
+    const systemInstruction = `Sei un formatore esperto in GlobalG.A.P. e sicurezza alimentare.
     Crea contenuti formativi pratici e coinvolgenti per il settore agricolo italiano.`;
 
     const prompt = `
@@ -263,203 +442,20 @@ ARGOMENTO: ${topic}
 DESTINATARI: ${audienceMap[targetAudience]}
 STANDARD: GlobalG.A.P. IFA V5.2 - Modulo ${complianceStandard}
 
-OBIETTIVI FORMATIVI:
-Creare un modulo formativo completo che permetta ai partecipanti di:
-- Comprendere i requisiti specifici GlobalG.A.P.
-- Applicare le procedure nella pratica quotidiana
-- Identificare e correggere non conformità
-- Mantenere la documentazione richiesta
-
-STRUTTURA RICHIESTA:
-
-1. TITOLO ACCATTIVANTE del modulo formativo
-
-2. OBIETTIVI SPECIFICI (5-6 punti):
-   - Cosa sapranno fare dopo la formazione
-   - Competenze pratiche acquisite
-
-3. CONTENUTI PRINCIPALI (8-10 sezioni):
-   - Teoria essenziale
-   - Esempi pratici italiani
-   - Casi studio reali
-   - Normative di riferimento
-
-4. ESERCITAZIONI PRATICHE (5-6 attività):
-   - Simulazioni operative
-   - Compilazione registri
-   - Identificazione problemi
-   - Role playing
-
-5. DOMANDE VALUTAZIONE (10 domande):
-   - Test comprensione teorica
-   - Casi pratici da risolvere
-   - Domande aperte su applicazione
-
-Adatta linguaggio e complessità al target audience specificato.`;
+Genera un titolo, 5-6 obiettivi formativi, 8-10 sezioni di contenuto (teoria + esempi pratici italiani + normative),
+5-6 esercitazioni pratiche e 10 domande di valutazione. Adatta linguaggio e complessità al target audience.`;
 
     try {
-      const response = await provider.generateContent(prompt, {
+      return await generateStructured<TrainingContentResult>(
+        prompt,
+        trainingContentSchema,
         systemInstruction,
-        temperature: 0.5,
-        maxTokens: 2000
-      });
-
-      return this.parseTrainingContent(response.text);
+        'compliance_training',
+        { temperature: 0.5, maxTokens: 2000 }
+      );
     } catch (error) {
       console.error('Training content AI generation failed:', error);
-      throw new Error('Errore nella generazione del contenuto formativo');
+      throw new Error(error instanceof Error ? error.message : 'Errore nella generazione del contenuto formativo');
     }
-  }
-
-  // Helper methods to parse AI responses
-  private static parseComplianceResponse(text: string) {
-    // In a real implementation, you'd use structured JSON schema
-    // For now, return a mock structure
-    return {
-      overallScore: 75,
-      gaps: [
-        'Manca procedura richiamo prodotti (AF 9.1)',
-        'Autocontrollo interno non documentato (AF 2.2)',
-        'Responsabile H&S non nominato (AF 4.5.1)'
-      ],
-      recommendations: [
-        'Implementare procedura richiamo con test annuale',
-        'Creare checklist autocontrollo 163 punti',
-        'Nominare responsabile salute e sicurezza'
-      ],
-      priorityActions: [
-        'Nominare responsabile H&S (AF 4.5.1)',
-        'Creare piano gestione rischi (AF 1.2.2)',
-        'Implementare GGN su documenti (AF 11.1)',
-        'Preparare checklist autocontrollo (AF 2.2)',
-        'Testare procedura richiamo (AF 9.1)'
-      ]
-    };
-  }
-
-  private static parseGlobalGapRiskManagementPlan(text: string): Partial<GlobalGapRiskManagementPlan> {
-    return {
-      plan_name: 'Piano Gestione Rischi AI-Generato',
-      risk_assessment_date: new Date().toISOString().split('T')[0],
-      plan_implementation_date: new Date().toISOString().split('T')[0],
-      identified_risks: [
-        {
-          id: '1',
-          category: 'environmental',
-          description: 'Gelate tardive primaverili',
-          probability: 'possible',
-          severity: 'high',
-          risk_score: 6,
-          source: 'Analisi climatica AI'
-        }
-      ],
-      control_procedures: [
-        {
-          risk_id: '1',
-          procedure_description: 'Monitoraggio previsioni meteo e protezione colture',
-          responsible_person: 'Responsabile produzione',
-          implementation_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          monitoring_frequency: 'daily',
-          effectiveness_indicators: ['Riduzione danni da gelo', 'Mantenimento produttività'],
-          documentation_required: ['Registri temperature', 'Report interventi protezione']
-        }
-      ],
-      monitoring_schedule: [
-        {
-          procedure_id: '1',
-          frequency: 'Giornaliero durante periodo critico',
-          next_check_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          responsible_person: 'Operatore di campo',
-          checklist_items: ['Controllo temperature minime', 'Verifica protezioni attive', 'Registrazione dati']
-        }
-      ],
-      responsible_person: 'Responsabile Qualità',
-      next_review_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'active' as const
-    };
-  }
-
-  private static parseGlobalGapRecallProcedure(text: string): Partial<GlobalGapRecallProcedure> {
-    return {
-      procedure_version: '1.0',
-      last_updated: new Date().toISOString().split('T')[0],
-      trigger_events: [
-        {
-          event_type: 'Contaminazione microbiologica',
-          description: 'Rilevamento di patogeni nei prodotti',
-          severity_level: 'high',
-          automatic_trigger: false,
-          notification_required: true
-        }
-      ],
-      decision_makers: [
-        {
-          name: 'Responsabile Qualità',
-          position: 'Quality Manager',
-          contact_info: { phone: '+39 XXX XXXXXXX', email: 'quality@azienda.com' },
-          authority_level: 'local'
-        }
-      ],
-      communication_plan: {
-        internal_contacts: [
-          { phone: '+39 XXX XXXXXXX', email: 'direzione@azienda.com' }
-        ],
-        external_contacts: [
-          { phone: '+39 XXX XXXXXXX', email: 'clienti@azienda.com' }
-        ],
-        notification_methods: ['Telefono', 'Email', 'SMS'],
-        escalation_timeline: [
-          {
-            time_from_detection: 60,
-            action_required: 'Notifica direzione aziendale',
-            responsible_person: 'Responsabile Qualità',
-            notification_targets: ['Direzione', 'Produzione']
-          }
-        ],
-        template_messages: [
-          {
-            message_type: 'initial_alert',
-            template_text: 'ALLERTA RICHIAMO: Rilevato problema qualità prodotto [PRODOTTO] lotto [LOTTO]',
-            required_fields: ['PRODOTTO', 'LOTTO']
-          }
-        ]
-      },
-      traceability_method: 'Sistema di tracciabilità digitale con codici lotto',
-      stock_reconciliation_method: 'Inventario fisico e controllo documenti vendita',
-      status: 'active' as const
-    };
-  }
-
-  private static parseTrainingContent(text: string) {
-    return {
-      title: 'Formazione GlobalG.A.P. - Gestione Rischi e Sicurezza Alimentare',
-      objectives: [
-        'Identificare i principali rischi aziendali',
-        'Applicare misure preventive efficaci',
-        'Gestire emergenze e non conformità',
-        'Mantenere documentazione conforme'
-      ],
-      content: [
-        'Introduzione ai requisiti GlobalG.A.P.',
-        'Identificazione e valutazione rischi',
-        'Strategie di prevenzione',
-        'Procedure operative standard',
-        'Documentazione e registrazioni',
-        'Gestione emergenze',
-        'Audit interni e miglioramento continuo'
-      ],
-      practicalExercises: [
-        'Compilazione scheda valutazione rischi',
-        'Simulazione emergenza contaminazione',
-        'Creazione procedura operativa',
-        'Role play: comunicazione di crisi'
-      ],
-      assessmentQuestions: [
-        'Quali sono i principali rischi per la tua azienda?',
-        'Come gestiresti una contaminazione accidentale?',
-        'Quali documenti sono obbligatori per GlobalG.A.P.?',
-        'Chi contatteresti in caso di richiamo prodotti?'
-      ]
-    };
   }
 }

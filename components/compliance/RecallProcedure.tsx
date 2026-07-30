@@ -17,8 +17,10 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { globalGapComplianceService } from '../../services/globalGapComplianceService'
-import type { 
-  GlobalGapRecallProcedure, 
+import { ComplianceAIService } from '../../services/complianceAIService'
+import { useStorage } from '../../packages/core/hooks/useStorage'
+import type {
+  GlobalGapRecallProcedure,
   GlobalGapRecallTest,
   TracedProduct,
   CommunicationTestResult
@@ -31,6 +33,10 @@ interface RecallProcedureProps {
 }
 
 export default function RecallProcedure({ gardenId, procedureId, onSave }: RecallProcedureProps) {
+  const { storageProvider } = useStorage()
+  const [generatingAI, setGeneratingAI] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [distributionChannelsInput, setDistributionChannelsInput] = useState('')
   const [procedure, setProcedure] = useState<Partial<GlobalGapRecallProcedure>>({
     garden_id: gardenId,
     procedure_version: '1.0',
@@ -151,6 +157,26 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
       console.error('Error saving procedure:', error)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const generateWithAI = async () => {
+    try {
+      setGeneratingAI(true)
+      setAiError(null)
+      const garden = await storageProvider.getGarden(gardenId)
+      const gardenType = garden?.gardenType || 'Vegetable'
+      const products = garden?.primaryCrop?.label ? [garden.primaryCrop.label] : []
+      const distributionChannels = distributionChannelsInput
+        .split(',')
+        .map(channel => channel.trim())
+        .filter(Boolean)
+      const draft = await ComplianceAIService.generateGlobalGapRecallProcedure(gardenType, products, distributionChannels)
+      setProcedure(prev => ({ ...prev, ...draft }))
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'Generazione AI non riuscita')
+    } finally {
+      setGeneratingAI(false)
     }
   }
 
@@ -306,6 +332,35 @@ export default function RecallProcedure({ gardenId, procedureId, onSave }: Recal
               {saving ? 'Salvando...' : 'Salva Procedura'}
             </button>
           </div>
+        </div>
+
+        {/* AI Draft Generation */}
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Canali di distribuzione (separati da virgola, per il draft AI)
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={distributionChannelsInput}
+              onChange={(e) => setDistributionChannelsInput(e.target.value)}
+              placeholder="es. Vendita diretta, GDO, Mercato locale"
+              className="flex-1 px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+            <button
+              onClick={generateWithAI}
+              disabled={generatingAI}
+              className="flex items-center gap-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              <RotateCcw size={16} />
+              {generatingAI ? 'Generando...' : 'Genera bozza con AI'}
+            </button>
+          </div>
+          {aiError && (
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+              {aiError}
+            </div>
+          )}
         </div>
 
         {/* Procedure Info */}
