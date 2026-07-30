@@ -2451,6 +2451,96 @@ e `npx next build` sull'intero progetto senza errori. PR (base
 `agent/t01-lint-batch-78`, non ancora mersata a `main`):
 https://github.com/magmadvlab/ortomio-pro/pull/140
 
+### Aggiornamento T01 - lotto 80 (30/07/2026)
+
+Lotto molto sottile: praticamente tutti i candidati vivi facili erano già
+coperti dai lotti 76-79 (in attesa di merge). Unico candidato rimasto a
+basso rischio: `components/professional/Sidebar.tsx` usa un asset statico
+locale (`/logo.png`, non una preview foto base64/blob) — convertito a
+`next/image`. Baseline **894 warning** (`895 -> 894`). PR:
+https://github.com/magmadvlab/ortomio-pro/pull/141
+
+### Censimento M05 codice morto (30/07/2026)
+
+Su richiesta esplicita dell'utente, dato l'esaurimento dei candidati lint
+facili, avviato un censimento completo del codice morto invece di
+continuare i lotti T01. Compilato l'elenco di tutti i file già segnalati
+come candidati "codice morto"/"zero importer" nell'intero piano master
+(217 menzioni), poi riverificati TUTTI con BFS statica fresca (non
+fidandosi delle note precedenti, che il codebase supera rapidamente):
+**69 file, 36.513 righe** irraggiungibili da qualunque route (7 file
+citati come già rimossi in un censimento precedente, esclusi). Raggruppati
+in 9 cluster con raccomandazione, presentati come artifact
+(`m05_census.html`, pubblicato in sessione).
+
+**Decisioni prese con l'utente su 2 dei 9 cluster:**
+
+1. **Cluster "AI Planner" (6.375 righe, 10 file)** — confermato: resta
+   intatto come deciso il 24/07, nessuna modifica.
+
+2. **Cluster "Cascata GardenView" (2.081 righe)** — indagine approfondita
+   su richiesta dell'utente ("voglio rivederlo"). Scoperta importante:
+   il ripristino "Pianificazione ambientale" del 25/07/2026 (esposizione
+   solare, finestre di semina, successione colturale — spec
+   `docs/superpowers/specs/2026-07-25-environmental-planning-restoration-design.md`,
+   stato dichiarato "implementato") era stato **implementato
+   correttamente dentro `components/garden/GardenView.tsx`, ma
+   `GardenView.tsx` stesso non ha mai avuto un punto d'ingresso
+   raggiungibile da nessuna route, né il 25/07 né oggi** (verificato con
+   `git log -p -S"GardenView"`: nessuna modifica a import/uso di
+   `GardenView` da prima del 20/07/2026 — l'orfanità precede il
+   ripristino stesso, non è una regressione successiva). Il lavoro del
+   25/07 non è quindi mai stato visto da un utente reale.
+   `GardenView.tsx` ha 7 tab; verificato che 6 duplicano pagine già vive
+   (Monitoraggio = stesso `UnifiedTimelineDiary` già montato in
+   `/app/diary`, Piante duplica `/app/plants`, Struttura duplica
+   `/app/garden/zones`, ecc.) — solo "Pianificazione" contiene qualcosa
+   di realmente nuovo. **Decisione dell'utente: non ricollegare l'intero
+   `GardenView.tsx`** (reintrodurrebbe percorsi UI ridondanti), ma **creare
+   una nuova sotto-pagina `/app/garden/planning`** che monta solo
+   `EnvironmentalPlanningSection` (zero modifiche al componente) per
+   l'orto selezionato, con una quarta card nell'hub esistente
+   `/app/garden`. `GardenView.tsx` stesso resta non toccato/non rimosso.
+   PR (non verificabile in locale — vedi nota sotto):
+   https://github.com/magmadvlab/ortomio-pro/pull/142
+   **Nota tecnica emersa durante la verifica in locale**: la modalità
+   auth-bypass di questo worktree non crea mai una sessione Supabase
+   reale (mock solo lato server per le API interne, non per il client
+   Supabase usato da `SupabaseStorageProvider`), quindi le RLS bloccano
+   sia lettura che scrittura anche con credenziali reali configurate in
+   `.env.local` — confermato con un tentativo di creazione orto:
+   `new row violates row-level security policy for table gardens`.
+   Scoperto anche, per la prima volta in questa campagna, che Next.js
+   (Turbopack) rileva la cartella padre del repository
+   (`/Volumes/990P/ortomio-main`) come workspace root quando si lavora in
+   un worktree annidato sotto `.claude/worktrees/`, e carica il
+   `.env.local` di quella cartella invece di quello del worktree — utile
+   saperlo se in futuro si tenta di nuovo una verifica locale con
+   credenziali reali in un worktree.
+
+3. **Cluster "Vigneto/Frutteto legacy" (2.386 righe stimate
+   inizialmente)** — verificato durante la rimozione che 2 dei 7 file
+   originariamente raggruppati qui (`components/crops/CreateOrchardWizard.tsx`,
+   `components/crops/AddWoodyCropWizard.tsx`) appartengono in realtà alla
+   cascata GardenView (raggiungibili solo tramite
+   `AddItemModal.tsx` → `GardenView.tsx`), non a questo cluster — non
+   rimossi, restano legati alla decisione sul cluster 2. **Rimossi i
+   restanti 5 file, confermati a zero importer con grep ricorsivo**
+   (nessun riferimento dinamico o da test):
+   `components/vineyard/VineyardManagementDashboard.tsx`,
+   `components/vineyard/GrapeMaturityTracker.tsx`,
+   `components/VineHarvest.tsx`, `components/OliveHarvest.tsx`,
+   `components/AromaticHarvest.tsx` (1.610 righe). Sostituiti da tempo da
+   `VineyardWizard.tsx`+`VineManager.tsx` (vigneto) e `HarvestManager.tsx`
+   via `/app/orchard`/`/app/olives` (frutteto/oliveto/aromatiche). PR:
+   https://github.com/magmadvlab/ortomio-pro/pull/143
+
+**Cluster 5-9 (form compliance, monitoring/notifiche, tracker piante
+duplicati, trattamenti duplicati, standalone — circa 15.000 righe
+complessive) restano da approfondire**, su richiesta esplicita
+dell'utente di un'analisi più approfondita prima di decidere se
+ricollegare o rimuovere, non ancora affrontata in questa sessione.
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:
