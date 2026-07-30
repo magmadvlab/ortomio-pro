@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O67 | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.576 warning rimossi** | — | **1.066 warning** | Baseline operativa 2.642 -> 1.066 in 71 lotti. T01 non equivale a 1.066 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.618 warning rimossi** | — | **1.024 warning** | Baseline operativa 2.642 -> 1.024 in 72 lotti. T01 non equivale a 1.024 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -2165,6 +2165,44 @@ dedicata.
 Baseline globale verificata: **0 errori, 1.066 warning** (`1.099 -> 1.066`);
 `npx tsc --noEmit` sull'intero progetto senza errori; lint mirato sui 9
 file 3/36 residui (tutti intenzionali).
+
+### Aggiornamento T01 - lotto 72 (29/07/2026)
+
+Il lotto 72 porta 14 file vivi (`AromaticManagement.tsx`, `GardenTypeWizard.tsx`,
+`RaspberryManagement.tsx`, `StrawberryManagement.tsx`, `SeedInventory.tsx`
+root, `WeatherLunarWidget.tsx`, `ActionButton.tsx`, `IndoorConfigForm.tsx`,
+`CompassObstacleSelector.tsx`, `useChallengeNotifications.ts`,
+`customCropService.ts`, `operationalDiaryService.ts`, `taskCompletionHook.ts`,
+`transplantOrchestrationService.ts`) da 41 warning complessivi a 0.
+
+**Bug reale grave trovato e corretto:** `transplantOrchestrationService.ts::generatePlantCode`
+chiamava `.padStart()` su `fieldRow.rowNumber` (`number`, non stringa),
+mascherato da `fieldRow: any`. Ogni trapianto vivaio->orto con un filare
+reale lanciava un `TypeError` a runtime, catturato silenziosamente da
+`executeTransplant` che ritornava `success: false` — l'intera funzionalita'
+di trapianto falliva sempre, senza un errore chiaro per l'utente. Corretto
+con `String(fieldRow.rowNumber || fieldRow.name.match(/\d+/)?.[0] || '01')`
+e tipizzazione completa (`fieldRow: FieldRow`).
+
+**Bug reale minore, segnalato dall'utente a schermo durante la sessione:**
+le card "Suggerimenti per Oggi" in `DailyGardenReport.tsx` (montato da
+`HomeDashboard.tsx`/`GardenView.tsx`) erano cliccabili in apparenza ma
+l'`onClick` arrivava a uno stub in `GardenCard.tsx` che solo loggava in
+console. Gli id dei suggerimenti sono etichette statiche, non route/task
+reali: una navigazione vera richiederebbe una mappatura suggerimento->pagina
+non ancora decisa (fuori scope). Fix minimo onesto: il click ora espande la
+card mostrando la descrizione completa.
+
+Verificata la raggiungibilita' di ogni candidato con BFS sugli import fino
+alle route `app/**/page.tsx`: la classifica ai rank 1-83 e' risultata quasi
+interamente un nuovo, ampio cluster di codice morto (oltre 30 file/servizi
+a zero importer, oltre a quello gia' noto dai lotti 63-68) — candidato per
+un censimento M05 dedicato, non toccato in questo lotto.
+
+Baseline globale verificata: **0 errori, 1.024 warning** (`1.066 -> 1.024`);
+`npx tsc --noEmit` sull'intero progetto senza errori; lint mirato sui 14
+file 0/41 residui. Dettaglio completo in
+`docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`.
 
 ## 6. Verifica trasversale dopo M15
 
