@@ -2387,6 +2387,37 @@ Baseline globale verificata: **907 warning** (`923 -> 907`); `npx tsc --noEmit`
 e `npx next build` sull'intero progetto senza errori. PR:
 https://github.com/magmadvlab/ortomio-pro/pull/138
 
+### Aggiornamento T01 - lotto 78 (30/07/2026)
+
+Il lotto 78 porta 12 file vivi (`components/gardens/SizeConfigurationStep.tsx`,
+`components/harvest/HarvestRegistrationModal.tsx`,
+`components/irrigation/IrrigationSystemCard.tsx`,
+`components/mechanicalWork/MechanicalWorkLogForm.tsx`,
+`components/ndvi/NDVIMap.tsx`, `components/orchard/YieldPerTreeTracker.tsx`,
+`components/planner/AgronomicQueueTaskPanel.tsx`,
+`components/planner/SmartPlanner.tsx`, `components/plants/PlantHarvestModal.tsx`,
+`components/settings/APIKeysManager.tsx`,
+`components/settings/OrganizationManager.tsx`,
+`components/shared/LocationSelector.tsx`) da 12 warning complessivi a 0.
+Nessun bug funzionale trovato in questo lotto.
+
+**Nota metodologica su `react-hooks/exhaustive-deps`:** per gli effetti
+"solo al mount" o già documentati come intenzionali (`SmartPlanner.tsx`
+ha già un commento esplicito su un loop infinito evitato usando
+`smartOperations.length` invece dell'array intero), applicato solo
+`// eslint-disable-next-line react-hooks/exhaustive-deps` invece di
+aggiungere la dipendenza mancante — pattern già in uso in 6 file del
+progetto, più sicuro di un `useCallback` con dipendenze potenzialmente
+instabili (vedi l'incidente `WeatherLunarWidget` in produzione del lotto
+72, dove aggiungere una dipendenza instabile causò un loop infinito di
+fetch). Per `AgronomicQueueTaskPanel.tsx`, l'espressione complessa
+`tasks.filter(...).length` nella dependency array è stata estratta in
+una variabile invece di sopprimere il warning.
+
+Baseline globale verificata: **895 warning** (`907 -> 895`); `npx tsc --noEmit`
+e `npx next build` sull'intero progetto senza errori. PR:
+https://github.com/magmadvlab/ortomio-pro/pull/139
+
 ## 6. Verifica trasversale dopo M15
 
 Eseguita il 24/07/2026 sulla baseline locale:

@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Edit, Trash2, Droplets, Gauge, Factory, Clock, Zap } from 'lucide-react'
+import { Edit, Trash2, Gauge, Factory, Clock, Zap } from 'lucide-react'
 import { IrrigationSystem } from '@/types/irrigation'
 
 interface IrrigationSystemCardProps {

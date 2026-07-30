@@ -117,6 +117,8 @@ export default function AgronomicQueueTaskPanel({
   const [ledgerHistory, setLedgerHistory] = useState<AgronomicDecisionLedgerHistoryItem[]>([])
   const [selectedLedgerProfile, setSelectedLedgerProfile] = useState<string>('all')
 
+  const completedTasksCount = tasks.filter(task => task.completed).length
+
   useEffect(() => {
     if (!garden?.id || !user?.id) {
       return
@@ -145,7 +147,7 @@ export default function AgronomicQueueTaskPanel({
     }
 
     loadQueue()
-  }, [garden.id, user?.id, storageProvider, tasks.length, tasks.filter(task => task.completed).length])
+  }, [garden.id, user?.id, storageProvider, tasks.length, completedTasksCount])
 
   const drafts = buildAgronomicQueueTaskDrafts(garden.id, queue, tasks).slice(0, 6)
   const availableLedgerProfiles = ['vineyard_quality', 'olive_grove_oil', 'orchard_generic'].filter(

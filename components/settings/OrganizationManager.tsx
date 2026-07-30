@@ -98,6 +98,7 @@ export default function OrganizationManager() {
 
   useEffect(() => {
     loadOrganizations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

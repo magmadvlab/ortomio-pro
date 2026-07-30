@@ -84,6 +84,7 @@ export default function SmartPlanner({ garden, tasks, onTasksUpdate }: SmartPlan
       )
       setSmartOperations(analyzedOperations)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weatherForecast, smartOperations.length])
 
   const createSmartOperation = (type: string, data: NewOperationFormData) => {

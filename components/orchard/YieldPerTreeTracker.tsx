@@ -43,6 +43,7 @@ export default function YieldPerTreeTracker({ orchardId, orchardName, onSelectTr
 
   useEffect(() => {
     void loadYieldData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orchardId])
 
   const loadYieldData = async () => {
