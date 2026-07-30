@@ -41,13 +41,6 @@ const VisualSunInput: React.FC<VisualSunInputProps> = ({
     onChange(newData);
   };
 
-  const toggleObstacle = (obstacle: string) => {
-    const newObstacles = data.obstacles.includes(obstacle)
-      ? data.obstacles.filter((o) => o !== obstacle)
-      : [...data.obstacles, obstacle];
-    handleChange({ obstacles: newObstacles });
-  };
-
   const SunSlider: React.FC<{
     label: string;
     value: number;

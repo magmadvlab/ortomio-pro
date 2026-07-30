@@ -98,7 +98,7 @@ export async function resolveGardenContext(
       sunExposure: garden.sunExposure || null,
       aspectDirection: garden.aspectDirection || null,
       windProtection: garden.windProtection || null,
-      slopePercentage: (garden as any).slopePercentage ?? null,
+      slopePercentage: (garden as Garden & { slopePercentage?: number }).slopePercentage ?? null,
       obstacles: garden.obstacles || null,
     },
     systems: {

@@ -70,6 +70,10 @@ export function findPlantingWindows(
   year: number = new Date().getFullYear(),
   soilType?: Garden['soilType'],
   altitudeMeters?: number,
+  // TODO(T01 lotto 77): historicalWeather e' passato da logic/solarClassificationHelper.ts
+  // ma non ha ancora alcun effetto sul calcolo delle finestre di impianto — gap reale,
+  // non un semplice residuo di lint. Richiede una decisione agronomica su come i dati
+  // meteo storici dovrebbero influenzare le finestre, non un fix meccanico.
   historicalWeather?: HistoricalWeatherData[]
 ): PlantingWindow[] {
   const plantingWindows: PlantingWindow[] = [];

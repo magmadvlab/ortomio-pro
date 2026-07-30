@@ -213,7 +213,7 @@ export class StorageService {
   }
 
   // Legacy migration helpers
-  static getOldProfile(): any {
+  static getOldProfile(): unknown {
     const saved = localStorage.getItem(STORAGE_KEYS.OLD_PROFILE);
     if (!saved) return null;
     try {

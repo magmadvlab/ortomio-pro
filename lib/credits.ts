@@ -40,7 +40,7 @@ export async function deductCredits(
   userId: string,
   amount: number,
   feature: CreditFeature,
-  metadata?: any
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   const response = await fetch('/api/credits/deduct', {
     method: 'POST',

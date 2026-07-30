@@ -68,7 +68,7 @@ export const Tabs = ({ children, defaultValue, value, onValueChange }: {
     <div className="tabs-container" data-active-tab={activeTab}>
       {React.Children.map(children, child => 
         React.isValidElement(child) 
-          ? React.cloneElement(child as React.ReactElement<any>, { 'data-active-tab': activeTab, 'data-on-tab-change': handleTabChange })
+          ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, { 'data-active-tab': activeTab, 'data-on-tab-change': handleTabChange })
           : child
       )}
     </div>

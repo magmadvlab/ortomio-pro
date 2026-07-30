@@ -593,7 +593,7 @@ export async function predictWaterRequirement(
   )
   
   // Fabbisogno base per fase (litri per m² per giorno)
-  const baseRequirementPerSqm = getWaterRequirementForPhase(currentPhase, masterData);
+  const baseRequirementPerSqm = getWaterRequirementForPhase(currentPhase);
   
   // Ottieni previsioni meteo
   let expectedPrecipitation = 0;
@@ -687,8 +687,7 @@ export async function predictWaterRequirement(
 // Helper functions
 
 function getWaterRequirementForPhase(
-  phase: string,
-  masterData: PlantMasterSheet
+  phase: string
 ): number {
   // Litri per m² per giorno per fase
   const requirements: Record<string, number> = {

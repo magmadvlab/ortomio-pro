@@ -114,6 +114,11 @@ export async function updateFertilizerQuantity(
  */
 export async function checkLowStock(
   gardenId: string,
+  // TODO(T01 lotto 77): season e' calcolato realmente dal chiamante logic/director.ts
+  // (getSeasonForDate) ma non ha ancora alcun effetto sulla soglia di scorta minima —
+  // gap reale, non un residuo di lint. Richiede una decisione su come la stagione
+  // dovrebbe influenzare le soglie (es. concimazione piu' urgente prima della
+  // primavera), non un fix meccanico.
   season: 'Spring' | 'Summer' | 'Autumn' | 'Winter'
 ): Promise<Array<{ item: FertilizerInventoryItem; reason: string; urgency: 'low' | 'medium' | 'high' }>> {
   const inventory = await getFertilizerInventory(gardenId);

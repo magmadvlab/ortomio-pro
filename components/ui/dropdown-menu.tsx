@@ -13,11 +13,11 @@ export function DropdownMenu({ children }: DropdownMenuProps) {
     <div className="relative inline-block text-left">
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
-          return React.cloneElement(child, { 
-            isOpen, 
+          return React.cloneElement(child, {
+            isOpen,
             setIsOpen,
-            ...child.props 
-          } as any)
+            ...(child.props as object)
+          } as { isOpen: boolean; setIsOpen: (open: boolean) => void })
         }
         return child
       })}

@@ -6,7 +6,7 @@
 import { IrrigationZone, IrrigationComponent, IrrigationSchedule, WateringLog } from '../types/irrigation';
 import { Garden, GardenTask } from '../types';
 import { calculateWaterNeeds } from '../logic/waterRequirementEngine';
-import { adjustIrrigationNeedForRain, TaskAdjustment } from '../logic/rainManager';
+import { adjustIrrigationNeedForRain } from '../logic/rainManager';
 import { WeatherForecast } from '../services/weatherService';
 import { getMasterSheet } from './plantMasterService';
 
