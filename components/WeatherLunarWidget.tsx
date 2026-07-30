@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { WeatherAlert, getWeatherForecast7Days, generateWeatherAlerts } from '@/services/weatherService';
-import { cacheForecast, normalizeForecastList } from '@/services/weatherCacheService';
+import { cacheForecast, getCachedForecast, normalizeForecastList } from '@/services/weatherCacheService';
 import { calculateMoonPhase } from '@/logic/lunarCalendar';
 import { useTier } from '@/packages/core/hooks/useTier';
 import { Garden } from '../types';
@@ -251,8 +251,25 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
       }
     } catch (err) {
       console.error('Error loading weather forecast:', err);
-      setError('Errore nel caricamento delle previsioni meteo');
-      onAlertsChange?.([]);
+
+      // Fallback: se l'API live fallisce (es. rate limit 429), prova la
+      // cache scritta dall'ultimo fetch riuscito invece di mostrare subito
+      // un errore all'utente.
+      try {
+        const cached = await getCachedForecast(weatherLat, weatherLng);
+        if (cached && cached.length > 0) {
+          console.warn('🌤️ Weather API failed, using cached forecast instead');
+          setForecast(cached);
+          setError(null);
+        } else {
+          setError('Errore nel caricamento delle previsioni meteo');
+          onAlertsChange?.([]);
+        }
+      } catch (cacheErr) {
+        console.error('Error reading weather cache fallback:', cacheErr);
+        setError('Errore nel caricamento delle previsioni meteo');
+        onAlertsChange?.([]);
+      }
     } finally {
       setLoading(false);
     }
