@@ -2754,8 +2754,28 @@ configurazione irrigua dedicata come `OrchardRowsView`. Riusare
 `OrchardRowsView` per il Vigneto richiede un adattamento reale (tipi e
 dati albero -> vite), non un collegamento diretto.
 
-Restano aperti: tab Filari/impianto irriguo per Vigneto (richiede
-adattamento dei tipi, non riuso diretto), motore predittivo (gap
+### Tab "Filari" per il Vigneto (30/07/2026)
+
+Adattato `OrchardRowsView` per `VineyardVine`/`VineyardConfiguration` in
+un nuovo `components/vineyard/VineyardRowsView.tsx` (stessa logica:
+raggruppamento per filare, allineamento legacy, configurazione impianto
+irriguo per filare con calcolo erogatori/portata). Differenza reale
+rispetto a Frutteto/Oliveto: `VineyardConfiguration` non ha un campo
+`irrigationDefaults` (a differenza di `OrchardConfiguration`) — la
+sezione "Profilo standard nuovi impianti" a livello vigneto non esiste
+qui, resta solo la configurazione per singolo filare
+(`FieldRow.irrigationLine`, gia' generico e condiviso, nessun cambio
+schema necessario). Collegato in `app/app/vineyard/page.tsx` con una
+nuova voce di navigazione "Filari". Aggiunte anche le prop opzionali
+`initialSelectedVineId`/`onInitialVineHandled` a `VineManager.tsx` (non
+le aveva, a differenza di `TreeManager.tsx`), per coerenza col click
+"apri vite" dalla vista filari. Verificato: `tsc --noEmit` pulito,
+`next build` verde, `test:release` 229/229; verifica E2E nel browser non
+eseguita per la limitazione RLS/`.env.local` gia' documentata.
+
+Restano aperti: aggiungere un campo `irrigationDefaults` equivalente a
+`VineyardConfiguration` se si vuole il profilo standard anche per il
+vigneto (richiede migrazione, non affrontato), motore predittivo (gap
 trasversale gia' registrato in M14: altitudine/sole/ostacoli mai usati,
 finestra raccolta fissa a 60 giorni per qualunque coltura).
 

@@ -36,9 +36,11 @@ import { it } from 'date-fns/locale'
 interface VineManagerProps {
   vineyardId: string
   gardenId: string
+  initialSelectedVineId?: string | null
+  onInitialVineHandled?: () => void
 }
 
-export default function VineManager({ vineyardId, gardenId }: VineManagerProps) {
+export default function VineManager({ vineyardId, gardenId, initialSelectedVineId, onInitialVineHandled }: VineManagerProps) {
   const [vines, setVines] = useState<VineyardVine[]>([])
   const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
   const [filteredVines, setFilteredVines] = useState<VineyardVine[]>([])
@@ -77,6 +79,17 @@ export default function VineManager({ vineyardId, gardenId }: VineManagerProps) 
     needsTreatment: undefined,
     harvestReady: undefined
   })
+
+  useEffect(() => {
+    if (!initialSelectedVineId || vines.length === 0) return
+
+    const vineToFocus = vines.find(vine => vine.id === initialSelectedVineId)
+    if (vineToFocus) {
+      setSelectedVine(vineToFocus)
+    }
+
+    onInitialVineHandled?.()
+  }, [initialSelectedVineId, vines, onInitialVineHandled])
 
   useEffect(() => {
     if (entryType === 'watering') {
