@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { IndoorGrowingConfig } from '@/types/indoorGrowing';
-import { InfoTooltip } from '../shared/InfoTooltip';
 
 interface IndoorConfigFormProps {
   initialConfig?: IndoorGrowingConfig;
@@ -13,13 +12,13 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
   onSubmit,
   onCancel
 }) => {
-  const [lightingType, setLightingType] = useState(
+  const [lightingType, setLightingType] = useState<IndoorGrowingConfig['lighting']['type']>(
     initialConfig?.lighting.type || 'LED'
   );
   const [wattage, setWattage] = useState(
     initialConfig?.lighting.wattage?.toString() || ''
   );
-  const [spectrum, setSpectrum] = useState(
+  const [spectrum, setSpectrum] = useState<IndoorGrowingConfig['lighting']['spectrum']>(
     initialConfig?.lighting.spectrum || 'Full'
   );
   const [hoursPerDay, setHoursPerDay] = useState(
@@ -66,9 +65,9 @@ export const IndoorConfigForm: React.FC<IndoorConfigFormProps> = ({
     e.preventDefault();
     const config: IndoorGrowingConfig = {
       lighting: {
-        type: lightingType as any,
+        type: lightingType,
         wattage: wattage ? parseFloat(wattage) : undefined,
-        spectrum: spectrum as any,
+        spectrum,
         hoursPerDay: hoursPerDay ? parseFloat(hoursPerDay) : undefined,
       },
       climate: {

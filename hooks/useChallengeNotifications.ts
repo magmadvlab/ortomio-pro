@@ -27,34 +27,13 @@ export function useChallengeNotifications() {
   /**
    * Controlla se un'azione completa o progredisce un challenge
    */
-  const checkChallengeProgress = useCallback(async (
-    action: ChallengeAction,
-    userId?: string,
-    metadata?: Record<string, any>
-  ): Promise<ChallengeProgress | null> => {
-    if (!userId) return null
-    
-    try {
-      // Solo traguardi progressivi operativi; la gamification giornaliera e' stata rimossa.
-      const progressiveChallenges = await checkProgressiveChallenges(action, userId, metadata)
-      if (progressiveChallenges) {
-        return progressiveChallenges
-      }
-      
-      return null
-    } catch (error) {
-      console.error('Error checking challenge progress:', error)
-      return null
-    }
-  }, [storageProvider])
-  
   /**
    * Controlla challenge progressivi (es. "Completa 5 semine")
    */
-  const checkProgressiveChallenges = async (
+  const checkProgressiveChallenges = useCallback(async (
     action: ChallengeAction,
     userId: string,
-    metadata?: Record<string, any>
+    metadata?: { gardenId?: string }
   ): Promise<ChallengeProgress | null> => {
     try {
       // Conta azioni completate dall'utente
@@ -108,8 +87,29 @@ export function useChallengeNotifications() {
       console.error('Error checking progressive challenges:', error)
       return null
     }
-  }
-  
+  }, [storageProvider])
+
+  const checkChallengeProgress = useCallback(async (
+    action: ChallengeAction,
+    userId?: string,
+    metadata?: { gardenId?: string }
+  ): Promise<ChallengeProgress | null> => {
+    if (!userId) return null
+
+    try {
+      // Solo traguardi progressivi operativi; la gamification giornaliera e' stata rimossa.
+      const progressiveChallenges = await checkProgressiveChallenges(action, userId, metadata)
+      if (progressiveChallenges) {
+        return progressiveChallenges
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error checking challenge progress:', error)
+      return null
+    }
+  }, [checkProgressiveChallenges])
+
   /**
    * Mostra una notifica challenge
    */

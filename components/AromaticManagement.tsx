@@ -5,7 +5,7 @@ import UpgradePrompt from './UpgradePrompt';
 import { AromaticMedicinalCrop } from '../types/aromatic';
 import { calculateAromaticTasks } from '../logic/aromaticEngine';
 import { getMasterSheetSync } from '../services/plantMasterService';
-import { Leaf, Calendar, CheckCircle, Droplets, Scissors, Package } from 'lucide-react';
+import { Leaf, Calendar, Droplets, Scissors, Package } from 'lucide-react';
 
 interface AromaticManagementProps {
   tasks: GardenTask[];
@@ -14,9 +14,7 @@ interface AromaticManagementProps {
 }
 
 const AromaticManagement: React.FC<AromaticManagementProps> = ({
-  tasks,
-  garden,
-  onUpdateTask
+  tasks
 }) => {
   const { can } = useTier();
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);

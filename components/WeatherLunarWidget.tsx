@@ -4,16 +4,16 @@
  * Combines meteorological data with traditional lunar farming wisdom
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WeatherAlert, getWeatherForecast7Days, generateWeatherAlerts } from '@/services/weatherService';
 import { cacheForecast, normalizeForecastList } from '@/services/weatherCacheService';
 import { calculateMoonPhase } from '@/logic/lunarCalendar';
 import { useTier } from '@/packages/core/hooks/useTier';
 import { Garden } from '../types';
 import { normalizeGeoCoordinates } from '@/utils/coordinates';
-import { 
-  Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind, 
-  AlertTriangle, Loader2, MapPin, Moon, Sprout, Lightbulb, Calendar
+import {
+  Cloud, CloudRain, Sun, Snowflake, ThermometerSun, Droplets, Wind,
+  AlertTriangle, Loader2, MapPin, Moon, Lightbulb, Calendar
 } from 'lucide-react';
 import { getLocationInfo, formatLocationForDisplay } from '@/services/geocodingService';
 
@@ -103,7 +103,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
         lng: normalizeGeoCoordinates(g.coordinates)?.longitude
       }))
     });
-  }, [latitude, longitude, selectedGardenId, weatherLat, weatherLng, gardens, gardensWithCoordinates.length, selectedGardenEntry?.coordinates]);
+  }, [latitude, longitude, selectedGardenId, weatherLat, weatherLng, gardens, gardensWithCoordinates.length, selectedGardenEntry?.coordinates, selectedGarden?.name]);
 
   // Calcola consigli lunari
   const calculateLunarAdvice = (): LunarAdvice => {
@@ -201,22 +201,7 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     }
   }, [weatherLat, weatherLng]);
 
-  useEffect(() => {
-    const hasAccess = can('advancedWeather');
-    
-    // Calcola sempre i consigli lunari
-    setLunarAdvice(calculateLunarAdvice());
-
-    if (!hasAccess) {
-      setLoading(false);
-      return;
-    }
-
-    // Carica previsioni meteo solo se le coordinate sono cambiate
-    loadForecast();
-  }, [weatherLat, weatherLng, can]);
-
-  const loadForecast = async () => {
+  const loadForecast = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -271,7 +256,22 @@ const WeatherLunarWidget: React.FC<WeatherLunarWidgetProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [weatherLat, weatherLng, activePlants, onAlertsChange]);
+
+  useEffect(() => {
+    const hasAccess = can('advancedWeather');
+
+    // Calcola sempre i consigli lunari
+    setLunarAdvice(calculateLunarAdvice());
+
+    if (!hasAccess) {
+      setLoading(false);
+      return;
+    }
+
+    // Carica previsioni meteo solo se le coordinate sono cambiate
+    loadForecast();
+  }, [weatherLat, weatherLng, can, loadForecast]);
 
   const getWeatherCondition = (code: number) => {
     // Weather codes from Open-Meteo API

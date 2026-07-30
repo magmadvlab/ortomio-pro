@@ -6,6 +6,7 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
+  ChevronDown,
   Sparkles,
   Info
 } from 'lucide-react'
@@ -39,6 +40,7 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date())
   const [suggestedTasks, setSuggestedTasks] = useState<SuggestedTask[]>([])
   const [suggestionsError, setSuggestionsError] = useState(false)
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null)
   const gardenStats = useMemo(
     () => calculateDashboardGardenStats(tasks, currentTime),
     [tasks, currentTime],
@@ -203,27 +205,37 @@ export const DailyGardenReport: React.FC<DailyGardenReportProps> = ({
         </div>
         
         <div className="space-y-2">
-          {displayedSuggestions.map((task) => (
-            <div
-              key={task.id}
-              className={`p-3 rounded-lg border-l-4 cursor-pointer hover:shadow-sm transition-shadow min-h-[44px] ${getPriorityColor(task.priority)}`}
-              onClick={() => onTaskClick?.(task.id)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-col md:flex-row sm:items-center gap-3 sm:gap-3 mb-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-base sm:text-lg flex-shrink-0">{task.icon}</span>
-                      <span className="font-medium text-gray-800 text-sm truncate">{task.title}</span>
+          {displayedSuggestions.map((task) => {
+            const isExpanded = expandedTaskId === task.id
+            return (
+              <div
+                key={task.id}
+                className={`p-3 rounded-lg border-l-4 cursor-pointer hover:shadow-sm transition-shadow min-h-[44px] ${getPriorityColor(task.priority)}`}
+                onClick={() => {
+                  setExpandedTaskId(isExpanded ? null : task.id)
+                  onTaskClick?.(task.id)
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-col md:flex-row sm:items-center gap-3 sm:gap-3 mb-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-base sm:text-lg flex-shrink-0">{task.icon}</span>
+                        <span className="font-medium text-gray-800 text-sm truncate">{task.title}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 flex-shrink-0">~{task.estimatedMinutes}min</span>
                     </div>
-                    <span className="text-xs text-gray-500 flex-shrink-0">~{task.estimatedMinutes}min</span>
+                    <p className={`text-xs text-gray-600 ${isExpanded ? '' : 'line-clamp-3'}`}>{task.description}</p>
                   </div>
-                  <p className="text-xs text-gray-600 line-clamp-3">{task.description}</p>
+                  {isExpanded ? (
+                    <ChevronDown size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                  ) : (
+                    <ArrowRight size={14} className="text-gray-400 mt-1 flex-shrink-0" />
+                  )}
                 </div>
-                <ArrowRight size={14} className="text-gray-400 mt-1 flex-shrink-0" />
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {suggestionsError && weatherSuggestions.length === 0 && (

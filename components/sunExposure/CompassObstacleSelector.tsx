@@ -8,8 +8,6 @@ import { parseObstaclesFromManualInput, validateObstacle } from '@/services/obst
 interface CompassObstacleSelectorProps {
   onObstaclesChange: (obstacles: Obstacle3D[]) => void
   initialObstacles?: Obstacle3D[]
-  latitude: number
-  longitude: number
 }
 
 interface ObstacleInput {
@@ -26,9 +24,7 @@ interface ObstacleInput {
  */
 export function CompassObstacleSelector({
   onObstaclesChange,
-  initialObstacles = [],
-  latitude,
-  longitude
+  initialObstacles = []
 }: CompassObstacleSelectorProps) {
   const [obstacles, setObstacles] = useState<Obstacle3D[]>(
     initialObstacles.map(obs => ({
@@ -349,15 +345,15 @@ export function CompassObstacleSelector({
               Tipo Ostacolo
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
+              {([
                 { value: 'Building', label: 'Edificio', icon: <Building2 size={16} /> },
                 { value: 'Tree', label: 'Albero', icon: <TreeDeciduous size={16} /> },
                 { value: 'Mountain', label: 'Montagna', icon: <Mountain size={16} /> },
                 { value: 'Other', label: 'Altro', icon: <CircleDot size={16} /> }
-              ].map(({ value, label, icon }) => (
+              ] as const).map(({ value, label, icon }) => (
                 <button
                   key={value}
-                  onClick={() => setCurrentInput({ ...currentInput, type: value as any })}
+                  onClick={() => setCurrentInput({ ...currentInput, type: value })}
                   className={`px-3 py-2 rounded-lg border-2 flex items-center gap-2 justify-center transition-all ${
                     currentInput.type === value
                       ? 'border-blue-500 bg-blue-50 text-blue-700'

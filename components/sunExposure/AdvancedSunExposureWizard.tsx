@@ -357,8 +357,6 @@ export function AdvancedSunExposureWizard({
         <CompassObstacleSelector
           onObstaclesChange={setObstacles}
           initialObstacles={obstacles}
-          latitude={latitude}
-          longitude={longitude}
         />
 
         {/* Risultato Calcolo Scientifico */}

@@ -13,7 +13,7 @@ interface RaspberryManagementProps {
   onUpdateTask: (task: GardenTask) => void;
 }
 
-const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden, onUpdateTask }) => {
+const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks }) => {
   const { can } = useTier();
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);
 
@@ -33,7 +33,7 @@ const RaspberryManagement: React.FC<RaspberryManagementProps> = ({ tasks, garden
   // Filtra solo task di lamponi
   const raspberryTasks = (tasks || []).filter(t => {
     const master = getMasterSheetSync(t.plantName);
-    return master?.cropType === 'Raspberry' as any; // Raspberry è un CropType valido ma TypeScript non lo riconosce
+    return master?.cropType === 'Raspberry';
   });
 
   if (raspberryTasks.length === 0) {

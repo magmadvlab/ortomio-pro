@@ -6,6 +6,7 @@
 import { GardenPlant } from '@/types/individualPlant'
 import { SeedlingBatch } from '@/services/seedlingService'
 import { Garden } from '@/types'
+import type { FieldRow } from '@/types/fieldRow'
 import { createOperationContextService } from './operationContextService'
 import { fieldRowCropHistoryService } from './fieldRowCropHistoryService'
 
@@ -75,7 +76,7 @@ export class TransplantOrchestrationService {
   async executeTransplant(
     operation: TransplantOperation,
     batch: SeedlingBatch,
-    fieldRow: any,
+    fieldRow: FieldRow,
     garden?: Garden
   ): Promise<TransplantResult> {
     
@@ -122,7 +123,7 @@ export class TransplantOrchestrationService {
           photos: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        } as any;
+        };
         
         plantsCreated.push(plant)
       }
@@ -198,8 +199,8 @@ export class TransplantOrchestrationService {
   /**
    * Genera codice pianta univoco
    */
-  private generatePlantCode(fieldRow: any, position: number): string {
-    const rowNumber = fieldRow.rowNumber || fieldRow.name.match(/\d+/)?.[0] || '01'
+  private generatePlantCode(fieldRow: FieldRow, position: number): string {
+    const rowNumber = String(fieldRow.rowNumber || fieldRow.name.match(/\d+/)?.[0] || '01')
     return `F${rowNumber.padStart(2, '0')}-P${position.toString().padStart(3, '0')}`
   }
   

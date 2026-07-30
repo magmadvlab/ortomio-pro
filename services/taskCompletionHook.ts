@@ -6,7 +6,6 @@
 import { GardenTask } from '../types';
 import { CustomCrop, CropLearningEvent } from '../types/customCrop';
 import { IStorageProvider } from '../packages/core/storage/interface';
-import { getMasterSheet } from './plantMasterService';
 import { processEvent } from './learningEngine';
 
 /**
@@ -45,7 +44,7 @@ export const handleTaskCompletion = async (
     
     // Determina il tipo di evento in base al taskType
     let eventType: CropLearningEvent['event_type'] | null = null;
-    const eventData: any = {
+    const eventData: CropLearningEvent['event_data'] = {
       date: task.date,
       plantName: task.plantName
     };
@@ -106,7 +105,7 @@ export const handleTaskCompletion = async (
       case 'NoTill':
         eventType = 'work';
         // Cast necessario perché TypeScript non riconosce tutti i valori di MechanicalWorkType come validi per taskType
-        eventData.workType = task.taskType as any;
+        eventData.workType = task.taskType;
         break;
         
       default:

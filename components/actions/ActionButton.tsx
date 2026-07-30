@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 
 export interface ActionButtonProps {
   sourceType: 'ndvi' | 'drone' | 'iot';
-  sourceData: any;
+  sourceData: Record<string, unknown>;
   zoneId?: string;
   zoneName?: string;
   urgency?: 'low' | 'medium' | 'high' | 'critical';
@@ -35,7 +35,7 @@ export type ActionType = 'scouting' | 'prescription' | 'irrigation' | 'treatment
 
 export interface ActionContext {
   sourceType: 'ndvi' | 'drone' | 'iot';
-  sourceData: any;
+  sourceData: Record<string, unknown>;
   zoneId?: string;
   zoneName?: string;
   timestamp: Date;
@@ -92,7 +92,7 @@ export default function ActionButton({
   className = '',
   size = 'md'
 }: ActionButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [, setIsOpen] = useState(false);
 
   const handleActionSelect = (actionType: ActionType) => {
     const context: ActionContext = {
@@ -163,7 +163,7 @@ export default function ActionButton({
                 Zona: {zoneName}
               </p>
             )}
-            {sourceType === 'ndvi' && sourceData?.ndvi_value && (
+            {sourceType === 'ndvi' && typeof sourceData?.ndvi_value === 'number' && (
               <p className="text-xs text-gray-600">
                 NDVI: {sourceData.ndvi_value.toFixed(3)}
               </p>

@@ -756,3 +756,73 @@ Vercel Production verde: O59 e' chiuso.
 | Warning | 1768 |
 | Riduzione lotto | 23 |
 | Riduzione dalla baseline operativa 2642 | 874 |
+
+## Nota: lotti 43-70 non registrati in questo file
+
+Questo file non e' stato aggiornato dal lotto 42 (28/07/2026) al lotto 70
+(29/07/2026): il lavoro e' proseguito regolarmente (cronaca lotto-per-lotto
+nelle sezioni "Aggiornamento T01 - lotto N" del piano master
+`ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md` e nei messaggi di commit
+`git log --grep "T01 lotto"` su `main`). Alla chiusura del lotto 70
+(PR #127, 29/07/2026) la baseline globale era **0 errori, 1.099 warning**.
+
+## Lotto 71 (29/07/2026) - chiuso
+
+Nove file live portati da 36 warning complessivi a 3 (lasciati intenzionali):
+
+- `services/plantingDensityService.ts` 4 -> 0: import morto, parametri privati mai usati rimossi da firma e call site, binding `_` sostituito con placeholder posizionale.
+- `components/ai/AISuggestionsWidget.tsx` 4 -> 0: import morto, prop `compact` mai renderizzata rimossa dalla destrutturazione (mantenuta nell'interfaccia), `types` tipizzato con `SuggestionType[]` al posto di `as any`, loader stabilizzato con `useCallback`.
+- `components/director/DirectorBriefingWidget.tsx` 4 -> 0: import morto, loader stabilizzato con `useCallback`. **Bug reale in codice vivo:** `priorityColor`/`urgencyTone` restituivano `'destructive'`, valore assente nell'union type di `Badge` (`default|secondary|success|warning|error|outline`) — i badge per priorita' CRITICAL e urgenza "immediate" perdevano silenziosamente ogni colore (className conteneva `undefined`). Corretto mappando su `'error'` ed esportando `BadgeVariant` da `components/ui/badge.tsx`.
+- `components/fieldrows/FieldRowCropHistoryPanel.tsx` 4 -> 0: tre funzioni (`formatDate`, `getRotationScoreColor`, `getRotationScoreLabel`) duplicate e mai chiamate a livello di componente padre (shadowed da copie identiche/diverse dentro `CropHistoryCard`) rimosse; loader stabilizzato con `useCallback`.
+- `components/planner/AlmanaccoIntegration.tsx` 4 -> 0: tre import icona morti rimossi, loader stabilizzato con `useCallback` (riordinato prima dell'`useEffect` che lo usa per evitare un errore TDZ).
+- `components/plants/PlantHealthHeatmap.tsx` 4 -> 1: due import morti e un'interfaccia mai referenziata rimossi; lasciato intenzionale 1 `no-img-element` (foto piante dichiarate `string[]` "URLs" ma origine non verificata in questo lotto).
+- `components/seedbank/SeedInventory.tsx` 4 -> 0: tre import icona morti rimossi, loader stabilizzato con `useCallback`.
+- `components/settings/OrganizationManager.tsx` 4 -> 1: due `as any` sostituiti (`tab.id` con array `as const`, `type` di form con `Organization['type']`). Lasciato intenzionale 1 `exhaustive-deps` sull'effect di mount che chiama `loadOrganizations` (che a sua volta setta `selectedOrg`): includerla tra le dipendenze causerebbe un refetch ad ogni cambio di `selectedOrg`, stesso pattern gia' visto su `AddCropWizard` nel lotto 13.
+- `components/sunExposure/CompassCalibrator.tsx` 4 -> 1: tre variabili (`centerX` x2, `rect`) calcolate e mai lette rimosse. Lasciato intenzionale 1 `no-img-element` (stesso motivo, foto "URL o base64").
+
+Verificata la raggiungibilita' di ogni candidato prima di toccarlo: scartati per irraggiungibilita' `services/composterService.ts`, `services/diaryPredictiveEngine.ts`, `services/iotSensorService.ts`, `services/photoLogService.ts` (unico importer `PhotoTimelapse.tsx`, a sua volta orfano), `services/vineyardBudLoadService.ts`, `services/continuousMonitoringService.ts` (unico importer vivo apparente `ContinuousMonitoringDashboard.tsx`, gia' orfano dal lotto 68), `services/geographicMatchingService.ts` (importer `components/Planner.tsx`, parte del cluster "AI Planner" morto M05, escluso su decisione utente). `services/zoneManagementService.ts` e' vivo ma e' il gap noto O67 (query su tabelle inesistenti) — lasciato intatto, richiede una sessione dedicata.
+
+Verifiche: lint mirato sui 9 file 3/36, `npx tsc --noEmit` sull'intero progetto zero errori, lint globale reale **0 errori e 1.066 warning**.
+
+## Stato dopo il lotto 71
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1066 |
+| Riduzione lotto | 33 |
+| Riduzione dalla baseline operativa 2642 | 1576 |
+
+## Lotto 72 (29/07/2026) - chiuso
+
+Quattordici file live portati da 41 warning complessivi a 0:
+
+- `components/AromaticManagement.tsx` 3 -> 0, `components/RaspberryManagement.tsx` 3 -> 0 (rimosso un `as any` non necessario: `'Raspberry'` e' gia' un valore valido dell'union `CropType`, il commento che lo negava era obsoleto), `components/StrawberryManagement.tsx` 3 -> 0: import morti (`useTier`, `UpgradePrompt`) e prop `garden` mai letta rimossi dalla destrutturazione (tenuti in interfaccia).
+- `components/GardenTypeWizard.tsx` 3 -> 0: import morto, getter `saving` mai letto ridotto a solo setter, parametro `_orchardId` mai usato nel corpo rimosso dalla firma del callback (richiesto solo dal tipo `onComplete: (orchardId: string) => void` di `OrchardWizard`).
+- `components/SeedInventory.tsx` (root, distinto da `components/seedbank/SeedInventory.tsx` gia' sistemato nel lotto 71) 3 -> 0: import morti, loader stabilizzato con `useCallback`.
+- `components/WeatherLunarWidget.tsx` 3 -> 0: import morto, `selectedGarden?.name` aggiunto alle dipendenze di un effect di debug, `loadForecast` stabilizzato con `useCallback` e riordinato prima dell'effect che lo chiama.
+- `components/actions/ActionButton.tsx` 3 -> 0: `sourceData: any` tipizzato `Record<string, unknown>` con narrowing esplicito (`typeof === 'number'`) al punto di lettura; getter `isOpen` mai letto ridotto a solo setter.
+- `components/gardens/IndoorConfigForm.tsx` 3 -> 0: import morto, due `as any` rimossi tipizzando gli state con le union reali del dominio (`IndoorGrowingConfig['lighting']['type']`/`['spectrum']`).
+- `components/sunExposure/CompassObstacleSelector.tsx` 3 -> 0: due variabili derivate mai lette rimosse, `as any` sostituito con un array `as const`; **rimossi anche `latitude`/`longitude`**, prop richieste ma mai lette nel corpo ne' passate a nessun calcolo — il calcolo scientifico delle ore di sole avviene nel genitore (`AdvancedSunExposureWizard.tsx`) con le proprie coordinate, questo componente si limita a raccogliere gli ostacoli.
+- `hooks/useChallengeNotifications.ts` 3 -> 0: `metadata?: Record<string, any>` tipizzato `{ gardenId?: string }`, `checkProgressiveChallenges` stabilizzato con `useCallback` e riordinato prima di `checkChallengeProgress` che lo usa.
+- `services/customCropService.ts` 3 -> 0: parametro `d` inutilizzato rimosso da un `.map`, blocco `avgYield` completamente morto rimosso (calcolava un valore mai assegnato a nulla, il commento stesso dichiarava "richiederebbe di correlare con eventi planting" - mai implementato), `suggestions: any` sostituito da un'interfaccia dedicata `CropSuggestions` gia' coincidente col tipo di ritorno dichiarato dalla funzione.
+- `services/operationalDiaryService.ts` 3 -> 0: tre `any[]` in `correlations` tipizzati (`unknown[]` per i due campi mai consumati altrove, `Array<{ bestOperations?: string[] }>` per `seasonalPatterns` dopo aver verificato l'unico consumer reale in `DiaryPlannerIntegration.tsx`, che leggeva gia' `.bestOperations` — quel file e' stato aggiornato in coerenza per gestire l'`undefined` ora esplicito).
+- `services/taskCompletionHook.ts` 3 -> 0: import morto (`getMasterSheet`), `eventData: any` tipizzato con `CropLearningEvent['event_data']` gia' dichiarato nel dominio, un `as any` superfluo rimosso (l'assegnazione a un campo `string` non richiedeva cast).
+- `services/transplantOrchestrationService.ts` 3 -> 0: entrambi i parametri `fieldRow: any` tipizzati `FieldRow`, un `as any` sull'oggetto `GardenPlant` rimosso (compila senza cast, l'oggetto era gia' strutturalmente corretto).
+
+**Bug reale trovato e corretto (grave): `transplantOrchestrationService.ts::generatePlantCode`** chiamava `.padStart()` su `fieldRow.rowNumber`, un `number` (campo richiesto, sempre valorizzato per un filare reale), non una stringa — l'errore era mascherato dal parametro tipizzato `any`. Ogni trapianto vivaio->orto con un filare reale (non un mock) lanciava un `TypeError` a runtime, catturato silenziosamente dal `try/catch` esterno di `executeTransplant`, che ritornava `success: false` senza errore visibile chiaro all'utente oltre al messaggio generico. Confermato live e raggiungibile: `components/vivaio/TransplantToOrchardModal.tsx`, montato da `app/app/page.tsx`. Corretto con `String(fieldRow.rowNumber || fieldRow.name.match(/\d+/)?.[0] || '01')`.
+
+**Bug reale trovato e corretto (minore, segnalato dall'utente a schermo durante la sessione):** le card "Suggerimenti per Oggi" in `components/garden/DailyGardenReport.tsx` (montato da `HomeDashboard.tsx` e `GardenView.tsx`, entrambi live) mostravano un'icona freccia e l'hover di un elemento cliccabile, ma l'`onClick` arrivava a uno stub in `components/shared/GardenCard.tsx` che si limitava a un `console.log` — nessuna azione visibile per l'utente, ne' navigazione ne' modal. Verificato che gli id dei suggerimenti (`weather-temperature-0`, `morning-watering`, ecc.) sono etichette statiche generate da `gardenSuggestionsService.ts`/`WeatherAlert`, non riferimenti a route o task reali: costruire una navigazione vera richiederebbe una mappatura suggerimento->pagina non ancora decisa, fuori scope per questo lotto. Fix minimo e onesto: il click ora espande la card mostrando la descrizione completa (prima troncata a 3 righe con "...").
+
+Verificata la raggiungibilita' di ogni candidato con BFS sugli import fino alle route `app/**/page.tsx` prima di selezionarlo: la classifica ai rank 1-83 e' risultata quasi interamente un nuovo, ampio cluster di codice morto (oltre 30 file/servizi a zero importer, es. `components/garden/ListView.tsx`, `services/unifiedAgronomicMemoryService.ts`, `components/VisualGardenPlanner.tsx`, `services/autoBackupService.ts`, `components/Dashboard.tsx`, `components/ai/CollaborativeAIDashboard.tsx`, oltre a quello gia' noto dai lotti 63-68) — candidato per un censimento M05 dedicato, non toccato in questo lotto.
+
+Verifiche: lint mirato sui 14 file 0/41, `npx tsc --noEmit` sull'intero progetto zero errori, lint globale reale **0 errori e 1.024 warning**.
+
+## Stato dopo il lotto 72
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 1024 |
+| Riduzione lotto | 42 |
+| Riduzione dalla baseline operativa 2642 | 1618 |

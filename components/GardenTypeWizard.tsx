@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Garden } from '../types';
-import { X, Sprout, TreePine, CircleDot, Grape, ArrowRight, Droplets } from 'lucide-react';
+import { X, Sprout, TreePine, CircleDot, Grape, Droplets } from 'lucide-react';
 import GardenOnboarding from './GardenOnboarding';
 import OrchardWizard from './orchard/OrchardWizard';
 import { useStorage } from '@/packages/core/hooks/useStorage';
@@ -19,7 +19,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
   const [selectedType, setSelectedType] = useState<SpaceType | null>(null);
   const [selectedHydroponicType, setSelectedHydroponicType] = useState<'NFT' | 'DWC' | 'EbbFlow' | 'Drip' | 'Wick' | 'Kratky' | null>(null);
   const [createdGarden, setCreatedGarden] = useState<Garden | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
 
   console.log('[GardenTypeWizard] Rendered - selectedType:', selectedType, 'createdGarden:', createdGarden);
 
@@ -62,7 +62,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
     }
   };
 
-  const handleOrchardConfigComplete = (_orchardId: string) => {
+  const handleOrchardConfigComplete = () => {
     if (createdGarden) {
       console.log('🎉 Orchard/Olive/Vineyard configuration complete, calling onComplete');
       onComplete(createdGarden);
