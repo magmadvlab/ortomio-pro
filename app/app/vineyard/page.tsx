@@ -7,16 +7,17 @@ import { FeatureGate } from '@/components/shared/FeatureGate'
 import VineyardDashboard from '@/components/vineyard/VineyardDashboard'
 import VineyardWizard from '@/components/vineyard/VineyardWizard'
 import VineManager from '@/components/vineyard/VineManager'
+import VineyardRowsView from '@/components/vineyard/VineyardRowsView'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import { VineyardConfiguration } from '@/types/vineyard'
 import { Garden } from '@/types'
-import { Grape, ArrowLeft, Users, Cog, Calendar, Scissors, Plus } from 'lucide-react'
+import { Grape, ArrowLeft, Users, Cog, Calendar, Scissors, Plus, Rows3 } from 'lucide-react'
 import {
   VineyardGardenContext,
   resolveVineyardGardenContexts,
 } from '@/services/woodyGardenResolverService'
 
-type ViewMode = 'dashboard' | 'vines' | 'individual-plants'
+type ViewMode = 'dashboard' | 'vines' | 'rows' | 'individual-plants'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
@@ -26,6 +27,7 @@ export default function VineyardPage() {
   const [creationGardenId, setCreationGardenId] = useState('')
   const [selectedVineyard, setSelectedVineyard] = useState<VineyardConfiguration | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard')
+  const [focusedVineId, setFocusedVineId] = useState<string | null>(null)
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -112,6 +114,8 @@ export default function VineyardPage() {
         return 'Dashboard Vigneti'
       case 'vines':
         return `Gestione Viti - ${selectedVineyard?.name || 'Vigneto'}`
+      case 'rows':
+        return `Filari - ${selectedVineyard?.name || 'Vigneto'}`
       case 'individual-plants':
         return `Viti Individuali - ${selectedVineyard?.name || 'Vigneto'}`
       default:
@@ -124,6 +128,7 @@ export default function VineyardPage() {
 
     const navigationItems = [
       { id: 'vines' as const, label: 'Viti', icon: <Grape size={16} /> },
+      { id: 'rows' as const, label: 'Filari', icon: <Rows3 size={16} /> },
       { id: 'individual-plants' as const, label: 'Viti Individuali', icon: <Users size={16} /> },
     ]
 
@@ -294,9 +299,25 @@ export default function VineyardPage() {
             onCreateVineyard={handleCreateVineyard}
             onSelectVineyard={handleSelectVineyard}
           />
+        ) : viewMode === 'rows' && selectedVineyard ? (
+          <VineyardRowsView
+            vineyard={selectedVineyard}
+            vineyardId={selectedVineyard.id}
+            gardenId={selectedGardenId}
+            onNavigateToVine={() => setViewMode('vines')}
+            onSelectVine={(vineId) => {
+              setFocusedVineId(vineId)
+              setViewMode('vines')
+            }}
+          />
         ) : viewMode === 'vines' && selectedVineyard ? (
           <div className="space-y-6">
-            <VineManager vineyardId={selectedVineyard.id} gardenId={selectedGardenId} />
+            <VineManager
+              vineyardId={selectedVineyard.id}
+              gardenId={selectedGardenId}
+              initialSelectedVineId={focusedVineId}
+              onInitialVineHandled={() => setFocusedVineId(null)}
+            />
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
