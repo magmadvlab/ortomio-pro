@@ -154,6 +154,16 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
   // Use tasks prop directly instead of local state to prevent infinite loops
   const currentTasks = React.useMemo(() => tasks ?? [], [tasks])
 
+  // Memoized to keep a stable reference for WeatherLunarWidget's useCallback deps —
+  // an inline .filter().map() here would recreate the array every render and
+  // retrigger its weather-fetch effect in a loop.
+  const weatherActivePlants = React.useMemo(
+    () => currentTasks
+      .filter(t => !t.completed && t.plantName)
+      .map(t => ({ plantName: t.plantName, minTemp: undefined as number | undefined })),
+    [currentTasks]
+  )
+
   // Helper function to refresh tasks
   const refreshTasks = React.useCallback(async () => {
     if (onRefreshTasks) {
@@ -525,13 +535,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
                 longitude={weatherCoordinates.longitude}
                 gardens={gardens}
                 onAlertsChange={setWeatherAlerts}
-                activePlants={(currentTasks || [])
-                  .filter(t => !t.completed && t.plantName)
-                  .map(t => ({
-                    plantName: t.plantName,
-                    minTemp: undefined
-                  }))
-                }
+                activePlants={weatherActivePlants}
               />
             );
           })()}
