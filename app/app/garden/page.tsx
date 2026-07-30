@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { ArrowLeft, Sprout, Grid3x3, MapPin, Settings } from 'lucide-react'
+import { ArrowLeft, Sprout, Grid3x3, MapPin, Settings, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 export default function GardenHubPage() {
@@ -214,6 +214,48 @@ export default function GardenHubPage() {
 
                 <div className="flex items-center justify-between text-blue-600 font-semibold group-hover:translate-x-2 transition-transform">
                   <span>Vedi Piante</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Card Pianificazione Ambientale */}
+          <Link
+            href={`/app/garden/planning?garden=${selectedGarden.id}`}
+            className="group"
+          >
+            <div className="bg-white rounded-2xl border-2 border-gray-200 hover:border-orange-500 hover:shadow-2xl transition-all duration-300 overflow-hidden h-full">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-8 text-white">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Calendar size={32} />
+                </div>
+                <h2 className="text-3xl font-bold mb-2">Pianificazione</h2>
+                <p className="text-orange-100">Esposizione Solare & Semine</p>
+              </div>
+
+              <div className="p-8">
+                <p className="text-gray-600 mb-6 text-lg">
+                  Esposizione solare, finestre di semina ottimali e suggerimenti di successione colturale
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span>Classificazione esposizione solare</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span>Finestre di semina/trapianto ottimali</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span>Suggerimenti di successione colturale</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-orange-600 font-semibold group-hover:translate-x-2 transition-transform">
+                  <span>Apri Pianificazione</span>
                   <span>→</span>
                 </div>
               </div>
