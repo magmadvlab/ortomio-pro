@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Brain, RefreshCw, Calendar, TrendingUp, Droplets, Zap } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Brain, RefreshCw, Calendar, TrendingUp, Droplets } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
 import DiseasePredictionsCard from './DiseasePredictionsCard'
 import YieldPredictionsCard from './YieldPredictionsCard'
@@ -32,15 +32,9 @@ export default function AIPredictionsDashboard() {
   const [activeTab, setActiveTab] = useState<'diseases' | 'yield' | 'resources'>('diseases')
   const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    if (activeGarden) {
-      loadPredictions()
-    }
-  }, [activeGarden])
-
-  const loadPredictions = async () => {
+  const loadPredictions = useCallback(async () => {
     if (!activeGarden) return
-    
+
     try {
       setLoading(true)
       const response = await fetch('/api/ai/predictions', {
@@ -65,7 +59,13 @@ export default function AIPredictionsDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeGarden])
+
+  useEffect(() => {
+    if (activeGarden) {
+      loadPredictions()
+    }
+  }, [activeGarden, loadPredictions])
 
   const handleRefresh = async () => {
     setRefreshing(true)

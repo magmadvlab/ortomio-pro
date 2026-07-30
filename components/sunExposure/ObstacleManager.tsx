@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Plus, Trash2, Edit2, Upload, Compass, Building, Trees, Mountain, Loader2, X } from 'lucide-react'
 import { Garden } from '@/types'
 import { Obstacle3D } from '@/services/preciseSunCalculator'
@@ -272,7 +272,7 @@ export function ObstacleManager({ garden, obstacles, onObstaclesChange, classNam
               </label>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value as any)}
+                onChange={(e) => setType(e.target.value as 'Building' | 'Tree' | 'Mountain' | 'Other')}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="Building">Edificio</option>

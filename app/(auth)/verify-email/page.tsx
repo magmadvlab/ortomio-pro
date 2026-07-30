@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseClient } from '@/config/supabase'
 import { Mail, CheckCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft } from 'lucide-react'
@@ -16,23 +16,7 @@ function VerifyEmailPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [isVerified, setIsVerified] = useState(false)
 
-  useEffect(() => {
-    // Ottieni email dai parametri URL o da localStorage
-    const emailParam = searchParams.get('email')
-    const storedEmail = localStorage.getItem('ortomio_pending_verification_email')
-    
-    if (emailParam) {
-      setEmail(emailParam)
-      localStorage.setItem('ortomio_pending_verification_email', emailParam)
-    } else if (storedEmail) {
-      setEmail(storedEmail)
-    }
-
-    // Controlla se l'utente ha già verificato l'email
-    checkVerificationStatus()
-  }, [searchParams])
-
-  const checkVerificationStatus = async () => {
+  const checkVerificationStatus = useCallback(async () => {
     try {
       const supabase = getSupabaseClient()
       if (!supabase) return
@@ -55,7 +39,23 @@ function VerifyEmailPageContent() {
     } catch (error) {
       console.error('Error checking verification status:', error)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    // Ottieni email dai parametri URL o da localStorage
+    const emailParam = searchParams.get('email')
+    const storedEmail = localStorage.getItem('ortomio_pending_verification_email')
+
+    if (emailParam) {
+      setEmail(emailParam)
+      localStorage.setItem('ortomio_pending_verification_email', emailParam)
+    } else if (storedEmail) {
+      setEmail(storedEmail)
+    }
+
+    // Controlla se l'utente ha già verificato l'email
+    checkVerificationStatus()
+  }, [searchParams, checkVerificationStatus])
 
   const resendVerificationEmail = async () => {
     if (!email) {
@@ -91,9 +91,9 @@ function VerifyEmailPageContent() {
       }
 
       setMessage('Email di verifica inviata nuovamente! Controlla la tua casella di posta.')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Resend verification error:', err)
-      setError(err.message || 'Errore durante il reinvio dell\'email')
+      setError(err instanceof Error ? err.message : 'Errore durante il reinvio dell\'email')
     } finally {
       setResending(false)
     }

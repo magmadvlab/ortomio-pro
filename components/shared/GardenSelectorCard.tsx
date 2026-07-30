@@ -3,8 +3,6 @@
 import React, { useState, useMemo } from 'react'
 import { Garden, GardenTask } from '@/types'
 import { ChevronDown, MapPin, Sprout, Calendar, Sun, Plus } from 'lucide-react'
-import { format } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 interface GardenSelectorCardProps {
   gardens: Garden[]

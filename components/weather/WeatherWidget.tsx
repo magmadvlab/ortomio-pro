@@ -5,12 +5,13 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Cloud, Sun, CloudRain, Snowflake, Wind, Droplets, Thermometer, AlertTriangle, Info, XCircle } from 'lucide-react'
 import { weatherService, WeatherData } from '@/services/weatherService'
+import type { Garden } from '@/types'
 
 interface WeatherWidgetProps {
-  garden?: any
+  garden?: Garden | null
   compact?: boolean
   showAlerts?: boolean
   className?: string
@@ -26,22 +27,18 @@ export function WeatherWidget({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadWeather()
-  }, [garden])
-
-  const loadWeather = async () => {
+  const loadWeather = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       let weatherData: WeatherData
       if (garden) {
         weatherData = await weatherService.getWeatherForGarden(garden)
       } else {
         weatherData = await weatherService.getWeatherForUserLocation()
       }
-      
+
       setWeather(weatherData)
     } catch (err) {
       console.error('Error loading weather:', err)
@@ -49,7 +46,11 @@ export function WeatherWidget({
     } finally {
       setLoading(false)
     }
-  }
+  }, [garden])
+
+  useEffect(() => {
+    loadWeather()
+  }, [loadWeather])
 
   const getWeatherIcon = (condition: string) => {
     const conditionLower = condition.toLowerCase()

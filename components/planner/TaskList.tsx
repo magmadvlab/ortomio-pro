@@ -476,7 +476,7 @@ export default function TaskList({ garden, tasks, onTaskUpdate, onTaskCreate, on
 interface TaskFormModalProps {
   task?: GardenTask | null
   garden: Garden
-  onSave: (taskData: any) => Promise<void>
+  onSave: (taskData: Omit<GardenTask, 'id'>) => Promise<void>
   onCancel: () => void
 }
 
@@ -499,7 +499,7 @@ function TaskFormModal({ task, garden, onSave, onCancel }: TaskFormModalProps) {
     const taskData = {
       gardenId: garden.id,
       plantName: formData.plantName,
-      taskType: formData.taskType as any,
+      taskType: formData.taskType,
       date: formData.date,
       nextDueDate: formData.date,
       notes: preserveAgronomicQueueTaskMetadata(task?.notes, formData.notes),

@@ -118,7 +118,7 @@ export function HarvestPromptModal({ task, gardenContext, onHarvest, onSkip }: H
               />
               <select
                 value={unit}
-                onChange={(e) => setUnit(e.target.value as any)}
+                onChange={(e) => setUnit(e.target.value as 'kg' | 'g' | 'units')}
                 className="px-4 py-3 min-h-[44px] touch-manipulation text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               >
                 <option value="kg">kg</option>

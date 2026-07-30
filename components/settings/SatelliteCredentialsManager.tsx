@@ -90,12 +90,12 @@ export default function SatelliteCredentialsManager() {
         errorMessage: data.simulated ? 'Usando credenziali di test - configura le tue per dati reali' : undefined,
         isTestCredentials: data.simulated
       }))
-    } catch (error: any) {
+    } catch (error: unknown) {
       setConfig(prev => ({
         ...prev,
         lastTest: new Date(),
         testResult: 'error',
-        errorMessage: error.message
+        errorMessage: error instanceof Error ? error.message : String(error)
       }))
     } finally {
       setTesting(false)
@@ -129,8 +129,8 @@ export default function SatelliteCredentialsManager() {
       } else {
         alert('Errore durante il salvataggio: ' + data.error)
       }
-    } catch (error: any) {
-      alert('Errore: ' + error.message)
+    } catch (error: unknown) {
+      alert('Errore: ' + (error instanceof Error ? error.message : String(error)))
     } finally {
       setSaving(false)
     }

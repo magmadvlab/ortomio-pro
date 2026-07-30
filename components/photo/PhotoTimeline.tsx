@@ -19,7 +19,7 @@ interface PhotoTimelineProps {
   plantName?: string
 }
 
-export function PhotoTimeline({ photos, plantName }: PhotoTimelineProps) {
+export function PhotoTimeline({ photos }: PhotoTimelineProps) {
   // Group photos by date
   const photosByDate = photos.reduce((acc, photo) => {
     const dateKey = format(photo.date, 'yyyy-MM-dd')
