@@ -146,7 +146,18 @@ function AuthPageContent() {
           return
         }
 
-        router.push('/app')
+        // Navigazione hard (non router.push): il middleware deve rileggere il
+        // cookie appena scritto sopra. Con router.push, la Next.js Router
+        // Cache può servire una risposta client-side già in cache per /app
+        // (es. il redirect a /auth ottenuto prima del login, quando il
+        // cookie non c'era ancora), lasciando l'utente bloccato sulla
+        // pagina di login finché non fa un refresh manuale che bypassa
+        // quella cache.
+        const rawRedirect = searchParams.get('redirect')
+        const redirectTarget = rawRedirect && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+          ? rawRedirect
+          : '/app'
+        window.location.href = redirectTarget
       }
     } catch (caughtErr: unknown) {
       const err = caughtErr as { code?: string; message?: string; status?: number }
