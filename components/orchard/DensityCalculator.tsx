@@ -150,7 +150,7 @@ export default function DensityCalculator() {
             </label>
             <select
               value={input.soilQuality}
-              onChange={(e) => setInput({ ...input, soilQuality: e.target.value as any })}
+              onChange={(e) => setInput({ ...input, soilQuality: e.target.value as DensityInput['soilQuality'] })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
               <option value="poor">Scarsa</option>
@@ -167,7 +167,7 @@ export default function DensityCalculator() {
             </label>
             <select
               value={input.climateZone}
-              onChange={(e) => setInput({ ...input, climateZone: e.target.value as any })}
+              onChange={(e) => setInput({ ...input, climateZone: e.target.value as DensityInput['climateZone'] })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
               <option value="cold">Fredda</option>

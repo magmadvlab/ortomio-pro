@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, List, Grid } from 'lucide-react';
 import { getSupabaseClient } from '../../config/supabase';
 import { useAuth } from '@/packages/core/hooks/useAuth';
@@ -27,7 +27,7 @@ export const IntegratedCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [showEventForm, setShowEventForm] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [, setSelectedDate] = useState<string>('');
 
   // Form states
   const [eventTitle, setEventTitle] = useState('');
@@ -36,23 +36,17 @@ export const IntegratedCalendar: React.FC = () => {
   const [eventTime, setEventTime] = useState('');
   const [eventType, setEventType] = useState<CalendarEvent['type']>('other');
 
-  useEffect(() => {
-    if (user) {
-      loadEvents();
-    }
-  }, [user, currentDate]);
-
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       if (!supabase) {
         throw new Error('Supabase client not available');
       }
-      
+
       // Load events for the current month
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
+
       const { data, error } = await supabase
         .from('calendar_events')
         .select('*')
@@ -68,7 +62,13 @@ export const IntegratedCalendar: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, currentDate]);
+
+  useEffect(() => {
+    if (user) {
+      loadEvents();
+    }
+  }, [user, loadEvents]);
 
   const handleCreateEvent = async () => {
     if (!eventTitle.trim() || !eventDate) return;

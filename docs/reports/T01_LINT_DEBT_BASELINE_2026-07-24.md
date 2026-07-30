@@ -826,3 +826,35 @@ Verifiche: lint mirato sui 14 file 0/41, `npx tsc --noEmit` sull'intero progetto
 | Warning | 1024 |
 | Riduzione lotto | 42 |
 | Riduzione dalla baseline operativa 2642 | 1618 |
+
+## Lotto 73 (30/07/2026) - chiuso
+
+Dodici file live portati da 27 warning complessivi a 1 (lasciato intenzionale):
+
+- `app/(auth)/auth/page.tsx` 3 -> 0: due `catch (err: any)` tipizzati (`unknown` con narrowing esplicito), logo statico migrato a `next/image` (asset fisso locale, zero rischio).
+- `app/(auth)/reset-password/page.tsx` 3 -> 0: due `catch (err: any)` tipizzati `unknown`, un `{} as any` passato a `registrationValidator.validateField` sostituito con `{} as RegistrationData` (il branch `'password'` della funzione non legge mai quell'argomento, verificato leggendo il sorgente).
+- `app/app/vineyard/page.tsx` 2 -> 0: parametro callback mai usato rimosso dalla firma (richiesto solo dal tipo `onComplete` di `VineyardWizard`), `loadGardens` stabilizzato con `useCallback` (setter di stato reso funzionale per non dover includere `creationGardenId` tra le dipendenze ed evitare un doppio fetch al mount).
+- `components/CalendarAlmanac.tsx` 2 -> 0: import morti.
+- `components/ai/AITransparencyPanel.tsx` 2 -> 0: import morto, `as any` sostituito con array `as const`.
+- `components/calendar/IntegratedCalendar.tsx` 2 -> 0: getter di stato mai letto ridotto a solo setter, `loadEvents` stabilizzato con `useCallback`.
+- `components/diary/QuickEventModal.tsx` 2 -> 0: due `as any` sostituiti con array `as const` (i valori corrispondono esattamente alle union gia' dichiarate su `QuickEvent`).
+- `components/gardens/SizeConfigurationStep.tsx` 2 -> 1: `buildStructureConfig` stabilizzato con `useCallback` includendolo tra le dipendenze dell'effect che lo chiama. Lasciato intenzionale l'altro `exhaustive-deps`: un effect esplicitamente commentato "Solo al mount" che inizializza gli stati delle aree dai valori esistenti — aggiungere le dipendenze sovrascriverebbe i valori che l'utente sta modificando ad ogni render, stesso pattern gia' visto su `AddCropWizard`/`OrganizationManager`.
+- `components/irrigation/IrrigationAISuggestionsWidget.tsx` 2 -> 0: `garden?: any` tipizzato `Garden | null`, `loadSuggestions` stabilizzato con `useCallback`. **Bug reale**, vedi sotto.
+- `components/irrigation/IrrigationSystemWizard.tsx` 2 -> 0: import morto (`Dialog`, mai usato nel file), `as any` su `waterSource` sostituito col tipo reale `IrrigationWaterSource`.
+- `components/nutrition/NutritionAISuggestionsWidget.tsx` 2 -> 0: stessa correzione di `IrrigationAISuggestionsWidget.tsx` (file gemello, stesso bug). **Bug reale**, vedi sotto.
+- `components/orchard/DensityCalculator.tsx` 2 -> 0: due `as any` sostituiti con i tipi reali gia' dichiarati (`DensityInput['soilQuality']`/`['climateZone']`).
+
+**Bug reale trovato e corretto in due file gemelli (codice vivo):** `IrrigationAISuggestionsWidget.tsx` e `NutritionAISuggestionsWidget.tsx` chiamavano `collaborativeAIService.acceptSuggestion`/`rejectSuggestion` passando `garden.user_id` come primo argomento (l'id utente atteso dalla firma). Tipizzando `garden?: any` come il vero tipo `Garden | null`, il compilatore ha rivelato che `Garden` non ha affatto un campo `user_id` — l'espressione valeva sempre `undefined`, mascherata dall'`any`. Ogni click su "Accetta"/"Rifiuta" nei due widget registrava quindi la decisione con `user_id` mancante invece dell'utente autenticato. Confermato confrontando col terzo widget gemello, `components/ai/AISuggestionsWidget.tsx` (gia' sistemato nel lotto 71), che usa correttamente `user.id` proveniente da `useAuth()` — la stessa variabile era gia' disponibile nello scope di entrambi i file bacati, semplicemente non usata. Corretto in entrambi sostituendo `garden.user_id` con `user.id`.
+
+Verificata la raggiungibilita' di ogni candidato prima di toccarlo: `app/(auth)/health/page.tsx` (2 warning) e `components/GardenOnboarding.tsx` (3 warning) risultano `no-img-element` su foto scattate dal vivo (base64/blob URL da fotocamera o file locale) — lasciati intenzionali, stesso pattern gia' consolidato nei lotti precedenti.
+
+Verifiche: lint mirato sui 12 file 1/27 residuo (intenzionale), `npx tsc --noEmit` sull'intero progetto zero errori, lint globale reale **0 errori e 999 warning** — prima volta sotto quota 1.000.
+
+## Stato dopo il lotto 73
+
+| Metrica | Valore |
+|---|---:|
+| Errori | 0 |
+| Warning | 999 |
+| Riduzione lotto | 25 |
+| Riduzione dalla baseline operativa 2642 | 1643 |

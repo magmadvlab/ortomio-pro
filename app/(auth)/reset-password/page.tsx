@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { getSupabaseClient } from '@/config/supabase'
 import { authErrorHandler } from '@/services/authErrorHandler'
 import { registrationValidator } from '@/services/registrationValidator'
+import type { RegistrationData } from '@/types/auth'
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -35,7 +36,7 @@ function ResetPasswordForm() {
         }
 
         setValidToken(true)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Token validation error:', err)
         setError('Link di reset non valido o scaduto')
       }
@@ -65,7 +66,7 @@ function ResetPasswordForm() {
     setError(null)
 
     // Validazione password
-    const passwordValidation = registrationValidator.validateField('password', password, {} as any)
+    const passwordValidation = registrationValidator.validateField('password', password, {} as RegistrationData)
     if (passwordValidation) {
       setError(passwordValidation.message)
       return
@@ -99,9 +100,9 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push('/login')
       }, 3000)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Password update error:', err)
-      setError(err.message || 'Errore durante l\'aggiornamento della password. Riprova.')
+      setError(err instanceof Error ? err.message : 'Errore durante l\'aggiornamento della password. Riprova.')
     } finally {
       setLoading(false)
     }

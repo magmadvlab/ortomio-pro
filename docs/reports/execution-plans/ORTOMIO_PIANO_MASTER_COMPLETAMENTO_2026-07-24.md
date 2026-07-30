@@ -93,7 +93,7 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
 | Scoperte O45-O67 | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.618 warning rimossi** | — | **1.024 warning** | Baseline operativa 2.642 -> 1.024 in 72 lotti. T01 non equivale a 1.024 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Debito lint T01 | **1.643 warning rimossi** | — | **999 warning** | Baseline operativa 2.642 -> 999 in 73 lotti (prima volta sotto quota 1.000). T01 non equivale a 999 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
 
 ### Che cosa manca davvero negli O01-O44
@@ -2203,6 +2203,33 @@ Baseline globale verificata: **0 errori, 1.024 warning** (`1.066 -> 1.024`);
 `npx tsc --noEmit` sull'intero progetto senza errori; lint mirato sui 14
 file 0/41 residui. Dettaglio completo in
 `docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`.
+
+### Aggiornamento T01 - lotto 73 (30/07/2026)
+
+Il lotto 73 porta 12 file vivi (`auth/page.tsx`, `reset-password/page.tsx`,
+`vineyard/page.tsx`, `CalendarAlmanac.tsx`, `AITransparencyPanel.tsx`,
+`IntegratedCalendar.tsx`, `QuickEventModal.tsx`, `SizeConfigurationStep.tsx`,
+`IrrigationAISuggestionsWidget.tsx`, `IrrigationSystemWizard.tsx`,
+`NutritionAISuggestionsWidget.tsx`, `DensityCalculator.tsx`) da 27 warning
+complessivi a 1 (lasciato intenzionale: mount-only init effect in
+`SizeConfigurationStep.tsx`, stesso pattern di `AddCropWizard`/`OrganizationManager`).
+
+**Bug reale trovato e corretto in due file gemelli:** `IrrigationAISuggestionsWidget.tsx`
+e `NutritionAISuggestionsWidget.tsx` chiamavano `acceptSuggestion`/`rejectSuggestion`
+con `garden.user_id` — campo assente sul tipo `Garden`, mascherato da
+`garden?: any`, sempre `undefined`. Ogni "Accetta"/"Rifiuta" nei widget
+irrigazione/nutrizione registrava la decisione senza l'id utente reale.
+Confermato confrontando col terzo widget gemello (`AISuggestionsWidget.tsx`,
+lotto 71) che usa correttamente `user.id`, gia' disponibile nello scope
+tramite `useAuth()`. Corretto in entrambi.
+
+Verificata la raggiungibilita' di ogni candidato: `app/app/health/page.tsx`
+e `components/GardenOnboarding.tsx` risultano `no-img-element` su foto
+scattate dal vivo (base64/blob), lasciati intenzionali.
+
+Baseline globale verificata: **0 errori, 999 warning** (`1.024 -> 999`) —
+prima volta sotto quota 1.000; `npx tsc --noEmit` sull'intero progetto senza
+errori. Dettaglio completo in `docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`.
 
 ## 6. Verifica trasversale dopo M15
 

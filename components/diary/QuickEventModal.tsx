@@ -40,7 +40,7 @@ export default function QuickEventModal({ isOpen, onClose, onSave }: QuickEventM
     { value: 'action', label: 'Azione', icon: Zap, color: 'green' },
     { value: 'milestone', label: 'Traguardo', icon: CheckCircle, color: 'purple' },
     { value: 'weather_event', label: 'Evento Meteo', icon: Droplets, color: 'cyan' },
-  ]
+  ] as const
 
   const quickTags = [
     'Malattia', 'Parassiti', 'Crescita', 'Fioritura', 'Fruttificazione',
@@ -104,7 +104,7 @@ export default function QuickEventModal({ isOpen, onClose, onSave }: QuickEventM
                 return (
                   <button
                     key={type.value}
-                    onClick={() => setEvent({ ...event, type: type.value as any })}
+                    onClick={() => setEvent({ ...event, type: type.value })}
                     className={`
                       p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-2
                       ${event.type === type.value
@@ -201,15 +201,15 @@ export default function QuickEventModal({ isOpen, onClose, onSave }: QuickEventM
                 Gravità
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {[
+                {([
                   { value: 'low', label: 'Bassa', color: 'green' },
                   { value: 'medium', label: 'Media', color: 'yellow' },
                   { value: 'high', label: 'Alta', color: 'orange' },
                   { value: 'critical', label: 'Critica', color: 'red' },
-                ].map((severity) => (
+                ] as const).map((severity) => (
                   <button
                     key={severity.value}
-                    onClick={() => setEvent({ ...event, severity: severity.value as any })}
+                    onClick={() => setEvent({ ...event, severity: severity.value })}
                     className={`
                       px-4 py-2 rounded-lg border-2 transition-all
                       ${event.severity === severity.value
