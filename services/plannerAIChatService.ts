@@ -1,13 +1,21 @@
 import { buildAIAssistantGroundingContext } from '@/services/aiGroundingService'
+import type { Garden } from '@/types'
 
 type PlannerChatErrorPayload = {
   error?: string
   message?: string
 }
 
+interface PlannerAITask {
+  completed?: boolean
+  fieldRowId?: string
+  rowId?: string
+  title?: string
+}
+
 interface PlannerAIContextInput {
-  garden?: any
-  tasks?: any[]
+  garden?: Pick<Garden, 'id' | 'name' | 'gardenType' | 'primaryCrop' | 'indoorConfig' | 'hydroponicConfig' | 'aquaponicConfig' | 'aeroponicConfig' | 'greenhouseConfig' | 'hasIndoor' | 'hasGreenhouse'>
+  tasks?: PlannerAITask[]
 }
 
 interface PlannerAIResponse {

@@ -43,7 +43,8 @@ export async function getPlantTaxonomy(plantId: string): Promise<PlantTaxonomyRe
   // Verifica anche se l'URL di Supabase è locale
   let isLocalSupabase = false;
   if (supabase && typeof window !== 'undefined') {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || (import.meta as any)?.env?.VITE_SUPABASE_URL;
+    const viteEnv = (import.meta as unknown as { env?: { VITE_SUPABASE_URL?: string } })?.env;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || viteEnv?.VITE_SUPABASE_URL;
     if (supabaseUrl && (
       supabaseUrl.includes('localhost') ||
       supabaseUrl.includes('127.0.0.1') ||
@@ -81,9 +82,10 @@ export async function getPlantTaxonomy(plantId: string): Promise<PlantTaxonomyRe
         // Logga solo errori non-404/205
         console.error('Error fetching plant taxonomy from Supabase:', error);
       }
-    } catch (error: any) {
+    } catch (error) {
       // Ignora errori di rete o 404 - sono gestiti dai fallback
-      if (error?.status !== 404 && error?.code !== 'PGRST116' && error?.code !== 'PGRST205') {
+      const err = error as { status?: number; code?: string } | undefined;
+      if (err?.status !== 404 && err?.code !== 'PGRST116' && err?.code !== 'PGRST205') {
         console.error('Error fetching plant taxonomy from Supabase:', error);
       }
     }

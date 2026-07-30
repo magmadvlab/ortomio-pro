@@ -1303,11 +1303,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                     estimatedHours={estimatedHoursFromVisual}
                     onChange={(data) => {
                       setVisualSunInput(data);
-                      const hours = convertVisualInputToSunHours(
-                        data,
-                        parseFloat(latitude) || undefined,
-                        parseFloat(longitude) || undefined
-                      );
+                      const hours = convertVisualInputToSunHours(data);
                       setEstimatedHoursFromVisual(hours);
                     }}
                   />
