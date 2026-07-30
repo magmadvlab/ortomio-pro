@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     ".next",
+    "_quarantine",
     "EXAMPLE_INTEGRATION_GUIDES.tsx",
     "capacitor.config.ts",
     "ortomio",
