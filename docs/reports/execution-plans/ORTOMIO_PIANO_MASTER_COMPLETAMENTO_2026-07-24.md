@@ -2723,10 +2723,41 @@ Verifica concreta:
   Verificato: `tsc --noEmit` pulito, `next build` verde, `test:release`
   229/229.
 
-Restano aperti: tab Filari per Vigneto/Oliveto, UI impianto irriguo per
-filare su Vigneto/Oliveto, motore predittivo (gap trasversale gia'
-registrato in M14: altitudine/sole/ostacoli mai usati, finestra raccolta
-fissa a 60 giorni per qualunque coltura).
+### Tab "Filari" e impianto irriguo per filare: Oliveto collegato, Vigneto no (30/07/2026)
+
+Verificato che `/app/olives` monta gia' `TreeManager`/`PruningManager`/
+`HarvestManager` direttamente da `components/orchard/`, perche' l'Oliveto
+modella i propri orchards con gli stessi tipi `OrchardConfiguration`/
+`OrchardTree` del Frutteto — riuso diretto possibile senza adattamenti.
+`OrchardRowsView` (~1330 righe, gestione filari + impianto irriguo per
+filare con calcolo erogatori/portata) era definito localmente e non
+esportato dentro `app/app/orchard/page.tsx`. **Estratto** in
+`components/orchard/OrchardRowsView.tsx` (nessun cambio di comportamento,
+stessa logica) e **ricollegato in entrambe le pagine**: `app/app/orchard/page.tsx`
+lo importa al posto della definizione locale (rimossi gli import ora
+inutilizzati: `AppModal`, `FieldRow`/`FieldRowOrdering`, `OrchardTree`,
+le icone `Eye`/`Plus`/`X`/`AlertCircle`/`Droplets`/`Lock`); `app/app/olives/page.tsx`
+ha una nuova voce di navigazione "Filari" (visibile solo con
+`selectedOrchard`), con `onOrchardUpdate` che richiama `loadContexts()`
+per rileggere i dati aggiornati (l'oliveto non tiene un setter diretto
+sull'orchard selezionato, a differenza del Frutteto). Aggiunto anche
+`focusedTreeId`/`onInitialTreeHandled` al `TreeManager` gia' presente in
+Oliveto, per coerenza con il click "apri albero" dalla vista filari.
+Verificato: `tsc --noEmit` pulito, `next build` verde, `test:release`
+229/229.
+
+**Vigneto non affrontato in questa modifica**: usa un tipo diverso
+(`VineyardConfiguration`/viti, non `OrchardConfiguration`/`OrchardTree`);
+`VineManager.tsx` gia' crea/aggiorna filari (`FieldRow`) internamente
+quando si aggiungono viti in batch, ma senza una tab di navigazione/
+configurazione irrigua dedicata come `OrchardRowsView`. Riusare
+`OrchardRowsView` per il Vigneto richiede un adattamento reale (tipi e
+dati albero -> vite), non un collegamento diretto.
+
+Restano aperti: tab Filari/impianto irriguo per Vigneto (richiede
+adattamento dei tipi, non riuso diretto), motore predittivo (gap
+trasversale gia' registrato in M14: altitudine/sole/ostacoli mai usati,
+finestra raccolta fissa a 60 giorni per qualunque coltura).
 
 ## 6. Verifica trasversale dopo M15
 

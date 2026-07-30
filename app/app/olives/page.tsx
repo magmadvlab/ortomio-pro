@@ -13,6 +13,7 @@ import {
   Info,
   MapPin,
   Plus,
+  Rows3,
   Scissors,
   TreePine,
   Users,
@@ -25,6 +26,7 @@ import OrchardWizard from '@/components/orchard/OrchardWizard'
 import TreeManager from '@/components/orchard/TreeManager'
 import PruningManager from '@/components/orchard/PruningManager'
 import HarvestManager from '@/components/orchard/HarvestManager'
+import OrchardRowsView from '@/components/orchard/OrchardRowsView'
 import OliveMaturityTracker from '@/components/olives/OliveMaturityTracker'
 import OliveFlyMonitor from '@/components/olives/OliveFlyMonitor'
 import { GardenTask, MechanicalWorkRecord } from '@/types'
@@ -35,7 +37,7 @@ import {
   resolveOliveGardenContexts,
 } from '@/services/woodyGardenResolverService'
 
-type ViewMode = 'overview' | 'trees' | 'pruning' | 'harvest' | 'individual-plants' | 'maturity' | 'fly-monitoring'
+type ViewMode = 'overview' | 'trees' | 'rows' | 'pruning' | 'harvest' | 'individual-plants' | 'maturity' | 'fly-monitoring'
 type SelectedLocation = Parameters<React.ComponentProps<typeof LocationSelector>['onLocationChange']>[0]
 
 interface OliveSummary {
@@ -61,6 +63,7 @@ export default function OlivesPage() {
   const [selectedOrchardId, setSelectedOrchardId] = useState('')
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('overview')
+  const [focusedTreeId, setFocusedTreeId] = useState<string | null>(null)
   const [upcomingPrunings, setUpcomingPrunings] = useState<Array<Omit<MechanicalWorkRecord, 'work_date'> & { work_date: Date }>>([])
   const [summary, setSummary] = useState<OliveSummary>(EMPTY_SUMMARY)
   const [showWizard, setShowWizard] = useState(false)
@@ -219,8 +222,9 @@ export default function OlivesPage() {
 
     if (selectedOrchard) {
       items.splice(1, 0, { key: 'trees', label: 'Alberi', icon: <TreePine size={16} /> })
-      items.splice(2, 0, { key: 'pruning', label: 'Potature', icon: <Scissors size={16} /> })
-      items.splice(3, 0, { key: 'harvest', label: 'Raccolte', icon: <Calendar size={16} /> })
+      items.splice(2, 0, { key: 'rows', label: 'Filari', icon: <Rows3 size={16} /> })
+      items.splice(3, 0, { key: 'pruning', label: 'Potature', icon: <Scissors size={16} /> })
+      items.splice(4, 0, { key: 'harvest', label: 'Raccolte', icon: <Calendar size={16} /> })
     }
 
     return (
@@ -585,7 +589,28 @@ export default function OlivesPage() {
           renderOverview()
         ) : viewMode === 'trees' ? (
           selectedOrchard ? (
-            <TreeManager orchardId={selectedOrchard.id} gardenId={selectedGarden.id} />
+            <TreeManager
+              orchardId={selectedOrchard.id}
+              gardenId={selectedGarden.id}
+              initialSelectedTreeId={focusedTreeId}
+              onInitialTreeHandled={() => setFocusedTreeId(null)}
+            />
+          ) : (
+            renderOverview()
+          )
+        ) : viewMode === 'rows' ? (
+          selectedOrchard ? (
+            <OrchardRowsView
+              orchard={selectedOrchard}
+              orchardId={selectedOrchard.id}
+              gardenId={selectedGarden.id}
+              onOrchardUpdate={() => loadContexts()}
+              onNavigateToTree={() => setViewMode('trees')}
+              onSelectTree={(treeId) => {
+                setFocusedTreeId(treeId)
+                setViewMode('trees')
+              }}
+            />
           ) : (
             renderOverview()
           )
