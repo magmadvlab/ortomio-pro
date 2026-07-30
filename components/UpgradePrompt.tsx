@@ -22,7 +22,7 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   onDismiss,
   variant = 'banner',
 }) => {
-  const { isPro, config } = useTier();
+  const { isPro } = useTier();
 
   // Don't show if already Pro
   if (isPro) {

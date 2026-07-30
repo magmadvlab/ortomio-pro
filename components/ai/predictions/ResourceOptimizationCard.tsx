@@ -1,6 +1,6 @@
 'use client'
 
-import { Droplets, Leaf, Users, Zap, TrendingDown, Calendar } from 'lucide-react'
+import { Droplets, Leaf, Users, Zap, TrendingDown } from 'lucide-react'
 import type { ResourceOptimization } from '@/services/aiPredictiveEngine'
 
 interface Props {

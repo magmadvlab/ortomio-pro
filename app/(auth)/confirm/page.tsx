@@ -51,16 +51,17 @@ function ConfirmPageContent() {
         } else {
           throw new Error('Verifica fallita')
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Email confirmation error:', error)
         setStatus('error')
-        
-        if (error.message?.includes('Token has expired')) {
+
+        const message = error instanceof Error ? error.message : undefined
+        if (message?.includes('Token has expired')) {
           setMessage('Il link di verifica è scaduto. Richiedi una nuova email di verifica.')
-        } else if (error.message?.includes('Invalid token')) {
+        } else if (message?.includes('Invalid token')) {
           setMessage('Link di verifica non valido. Controlla di aver cliccato il link corretto.')
         } else {
-          setMessage(error.message || 'Errore durante la verifica dell\'email')
+          setMessage(message || 'Errore durante la verifica dell\'email')
         }
       }
     }

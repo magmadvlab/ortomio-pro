@@ -13,7 +13,6 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [plan, setPlan] = useState<VacationPlan | null>(garden.vacationMode || null);
-  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (garden.vacationMode) {
@@ -39,7 +38,6 @@ const VacationMode: React.FC<VacationModeProps> = ({ garden, tasks, onUpdateGard
 
     const newPlan = generateVacationPlan(garden, tasks, start, end);
     setPlan(newPlan);
-    setIsCreating(false);
   };
 
   const handleSavePlan = () => {

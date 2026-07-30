@@ -45,9 +45,9 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Password reset error:', err)
-      setError(err.message || 'Errore durante il reset della password. Riprova.')
+      setError(err instanceof Error ? err.message : 'Errore durante il reset della password. Riprova.')
     } finally {
       setLoading(false)
     }

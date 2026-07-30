@@ -10,13 +10,11 @@ import { ThermometerSun, AlertTriangle, CheckCircle, Calendar, Cloud, Sprout } f
 interface ExoticFruitManagementProps {
   tasks: GardenTask[];
   garden: Garden;
-  onUpdateTask: (task: GardenTask) => void;
 }
 
 const ExoticFruitManagement: React.FC<ExoticFruitManagementProps> = ({
   tasks,
-  garden,
-  onUpdateTask
+  garden
 }) => {
   const { can } = useTier();
   const [selectedTask, setSelectedTask] = useState<GardenTask | null>(null);

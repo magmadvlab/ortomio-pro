@@ -6,7 +6,7 @@ import {
   type SmartDeviceCommandTarget,
 } from './commandHandler'
 
-const getClient = () => getSupabaseClient() as any
+const getClient = () => getSupabaseClient()
 
 const commandStore: SmartCommandStore = {
   async findOwnedDevice(deviceId, userId) {

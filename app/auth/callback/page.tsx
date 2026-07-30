@@ -52,14 +52,15 @@ function AuthCallbackContent() {
 
         const isRecovery = type === 'recovery' || next === 'reset-password'
         router.replace(isRecovery ? '/reset-password' : '/app')
-      } catch (authError: any) {
+      } catch (authError) {
+        const err = authError as { message?: string; code?: string; status?: number } | undefined
         console.error('Auth callback error:', {
-          message: authError?.message,
-          code: authError?.code,
-          status: authError?.status,
+          message: err?.message,
+          code: err?.code,
+          status: err?.status,
         })
         if (active) {
-          setError(authError?.message || 'Link di autenticazione non valido o scaduto')
+          setError(err?.message || 'Link di autenticazione non valido o scaduto')
         }
       }
     }

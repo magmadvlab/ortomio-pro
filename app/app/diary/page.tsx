@@ -92,7 +92,7 @@ export default function DiaryPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveView(tab.id as any)}
+                  onClick={() => setActiveView(tab.id as 'timeline' | 'automated')}
                   className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
                     activeView === tab.id
                       ? 'border-blue-500 text-blue-600'

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { AeroponicSystemConfig, AeroponicSystemType } from '@/types/indoorGrowing';
-import { InfoTooltip } from '../shared/InfoTooltip';
 
 interface AeroponicConfigFormProps {
   initialConfig?: AeroponicSystemConfig;

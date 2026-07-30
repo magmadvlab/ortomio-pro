@@ -252,6 +252,7 @@ export default function GlobalAIChat() {
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
+      console.error('GlobalAIChat error:', error)
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',

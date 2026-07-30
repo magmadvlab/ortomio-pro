@@ -59,6 +59,7 @@ export default function SettingsPage() {
     if (section && sections.find(s => s.id === section)) {
       setActiveSection(section)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const sections = [
