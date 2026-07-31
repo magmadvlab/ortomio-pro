@@ -9,13 +9,15 @@ import type {
   SoilData,
   PlantHealthData,
 } from '@/services/aiPredictiveEngine'
+import { calculateAltitudeDelay } from '@/utils/altitudeUtils'
 
 export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v2'
-export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-17'
+export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-31-altitude'
 
 export type CanonicalPredictionInput = {
   gardenId: string
   asOf: string
+  altitudeMeters?: number
   weather?: WeatherData
   soil?: SoilData
   plants: PlantHealthData[]
@@ -134,7 +136,7 @@ const buildYieldPredictions = (input: CanonicalPredictionInput, confidence: numb
     const healthImpact = (avgHealth - 75) / 100
     const soilImpact = (soilScore - 75) / 200
     const expectedYield = round(baseline * (1 + healthImpact) * (1 + soilImpact) * (1 + weatherImpact))
-    const harvestDays = 60
+    const harvestDays = 60 + calculateAltitudeDelay(input.altitudeMeters ?? 0)
     return [{
       id: `yield:${plantName}:${input.asOf.slice(0, 10)}`,
       plantName,
@@ -278,12 +280,13 @@ export async function loadCanonicalPredictionInput(
   gardenId: string,
   asOf = new Date()
 ): Promise<CanonicalPredictionInput> {
-  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult] = await Promise.all([
+  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult] = await Promise.all([
     supabase.from('garden_tasks').select('*').eq('garden_id', gardenId).order('date', { ascending: false }).limit(500),
     supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).order('log_date', { ascending: false }).limit(15),
     supabase.from('soil_analysis').select('*').eq('garden_id', gardenId).order('analysis_date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('garden_plants').select('*').eq('garden_id', gardenId).neq('status', 'harvested').neq('status', 'dead').limit(1000),
     supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),
+    supabase.from('gardens').select('altitude_meters').eq('id', gardenId).maybeSingle(),
   ])
   const tasks = ((tasksResult.data ?? []) as TaskRow[]).map((row) => ({
     id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
@@ -346,6 +349,7 @@ export async function loadCanonicalPredictionInput(
   return {
     gardenId,
     asOf: asOf.toISOString(),
+    altitudeMeters: finite((gardenResult.data as { altitude_meters?: number | string | null } | null)?.altitude_meters),
     weather,
     soil,
     plants,

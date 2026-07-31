@@ -7,11 +7,10 @@ import { Garden } from '../types';
 import { Season, getSeasonForDate } from '../utils/seasonalAdjustment';
 import { BedRotation, optimizeBedRotation } from './rotationOptimizer';
 import { getAllMasterSheets } from '../services/plantMasterService';
-import { GardenClassification } from '../services/seasonalSunWindows';
-import { validatePlantCompatibility } from './solarClassificationHelper';
 import { getSoilCompatibility } from '../utils/soilTemperatureUtils';
 import { adjustPlantingDates, calculateAltitudePlantingDelay } from '../utils/altitudeUtils';
 import { adjustDateForSoilType } from '../utils/soilTemperatureUtils';
+import { PlantingWindow } from '../services/plantingWindowOptimizer';
 
 export interface PlannedPlanting {
   plantName: string;
@@ -46,6 +45,7 @@ export interface QuarterPlan {
 export interface AnnualPlan {
   year: number;
   gardenId: string;
+  plantingWindows: PlantingWindow[];
   quarters: {
     Q1: QuarterPlan;
     Q2: QuarterPlan;
@@ -69,40 +69,13 @@ export const generateAnnualPlan = (
     preferredPlants?: string[];
     targetYield?: number;
   },
-  solarClassification?: GardenClassification
+  plantingWindows: PlantingWindow[] = []
 ): AnnualPlan => {
   const currentYear = new Date().getFullYear();
-  const latitude = garden.coordinates?.latitude || 0;
-
-  // Determina stagioni per quarters
-  const q1Season = getSeasonForDate(new Date(currentYear, 0, 15), latitude); // Gennaio
-  const q2Season = getSeasonForDate(new Date(currentYear, 3, 15), latitude); // Aprile
-  const q3Season = getSeasonForDate(new Date(currentYear, 6, 15), latitude); // Luglio
-  const q4Season = getSeasonForDate(new Date(currentYear, 9, 15), latitude); // Ottobre
 
   const masterSheets = getAllMasterSheets();
-  let availablePlants = preferences?.preferredPlants || 
+  let availablePlants = preferences?.preferredPlants ||
     masterSheets.map(p => p.commonName);
-
-  // Filtra piante in base alla classificazione solare se disponibile
-  if (solarClassification) {
-    // Ottieni finestre stagionali (mock per ora, dovrebbero essere passate)
-    const mockWindows = [
-      { period: 'Feb-Mar' as const, avgHours: 4, minHours: 3, maxHours: 5 },
-      { period: 'Apr-Mag' as const, avgHours: 5, minHours: 4, maxHours: 6 },
-      { period: 'Giu-Lug' as const, avgHours: 6, minHours: 5, maxHours: 7 },
-      { period: 'Ago-Set' as const, avgHours: 5, minHours: 4, maxHours: 6 },
-    ];
-    
-    availablePlants = availablePlants.filter(plantName => {
-      const solarCompatibility = validatePlantCompatibility(
-        plantName,
-        solarClassification,
-        mockWindows
-      );
-      return solarCompatibility.compatible;
-    });
-  }
 
   // Filtra per compatibilità terreno
   availablePlants = availablePlants.filter(plantName => {
@@ -110,12 +83,19 @@ export const generateAnnualPlan = (
     return soilCompatibility.compatible;
   });
 
+  // Determina stagioni per quarters
+  const latitude = garden.coordinates?.latitude || 0;
+  const q1Season = getSeasonForDate(new Date(currentYear, 0, 15), latitude); // Gennaio
+  const q2Season = getSeasonForDate(new Date(currentYear, 3, 15), latitude); // Aprile
+  const q3Season = getSeasonForDate(new Date(currentYear, 6, 15), latitude); // Luglio
+  const q4Season = getSeasonForDate(new Date(currentYear, 9, 15), latitude); // Ottobre
+
   // Genera quarters
   const quarters = {
-    Q1: generateQuarterPlan(1, 3, q1Season, availablePlants, garden, solarClassification),
-    Q2: generateQuarterPlan(4, 6, q2Season, availablePlants, garden, solarClassification),
-    Q3: generateQuarterPlan(7, 9, q3Season, availablePlants, garden, solarClassification),
-    Q4: generateQuarterPlan(10, 12, q4Season, availablePlants, garden, solarClassification)
+    Q1: generateQuarterPlan(1, 3, q1Season, availablePlants, plantingWindows),
+    Q2: generateQuarterPlan(4, 6, q2Season, availablePlants, plantingWindows),
+    Q3: generateQuarterPlan(7, 9, q3Season, availablePlants, plantingWindows),
+    Q4: generateQuarterPlan(10, 12, q4Season, availablePlants, plantingWindows)
   };
 
   // Genera rotazioni per ogni aiuola
@@ -128,6 +108,7 @@ export const generateAnnualPlan = (
   return {
     year: currentYear,
     gardenId: garden.id,
+    plantingWindows,
     quarters,
     rotations,
     projections
@@ -142,34 +123,65 @@ const generateQuarterPlan = (
   endMonth: number,
   season: Season,
   availablePlants: string[],
-  garden: Garden,
-  solarClassification?: GardenClassification
+  plantingWindows: PlantingWindow[]
 ): QuarterPlan => {
   const plantings: PlannedPlanting[] = [];
   const harvests: PlannedHarvest[] = [];
   const maintenance: PlannedMaintenance[] = [];
 
-  // Filtra piante per stagione
-  const seasonalPlants = availablePlants.filter(plantName => {
-    const master = getAllMasterSheets().find(p => p.commonName === plantName);
-    if (!master) return false;
-    // Considera tutte le piante disponibili per la stagione
-    return true;
+  const relevantWindows = plantingWindows.filter(window => {
+    const windowStartMonth = window.startDate.getMonth() + 1;
+    const windowEndMonth = window.endDate.getMonth() + 1;
+    return windowStartMonth <= endMonth && windowEndMonth >= startMonth;
   });
 
-  // Genera plantings per ogni mese
-  for (let month = startMonth; month <= endMonth; month++) {
-    // Assegna 1-2 piante per mese
-    const plantsForMonth = seasonalPlants.slice(0, 2);
-    for (const plantName of plantsForMonth) {
-      plantings.push({
-        plantName,
-        month,
-        method: 'Seed',
-        quantity: 10
-      });
+  if (relevantWindows.length > 0) {
+    for (const window of relevantWindows) {
+      const windowStartMonth = Math.max(startMonth, window.startDate.getMonth() + 1);
+      const windowEndMonth = Math.min(endMonth, window.endDate.getMonth() + 1);
+
+      const suitablePlants = window.recommendedPlants.filter(recommended =>
+        availablePlants.some(available => available.toUpperCase() === recommended.toUpperCase())
+      );
+
+      if (suitablePlants.length === 0) continue;
+
+      for (let month = windowStartMonth; month <= windowEndMonth; month++) {
+        for (const plantName of suitablePlants) {
+          plantings.push({
+            plantName,
+            month,
+            method: window.method,
+            quantity: 10
+          });
+        }
+      }
+    }
+  } else {
+    // Fallback: nessuna finestra reale disponibile (es. orto senza coordinate).
+    // Comportamento precedente: distribuisce le prime 2 piante disponibili su ogni mese.
+    const seasonalPlants = availablePlants.slice(0, 2);
+    for (let month = startMonth; month <= endMonth; month++) {
+      for (const plantName of seasonalPlants) {
+        plantings.push({
+          plantName,
+          month,
+          method: 'Seed',
+          quantity: 10
+        });
+      }
     }
   }
+
+  const seen = new Set<string>();
+  const dedupedPlantings = plantings.filter(p => {
+    const key = `${p.plantName}|${p.month}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  plantings.length = 0;
+  plantings.push(...dedupedPlantings);
 
   return {
     season,
@@ -249,19 +261,30 @@ export const suggestSuccessions = (
   const harvestMonth = new Date(harvestDate).getMonth() + 1;
   const suggestions: PlannedPlanting[] = [];
 
-  // Trova piante che possono essere piantate dopo questo mese
-  const masterSheets = getAllMasterSheets();
   const nextMonths = harvestMonth < 10 ? [harvestMonth + 1, harvestMonth + 2] : [];
+  if (nextMonths.length === 0) return suggestions;
+
+  const masterSheets = getAllMasterSheets();
+  const availableCommonNames = masterSheets.map(p => p.commonName);
 
   for (const month of nextMonths) {
-    const season = getSeasonForDate(new Date(new Date().getFullYear(), month - 1, 15), 0);
-    const suitablePlants = masterSheets; // Considera tutte le piante disponibili
+    const window = currentPlan.plantingWindows.find(w => {
+      const windowStartMonth = w.startDate.getMonth() + 1;
+      const windowEndMonth = w.endDate.getMonth() + 1;
+      return month >= windowStartMonth && month <= windowEndMonth;
+    });
 
-    for (const plant of suitablePlants.slice(0, 2)) {
+    if (!window) continue;
+
+    const suitablePlants = window.recommendedPlants.filter(recommended =>
+      availableCommonNames.some(available => available.toUpperCase() === recommended.toUpperCase())
+    );
+
+    for (const plantName of suitablePlants.slice(0, 2)) {
       suggestions.push({
-        plantName: plant.commonName,
+        plantName,
         month,
-        method: 'Seed',
+        method: window.method,
         quantity: 10,
         bed
       });

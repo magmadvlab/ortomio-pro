@@ -131,7 +131,7 @@ export function findPlantingWindows(
         startDate: adjustedStartDate,
         endDate: adjustedEndDate,
         method: 'Seed',
-        recommendedPlants: ['Insalata', 'Spinaci', 'Rucola', 'Piselli', 'Cipolle', 'Fave'],
+        recommendedPlants: ['Lattuga', 'Spinacio', 'Rucola', 'Pisello', 'Cipolla', 'Fava'],
         reason: 'Orto primaverile/autunnale con sole moderato ideale per foglie e radici. Produzione più lunga e meno stress.',
         cycles: calculateCycles(adjustedStartDate, adjustedEndDate, 60), // ~60 giorni ciclo primaverile
         adjustedStartDate: adjustedStartDate,
@@ -164,7 +164,7 @@ export function findPlantingWindows(
       startDate: adjustedStartDate,
       endDate: adjustedEndDate,
       method: 'Seed',
-      recommendedPlants: ['Basilico', 'Prezzemolo', 'Coriandolo', 'Lattuga Estiva'],
+      recommendedPlants: ['Basilico', 'Prezzemolo', 'Coriandolo', 'Lattuga'],
       reason: 'Sole mattutino con ombra pomeridiana ideale per foglie estive. Cicli rapidi.',
       cycles: calculateCycles(adjustedStartDate, adjustedEndDate, 40), // ~40 giorni ciclo foglia estiva
       adjustedStartDate: adjustedStartDate,
@@ -224,7 +224,7 @@ export function findPlantingWindows(
         startDate: adjustedStartDate2,
         endDate: adjustedEndDate2,
         method: 'Seed',
-        recommendedPlants: ['Insalata', 'Spinaci', 'Rucola'],
+        recommendedPlants: ['Lattuga', 'Spinacio', 'Rucola'],
         reason: 'Possibile coltivazione primaverile/autunnale con sole moderato.',
         cycles: calculateCycles(adjustedStartDate2, adjustedEndDate2, 60),
         adjustedStartDate: adjustedStartDate2,
@@ -348,3 +348,39 @@ function findLastDateWithHours(
   return lastValidDate || new Date(year, months[months.length - 1] - 1, new Date(year, months[months.length - 1], 0).getDate());
 }
 
+/**
+ * Recupera le finestre di impianto reali per un giardino dall'endpoint API
+ * (stesso endpoint gia' usato da components/sunExposure/SunExposureDetailModal.tsx).
+ * Ritorna null se il giardino non ha coordinate, la richiesta fallisce, o la risposta
+ * non e' ok — mai un errore lanciato, per permettere ai chiamanti un fallback silenzioso.
+ */
+export async function fetchPlantingWindowsForGarden(
+  gardenId: string,
+  year?: number
+): Promise<PlantingWindow[] | null> {
+  try {
+    const response = await fetch('/api/garden/sun-exposure/planting-windows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gardenId, year }),
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    const windows: PlantingWindow[] = (data.plantingWindows || []).map((w: any) => ({
+      ...w,
+      startDate: new Date(w.startDate),
+      endDate: new Date(w.endDate),
+      adjustedStartDate: w.adjustedStartDate ? new Date(w.adjustedStartDate) : undefined,
+      soilAdjustedDate: w.soilAdjustedDate ? new Date(w.soilAdjustedDate) : undefined,
+      altitudeAdjustedDate: w.altitudeAdjustedDate ? new Date(w.altitudeAdjustedDate) : undefined,
+      finalAdjustedDate: w.finalAdjustedDate ? new Date(w.finalAdjustedDate) : undefined,
+    }))
+
+    return windows
+  } catch (error) {
+    console.error('Error fetching planting windows:', error)
+    return null
+  }
+}

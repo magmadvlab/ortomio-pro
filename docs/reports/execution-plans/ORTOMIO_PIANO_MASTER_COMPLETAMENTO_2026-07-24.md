@@ -378,6 +378,7 @@ e la riesecuzione M16.
 - **Residuo:** dataset reale approvato, periodo shadow, metriche e firma agronomica.
 - **Mitigazione interinale 24/07/2026 (scoperta durante T01, non un nuovo item di debito):** `services/costOptimizationService.ts` era gia' censito nel manifest M05 (12 voci `mock`, `scheduled:M14`) ma non aveva alcun avviso visibile in UI — il pannello `CostOptimizationPanel.tsx`, raggiungibile da produzione (`/app/prescription-maps`), presentava costo/resa/impatto/efficienza come calcoli reali quando sono in realta' valori hardcoded (algoritmo genetico che non evolve nulla, commenti "// Mock value" nel sorgente). Aggiunto un banner esplicito nel pannello ("Valori dimostrativi... non usarli per decisioni operative") come mitigazione immediata; il motore stesso resta non implementato, la chiusura reale e' ancora M14/O34-O37.
 - **Scoperta 25/07/2026, durante il ripristino UI di pianificazione ambientale (vedi spec `docs/superpowers/specs/2026-07-25-environmental-planning-restoration-design.md`):** l'utente ha chiesto se l'onboarding fosse pensato per alimentare un orchestratore/predittore con tutti i parametri raccolti (sole, suolo, altitudine, ostacoli) proprio per tenere conto delle condizioni che influenzano resa e andamento generale dell'orto. Verificato: **`services/agronomicPredictionPipelineService.ts` e' vivo** (`/app/ai-predictions`, flag `AI_PREDICTIONS: true` in `config/features.ts`, non piu' `false` come registrato in una nota di memoria precedente — verificare sempre lo stato corrente, non fidarsi di note vecchie) e produce 3 predizioni reali (rischio malattie, resa attesa, ottimizzazione risorse idriche) usando pH/sostanza organica del suolo, meteo persistito e punteggio salute pianta. **Ma non usa affatto altitudine, esposizione solare/classificazione solare o ostacoli** — zero riferimenti in tutto il file — nonostante questi dati siano raccolti in onboarding (`AdvancedSunExposureWizard.tsx`, live) e nonostante esista gia' una logica molto piu' precisa per finestre di raccolto per-archetipo basata su questi fattori (`services/plantingWindowOptimizer.ts`, nel cluster orfano di cui sopra, mai collegata). La finestra di raccolto nella pipeline live e' una costante fissa `harvestDays = 60` per qualunque pianta. Non esiste inoltre una metrica di "andamento generale dell'orto": la pipeline produce solo le 3 predizioni separate, nessuna traiettoria di salute complessiva unificata. **Nessuna azione presa, gap registrato su richiesta esplicita dell'utente** ("registralo come gap separato, non ora") — estendere questa pipeline tocca un sistema in produzione con cron e dati persistiti (`persistPredictionBundle`, versionato `PREDICTION_MODEL_VERSION`/`PREDICTION_RULE_VERSION`), e decidere COME l'altitudine/sole/ostacoli dovrebbero pesare sulla resa e sull'andamento e' una decisione agronomica, non solo di wiring — richiede una sessione di design dedicata (brainstorming), non un fix rapido.
+- **Aggiornamento (31/07/2026, chiusura parziale del gap — solo altitudine):** la porzione altitudine di questo gap e' chiusa. `services/agronomicPredictionPipelineService.ts::buildYieldPredictions` estende ora `harvestDays` usando `utils/altitudeUtils.ts::calculateAltitudeDelay` (la regola gia' esistente e gia' validata "5 giorni ogni 100m", prima usata solo per il ritardo della data di semina), alimentata da un nuovo campo `CanonicalPredictionInput.altitudeMeters` popolato dalla colonna reale `gardens.altitude_meters` (campo di input utente genuino da `GardenOnboarding.tsx`, verificato non fantasma/non popolato prima di implementare). Esposizione solare e ostacoli restano non usati dal motore predittivo — questa chiusura era circoscritta alla sola altitudine, su decisione esplicita dell'utente; questi due gap e le regole fisse di predizione malattie restano aperti, non toccati da questo cambio.
 
 ### M15 - Lifecycle commerciale e ruoli
 
@@ -3041,6 +3042,29 @@ non cambia i criteri di uscita gia' definiti per ciascun milestone (§2),
 cambia solo quale sotto-insieme del piano viene lavorato adesso: la coda
 eseguibile senza soggetti esterni (T01, censimento M05, O48) resta la
 priorita' concreta.
+
+### `logic/annualPlannerEngine.ts`: gap parametro mai valorizzato (chiuso 31/07/2026)
+
+**Nota**: la scoperta originale di questo gap (`logic/director.ts` importa
+`generateAnnualPlan`/`AnnualPlan`/`suggestSuccessions` da
+`logic/annualPlannerEngine.ts` solo per un parametro opzionale `annualPlan?`
+in `getDailyGardenPlan`, mai valorizzato da alcun chiamante nel codebase,
+rendendo la relativa `suggestSuccessions` gia' morta in pratica) e' stata
+registrata durante la sessione di censimento M05 del 31/07/2026 su un altro
+branch (commit `a3173ac`, non ancora un antenato di questo worktree al
+momento della chiusura). **Aggiornamento (31/07/2026, chiusura gap)**: il
+gap e' chiuso. `generateAnnualPlan` ora costruisce le semine a partire da
+finestre di impianto reali (`services/plantingWindowOptimizer.ts::findPlantingWindows`,
+lo stesso motore gia' vivo per i suggerimenti di esposizione solare) invece
+di dati inventati. `HomeDashboard.tsx` ora recupera quelle finestre e passa
+un `AnnualPlan` reale al quarto argomento di `getDailyGardenPlan`, prima
+sempre `undefined`. `suggestSuccessions` ora consiglia piante coerenti con
+la stagione invece di voci arbitrarie del catalogo. `logic/director.ts` non
+e' stato modificato. `components/professional/ProfessionalDashboard.tsx`
+(l'altro chiamante vivo) e' stato lasciato intenzionalmente invariato e
+potrebbe ricevere lo stesso collegamento in una sessione futura.
+`AnnualPlan.rotations`/`.projections` e `QuarterPlan.harvests`/`.maintenance`
+restano non popolati, perche' non hanno alcun consumer vivo.
 
 ## 8. Deploy in produzione 24/07/2026 (decisione esplicita, gate O06 non soddisfatto)
 
