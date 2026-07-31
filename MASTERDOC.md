@@ -1,9 +1,9 @@
 # OrtoMio — Masterdoc canonico
 
-- **Versione:** 3.1 release candidate P0-P8 + correzioni 21-22/07
-- **Ultimo aggiornamento:** 2026-07-22
+- **Versione:** 3.2 release candidate P0-P8 + correzioni 21-22/07 + campagna T01/censimento M05 (25-30/07)
+- **Ultimo aggiornamento:** 2026-07-30
 - **Repository canonico:** `/Volumes/990P/ortomio-main`
-- **Baseline verificata:** `main` = `c7ab657` (22 luglio 2026, pomeriggio) — antenato diretto della catena P0-P9 di questo documento, nessuna divergenza
+- **Baseline verificata:** `main`, dopo il merge delle PR #137-#155 (30 luglio 2026) — campagna lint T01 completata (2.642 → 894 warning) e censimento codice morto M05 chiuso su 9 cluster (dettaglio in sezione 0 e nel piano esecutivo)
 - **Documento sorgente confrontato:** `/Users/magma/Desktop/MASTERDOC_16Luglio-2026.md`
 - **SHA-256 del sorgente:** `4e03edb1134179be16ebb2a5393bbbdba27632ba06a600d49e685bc7a5bd18d0`
 - **Stato:** documento unico canonico di prodotto, architettura e maturita; rollout remoto differito
@@ -44,6 +44,20 @@ Nessun comando fisico, provider remoto o capability critica e stato attivato. Le
 - `intelligentNotificationService.ts`: l'invio notifiche costruiva l'oggetto per la funzione di invio reale ma non la chiamava mai, marcando comunque un falso "inviato con successo".
 
 Nessuna di queste correzioni ha cambiato lo stato `deployReady`/`maturity` di alcuna capability — sono bug fix, non promozioni. Vedi sezione 28 per il registro di maturita reale.
+
+**Campagna T01 (debito lint) e censimento M05 (codice morto), 25-30 luglio 2026** — dettaglio completo, cronaca lotto per lotto e PR in `docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`:
+
+- **T01:** 2.642 → 894 warning lint in 80 lotti, zero warning release-blocking. Diversi gap funzionali reali trovati durante la pulizia (non mascherati come lint) restano registrati e non tutti risolti: es. `plantingWindowOptimizer.ts` ignora dati meteo storici realmente passati, `transformCoordinates` dichiara UTM ma esporta WGS84 non trasformato.
+- **Censimento M05 codice morto:** 69 file/36.513 righe mappati in 9 cluster con BFS statica (non per inferenza dal nome). Cluster "AI Planner" (~6.375 righe) lasciato intatto per decisione esplicita — chiama davvero un LLM ma scarta la risposta, nessun utente reale ci arriva. Gli altri 8 cluster sono stati chiusi: alcuni rimossi (Vigneto/Frutteto legacy, Professional Dashboard legacy, monitoraggio continuo, trattamenti duplicati — 3 componenti diversi chiamati tutti `TreatmentPlanner`, solo uno vivo —, tracker piante generici, buona parte del cluster "standalone" incluso il vecchio `Dashboard.tsx` root), altri ricollegati/riscritti perche' avevano un gap reale senza sostituto piu' aggiornato:
+  - **GlobalGap compliance**: i form autovalutazione/piano rischi/procedura richiamo esistevano gia' completi e persistenti, ma la dashboard apriva un download di testo statico al loro posto — ora collegati con un modal in `/app/certifications`. `complianceAIService.ts` chiamava davvero Gemini ma scartava sempre la risposta restituendo un oggetto fisso — riscritto con schema JSON reale e parsing vero, collegato come bozza AI opzionale nei tre form.
+  - **Oliveto**: maturazione olive e monitoraggio mosca olearia (Indice di Jaen, trappole, soglie di intervento) erano UI locali con dati finti hardcoded nonostante esistesse gia' una migrazione reale (`olive_maturity_tracking`, `olive_fly_traps`, `olive_fly_monitoring`) mai consumata da alcun service — scritto il service e ricollegato con persistenza vera in `/app/olives`.
+  - **Tab Filari**: estratta da `app/app/orchard/page.tsx` (era locale, non esportata) in `components/orchard/OrchardRowsView.tsx` e collegata anche all'Oliveto (stessi tipi del Frutteto, riuso diretto). Per il Vigneto e' stato scritto un `VineyardRowsView.tsx` adattato (tipi vite diversi da albero); manca il profilo irriguo standard a livello vigneto (richiede una migrazione, non fatto).
+  - **Bug trasversale trovato durante l'analisi di parita' Vigneto/Oliveto vs Frutteto**: ne' `/app/irrigation` ne' `/app/nutrition` avevano un selettore di orto — bloccavano l'accesso a irrigazione/trattamenti per qualunque orto non fosse il primo della lista, indipendentemente dalla coltura. Corretto.
+  - **Analisi suolo**: `soilAnalysisService.ts` (tabella `soil_analysis`) era gia' consumato da servizi reali (`advancedNutritionService`, `advancedIrrigationService`, `fertilizationCalculator`, `dataIntegrationService`) ma non esisteva alcuna UI per inserirla — aggiunto un bottone "Analisi Suolo" per zona in `/app/garden/zones`.
+  - **Proiezioni economiche del planner**: `AnnualPlanner.tsx` calcolava rese/costi/break-even con numeri interamente fissi (1 kg/pianta, 5€/kg, 100€ costi, sempre 1° aprile). Invece di montarli cosi', in `ClassicPlannerWithRotation.tsx` e' stata aggiunta una sezione "Rendimento reale delle colture pianificate" basata sui raccolti storici realmente registrati (`getHarvestLogs` + `estimateHarvestOperationEconomics`, prezzi da `data/marketPrices.ts`), con "dati insufficienti" esplicito quando non ci sono raccolti storici.
+  - **`HomeDashboard.tsx`**: il timer irrigazione persistito e le raccomandazioni fertilizzanti da scorte reali del vecchio `Dashboard.tsx` non avevano equivalente nel dashboard vivo. Portate in `TaskCard.tsx` (log irrigazione misurato via `WateringLogForm.tsx` al completamento di un task) e in `FertilizerApplicationModal.tsx` (suggerimento prodotto ora preferisce cio' che e' realmente in scorta, non piu' solo il catalogo generico).
+
+Nessuna di queste chiusure cambia lo stato `deployReady`; sono correzioni/collegamenti locali, non promozioni di maturita'. Restano aperti e non affrontati: `logic/annualPlannerEngine.ts` (importato ancora da `director.ts` per un parametro mai valorizzato da nessun chiamante), profilo irriguo standard per `VineyardConfiguration`, motore predittivo M14 (altitudine/sole/ostacoli mai usati, finestra raccolta fissa a 60 giorni per qualunque coltura), verifica che la migrazione olive sia davvero applicata in produzione.
 
 La regola di lettura e semplice: quando il documento dice che una funzione "calcola", deve spiegare almeno:
 
@@ -870,6 +884,10 @@ Il servizio importa:
 
 Quindi nutrizione e qualita non sono solo registrazioni: possono contribuire a migliorare le soglie decisionali.
 
+### 12.5 Analisi suolo (collegata il 30/07/2026)
+
+`soilAnalysisService.ts` (tabella `soil_analysis`) e' consumato da `advancedNutritionService`, `advancedIrrigationService`, `fertilizationCalculator` e `dataIntegrationService`, ma fino al 30/07/2026 non esisteva alcuna interfaccia per inserire un'analisi: i consumer si aspettavano dati che nessuno poteva scrivere. Il form (`SoilAnalysisForm.tsx`, macro/micro-nutrienti, pH, materia organica, CEC, texture, trend nel tempo) e' ora raggiungibile da `/app/garden/zones`, per zona.
+
 ## 13. Mappe di prescrizione
 
 Il servizio `prescriptionMapsService.ts` e il motore delle mappe di precision farming.
@@ -1052,6 +1070,16 @@ Controlli:
 - ultima ispezione: +5;
 - prossima ispezione: +5.
 
+### 15.3 GlobalG.A.P. IFA V5.2 (collegato il 30/07/2026)
+
+`GlobalGapDashboard.tsx` (in `/app/certifications`) mostra un punteggio di conformita' calcolato da `globalGapComplianceService.ts` sui requisiti maggiori tracciati (piano gestione rischi, autocontrollo annuale, responsabile salute/sicurezza, procedura ritiro prodotti, codice GGN). Per i tre requisiti con form dedicato, la tab "Requisiti" apre ora il form vero (persistito, non un download di template statico):
+
+- **AF1.2.2 — Piano gestione rischi** (`RiskManagementPlan.tsx`): rischi identificati per categoria/gravita'/probabilita', procedure di controllo, monitoraggio.
+- **AF2.2 — Autocontrollo annuale** (`SelfAssessmentForm.tsx`): checklist punti di controllo con azioni correttive per le non conformita'.
+- **AF9.1 — Procedura ritiro prodotti** (`RecallProcedure.tsx`): eventi scatenanti, responsabili decisionali, timeline di escalation, simulazione test annuale.
+
+Un assistente AI opzionale (`complianceAIService.ts`) puo' generare una bozza iniziale per piano rischi e procedura ritiro a partire da tipo di coltura e localizzazione — usa uno schema JSON reale e non inventa contatti/date, che restano da compilare manualmente. Readiness interna: non sostituisce un audit di certificazione ufficiale.
+
 ## 16. GDD e fenologia
 
 Il Director espone `gdd_base_10`, cioe Growing Degree Days con base 10 gradi.
@@ -1166,6 +1194,14 @@ Esempio:
 - portinnesti tolleranti alla siccita possono modificare la priorita acqua;
 - sistemi di qualita come Guyot o alberello possono modificare la priorita qualita;
 - sistemi ad alta resa possono abbassare leggermente alcune priorita qualita.
+
+### 20.1 Filari e impianto irriguo (aggiornato 30/07/2026)
+
+Il Frutteto ha una tab "Filari" dedicata (raggruppamento per fila, allineamento filari legacy, configurazione dell'impianto irriguo per singolo filare con stima erogatori/portata). E' stata estesa all'Oliveto (stesso modello dati albero/filare del Frutteto, riuso diretto) e al Vigneto (adattata per la vite, tipo dati diverso). Manca ancora, solo per il Vigneto, un profilo irriguo "standard" a livello impianto come quello gia' presente sul Frutteto (`VineyardConfiguration` non ha un campo equivalente a `OrchardConfiguration.irrigationDefaults`; richiederebbe una migrazione).
+
+### 20.2 Oliveto: maturazione e mosca olearia (persistenza reale dal 30/07/2026)
+
+L'Oliveto ha due viste dedicate — Maturazione (Indice di Jaen, invaiatura, raccomandazione di raccolta) e Mosca Olearia (catture per trappola, soglie di intervento, azione raccomandata) — che ora leggono e scrivono su tabelle reali (`olive_maturity_tracking`, `olive_fly_traps`, `olive_fly_monitoring`) invece di uno stato locale non persistito. **Verifica ancora aperta**: la migrazione che crea queste tabelle non risulta confermata applicata sul progetto Supabase di produzione — da verificare prima di considerare la funzione operativa in produzione.
 
 ## 21. NDVI, satellitare e dati avanzati
 
