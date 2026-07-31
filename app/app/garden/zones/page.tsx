@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
-import { ArrowLeft, Plus, Trash2, TrendingUp, History, Leaf, X } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, TrendingUp, History, Leaf, FlaskConical, X } from 'lucide-react'
 import Link from 'next/link'
 import {
   getLandZones,
@@ -22,6 +22,7 @@ import {
   type ZoneHistoryEntry,
 } from '@/services/landZoneService'
 import type { LandZoneInput } from '@/lib/land-zones'
+import { SoilAnalysisForm } from '@/components/soilAnalysis/SoilAnalysisForm'
 
 const EMPTY_ZONE_FORM: LandZoneInput = {
   zoneName: '',
@@ -52,6 +53,7 @@ export default function LandZonesPage() {
   const [zoneHistory, setZoneHistory] = useState<ZoneHistoryEntry[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [selectedZoneForSoilAnalysis, setSelectedZoneForSoilAnalysis] = useState<string | null>(null)
   
   // Zone stats cache
   const [zoneStats, setZoneStats] = useState<Map<string, ZoneStats>>(new Map())
@@ -444,7 +446,7 @@ export default function LandZonesPage() {
                     )}
 
                     {/* Actions */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                       <button
                         onClick={() => handleToggleStatus(zone.id)}
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -462,6 +464,14 @@ export default function LandZonesPage() {
                       >
                         <History size={16} />
                         Storico
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedZoneForSoilAnalysis(zone.id)}
+                        className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium flex items-center justify-center gap-2"
+                      >
+                        <FlaskConical size={16} />
+                        Analisi Suolo
                       </button>
 
                       <Link
@@ -570,6 +580,40 @@ export default function LandZonesPage() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {selectedZoneForSoilAnalysis && selectedGarden && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="presentation">
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="zone-soil-analysis-title"
+          >
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 id="zone-soil-analysis-title" className="text-2xl font-bold text-gray-900">
+                  Analisi suolo
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {zones.find((zone) => zone.id === selectedZoneForSoilAnalysis)?.zone_name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedZoneForSoilAnalysis(null)}
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                aria-label="Chiudi analisi suolo"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <SoilAnalysisForm
+              gardenId={selectedGarden.id}
+              zoneId={selectedZoneForSoilAnalysis}
+            />
           </div>
         </div>
       )}

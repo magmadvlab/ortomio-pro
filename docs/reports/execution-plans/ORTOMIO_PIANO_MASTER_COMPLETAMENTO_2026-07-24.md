@@ -2697,11 +2697,124 @@ in 9 cluster con raccomandazione, presentati come artifact
     diretta.** Verificato: `tsc --noEmit` pulito, `next build` verde,
     `test:release` 229/229.
 
-**Cluster "standalone" (mai dettagliato con file specifici in questa
-sessione, circa 5.898 righe stimate residue) resta da approfondire**, su
-richiesta esplicita dell'utente di un'analisi piu' approfondita prima di
-decidere se ricollegare o rimuovere, non ancora affrontata in questa
-sessione.
+### Cluster "standalone" — mappato e in gran parte chiuso (30/07/2026)
+
+Mappato con BFS reale incrociando il registro storico O45 mai chiuso nel
+piano master: 20 file, ~10.200 righe. Su richiesta esplicita dell'utente
+("se sono scollegati devono essere collegati e funzionanti a meno che
+esistano componenti piu' aggiornati che facciano la stessa cosa"), ogni
+file e' stato verificato per supersessione prima di decidere, non
+rimosso a priori.
+
+**Confermati superati da un sostituto piu' aggiornato — rimossi:**
+`components/irrigation/WateringLogFormWithFieldRows.tsx` (il
+`WateringLogForm.tsx` vivo supporta gia' `fieldRowId`),
+`components/prescription/PrescriptionMapsDashboard_Mobile.tsx` (il
+dashboard vivo e' gia' responsive), `components/plants/FieldPlantManager.tsx`
+(+ un `.tsx.backup` accanto, superato da `SmartPlantManager.tsx`, vivo
+ovunque e piu' capace), `components/irrigation/IrrigationZoneWizard.tsx`
+(superato da `IrrigationSystemWizard.tsx`, vivo e multi-coltura),
+`components/ai/CollaborativeAIDashboard.tsx` + `AISuggestionCard.tsx`
+(il servizio sottostante `collaborativeAIService.ts` e' vivissimo, ma
+oggi alimenta widget per dominio gia' vivi — `AISuggestionsWidget`,
+`IrrigationAISuggestionsWidget`, `NutritionAISuggestionsWidget`,
+`PlannerAISuggestions` — invece di una dashboard unica),
+`components/memory/ZoneMemoryView.tsx` (la vera "storia zona" e' gia'
+viva in `/app/garden/zones` via RPC `get_zone_history`),
+`components/garden/GardenView.tsx` (gia' stabilito superato in questa
+sessione, solo la tab Pianificazione era nuova ed e' gia' stata
+estratta), catena `services/productCardService.ts` ->
+`services/integratedTreatmentService.ts` + `components/ProductCardView.tsx`
+(morta, il fondo gia' rimosso in PR #152 — **nota**: `services/aiProxyService.ts`,
+inizialmente incluso per errore in questa rimozione, e' stato
+ripristinato: ha un secondo consumer reale, `aiPlanningService.ts`,
+parte del cluster AI Planner intoccato, e `components/ai/AIActionButton.tsx`),
+`services/dominanceIntegrationService.ts` (aggregatore "metriche di
+dominanza" mai collegato a nessuna UI, nessuna evidenza che serva),
+`components/garden/ListView.tsx` (vecchia vista task, stessa superficie
+di `PlantsView.tsx` gia' vivo), `components/shared/HomeDashboard.tsx.backup`
+(file di backup dimenticato). Aggiornato anche `__tests__/capabilities/gardenZoneNavigation.test.ts`,
+rimuovendo il test che verificava solo il sorgente di `GardenView.tsx`
+(ora inesistente) e mantenendo l'altro test, reale e indipendente, sullo
+storico zona. Verificato: `tsc --noEmit` pulito, `next build` verde,
+`test:release` 229/229, `test:capabilities` 30/30.
+
+**Gap reale risolto, non solo wiring — `components/soilAnalysis/SoilAnalysisForm.tsx`:**
+il servizio sottostante (`soilAnalysisService.ts`, tabella `soil_analysis`)
+e' vivo e consumato da servizi reali (`advancedNutritionService.ts`,
+`advancedIrrigationService.ts`, `fertilizationCalculator.ts`,
+`dataIntegrationService.ts`), ma non esisteva alcuna UI per inserire
+un'analisi suolo — i consumer si aspettavano dati che nessuno poteva mai
+scrivere. Collegato in `app/app/garden/zones/page.tsx` con un nuovo
+bottone "Analisi Suolo" per zona che apre un modal con `SoilAnalysisForm`
+(props `gardenId`/`zoneId`; il prop opzionale `zone` non passato perche'
+il tipo `GardenZone` di `zoneMappingService.ts` non e' compatibile con
+`LandZone` di questa pagina — perdita puramente cosmetica, il form
+funziona identico senza).
+
+**Gap reale risolto — `components/AnnualPlanner.tsx` (391 righe, superato
+da `ClassicPlannerWithRotation.tsx` per la parte rotazione), ma con le
+proiezioni di costo/resa da salvare.** Verificato che `calculateProjections`
+in `logic/annualPlannerEngine.ts` produceva numeri interamente inventati
+(`yieldPerPlant = 1` fisso per qualunque specie, `avgPricePerKg = 5`
+fisso per qualunque coltura, `initialCosts = 100` fisso, `breakEvenDate`
+sempre 1° aprile o assente) — stesso pattern gia' corretto tre volte in
+questa sessione. **Decisione esplicita dell'utente: rendere reali i
+numeri, poi montarli**, non riusare quelli finti. Trovato che il campo
+`expectedYield` sui master sheet piante (`types.ts`) esiste nel tipo ma
+non e' popolato da nessuna pianta nel dataset reale (`data/plantMasterSheets.ts`
+e affini, 0 occorrenze) — nessuna resa specie-specifica affidabile
+disponibile. Trovato invece `data/marketPrices.ts`, un dataset reale
+popolato di prezzi €/kg per specie e stagione, e
+`services/agronomicOperationalEconomicsService.ts::estimateHarvestOperationEconomics`,
+gia' vivo altrove, che calcola il valore economico di un raccolto da
+`HarvestLogData.marketValue`/`costPerKg` (reali, inseriti in
+`QuickHarvestForm.tsx`) con fallback al prezzo di mercato reale per
+stagione. **Riformulazione onesta**: invece di proiettare in avanti
+(richiederebbe assunzioni su rese future non disponibili), la nuova
+sezione "Rendimento reale delle colture pianificate" in
+`ClassicPlannerWithRotation.tsx` mostra il raccolto e valore economico
+**gia' realmente registrati** in questo orto per le colture attualmente
+pianificate, sommando `estimateHarvestOperationEconomics` sui
+`getHarvestLogs` reali filtrati per pianta; se zero raccolti storici per
+quelle colture, mostra esplicitamente "Dati insufficienti" invece di un
+numero inventato; se copertura parziale, dichiara quante colture su
+quante hanno dati. Esportata `convertHarvestQuantityToKg` da
+`agronomicOperationalEconomicsService.ts` (era privata) per riuso.
+`AnnualPlanner.tsx` rimosso. **Non toccato**: `logic/annualPlannerEngine.ts`
+resta nel repo perche' `logic/director.ts` lo importa ancora
+(`generateAnnualPlan`/`AnnualPlan`/`suggestSuccessions` per un parametro
+opzionale `annualPlan?` in `getDailyGardenPlan`) — verificato che nessun
+chiamante nel codebase valorizza mai quel parametro, quindi la relativa
+`suggestSuccessions` in `director.ts` e' gia' morta in pratica, ma
+modificare la firma di una funzione core cosi' centrale non e' stato
+fatto in questa sessione per rischio/portata sproporzionati rispetto al
+resto del lavoro; registrato qui come gap noto non affrontato.
+Verificato: `tsc --noEmit` pulito, `next build` verde, `test:release`
+229/229.
+
+**Gap reale identificato, non ancora affrontato — `components/Dashboard.tsx`
+(1.652 righe, il vecchio dashboard root, zero importer: `/app/dashboard`
+monta in realta' `HomeDashboardSimple.tsx`, un componente diverso).** Il
+successore vivo `HomeDashboard.tsx` (montato da `app/app/page.tsx`, 1.334
+righe) e' piu' ricco su molti fronti (allerte meteo, gestione colture
+specializzate) ma **non ha alcuna traccia** di due funzionalita' reali e
+gia' testate presenti nel vecchio Dashboard: timer irrigazione persistito
+con completamento (`startWateringTimer`/`handleMarkWateringDone`) e
+raccomandazioni fertilizzanti basate su scorte reali
+(`getFertilizerInventory(activeGardenId)`, filtro `item.quantity > 0`).
+`__tests__/persistence/dashboardOperationalActions.test.ts` verifica
+ancora oggi queste 2 funzionalita' leggendo il sorgente di
+`Dashboard.tsx` — passano, ma testano codice che nessuna route monta piu'.
+Su istruzione esplicita dell'utente ("se sono scollegati devono essere
+ricollegati e funzionanti, a meno che esistano componenti piu' aggiornati
+che facciano la stessa cosa"), questo va portato dentro `HomeDashboard.tsx`
+(non ricollegato come pagina duplicata, per non ricreare il problema gia'
+visto con `GardenView.tsx`), poi `Dashboard.tsx` e i suoi due unici
+dipendenti (`components/sunExposure/SunExposureWidget.tsx`,
+`components/sunExposure/SunExposureDetailModal.tsx`, entrambi vivi solo
+tramite `Dashboard.tsx`) vanno rimossi insieme al test aggiornato per
+puntare a `HomeDashboard.tsx`. **Non ancora fatto in questa sessione.**
 
 ### Bug di navigazione trasversale scoperto durante l'analisi "parita' Vigneto/Oliveto vs Frutteto" (30/07/2026)
 

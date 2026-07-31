@@ -10,17 +10,29 @@ import {
   CheckCircle,
   Leaf,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Euro
 } from 'lucide-react'
 import { useGarden } from '@/packages/core/hooks/useGarden'
+import { useStorage } from '@/packages/core/hooks/useStorage'
 import { classicPlannerService, PlantingPlan, PlantingSuggestion } from '@/services/classicPlannerService'
 import LocationSelector from '@/components/shared/LocationSelector'
+import { estimateHarvestOperationEconomics, convertHarvestQuantityToKg } from '@/services/agronomicOperationalEconomicsService'
+
+interface CropEconomicsSummary {
+  totalYieldKg: number
+  totalValueEur: number
+  coverage: { withData: number; total: number }
+}
 
 export default function ClassicPlannerWithRotation() {
   const { activeGarden } = useGarden()
+  const { storageProvider } = useStorage()
   const [loading, setLoading] = useState(false)
   const [plans, setPlans] = useState<PlantingPlan[]>([])
   const [suggestions, setSuggestions] = useState<PlantingSuggestion[]>([])
+  const [cropEconomics, setCropEconomics] = useState<CropEconomicsSummary | null>(null)
+  const [loadingEconomics, setLoadingEconomics] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{
     gardenId?: string
@@ -76,6 +88,56 @@ export default function ClassicPlannerWithRotation() {
       loadPlans()
     }
   }, [activeGarden, filterStatus, loadPlans])
+
+  useEffect(() => {
+    if (!activeGarden || plans.length === 0) {
+      setCropEconomics(null)
+      return
+    }
+
+    let cancelled = false
+    const loadCropEconomics = async () => {
+      try {
+        setLoadingEconomics(true)
+        const plannedPlantNames = new Set(plans.map(plan => plan.plantName.toUpperCase()))
+        const harvestLogs = await storageProvider.getHarvestLogs(activeGarden.id)
+        const relevantHarvests = harvestLogs.filter(
+          harvest => harvest.plantName && plannedPlantNames.has(harvest.plantName.toUpperCase())
+        )
+
+        let totalYieldKg = 0
+        let totalValueEur = 0
+        const plantsWithData = new Set<string>()
+
+        for (const harvest of relevantHarvests) {
+          const kg = convertHarvestQuantityToKg(harvest.quantity, harvest.unit)
+          if (kg === null) continue
+          totalYieldKg += kg
+          const economics = estimateHarvestOperationEconomics(harvest)
+          totalValueEur += economics.economicValue ?? 0
+          if (harvest.plantName) plantsWithData.add(harvest.plantName.toUpperCase())
+        }
+
+        if (!cancelled) {
+          setCropEconomics({
+            totalYieldKg: Math.round(totalYieldKg * 10) / 10,
+            totalValueEur: Math.round(totalValueEur),
+            coverage: { withData: plantsWithData.size, total: plannedPlantNames.size }
+          })
+        }
+      } catch (error) {
+        console.error('Error loading crop economics:', error)
+        if (!cancelled) setCropEconomics(null)
+      } finally {
+        if (!cancelled) setLoadingEconomics(false)
+      }
+    }
+
+    void loadCropEconomics()
+    return () => {
+      cancelled = true
+    }
+  }, [activeGarden, plans, storageProvider])
 
   useEffect(() => {
     if (selectedLocation.fieldRowId) {
@@ -221,6 +283,45 @@ export default function ClassicPlannerWithRotation() {
           </div>
         </div>
       </div>
+
+      {/* Crop Economics (based on real logged harvests for the planned crops, not a forecast) */}
+      {plans.length > 0 && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border-2 border-green-200">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-3 mb-3">
+            <Euro size={20} className="text-green-600" />
+            Rendimento reale delle colture pianificate
+          </h2>
+          {loadingEconomics ? (
+            <p className="text-sm text-gray-600">Calcolo in corso...</p>
+          ) : !cropEconomics || cropEconomics.coverage.withData === 0 ? (
+            <p className="text-sm text-gray-600">
+              Dati insufficienti: nessun raccolto storico registrato in questo orto per le colture pianificate.
+              Il rendimento apparirà qui non appena verranno registrati i primi raccolti reali.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg border border-green-100">
+                  <p className="text-xs text-gray-600 mb-1">Raccolto storico totale</p>
+                  <p className="text-2xl font-bold text-green-700">{cropEconomics.totalYieldKg} kg</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-green-100">
+                  <p className="text-xs text-gray-600 mb-1">Valore economico stimato</p>
+                  <p className="text-2xl font-bold text-green-700">{cropEconomics.totalValueEur} €</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-600 mt-3">
+                Basato sui raccolti reali gia' registrati in questo orto per{' '}
+                {cropEconomics.coverage.withData} su {cropEconomics.coverage.total} colture pianificate
+                {cropEconomics.coverage.withData < cropEconomics.coverage.total
+                  ? ' — le colture senza raccolti storici non sono incluse nel totale'
+                  : ''}
+                . Non e' una previsione: riflette solo ciò che e' stato effettivamente raccolto e registrato.
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-4">

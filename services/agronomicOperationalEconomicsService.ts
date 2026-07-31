@@ -171,7 +171,7 @@ const inferMinutesFromArea = (
   return Math.max(15, (areaSqm / sqmPerHour) * 60)
 }
 
-const convertHarvestQuantityToKg = (
+export const convertHarvestQuantityToKg = (
   quantity: number,
   unit: HarvestLogData['unit']
 ): number | null => {
