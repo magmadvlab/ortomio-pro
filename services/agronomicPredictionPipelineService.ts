@@ -12,7 +12,7 @@ import type {
 import { calculateAltitudeDelay } from '@/utils/altitudeUtils'
 
 export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v2'
-export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-17'
+export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-31-altitude'
 
 export type CanonicalPredictionInput = {
   gardenId: string
