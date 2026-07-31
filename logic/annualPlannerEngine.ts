@@ -173,6 +173,16 @@ const generateQuarterPlan = (
     }
   }
 
+  const seen = new Set<string>();
+  const dedupedPlantings = plantings.filter(p => {
+    const key = `${p.plantName}|${p.month}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  plantings.length = 0;
+  plantings.push(...dedupedPlantings);
+
   return {
     season,
     plantings,

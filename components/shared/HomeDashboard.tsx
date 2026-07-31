@@ -406,8 +406,9 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
   const planLoadTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    setPlantingWindows(null)
+
     if (!activeGarden?.coordinates) {
-      setPlantingWindows(null)
       return
     }
 
@@ -422,8 +423,8 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
   }, [activeGarden?.id, activeGarden?.coordinates])
 
   const annualPlan: AnnualPlan | undefined = React.useMemo(() => {
-    if (!activeGarden) return undefined
-    return generateAnnualPlan(activeGarden, undefined, plantingWindows || undefined)
+    if (!activeGarden || !plantingWindows || plantingWindows.length === 0) return undefined
+    return generateAnnualPlan(activeGarden, undefined, plantingWindows)
   }, [activeGarden, plantingWindows])
 
   useEffect(() => {
