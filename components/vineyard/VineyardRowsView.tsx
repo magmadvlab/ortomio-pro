@@ -20,16 +20,13 @@ import {
 // ============================================================================
 // VINEYARD ROWS VIEW - Gestione Filari del Vigneto
 // Adattamento di components/orchard/OrchardRowsView.tsx per VineyardVine/
-// VineyardConfiguration. VineyardConfiguration non ha un campo
-// irrigationDefaults (a differenza di OrchardConfiguration): il profilo
-// standard "nuovi impianti" a livello vigneto non e' disponibile qui, resta
-// solo la configurazione per singolo filare (FieldRow.irrigationLine, gia'
-// generico e condiviso).
+// VineyardConfiguration.
 // ============================================================================
 interface VineyardRowsViewProps {
   vineyard: VineyardConfiguration
   vineyardId: string
   gardenId: string
+  onVineyardUpdate: (vineyard: VineyardConfiguration) => void
   onNavigateToVine: () => void
   onSelectVine: (vineId: string) => void
 }
@@ -44,7 +41,7 @@ const FIELD_ROW_ORDERING_OPTIONS: Array<{ value: FieldRowOrdering; label: string
   { value: 'south_to_north', label: 'Sud -> Nord' },
 ]
 
-export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNavigateToVine, onSelectVine }: VineyardRowsViewProps) {
+export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onVineyardUpdate, onNavigateToVine, onSelectVine }: VineyardRowsViewProps) {
   const { storageProvider } = useStorage()
   const [vines, setVines] = useState<VineyardVine[]>([])
   const [fieldRows, setFieldRows] = useState<FieldRow[]>([])
@@ -69,6 +66,14 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNav
     emitterSpacingCm: '30',
     emitterFlowRateLph: '2',
   })
+  const [vineyardDefaultsForm, setVineyardDefaultsForm] = useState({
+    lineType: vineyard.irrigationDefaults?.lineType || 'Dripline' as IrrigationLineType,
+    pipeDiameterMm: String(vineyard.irrigationDefaults?.pipeDiameterMm || 16),
+    emitterSpacingCm: String(vineyard.irrigationDefaults?.emitterSpacingCm || 30),
+    emitterFlowRateLph: String(vineyard.irrigationDefaults?.emitterFlowRateLph || 2),
+  })
+  const [vineyardDefaultsSaving, setVineyardDefaultsSaving] = useState(false)
+  const [applyDefaultsLoading, setApplyDefaultsLoading] = useState(false)
 
   const loadVines = useCallback(async () => {
     try {
@@ -296,6 +301,10 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNav
     }))
     .sort((a, b) => a.rowNumber - b.rowNumber)
 
+  const realRowsWithoutIrrigation = sortedRows.filter(({ row, isRealFieldRow }) =>
+    Boolean(isRealFieldRow && row && !row.irrigationLine)
+  )
+
   const rowsNeedingAlignment = sortedRows.filter(({ row, vines: rowVines }) =>
     !row || rowVines.some((vine) => !vine.fieldRowId)
   )
@@ -318,6 +327,15 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNav
     return () => window.clearTimeout(timeoutId)
   }, [loading, sortedRows.length])
 
+  useEffect(() => {
+    setVineyardDefaultsForm({
+      lineType: vineyard.irrigationDefaults?.lineType || 'Dripline',
+      pipeDiameterMm: String(vineyard.irrigationDefaults?.pipeDiameterMm || 16),
+      emitterSpacingCm: String(vineyard.irrigationDefaults?.emitterSpacingCm || 30),
+      emitterFlowRateLph: String(vineyard.irrigationDefaults?.emitterFlowRateLph || 2),
+    })
+  }, [vineyard.id, vineyard.irrigationDefaults])
+
   const handleOpenIrrigationModal = (row: FieldRow) => {
     setIrrigationMessage(null)
     setSelectedRowForIrrigation(row)
@@ -328,6 +346,62 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNav
       emitterSpacingCm: String(row.irrigationLine?.emitterSpacingCm || 30),
       emitterFlowRateLph: String(row.irrigationLine?.emitterFlowRateLph || 2),
     })
+  }
+
+  const handleSaveVineyardDefaults = async () => {
+    try {
+      setVineyardDefaultsSaving(true)
+      const updatedVineyard = await vineyardService.updateVineyardConfiguration(vineyard.id, {
+        irrigationDefaults: {
+          lineType: vineyardDefaultsForm.lineType,
+          pipeDiameterMm: parseFloat(vineyardDefaultsForm.pipeDiameterMm) || undefined,
+          emitterSpacingCm: parseFloat(vineyardDefaultsForm.emitterSpacingCm) || undefined,
+          emitterFlowRateLph: parseFloat(vineyardDefaultsForm.emitterFlowRateLph) || undefined,
+        }
+      })
+      onVineyardUpdate(updatedVineyard)
+      setIrrigationMessage(`Default irrigui aggiornati per ${updatedVineyard.name}.`)
+    } catch (error) {
+      console.error('Error updating vineyard irrigation defaults:', error)
+      alert('Errore durante il salvataggio dei default irrigui del vigneto')
+    } finally {
+      setVineyardDefaultsSaving(false)
+    }
+  }
+
+  const handleApplyDefaultsToRows = async () => {
+    if (!storageProvider?.updateFieldRow) {
+      alert('Aggiornamento filari non disponibile')
+      return
+    }
+
+    if (!vineyard.irrigationDefaults) {
+      alert('Salva prima i default irrigui del vigneto')
+      return
+    }
+
+    if (realRowsWithoutIrrigation.length === 0) {
+      alert('Non ci sono filari reali senza irrigazione da aggiornare')
+      return
+    }
+
+    try {
+      setApplyDefaultsLoading(true)
+      await Promise.all(
+        realRowsWithoutIrrigation.map(({ row }) =>
+          storageProvider.updateFieldRow(row!.id, {
+            irrigationLine: vineyard.irrigationDefaults
+          })
+        )
+      )
+      await loadVines()
+      setIrrigationMessage(`Default irrigui applicati a ${realRowsWithoutIrrigation.length} filari non configurati.`)
+    } catch (error) {
+      console.error('Error applying vineyard defaults to field rows:', error)
+      alert('Errore durante l’applicazione dei default irrigui ai filari')
+    } finally {
+      setApplyDefaultsLoading(false)
+    }
   }
 
   const handleSaveIrrigationConfig = async () => {
@@ -627,6 +701,102 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onNav
           {irrigationMessage}
         </div>
       )}
+
+      <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-cyan-900">Profilo standard nuovi impianti</h3>
+            <p className="text-sm text-cyan-800 mt-1">
+              Viene usato solo per nuovi filari, riallineamento legacy e filari ancora senza impianto. Non modifica i filari gia configurati.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleApplyDefaultsToRows}
+              disabled={applyDefaultsLoading || !vineyard.irrigationDefaults || realRowsWithoutIrrigation.length === 0}
+              className="shrink-0 px-4 py-2 bg-white text-cyan-700 border border-cyan-300 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition-colors"
+            >
+              {applyDefaultsLoading ? 'Assegnazione...' : `Assegna a ${realRowsWithoutIrrigation.length} senza impianto`}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveVineyardDefaults}
+              disabled={vineyardDefaultsSaving}
+              className="shrink-0 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 transition-colors"
+            >
+              {vineyardDefaultsSaving ? 'Salvataggio...' : 'Salva Profilo'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-cyan-900 mb-1">Tipo linea</label>
+            <select
+              value={vineyardDefaultsForm.lineType}
+              onChange={(e) => setVineyardDefaultsForm((prev) => ({ ...prev, lineType: e.target.value as IrrigationLineType }))}
+              className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-white"
+            >
+              <option value="Dripline">Goccia a goccia</option>
+              <option value="PipeWithDrippers">Tubo con gocciolatori</option>
+              <option value="MicroSprinkler">Micro-sprinkler</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-cyan-900 mb-1">Diametro linea (mm)</label>
+            <select
+              value={vineyardDefaultsForm.pipeDiameterMm}
+              onChange={(e) => setVineyardDefaultsForm((prev) => ({ ...prev, pipeDiameterMm: e.target.value }))}
+              className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-white"
+            >
+              <option value="12">12 mm</option>
+              <option value="16">16 mm</option>
+              <option value="20">20 mm</option>
+              <option value="25">25 mm</option>
+              <option value="32">32 mm</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-cyan-900 mb-1">Passo erogatori (cm)</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={vineyardDefaultsForm.emitterSpacingCm}
+              onChange={(e) => setVineyardDefaultsForm((prev) => ({ ...prev, emitterSpacingCm: e.target.value }))}
+              className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-cyan-900 mb-1">Portata erogatore (L/h)</label>
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              value={vineyardDefaultsForm.emitterFlowRateLph}
+              onChange={(e) => setVineyardDefaultsForm((prev) => ({ ...prev, emitterFlowRateLph: e.target.value }))}
+              className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-white"
+            />
+          </div>
+        </div>
+
+        <div className="text-xs text-cyan-900 bg-white/80 border border-cyan-200 rounded-lg px-3 py-2">
+          Profilo standard: <strong>{getIrrigationTypeLabel(vineyardDefaultsForm.lineType)}</strong>
+          {vineyardDefaultsForm.emitterSpacingCm ? ` • ${vineyardDefaultsForm.emitterSpacingCm} cm` : ''}
+          {vineyardDefaultsForm.emitterFlowRateLph ? ` • ${vineyardDefaultsForm.emitterFlowRateLph} L/h` : ''}
+          {vineyardDefaultsForm.pipeDiameterMm ? ` • ${vineyardDefaultsForm.pipeDiameterMm} mm` : ''}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-cyan-900">
+          <div className="bg-white/80 border border-cyan-200 rounded-lg px-3 py-2">
+            Filari reali senza impianto: <strong>{realRowsWithoutIrrigation.length}</strong>
+          </div>
+        </div>
+      </div>
 
       {rowsNeedingAlignment.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-4">
