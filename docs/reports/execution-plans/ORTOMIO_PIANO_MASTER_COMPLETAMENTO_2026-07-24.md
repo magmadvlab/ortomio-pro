@@ -2885,6 +2885,29 @@ cambia solo quale sotto-insieme del piano viene lavorato adesso: la coda
 eseguibile senza soggetti esterni (T01, censimento M05, O48) resta la
 priorita' concreta.
 
+### `logic/annualPlannerEngine.ts`: gap parametro mai valorizzato (chiuso 31/07/2026)
+
+**Nota**: la scoperta originale di questo gap (`logic/director.ts` importa
+`generateAnnualPlan`/`AnnualPlan`/`suggestSuccessions` da
+`logic/annualPlannerEngine.ts` solo per un parametro opzionale `annualPlan?`
+in `getDailyGardenPlan`, mai valorizzato da alcun chiamante nel codebase,
+rendendo la relativa `suggestSuccessions` gia' morta in pratica) e' stata
+registrata durante la sessione di censimento M05 del 31/07/2026 su un altro
+branch (commit `a3173ac`, non ancora un antenato di questo worktree al
+momento della chiusura). **Aggiornamento (31/07/2026, chiusura gap)**: il
+gap e' chiuso. `generateAnnualPlan` ora costruisce le semine a partire da
+finestre di impianto reali (`services/plantingWindowOptimizer.ts::findPlantingWindows`,
+lo stesso motore gia' vivo per i suggerimenti di esposizione solare) invece
+di dati inventati. `HomeDashboard.tsx` ora recupera quelle finestre e passa
+un `AnnualPlan` reale al quarto argomento di `getDailyGardenPlan`, prima
+sempre `undefined`. `suggestSuccessions` ora consiglia piante coerenti con
+la stagione invece di voci arbitrarie del catalogo. `logic/director.ts` non
+e' stato modificato. `components/professional/ProfessionalDashboard.tsx`
+(l'altro chiamante vivo) e' stato lasciato intenzionalmente invariato e
+potrebbe ricevere lo stesso collegamento in una sessione futura.
+`AnnualPlan.rotations`/`.projections` e `QuarterPlan.harvests`/`.maintenance`
+restano non popolati, perche' non hanno alcun consumer vivo.
+
 ## 8. Deploy in produzione 24/07/2026 (decisione esplicita, gate O06 non soddisfatto)
 
 Il 24/07/2026, su decisione esplicita dell'utente, il lavoro M01-M09 (branch `agent/completion-roadmap-m01-m09`, commit `2b2afaa`) e' stato portato in produzione senza attendere lo staging previsto da O06:
