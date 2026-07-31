@@ -2808,6 +2808,17 @@ vigneto (richiede migrazione, non affrontato), motore predittivo (gap
 trasversale gia' registrato in M14: altitudine/sole/ostacoli mai usati,
 finestra raccolta fissa a 60 giorni per qualunque coltura).
 
+**Aggiornamento (31/07/2026, chiusura gap)**: il gap e' chiuso.
+`irrigationDefaults` esiste ora sia su `OrchardConfiguration` che su
+`VineyardConfiguration`. Durante l'implementazione e' emerso che mancava
+anche la colonna DB sottostante per entrambe le colture, corretta con la
+migrazione `20260731000000_add_irrigation_defaults_orchard_vineyard.sql`
+(non ancora applicata in produzione — resta un passo manuale separato da
+eseguire via dashboard Supabase, stessa procedura del gate di migrazione
+gia' usato per l'oliveto in questa sessione). La vista filari del vigneto
+(`components/vineyard/VineyardRowsView.tsx`) ha ora lo stesso pannello
+bulk-assign "Profilo standard nuovi impianti" gia' presente nel frutteto.
+
 9. **Cluster "trattamenti duplicati" — rimosso, non ricollegato.**
    Verificato con BFS reale: 3 componenti diversi si chiamano tutti
    `TreatmentPlanner` in 3 cartelle diverse (`nutrition/`, `treatments/`,
