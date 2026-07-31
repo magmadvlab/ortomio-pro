@@ -2681,12 +2681,27 @@ in 9 cluster con raccomandazione, presentati come artifact
    verifica E2E nel browser non eseguita per la limitazione RLS/`.env.local`
    gia' documentata.
 
-**Cluster restanti (tracker piante generici senza sostituto, Olive
-Management Dashboard legacy da rimuovere/quarantenare, trattamenti
-duplicati, standalone — circa 8.286 righe complessive) restano da
-approfondire**, su richiesta esplicita dell'utente di un'analisi piu'
-approfondita prima di decidere se ricollegare o rimuovere, non ancora
-affrontata in questa sessione.
+10. **Tracker piante generici senza sostituto + Olive Management
+    Dashboard legacy — rimossi.** `components/plants/TreatmentTracker.tsx`
+    (368 righe), `components/plants/BrixTracker.tsx` (387 righe),
+    `components/plants/MaturityTracker.tsx` (401 righe),
+    `components/plantTracking/GerminationNotification.tsx` (153 righe,
+    il *servizio* `germinationTracker.ts` resta vivo via il cron
+    `germination-check`, solo il componente notifica non era mai
+    montato) e `components/olives/OliveManagementDashboard.tsx` (577
+    righe, riverificato zero importer dopo il collegamento diretto di
+    `OliveMaturityTracker.tsx`/`OliveFlyMonitor.tsx` a `/app/olives`
+    fatto in questa sessione — quelle due dipendenze restano vive per
+    altra via, solo il Dashboard stesso e' rimosso) confermati ancora
+    zero importer da qualunque route. **Decisione dell'utente: rimozione
+    diretta.** Verificato: `tsc --noEmit` pulito, `next build` verde,
+    `test:release` 229/229.
+
+**Cluster "standalone" (mai dettagliato con file specifici in questa
+sessione, circa 5.898 righe stimate residue) resta da approfondire**, su
+richiesta esplicita dell'utente di un'analisi piu' approfondita prima di
+decidere se ricollegare o rimuovere, non ancora affrontata in questa
+sessione.
 
 ### Bug di navigazione trasversale scoperto durante l'analisi "parita' Vigneto/Oliveto vs Frutteto" (30/07/2026)
 
