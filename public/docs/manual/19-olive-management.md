@@ -6,7 +6,7 @@
 
 ## Panoramica
 
-Il modulo Oliveto è un verticale operativo costruito sopra le fondazioni frutteto e piante legnose, con alcune estensioni specialistiche per maturazione olive e monitoraggio mosca. È reale come superficie di lavoro, ma oggi resta ibrido tra persistenza condivisa e widget specialistici non ancora completamente collegati al backend.
+Il modulo Oliveto è un verticale operativo costruito sopra le fondazioni frutteto e piante legnose, con estensioni specialistiche per maturazione olive, monitoraggio mosca olearia e gestione filari. È reale come superficie di lavoro: dal 30/07/2026 anche i widget specialistici scrivono e leggono su tabelle reali, non più su stato locale.
 
 **Percorso**: Sidebar → "Oliveto"
 
@@ -14,7 +14,7 @@ Il modulo Oliveto è un verticale operativo costruito sopra le fondazioni frutte
 
 ## Stato modulo
 
-**Stato attuale**: verticale ibrido orchard-backed.
+**Stato attuale**: verticale orchard-backed, con persistenza reale su tutte le viste principali.
 
 La parte consolidata oggi è:
 - route `/app/olives`
@@ -22,11 +22,13 @@ La parte consolidata oggi è:
 - riuso di `orchardService` per configurazioni, alberi, potature e raccolte
 - gestione alberi e operazioni tramite componenti frutteto condivisi
 - integrazione con task olivo e lavorazioni meccaniche quando presenti
-- migrazioni per `olive_maturity_tracking`, `olive_fly_traps` e `olive_fly_monitoring`
+- tab **Filari**: raggruppamento alberi per fila, allineamento filari legacy, configurazione dell'impianto irriguo per singolo filare (stessa vista gia' disponibile sul Frutteto)
+- tab **Maturazione**: letture Indice di Jaen persistite su `olive_maturity_tracking`, storico reale, raccomandazione di raccolta derivata dall'indice inserito
+- tab **Mosca Olearia**: ispezioni trappola persistite su `olive_fly_traps`/`olive_fly_monitoring`, soglie di intervento calcolate sulle catture reali
+
+**Verifica ancora aperta**: la migrazione che crea le tabelle `olive_maturity_tracking`/`olive_fly_traps`/`olive_fly_monitoring` non risulta confermata come applicata sul progetto Supabase di produzione. Se non e' stata applicata, le due viste falliranno nel salvataggio — verificarlo prima di considerarle operative in produzione.
 
 La parte ancora non pienamente chiusa è:
-- widget maturazione olive e mosca olearia con stato locale/sample-style nella UI corrente
-- collegamento uniforme dei widget specialistici alle tabelle olive dedicate
 - workflow DOP/IGP, qualità olio, molitura, stoccaggio e commercializzazione
 - tracciabilità bottiglia/lotto e blockchain end-to-end
 
@@ -37,20 +39,20 @@ La parte ancora non pienamente chiusa è:
 Puoi usare il modulo per:
 - lavorare su oliveti configurati come frutteti/impianti legnosi
 - gestire alberi, potature e raccolte attraverso il core frutteto
+- gestire i filari e l'impianto irriguo per filare
 - vedere sintesi su oliveti, alberi, criticità e raccolte programmate
-- consultare strumenti specialistici per indice di Jaén e mosca olearia
+- registrare e consultare letture reali di maturazione (Indice di Jaen) e mosca olearia, con storico persistito
 - usare task, registri, irrigazione e trattamenti generali come supporto operativo
 
 ---
 
 ## Maturazione e mosca olearia
 
-Il database prevede tabelle per:
-- maturazione olive
-- trappole mosca
-- monitoraggi mosca e soglie operative
+Le due viste specialistiche persistono ora su tabelle reali:
+- **Maturazione**: ogni lettura salvata include indice di Jaen, invaiatura (%), note; lo stadio colore e la raccomandazione di raccolta sono derivati dall'indice con una mappatura documentata, non inventati.
+- **Mosca Olearia**: ogni ispezione crea o riusa una trappola per numero e registra le catture; il livello di rischio e l'azione raccomandata usano le stesse soglie mostrate nella guida in pagina.
 
-La UI specialistica corrente però non va trattata come workflow persistente completamente consolidato finché il collegamento ai dati reali non è uniforme. Le letture mostrate o inserite nei widget vanno considerate supporto operativo/assistivo se non risultano salvate nel backend.
+Restano da compilare a mano (non stimati automaticamente): tipo di trappola specifico, stima erogatori/portata per filari senza impianto configurato.
 
 ---
 
@@ -88,9 +90,10 @@ Non usarlo come:
 
 ## Backlog tracciato
 
+Chiuso il 30/07/2026: collegamento widget olive alle tabelle `olive_*`, storico reale di maturazione e mosca.
+
 Da trattare come sviluppo futuro:
-- collegare i widget olive alle tabelle `olive_*`
-- consolidare storico reale di maturazione e mosca
+- verificare che la migrazione `olive_*` sia applicata sul progetto Supabase di produzione
 - collegare trattamenti consigliati a registri operativi persistenti
 - definire se qualità olio/frantoio/DOP diventano un dominio prodotto separato
 - integrare tracciabilità lotti solo se supportata da flussi reali

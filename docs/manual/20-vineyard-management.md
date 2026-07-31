@@ -23,7 +23,8 @@ La parte consolidata oggi è:
 - ceppi/viti su `vineyard_vines`
 - dashboard, wizard e gestione viti
 - filtri per varietà, salute, vigore e necessità operative
-- bulk creation di viti
+- bulk creation di viti (crea/aggiorna automaticamente anche i filari reali collegati)
+- tab **Filari** (dal 30/07/2026): raggruppamento viti per fila, allineamento filari legacy, configurazione dell'impianto irriguo per singolo filare — stessa vista gia' disponibile su Frutteto/Oliveto, adattata al modello dati vite
 - servizio `vineyardBudLoadService`
 - calcolo e storico Ravaz/carico gemme quando i dati sono presenti
 
@@ -42,6 +43,7 @@ Non va presentato come già chiuso:
 Il modulo può supportare:
 - creazione/configurazione vigneto
 - gestione viti/ceppi individuali
+- gestione filari e impianto irriguo per filare
 - informazioni su varietà, portinnesto, sistema allevamento e posizione quando valorizzate
 - stato salute, vigore e necessità di potatura/trattamento
 - indicatori dashboard basati sui record disponibili
@@ -66,6 +68,7 @@ Questi calcoli sono supporto agronomico interno. Non sostituiscono rilievi profe
 ## Fuori perimetro attuale
 
 Restano fuori dal perimetro chiuso:
+- profilo irriguo "standard" a livello vigneto (esiste solo per singolo filare; il Frutteto ha in più un profilo di default applicabile a tutti i filari, il Vigneto no)
 - gestione cantina
 - conferimento, pigiatura, fermentazione e affinamento
 - analisi fenolica/aromatica di laboratorio come workflow completo
