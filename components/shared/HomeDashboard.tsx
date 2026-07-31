@@ -36,6 +36,9 @@ import type { SaplingBatch } from '@/types/sapling'
 
 
 import { ReadingForm } from '@/components/hydroponic/ReadingForm'
+import { generateAnnualPlan, AnnualPlan } from '@/logic/annualPlannerEngine'
+import { fetchPlantingWindowsForGarden } from '@/services/plantingWindowOptimizer'
+import type { PlantingWindow } from '@/services/plantingWindowOptimizer'
 import { directorService } from '@/services/directorService'
 import { DailyPlan } from '@/types'
 import { SeedlingBatch } from '@/services/seedlingService'
@@ -141,6 +144,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
   const [showReadingForm, setShowReadingForm] = useState<'hydroponic' | 'aquaponic' | 'aeroponic' | null>(null)
   const [fieldRowPlants, setFieldRowPlants] = useState<GardenPlant[]>([]) // Piante individuali
   const [planError, setPlanError] = useState<string | null>(null)
+  const [plantingWindows, setPlantingWindows] = useState<PlantingWindow[] | null>(null)
 
   // States for modals
   const [showVacationMode, setShowVacationMode] = useState(false)
@@ -402,6 +406,27 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
   const planLoadTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    if (!activeGarden?.coordinates) {
+      setPlantingWindows(null)
+      return
+    }
+
+    let cancelled = false
+    fetchPlantingWindowsForGarden(activeGarden.id).then(windows => {
+      if (!cancelled) setPlantingWindows(windows)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeGarden?.id, activeGarden?.coordinates])
+
+  const annualPlan: AnnualPlan | undefined = React.useMemo(() => {
+    if (!activeGarden) return undefined
+    return generateAnnualPlan(activeGarden, undefined, plantingWindows || undefined)
+  }, [activeGarden, plantingWindows])
+
+  useEffect(() => {
     if (!activeGarden) return
 
     // Clear existing timer
@@ -419,7 +444,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
           activeGarden,
           currentTasks,
           new Date(),
-          undefined,
+          annualPlan,
           undefined,
           seedlingBatches || [],
           storageProvider,
@@ -443,7 +468,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
         planLoadTimerRef.current = null
       }
     }
-  }, [activeGarden, currentTasks, seedlingBatches, seedPackets, storageProvider])
+  }, [activeGarden, currentTasks, annualPlan, seedlingBatches, seedPackets, storageProvider])
 
   const fetchWeather = async (lat: number, lng: number) => {
     setWeatherLoading(true)
