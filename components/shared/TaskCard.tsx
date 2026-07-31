@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react'
 import { GardenTask, HarvestLogData, FertilizerApplicationLogDB } from '@/types'
+import type { IrrigationZone, WateringLog } from '@/types/irrigation'
 import { CheckCircle2, Circle, Clock, MapPin, Calendar, MoreVertical, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { isPlantMature } from '@/utils/plantMaturityDetector'
 import { QuickHarvestForm } from '@/components/harvest/QuickHarvestForm'
 import { FertilizerApplicationModal } from '@/components/fertilizer/FertilizerApplicationModal'
+import { WateringLogForm } from '@/components/irrigation/WateringLogForm'
 import { useChallengeNotifications } from '@/hooks/useChallengeNotifications'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { AchievementNotification } from './AchievementNotification'
@@ -20,6 +22,8 @@ interface TaskCardProps {
   onDelete?: (id: string) => void
   onHarvest?: (harvestData: Omit<HarvestLogData, 'id' | 'gardenId'>) => void
   onFertilize?: (fertData: Omit<FertilizerApplicationLogDB, 'id' | 'createdAt'>) => void
+  onWater?: (log: Omit<WateringLog, 'id' | 'createdAt'>) => void
+  irrigationZones?: IrrigationZone[]
   showSuggestions?: boolean
   compact?: boolean // Layout compatto per grid
 }
@@ -32,12 +36,15 @@ export function TaskCard({
   onDelete,
   onHarvest,
   onFertilize,
+  onWater,
+  irrigationZones,
   showSuggestions = false,
   compact = false
 }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false)
   const [showHarvestPrompt, setShowHarvestPrompt] = useState(false)
   const [showFertilizerPrompt, setShowFertilizerPrompt] = useState(false)
+  const [showWateringPrompt, setShowWateringPrompt] = useState(false)
   const [completedTask, setCompletedTask] = useState<GardenTask | null>(null)
   const { user } = useAuth()
   const { checkChallengeProgress, showChallengeNotification, hideNotification, activeNotification } = useChallengeNotifications()
@@ -79,6 +86,12 @@ export function TaskCard({
     if (task.taskType === 'Fertilize' && onFertilize) {
       setCompletedTask(updatedTask)
       setShowFertilizerPrompt(true)
+    }
+
+    // Se task è Irrigation, offri di registrare l'irrigazione misurata
+    if (task.taskType === 'Irrigation' && onWater && irrigationZones && irrigationZones.length > 0) {
+      setCompletedTask(updatedTask)
+      setShowWateringPrompt(true)
     }
   }
 
@@ -423,6 +436,24 @@ export function TaskCard({
           }}
           onSkip={() => {
             setShowFertilizerPrompt(false)
+            setCompletedTask(null)
+          }}
+        />
+      )}
+
+      {/* Watering Log Form */}
+      {showWateringPrompt && completedTask && onWater && irrigationZones && (
+        <WateringLogForm
+          zones={irrigationZones}
+          preselectedZone={irrigationZones.find(zone => zone.id === completedTask.zoneId)}
+          sourceTaskId={completedTask.id}
+          onSubmit={async (log) => {
+            await onWater(log)
+            setShowWateringPrompt(false)
+            setCompletedTask(null)
+          }}
+          onCancel={() => {
+            setShowWateringPrompt(false)
             setCompletedTask(null)
           }}
         />

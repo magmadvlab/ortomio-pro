@@ -2,8 +2,16 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const dashboard = readFileSync(
-  new URL('../../components/Dashboard.tsx', import.meta.url),
+const fertilizerModal = readFileSync(
+  new URL('../../components/fertilizer/FertilizerApplicationModal.tsx', import.meta.url),
+  'utf8'
+)
+const taskCard = readFileSync(
+  new URL('../../components/shared/TaskCard.tsx', import.meta.url),
+  'utf8'
+)
+const homeDashboard = readFileSync(
+  new URL('../../components/shared/HomeDashboard.tsx', import.meta.url),
   'utf8'
 )
 const seasonView = readFileSync(
@@ -15,17 +23,17 @@ const migration = readFileSync(
   'utf8'
 )
 
-test('dashboard recommendations use stocked fertilizer products', () => {
-  assert.match(dashboard, /getFertilizerInventory\(activeGardenId\)/)
-  assert.match(dashboard, /item\.quantity > 0/)
-  assert.match(dashboard, /availableFertilizers/)
+test('fertilizer suggestion prefers products actually in stock over the generic catalog', () => {
+  assert.match(fertilizerModal, /getFertilizerInventory\(task\.gardenId\)/)
+  assert.match(fertilizerModal, /item\.quantity > 0/)
+  assert.match(fertilizerModal, /stockedFertilizers/)
 })
 
-test('watering timer opens the persisted completion flow when elapsed', () => {
-  assert.match(dashboard, /startWateringTimer\(task\.zoneId, task\.durationMinutes\)/)
-  assert.match(dashboard, /if \(!zoneId\)/)
-  assert.match(dashboard, /handleMarkWateringDone\(zoneId\)/)
-  assert.doesNotMatch(dashboard, /Timer non ancora implementato/)
+test('completing an irrigation task offers a measured watering log instead of a bare checkbox', () => {
+  assert.match(taskCard, /task\.taskType === 'Irrigation' && onWater && irrigationZones/)
+  assert.match(taskCard, /<WateringLogForm/)
+  assert.match(homeDashboard, /onWater=\{async \(log\) => \{/)
+  assert.match(homeDashboard, /storageProvider\.createWateringLog\(log\)/)
 })
 
 test('season review is confirmed only after owner-scoped persistence', () => {

@@ -2816,6 +2816,50 @@ dipendenti (`components/sunExposure/SunExposureWidget.tsx`,
 tramite `Dashboard.tsx`) vanno rimossi insieme al test aggiornato per
 puntare a `HomeDashboard.tsx`. **Non ancora fatto in questa sessione.**
 
+**Aggiornamento: fatto (30/07/2026).** Le due funzionalita' sono state
+portate nei componenti vivi giusti, non duplicate in una pagina
+parallela:
+
+- **Timer irrigazione -> log misurato reale**: invece di resuscitare il
+  vecchio countdown, aggiunto un flusso coerente con quello gia' usato
+  per Raccolta/Concimazione in `TaskCard.tsx` (componente condiviso,
+  usato ovunque, non solo in `HomeDashboard.tsx`): nuove prop opzionali
+  `onWater`/`irrigationZones`; al completamento di un task `Irrigation`
+  si apre `WateringLogForm.tsx` (lo stesso gia' usato in `/app/irrigation`)
+  invece di segnare il task fatto senza traccia. `HomeDashboard.tsx`
+  gia' caricava le zone di irrigazione reali ma le scartava
+  (`const [, setIrrigationZones]`) — corretto a `const [irrigationZones, setIrrigationZones]`
+  e collegato a `storageProvider.createWateringLog`.
+- **Raccomandazioni fertilizzanti da scorte reali**: `FertilizerApplicationModal.tsx`
+  (gia' vivo, usato da ogni chiamante di `TaskCard`) suggeriva un
+  prodotto solo in base alla fase della pianta, da un catalogo generico,
+  **senza considerare cosa c'e' davvero in magazzino**. Aggiunto
+  caricamento di `getFertilizerInventory(task.gardenId)` filtrato
+  `quantity > 0`; il suggerimento ora sceglie tra i prodotti realmente
+  in scorta quello con NPK piu' coerente con la fase (azoto alto in
+  vegetativa, fosforo+potassio alto in fioritura/fruttificazione,
+  piu' bilanciato altrimenti), calcolato sui valori reali `npk.n/p/k`
+  del prodotto — non piu' ID fissi. Ripiega sul catalogo generico solo
+  se nulla e' in scorta. La selezione manuale dell'utente non viene mai
+  sovrascritta (`userChangedProduct`).
+
+**Correzione in corsa**: `components/sunExposure/SunExposureWidget.tsx`
+e `SunExposureDetailModal.tsx`, inizialmente rimossi per errore insieme
+a `Dashboard.tsx` (censiti come suoi unici dipendenti), sono in realta'
+**vivi** tramite `components/sunExposure/EnvironmentalPlanningSection.tsx`
+(riconnesso a `/app/garden/planning` nella decisione sul cluster
+GardenView, dopo il censimento originale) — ripristinati subito,
+confermato con `tsc --noEmit`.
+
+Rimosso solo `components/Dashboard.tsx`. Riscritto
+`__tests__/persistence/dashboardOperationalActions.test.ts`: le 2 asserzioni
+sul vecchio sorgente sostituite con asserzioni sulle nuove posizioni
+reali (`FertilizerApplicationModal.tsx` per le scorte, `TaskCard.tsx` +
+`HomeDashboard.tsx` per il log irrigazione); il terzo test (season
+review) non toccato. Verificato: `tsc --noEmit` pulito, `next build`
+verde, `test:release` 229/229, `test:capabilities` 30/30,
+`test:persistence` 78/78 (incluso il file riscritto, 3/3).
+
 ### Bug di navigazione trasversale scoperto durante l'analisi "parita' Vigneto/Oliveto vs Frutteto" (30/07/2026)
 
 L'utente ha chiesto di dare a Vigneto e Oliveto la stessa profondita' del
