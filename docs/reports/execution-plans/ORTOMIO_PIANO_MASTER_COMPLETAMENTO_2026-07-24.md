@@ -2813,10 +2813,12 @@ finestra raccolta fissa a 60 giorni per qualunque coltura).
 `irrigationDefaults` esiste ora sia su `OrchardConfiguration` che su
 `VineyardConfiguration`. Durante l'implementazione e' emerso che mancava
 anche la colonna DB sottostante per entrambe le colture, corretta con la
-migrazione `20260731000000_add_irrigation_defaults_orchard_vineyard.sql`
-(non ancora applicata in produzione — resta un passo manuale separato da
-eseguire via dashboard Supabase, stessa procedura del gate di migrazione
-gia' usato per l'oliveto in questa sessione). La vista filari del vigneto
+migrazione `20260731000000_add_irrigation_defaults_orchard_vineyard.sql`.
+**Applicata in produzione il 31/07/2026** dall'utente via SQL Editor del
+dashboard Supabase (`ortomiopro`/`qhmujoivfxftlrcrluaj`, `main`/production):
+entrambe le `ALTER TABLE` eseguite con successo, colonna presente su
+`orchard_configurations` e `vineyard_configurations`. Nessun passo manuale
+residuo su questo gate. La vista filari del vigneto
 (`components/vineyard/VineyardRowsView.tsx`) ha ora lo stesso pannello
 bulk-assign "Profilo standard nuovi impianti" gia' presente nel frutteto.
 
