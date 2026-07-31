@@ -304,6 +304,7 @@ export default function VineyardPage() {
             vineyard={selectedVineyard}
             vineyardId={selectedVineyard.id}
             gardenId={selectedGardenId}
+            onVineyardUpdate={setSelectedVineyard}
             onNavigateToVine={() => setViewMode('vines')}
             onSelectVine={(vineId) => {
               setFocusedVineId(vineId)
