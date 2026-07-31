@@ -558,6 +558,7 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onVin
             rowOrdering: backfillConfig.rowOrdering || undefined,
             plantOrderingInRow: backfillConfig.plantOrderingInRow || undefined,
             plantedDate: getRowPlantedDate(group.vines),
+            irrigationLine: vineyard.irrigationDefaults,
             isActive: true,
             notes: 'Creato automaticamente dal riallineamento filari legacy del vigneto'
           })
@@ -590,6 +591,9 @@ export default function VineyardRowsView({ vineyard, vineyardId, gardenId, onVin
           }
           if (!targetRow.plantCount || targetRow.plantCount < group.vines.length) {
             updates.plantCount = group.vines.length
+          }
+          if (!targetRow.irrigationLine && vineyard.irrigationDefaults) {
+            updates.irrigationLine = vineyard.irrigationDefaults
           }
           const inferredLength = calculateRowLengthMeters(group.vines)
           if (!targetRow.lengthMeters || inferredLength > targetRow.lengthMeters) {
