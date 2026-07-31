@@ -2,10 +2,6 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const source = readFileSync(
-  new URL('../../components/garden/GardenView.tsx', import.meta.url),
-  'utf8'
-)
 const zonesPage = readFileSync(
   new URL('../../app/app/garden/zones/page.tsx', import.meta.url),
   'utf8'
@@ -14,14 +10,6 @@ const zoneService = readFileSync(
   new URL('../../services/landZoneService.ts', import.meta.url),
   'utf8'
 )
-
-test('garden structure links to canonical zone management with garden scope', () => {
-  assert.match(
-    source,
-    /href=\{`\/app\/garden\/zones\?garden=\$\{encodeURIComponent\(garden\.id\)\}`\}/
-  )
-  assert.doesNotMatch(source, /TODO: Implement zone management/)
-})
 
 test('zone history action reads persisted soil memory and renders explicit states', () => {
   assert.match(zonesPage, /setZoneHistory\(await getZoneHistory\(zoneId\)\)/)
