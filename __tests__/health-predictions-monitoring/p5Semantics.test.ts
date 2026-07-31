@@ -72,6 +72,21 @@ test('prediction outcomes calculate reproducible yield and disease calibration',
   assert.equal(diseaseMetrics.brierScore, Number(((diseaseItem.probability - 1) ** 2).toFixed(4)))
 })
 
+test('harvest window shifts later for gardens at higher altitude', () => {
+  const seaLevelBundle = buildPredictionBundle({ ...input, altitudeMeters: 0 })
+  const highAltitudeBundle = buildPredictionBundle({ ...input, altitudeMeters: 800 })
+
+  const seaLevelYield = seaLevelBundle.yieldPredictions[0]
+  const highAltitudeYield = highAltitudeBundle.yieldPredictions[0]
+
+  const seaLevelOptimal = new Date(seaLevelYield.harvestWindow.optimal)
+  const highAltitudeOptimal = new Date(highAltitudeYield.harvestWindow.optimal)
+  const dayDifference = Math.round((highAltitudeOptimal.getTime() - seaLevelOptimal.getTime()) / 86_400_000)
+
+  // calculateAltitudeDelay(800) = Math.round((800/100) * 5) = 40 giorni
+  assert.equal(dayDifference, 40)
+})
+
 test('health alerts are deterministic, deduplicated and expose evidence metadata', async () => {
   const context = {
     garden: { id: 'garden-a' },

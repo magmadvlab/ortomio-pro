@@ -9,6 +9,7 @@ import type {
   SoilData,
   PlantHealthData,
 } from '@/services/aiPredictiveEngine'
+import { calculateAltitudeDelay } from '@/utils/altitudeUtils'
 
 export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v2'
 export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-17'
@@ -135,7 +136,7 @@ const buildYieldPredictions = (input: CanonicalPredictionInput, confidence: numb
     const healthImpact = (avgHealth - 75) / 100
     const soilImpact = (soilScore - 75) / 200
     const expectedYield = round(baseline * (1 + healthImpact) * (1 + soilImpact) * (1 + weatherImpact))
-    const harvestDays = 60
+    const harvestDays = 60 + calculateAltitudeDelay(input.altitudeMeters ?? 0)
     return [{
       id: `yield:${plantName}:${input.asOf.slice(0, 10)}`,
       plantName,
