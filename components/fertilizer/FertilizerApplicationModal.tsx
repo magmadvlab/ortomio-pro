@@ -25,21 +25,73 @@ export function FertilizerApplicationModal({
 }: FertilizerApplicationModalProps) {
   const { storageProvider } = useStorage()
 
-  // Suggerimento prodotto basato su fase pianta
+  // Prodotti realmente in scorta per questo orto (quantity > 0)
+  const [stockedFertilizers, setStockedFertilizers] = useState<FertilizerProduct[]>([])
+  const [stockLoaded, setStockLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!task.gardenId) {
+      setStockLoaded(true)
+      return
+    }
+    storageProvider.getFertilizerInventory(task.gardenId)
+      .then(items => {
+        if (cancelled) return
+        const stocked = items
+          .filter(item => item.quantity > 0)
+          .map(item => allFertilizers.find(product =>
+            product.id === item.product_id ||
+            product.name.toLowerCase() === item.product_name.toLowerCase()
+          ))
+          .filter((product): product is FertilizerProduct => Boolean(product))
+        setStockedFertilizers(stocked)
+      })
+      .catch(error => {
+        console.error('Error loading fertilizer inventory:', error)
+        if (!cancelled) setStockedFertilizers([])
+      })
+      .finally(() => {
+        if (!cancelled) setStockLoaded(true)
+      })
+    return () => { cancelled = true }
+  }, [task.gardenId, storageProvider])
+
+  // Suggerimento prodotto: preferisce uno realmente in scorta, coerente con la
+  // fase della pianta (azoto in vegetativa, fosforo/potassio in fioritura/
+  // fruttificazione); ripiega sul catalogo generico solo se nulla e' in scorta.
   const suggestedProduct = useMemo(() => {
-    if (task.stage === 'Vegetative') {
-      // Fase vegetativa: più azoto
-      return getFertilizerById('npk_20_10_10') || getFertilizerById('blood_meal')
-    }
-    if (task.stage === 'Flowering' || task.stage === 'Fruiting') {
-      // Fioritura/fruttificazione: più fosforo e potassio
-      return getFertilizerById('npk_10_20_20') || getFertilizerById('bone_meal')
-    }
-    // Default: bilanciato
-    return getFertilizerById('npk_15_15_15') || getFertilizerById('compost_mature')
-  }, [task.stage])
+    const genericFallback = task.stage === 'Vegetative'
+      ? getFertilizerById('npk_20_10_10') || getFertilizerById('blood_meal')
+      : task.stage === 'Flowering' || task.stage === 'Fruiting'
+        ? getFertilizerById('npk_10_20_20') || getFertilizerById('bone_meal')
+        : getFertilizerById('npk_15_15_15') || getFertilizerById('compost_mature')
+
+    if (stockedFertilizers.length === 0) return genericFallback
+
+    const withNpk = stockedFertilizers.filter(product => product.npk)
+    if (withNpk.length === 0) return stockedFertilizers[0] || genericFallback
+
+    const scored = withNpk.map(product => ({
+      product,
+      score: task.stage === 'Vegetative'
+        ? product.npk!.n
+        : task.stage === 'Flowering' || task.stage === 'Fruiting'
+          ? product.npk!.p + product.npk!.k
+          : -(Math.abs(product.npk!.n - product.npk!.p) + Math.abs(product.npk!.p - product.npk!.k))
+    }))
+    scored.sort((a, b) => b.score - a.score)
+    return scored[0]?.product || genericFallback
+  }, [task.stage, stockedFertilizers])
 
   const [selectedProduct, setSelectedProduct] = useState<FertilizerProduct | undefined>(suggestedProduct)
+  const [userChangedProduct, setUserChangedProduct] = useState(false)
+
+  useEffect(() => {
+    if (stockLoaded && !userChangedProduct) {
+      setSelectedProduct(suggestedProduct)
+    }
+  }, [stockLoaded, suggestedProduct, userChangedProduct])
   const [dosageAmount, setDosageAmount] = useState<string>('')
   const [method, setMethod] = useState<'incorporated' | 'surface' | 'fertigation' | 'foliar'>('surface')
   const [shouldRepeat, setShouldRepeat] = useState(true) // Default TRUE per fertilizzazione
@@ -268,9 +320,15 @@ export function FertilizerApplicationModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Fertilizzante *
             </label>
+            {stockLoaded && selectedProduct && stockedFertilizers.some(p => p.id === selectedProduct.id) && (
+              <p className="text-xs text-green-700 mb-1">✓ In scorta nel tuo inventario</p>
+            )}
             <select
               value={selectedProduct?.id || ''}
-              onChange={(e) => setSelectedProduct(getFertilizerById(e.target.value))}
+              onChange={(e) => {
+                setUserChangedProduct(true)
+                setSelectedProduct(getFertilizerById(e.target.value))
+              }}
               className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             >

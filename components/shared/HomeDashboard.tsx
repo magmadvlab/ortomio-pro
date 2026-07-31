@@ -122,7 +122,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
       setActiveGarden(garden)
     }
   }, [activeGarden, garden, setActiveGarden])
-  const [, setIrrigationZones] = useState<IrrigationZone[]>([])
+  const [irrigationZones, setIrrigationZones] = useState<IrrigationZone[]>([])
   const [, setLoadingIrrigationZones] = useState(false)
   const [showSeedInventory, setShowSeedInventory] = useState(false)
   const [, setWeather] = useState<{ temp: number; code: number; rainForecastMm: number } | null>(null)
@@ -646,6 +646,16 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
                           throw error
                         }
                       }}
+                      onWater={async (log) => {
+                        try {
+                          await storageProvider.createWateringLog(log)
+                          await refreshTasks()
+                        } catch (error) {
+                          console.error('Error creating watering log:', error)
+                          alert(error instanceof Error ? error.message : 'Errore durante la registrazione dell\'irrigazione')
+                        }
+                      }}
+                      irrigationZones={irrigationZones}
                       showSuggestions={true}
                     />
                   ))}
