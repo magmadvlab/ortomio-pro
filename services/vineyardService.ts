@@ -17,6 +17,7 @@ import {
   VineVigorLevel,
   VineProductivityStatus
 } from '@/types/vineyard'
+import type { OrchardIrrigationDefaults } from '@/types/orchard'
 import { getSupabaseClient } from '@/config/supabase'
 
 interface VineyardConfigurationRow {
@@ -37,6 +38,7 @@ interface VineyardConfigurationRow {
   climate_zone?: string
   soil_type?: string
   irrigation_system?: string
+  irrigation_defaults?: OrchardIrrigationDefaults
   organic_certified?: boolean
   precision_management?: boolean
   created_at: string
@@ -61,6 +63,7 @@ interface VineyardConfigurationRowInput {
   climate_zone?: string
   soil_type?: string
   irrigation_system?: string
+  irrigation_defaults?: OrchardIrrigationDefaults
   organic_certified?: boolean
   precision_management?: boolean
 }
@@ -481,6 +484,7 @@ class VineyardService {
       climateZone: data.climate_zone,
       soilType: data.soil_type,
       irrigationSystem: data.irrigation_system,
+      irrigationDefaults: data.irrigation_defaults,
       organicCertified: data.organic_certified || false,
       precisionManagement: data.precision_management || false,
       createdAt: data.created_at,
@@ -507,6 +511,7 @@ class VineyardService {
       climate_zone: config.climateZone,
       soil_type: config.soilType,
       irrigation_system: config.irrigationSystem,
+      irrigation_defaults: config.irrigationDefaults,
       organic_certified: config.organicCertified,
       precision_management: config.precisionManagement
     }

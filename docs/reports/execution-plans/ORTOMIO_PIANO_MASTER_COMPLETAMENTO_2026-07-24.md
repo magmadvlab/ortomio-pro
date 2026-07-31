@@ -2681,6 +2681,20 @@ in 9 cluster con raccomandazione, presentati come artifact
    verifica E2E nel browser non eseguita per la limitazione RLS/`.env.local`
    gia' documentata.
 
+   **Aggiornamento (31/07/2026): gate di migrazione chiuso.** Verificato
+   manualmente dall'utente sul progetto Supabase corretto
+   (`qhmujoivfxftlrcrluaj`/ortomiopro, ambiente production): la ricerca
+   in Database > Migrations non trovava `20260119020000` (probabilmente
+   perche' applicata fuori dal flusso CLI tracciato, non perche' assente),
+   ma un tentativo di rieseguire lo script nel SQL Editor ha fallito con
+   `policy "Users can view their olive maturity data" for table
+   "olive_maturity_tracking" already exists` — prova diretta che lo
+   schema era gia' presente. Confermato via Table Editor che tutte e 3 le
+   tabelle (`olive_maturity_tracking`, `olive_fly_traps`,
+   `olive_fly_monitoring`) esistono in produzione. **Non e' `[L]` locale,
+   e' gia' applicata**: nessuna azione ulteriore necessaria, la
+   funzionalita' collegata a `/app/olives` e' sicura da usare.
+
 10. **Tracker piante generici senza sostituto + Olive Management
     Dashboard legacy — rimossi.** `components/plants/TreatmentTracker.tsx`
     (368 righe), `components/plants/BrixTracker.tsx` (387 righe),
@@ -2950,6 +2964,17 @@ Restano aperti: aggiungere un campo `irrigationDefaults` equivalente a
 vigneto (richiede migrazione, non affrontato), motore predittivo (gap
 trasversale gia' registrato in M14: altitudine/sole/ostacoli mai usati,
 finestra raccolta fissa a 60 giorni per qualunque coltura).
+
+**Aggiornamento (31/07/2026, chiusura gap)**: il gap e' chiuso.
+`irrigationDefaults` esiste ora sia su `OrchardConfiguration` che su
+`VineyardConfiguration`. Durante l'implementazione e' emerso che mancava
+anche la colonna DB sottostante per entrambe le colture, corretta con la
+migrazione `20260731000000_add_irrigation_defaults_orchard_vineyard.sql`
+(non ancora applicata in produzione — resta un passo manuale separato da
+eseguire via dashboard Supabase, stessa procedura del gate di migrazione
+gia' usato per l'oliveto in questa sessione). La vista filari del vigneto
+(`components/vineyard/VineyardRowsView.tsx`) ha ora lo stesso pannello
+bulk-assign "Profilo standard nuovi impianti" gia' presente nel frutteto.
 
 9. **Cluster "trattamenti duplicati" — rimosso, non ricollegato.**
    Verificato con BFS reale: 3 componenti diversi si chiamano tutti

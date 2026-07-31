@@ -3,6 +3,8 @@
 // Professional types for vineyard operations and analytics
 // ============================================================================
 
+import type { OrchardIrrigationDefaults } from '@/types/orchard'
+
 export type VineyardType = 'wine' | 'table' | 'raisin' | 'mixed' | 'dual-purpose'
 
 export type VineyardTrainingSystem = 'guyot' | 'cordon' | 'pergola' | 'tendone' | 'sylvoz' | 'other'
@@ -61,6 +63,7 @@ export interface VineyardConfiguration {
   climateZone?: string
   soilType?: string
   irrigationSystem?: string
+  irrigationDefaults?: OrchardIrrigationDefaults
   organicCertified: boolean
   precisionManagement: boolean
   createdAt: string
