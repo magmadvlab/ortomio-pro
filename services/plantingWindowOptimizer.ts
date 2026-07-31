@@ -348,3 +348,36 @@ function findLastDateWithHours(
   return lastValidDate || new Date(year, months[months.length - 1] - 1, new Date(year, months[months.length - 1], 0).getDate());
 }
 
+/**
+ * Recupera le finestre di impianto reali per un giardino dall'endpoint API
+ * (stesso endpoint gia' usato da components/sunExposure/SunExposureDetailModal.tsx).
+ * Ritorna null se il giardino non ha coordinate, la richiesta fallisce, o la risposta
+ * non e' ok — mai un errore lanciato, per permettere ai chiamanti un fallback silenzioso.
+ */
+export async function fetchPlantingWindowsForGarden(
+  gardenId: string,
+  year?: number
+): Promise<PlantingWindow[] | null> {
+  try {
+    const response = await fetch('/api/garden/sun-exposure/planting-windows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gardenId, year }),
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    const windows: PlantingWindow[] = (data.plantingWindows || []).map((w: any) => ({
+      ...w,
+      startDate: new Date(w.startDate),
+      endDate: new Date(w.endDate),
+      adjustedStartDate: w.adjustedStartDate ? new Date(w.adjustedStartDate) : undefined,
+    }))
+
+    return windows
+  } catch (error) {
+    console.error('Error fetching planting windows:', error)
+    return null
+  }
+}
