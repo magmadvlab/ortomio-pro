@@ -21,9 +21,9 @@ export default function Hero() {
         </div>
 
         <h1 className="mb-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ortomio-green-900 sm:text-5xl">
-          Non un consiglio a scatola chiusa: un punteggio che puoi{' '}
+          Ogni priorità che OrtoMio propone ha un calcolo che puoi{' '}
           <span className="text-ortomio-green-700 underline decoration-ortomio-green-500 decoration-[3px] underline-offset-4">
-            scomporre
+            verificare
           </span>
           .
         </h1>
@@ -37,7 +37,7 @@ export default function Hero() {
         <div className="flex flex-wrap items-center gap-4">
           <Link
             href="/app"
-            className="rounded-md bg-ortomio-green-600 px-6 py-3 text-base font-bold text-white shadow-sm hover:-translate-y-0.5 hover:bg-ortomio-green-700 hover:shadow-md transition"
+            className="rounded-md bg-ortomio-green-600 px-6 py-3 text-base font-bold text-white shadow-sm hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:bg-ortomio-green-700 hover:shadow-md transition"
           >
             Prova la demo ora
           </Link>

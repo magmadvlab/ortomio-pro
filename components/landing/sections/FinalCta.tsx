@@ -3,7 +3,7 @@ import Link from 'next/link'
 export default function FinalCta() {
   return (
     <section className="px-6 py-20">
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-3xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Prova a portare un tuo caso reale nella demo
         </h2>

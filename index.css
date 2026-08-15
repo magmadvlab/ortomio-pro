@@ -2,17 +2,17 @@
 
 /* Tailwind v4 Theme Configuration */
 @theme {
-  /* Primary Green Colors - Usa sintassi con trattini per colori annidati */
-  --color-ortomio-green-50: #f0fdf4;
-  --color-ortomio-green-100: #dcfce7;
-  --color-ortomio-green-200: #bbf7d0;
-  --color-ortomio-green-300: #86efac;
-  --color-ortomio-green-400: #4ade80;
-  --color-ortomio-green-500: #22c55e;
-  --color-ortomio-green-600: #16a34a;
-  --color-ortomio-green-700: #15803d;
-  --color-ortomio-green-800: #166534;
-  --color-ortomio-green-900: #14532d;
+  /* Primary Green Colors - Verde Petrolio Teal-Green Brand Ramp */
+  --color-ortomio-green-50: #eaf5f3;
+  --color-ortomio-green-100: #cde9e3;
+  --color-ortomio-green-200: #a2d4cb;
+  --color-ortomio-green-300: #76bfb3;
+  --color-ortomio-green-400: #4ba99b;
+  --color-ortomio-green-500: #1f9483;
+  --color-ortomio-green-600: #1b7a6b;
+  --color-ortomio-green-700: #146054;
+  --color-ortomio-green-800: #104a40;
+  --color-ortomio-green-900: #0c332c;
 
   /* Earth/Terra Colors */
   --color-ortomio-earth-50: #faf5f0;
@@ -35,6 +35,7 @@
   /* Semantic Colors */
   --color-semantic-success: #22c55e;
   --color-semantic-warning: #f59e0b;
+  --color-semantic-warning-text: #92400e;
   --color-semantic-error: #ef4444;
   --color-semantic-info: #3b82f6;
 
@@ -47,13 +48,17 @@
 /* Design System CSS Variables (for JavaScript access) */
 @layer base {
   :root {
-    /* Primary Green Colors */
-    --ortomio-green-50: #f0fdf4;
-    --ortomio-green-100: #dcfce7;
-    --ortomio-green-500: #22c55e;
-    --ortomio-green-600: #16a34a;
-    --ortomio-green-700: #15803d;
-    --ortomio-green-900: #14532d;
+    /* Primary Green Colors - Verde Petrolio Teal-Green Brand Ramp */
+    --ortomio-green-50: #eaf5f3;
+    --ortomio-green-100: #cde9e3;
+    --ortomio-green-200: #a2d4cb;
+    --ortomio-green-300: #76bfb3;
+    --ortomio-green-400: #4ba99b;
+    --ortomio-green-500: #1f9483;
+    --ortomio-green-600: #1b7a6b;
+    --ortomio-green-700: #146054;
+    --ortomio-green-800: #104a40;
+    --ortomio-green-900: #0c332c;
 
     /* Earth Colors */
     --ortomio-earth-50: #faf5f0;
