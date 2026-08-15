@@ -9,31 +9,31 @@ export default function PillarTraceability() {
         </h2>
         <p className="mb-8 max-w-2xl text-gray-700">
           Ogni piantina ha un codice proprio, collegato al lotto del vivaio da cui arriva. Ogni
-          operazione registra lo stato di salute prima e dopo, non solo &quot;fatto&quot;. Il
-          raccolto chiude il cerchio — per quella pianta specifica, non per la zona in generale.
+          operazione registra lo stato di salute prima e dopo, insieme al risultato osservato. Il
+          raccolto chiude il cerchio — per quella pianta specifica, per quella pianta specifica.
         </p>
 
-        <div className="mb-8 flex flex-wrap items-center gap-2 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5">
+        <div className="mb-8 flex flex-wrap items-center gap-y-3 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5">
           {PIPELINE.map((step, i) => (
             <span key={step} className="flex items-center gap-2">
+              {i > 0 && <span className="mx-1 h-px w-5 bg-ortomio-earth-300" aria-hidden="true" />}
               <span
                 className={
                   step.startsWith('Pianta')
-                    ? 'rounded border border-ortomio-green-700 bg-white px-2.5 py-1 text-sm font-bold text-ortomio-green-700'
-                    : 'rounded border border-ortomio-earth-200 bg-white px-2.5 py-1 text-sm'
+                    ? 'rounded border border-ortomio-green-700 bg-white px-2.5 py-1.5 text-sm font-bold text-ortomio-green-700'
+                    : 'rounded border border-ortomio-earth-200 bg-white px-2.5 py-1.5 text-sm'
                 }
               >
                 {step}
               </span>
-              {i < PIPELINE.length - 1 && <span className="text-gray-400">→</span>}
             </span>
           ))}
         </div>
 
         <div className="mb-6 max-w-2xl rounded-md border border-ortomio-earth-200 bg-white p-4">
-          <p className="mb-3 font-mono text-xs uppercase tracking-wide text-gray-500">
-            Pianta F1-P001 — storia salute per operazione
-          </p>
+          <h3 className="mb-3 text-sm font-bold text-ortomio-green-900">
+            Pianta F1-P001 — salute prima e dopo ogni operazione
+          </h3>
           <div className="flex items-end gap-3">
             {[
               { label: 'Trapianto', before: 78, after: 76 },
@@ -54,22 +54,22 @@ export default function PillarTraceability() {
                     title={`Dopo: ${op.after}`}
                   />
                 </div>
-                <span className="text-center text-[10px] leading-tight text-gray-500">{op.label}</span>
-                <span className="font-mono text-[10px] text-gray-400">{op.before}→{op.after}</span>
+                <span className="text-center text-xs leading-tight text-gray-600">{op.label}</span>
+                <span className="font-mono text-xs text-gray-600">{op.before}→{op.after}</span>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[11px] text-gray-500">
+          <p className="mt-3 text-xs text-gray-600">
             Esempio illustrativo — ogni operazione reale registra un valore di salute prima e dopo (0-100), non solo &quot;fatto&quot;.
           </p>
         </div>
 
-        <p className="mb-6 max-w-2xl border-l-2 border-semantic-warning bg-semantic-warning/10 p-4 text-sm text-gray-700">
-          <strong className="text-ortomio-green-900">Non è un vezzo tecnico:</strong> questa
+        <div className="max-w-2xl rounded-md border border-semantic-warning/40 bg-semantic-warning/10 p-4 text-sm text-gray-700">
+          <strong className="text-ortomio-green-900">Valore operativo:</strong> questa
           tracciabilità alimenta direttamente il punteggio di conformità per la certificazione
           biologica — sistema di tracciabilità, separazione bio/convenzionale, registri di
           produzione contano punti reali nel modulo Certificazioni.
-        </p>
+        </div>
       </div>
     </section>
   )

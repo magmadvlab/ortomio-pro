@@ -13,6 +13,9 @@
   --color-ortomio-green-700: #146054;
   --color-ortomio-green-800: #104a40;
   --color-ortomio-green-900: #0c332c;
+  --color-ortomio-paper: #f4f2ec;
+  --color-ortomio-earth: #5b3a29;
+  --color-ortomio-harvest: #c98a2e;
 
   /* Earth/Terra Colors */
   --color-ortomio-earth-50: #faf5f0;
@@ -39,10 +42,10 @@
   --color-semantic-error: #ef4444;
   --color-semantic-info: #3b82f6;
 
-  /* Typography */
-  --font-display: 'DM Sans', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Typography — variabili next/font con fallback di sistema */
+  --font-display: var(--font-dm-sans), 'DM Sans', sans-serif;
+  --font-body: var(--font-inter), 'Inter', sans-serif;
+  --font-mono: var(--font-jb-mono), 'JetBrains Mono', monospace;
 }
 
 /* Design System CSS Variables (for JavaScript access) */

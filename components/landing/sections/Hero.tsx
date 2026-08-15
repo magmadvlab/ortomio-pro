@@ -1,48 +1,23 @@
-import Link from 'next/link'
+import Image from 'next/image'
+import { landingContent } from '../content'
 
 export default function Hero() {
   return (
-    <section className="border-b border-ortomio-earth-200 bg-ortomio-green-50 px-6 pb-16 pt-20">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-7 flex flex-wrap gap-4 font-mono text-xs text-ortomio-earth-700">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-sm bg-ortomio-green-600" /> misurato
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-sm border border-ortomio-green-600 bg-[repeating-linear-gradient(45deg,theme(colors.ortomio-green.600)_0_2px,transparent_2px_4px)]" />
-            stimato
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-sm border border-ortomio-earth-500" /> assente
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-sm border border-dashed border-ortomio-earth-500" /> simulato
-          </span>
+    <section className="relative isolate overflow-hidden bg-ortomio-green-900 text-white">
+      <div className="mx-auto grid min-h-[82vh] max-w-[96rem] lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="flex items-end px-6 py-24 sm:px-12 sm:py-32 lg:px-16">
+          <div className="max-w-4xl">
+            <p className="mb-6 text-xs font-bold uppercase tracking-[0.22em] text-ortomio-harvest">{landingContent.eyebrow}</p>
+            <h1 className="font-display text-5xl font-extrabold leading-[0.98] tracking-[-0.04em] sm:text-7xl lg:text-[5.35rem]">{landingContent.title}</h1>
+            <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ortomio-green-100">{landingContent.summary}</p>
+            <div className="mt-10 grid max-w-xl grid-cols-2 gap-5 border-t border-white/20 pt-6 font-mono text-[11px] uppercase tracking-wider text-white/70"><span>Aziende agricole strutturate</span><span>Consulenti agronomici</span></div>
+          </div>
         </div>
-
-        <h1 className="mb-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ortomio-green-900 sm:text-5xl">
-          Ogni priorità che OrtoMio propone ha un calcolo che puoi{' '}
-          <span className="text-ortomio-green-700 underline decoration-ortomio-green-500 decoration-[3px] underline-offset-4">
-            verificare
-          </span>
-          .
-        </h1>
-
-        <p className="mb-9 max-w-xl text-lg text-gray-700">
-          Ogni priorità che OrtoMio propone porta con sé il calcolo che l&apos;ha generata: confidenza
-          numerica, segnali coperti e mancanti, convenienza economica. Non un&apos;agenda in più, non
-          un&apos;AI che &quot;sente&quot; cosa fare — un motore che mostra il proprio ragionamento.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <Link
-            href="/app"
-            className="rounded-md bg-ortomio-green-600 px-6 py-3 text-base font-bold text-white shadow-sm hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:bg-ortomio-green-700 hover:shadow-md transition"
-          >
-            Prova la demo ora
-          </Link>
-          <span className="text-sm text-gray-500">Ambiente demo, dati fittizi — nessun impegno.</span>
-        </div>
+        <figure className="relative min-h-[28rem] overflow-hidden lg:min-h-full">
+          <Image src="/landing/field-decision.webp" alt="Responsabile di vivaio che controlla le colture con un tablet" fill priority sizes="(min-width: 1024px) 46vw, 100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ortomio-green-900/50 via-transparent to-transparent" aria-hidden="true" />
+          <figcaption className="absolute bottom-0 left-0 max-w-sm bg-ortomio-paper px-5 py-4 font-mono text-[10px] uppercase tracking-wider text-ortomio-green-900">Il dato resta legato al luogo, alla coltura e alla decisione.</figcaption>
+        </figure>
       </div>
     </section>
   )

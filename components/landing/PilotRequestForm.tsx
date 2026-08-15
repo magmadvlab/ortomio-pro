@@ -1,144 +1,42 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react'
 
-interface PilotRequestFormProps {
-  onClose: () => void
-}
+type FormStatus = 'idle' | 'submitting' | 'success' | 'validation' | 'rate' | 'service' | 'network'
 
-export default function PilotRequestForm({ onClose }: PilotRequestFormProps) {
+export default function PilotRequestForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [company, setCompany] = useState('')
   const [message, setMessage] = useState('')
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
-  const nameInputRef = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState<FormStatus>('idle')
+  const firstInput = useRef<HTMLInputElement>(null)
+  const successRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    nameInputRef.current?.focus()
-  }, [])
+  useEffect(() => { firstInput.current?.focus() }, [])
+  useEffect(() => { if (status === 'success') successRef.current?.focus() }, [status])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      setStatus('error')
-      return
-    }
-
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (![name, email, company, message].every((value) => value.trim())) { setStatus('validation'); return }
     setStatus('submitting')
+    const data = new FormData()
+    data.append('name', name.trim()); data.append('email', email.trim()); data.append('company', company.trim())
+    data.append('type', 'guided_trial'); data.append('message', message.trim()); data.append('includeSystemInfo', 'false')
     try {
-      const formData = new FormData()
-      formData.append('name', name)
-      formData.append('email', email)
-      formData.append('type', 'pilot')
-      formData.append('message', message)
-      formData.append('includeSystemInfo', 'false')
-
-      const response = await fetch('/api/support/submit', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (response.ok) {
-        setStatus('success')
-      } else {
-        setStatus('error')
-      }
-    } catch {
-      setStatus('error')
-    }
+      const response = await fetch('/api/support/submit', { method: 'POST', body: data })
+      if (response.ok) setStatus('success')
+      else if (response.status === 429) setStatus('rate')
+      else if (response.status === 400) setStatus('validation')
+      else setStatus('service')
+    } catch { setStatus('network') }
   }
 
-  if (status === 'success') {
-    return (
-      <div className="mt-6 flex items-start gap-3 rounded-md border border-ortomio-green-600 bg-white p-5 text-sm">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-ortomio-green-600" />
-        <div>
-          <p className="font-bold text-ortomio-green-900">Richiesta inviata.</p>
-          <p className="text-gray-700">Ti rispondiamo via email per definire ambito e tempi del pilot.</p>
-        </div>
-      </div>
-    )
-  }
+  if (status === 'success') return <div ref={successRef} tabIndex={-1} role="status" aria-live="polite" className="mt-12 flex max-w-2xl gap-4 bg-white p-6 text-ortomio-green-900 focus:outline-none"><CheckCircle2 className="h-6 w-6 text-ortomio-green-600" /><div><h3 className="font-display text-xl font-bold">Richiesta ricevuta.</h3><p className="mt-1 text-gray-700">Ti contatteremo per definire il caso da mostrare durante la prova.</p></div></div>
 
-  return (
-    <form onSubmit={handleSubmit} className="mt-6 max-w-md rounded-md border border-ortomio-earth-200 bg-white p-5">
-      <div className="mb-4 flex items-start justify-between">
-        <p className="text-sm font-bold text-ortomio-green-900">Richiedi un pilot reale sulla tua azienda</p>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Chiudi il form"
-          className="text-gray-400 hover:text-gray-600"
-        >
-          ✕
-        </button>
-      </div>
+  const error = status === 'validation' ? 'Completa i quattro campi e verifica l’indirizzo email.' : status === 'rate' ? 'Hai inviato più richieste ravvicinate. Riprova tra qualche minuto.' : status === 'network' ? 'La connessione non ha completato l’invio. I dati sono ancora qui: riprova.' : status === 'service' ? 'Il servizio non è disponibile in questo momento. Riprova più tardi.' : null
+  const inputClass = 'min-h-12 w-full border border-ortomio-earth/30 bg-white px-4 py-3 text-sm text-ortomio-green-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-green-700'
 
-      <div className="mb-3">
-        <label htmlFor="pilot-name" className="mb-1 block text-xs font-semibold text-gray-700">
-          Nome *
-        </label>
-        <input
-          id="pilot-name"
-          type="text"
-          ref={nameInputRef}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className="w-full rounded border border-ortomio-earth-200 px-3 py-2 text-sm focus:border-ortomio-green-600 focus:outline-none"
-        />
-      </div>
-
-      <div className="mb-3">
-        <label htmlFor="pilot-email" className="mb-1 block text-xs font-semibold text-gray-700">
-          Email *
-        </label>
-        <input
-          id="pilot-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full rounded border border-ortomio-earth-200 px-3 py-2 text-sm focus:border-ortomio-green-600 focus:outline-none"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="pilot-message" className="mb-1 block text-xs font-semibold text-gray-700">
-          La tua azienda / cosa vorresti provare *
-        </label>
-        <textarea
-          id="pilot-message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          required
-          rows={4}
-          placeholder="Es. superficie, colture, cosa vorresti verificare nel pilot"
-          className="w-full rounded border border-ortomio-earth-200 px-3 py-2 text-sm focus:border-ortomio-green-600 focus:outline-none"
-        />
-      </div>
-
-      {status === 'error' && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>Compila tutti i campi, oppure riprova più tardi se l&apos;errore persiste.</span>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={status === 'submitting'}
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-ortomio-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-ortomio-green-700 disabled:opacity-50"
-      >
-        {status === 'submitting' ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Invio...
-          </>
-        ) : (
-          'Invia richiesta'
-        )}
-      </button>
-    </form>
-  )
+  return <form onSubmit={submit} className="relative mt-12 max-w-3xl bg-ortomio-paper p-6 sm:p-10"><button type="button" onClick={onClose} aria-label="Chiudi il modulo" className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center text-ortomio-green-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-green-700"><X className="h-5 w-5" /></button><h3 className="pr-12 font-display text-2xl font-bold">Prepariamo la tua prova guidata</h3><p className="mt-2 text-sm text-gray-700">Quattro informazioni per arrivare all’incontro con un caso già pertinente.</p><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="text-sm font-bold">Nome<input ref={firstInput} name="name" required value={name} onChange={(e)=>setName(e.target.value)} className={`${inputClass} mt-2`} /></label><label className="text-sm font-bold">Email<input name="email" type="email" required value={email} onChange={(e)=>setEmail(e.target.value)} className={`${inputClass} mt-2`} /></label><label className="text-sm font-bold sm:col-span-2">Azienda<input name="company" required value={company} onChange={(e)=>setCompany(e.target.value)} className={`${inputClass} mt-2`} /></label><label className="text-sm font-bold sm:col-span-2">Cosa vuoi valutare<textarea name="message" required rows={4} value={message} onChange={(e)=>setMessage(e.target.value)} placeholder="Colture, superficie e processo che vuoi approfondire" className={`${inputClass} mt-2 resize-y`} /></label></div>{error && <p role="alert" className="mt-5 flex items-center gap-2 text-sm font-semibold text-red-800"><AlertCircle className="h-4 w-4" />{error}</p>}<button type="submit" disabled={status==='submitting'} className="mt-7 inline-flex min-h-12 items-center gap-2 bg-ortomio-green-900 px-6 py-3 font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-green-700 focus-visible:ring-offset-2 disabled:opacity-60">{status==='submitting' ? <><Loader2 className="h-4 w-4 animate-spin motion-reduce:hidden" />Invio in corso…</> : 'Invia la richiesta'}</button></form>
 }
