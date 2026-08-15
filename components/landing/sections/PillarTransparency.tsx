@@ -2,43 +2,45 @@
 
 import { useState } from 'react'
 
-const TABS = ['Panoramica', 'Dati usati', 'Calcoli', 'Alternative'] as const
+const TABS = ['Cosa propone', 'Su cosa si basa', 'Perché viene prima', 'Alternative'] as const
 type Tab = (typeof TABS)[number]
 
 const CALC_ROWS: Array<[string, string]> = [
   ['Punteggio di partenza', '62'],
-  ['+ Qualità dei dati disponibili', '+9'],
-  ['+ Completezza dei segnali critici', '+6'],
-  ['+ Momento della stagione (fase critica)', '+8'],
-  ['+ Precisione del riconoscimento della pianta', '+4'],
+  ['+ Qualità delle informazioni disponibili', '+9'],
+  ['+ Conseguenze del ritardo', '+6'],
+  ['+ Momento della stagione', '+8'],
+  ['+ Costi dell’intervento', '+4'],
 ]
 
 const TAB_CONTENT: Record<Tab, React.ReactNode> = {
-  Panoramica: (
+  'Cosa propone': (
     <p className="text-sm text-gray-700">
-      OrtoMio propone di intervenire ora su questa zona perché il punteggio agronomico è alto
-      e il ritardo avrebbe un costo economico stimato superiore al beneficio di aspettare.
+      Controllare la zona interessata e valutare l&apos;intervento nel momento indicato, prima che
+      il ritardo possa incidere sulla coltura.
     </p>
   ),
-  'Dati usati': (
+  'Su cosa si basa': (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li>Storico irrigazioni e trattamenti della zona (misurato)</li>
-      <li>Profilo colturale riconosciuto tramite <code className="font-mono text-xs">plant_id</code> (misurato)</li>
-      <li>Previsione meteo a 72 ore (stimato)</li>
-      <li>Umidità del suolo in tempo reale — segnale non disponibile su questa zona (assente)</li>
+      <li>Condizioni osservate nella zona e stato della coltura.</li>
+      <li>Misure disponibili dai sensori collegati.</li>
+      <li>Previsioni meteo e momento della stagione.</li>
+      <li>Storico di irrigazioni e trattamenti, con le informazioni mancanti rese visibili.</li>
     </ul>
   ),
-  Calcoli: null, // rendered by the calc-block below, not through this map
+  'Perché viene prima': null, // rendered by the illustrative calculation below
   Alternative: (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li><strong>Rimandare al prossimo ciclo</strong> — scartata: il costo del ritardo supera il valore protetto stimato.</li>
-      <li><strong>Solo monitorare</strong> — scartata: la copertura dei segnali critici è sufficiente per agire, non solo osservare.</li>
+      <li><strong>Intervenire</strong> — preparare il lavoro dopo il controllo del responsabile.</li>
+      <li><strong>Programmare</strong> — inserire l&apos;intervento nel momento più adatto.</li>
+      <li><strong>Continuare a osservare</strong> — attendere nuove informazioni prima di agire.</li>
+      <li><strong>Richiedere un controllo sul campo</strong> — verificare direttamente la situazione.</li>
     </ul>
   ),
 }
 
 export default function PillarTransparency() {
-  const [activeTab, setActiveTab] = useState<Tab>('Panoramica')
+  const [activeTab, setActiveTab] = useState<Tab>('Cosa propone')
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const idx = TABS.indexOf(activeTab)
@@ -61,14 +63,13 @@ export default function PillarTransparency() {
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-5xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Ogni consiglio nasce da un&apos;analisi che puoi controllare.
+          Ogni indicazione mostra il proprio ragionamento.
         </h2>
         <p className="mb-6 max-w-2xl text-gray-700">
-          Prima di proporti un intervento, OrtoMio valuta dati, stagione e convenienza
-          economica. Tocchi il consiglio e vedi come è nato: quali dati ha usato (e quali
-          mancavano), come è arrivato al punteggio, cosa ha scartato e perché. Non una demo
-          costruita per il sito: è quello che leggi su ogni consiglio, tutti i giorni,
-          nell&apos;app.
+          L&apos;AI di OrtoMio non restituisce soltanto una risposta. Ogni proposta può essere
+          aperta per verificare quali informazioni ha considerato, come è arrivata alla priorità
+          e quali alternative ha valutato. La decisione resta al responsabile: OrtoMio prepara
+          una lettura motivata e conserva il motivo della scelta.
         </p>
 
         <div
@@ -98,7 +99,7 @@ export default function PillarTransparency() {
           ))}
         </div>
 
-        {activeTab !== 'Calcoli' && (
+        {activeTab !== 'Perché viene prima' && (
           <div
             id={`transparency-panel-${activeIndex}`}
             role="tabpanel"
@@ -109,7 +110,7 @@ export default function PillarTransparency() {
           </div>
         )}
 
-        {activeTab === 'Calcoli' && (
+        {activeTab === 'Perché viene prima' && (
           <div
             id="transparency-panel-2"
             role="tabpanel"

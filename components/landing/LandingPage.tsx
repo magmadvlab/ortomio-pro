@@ -1,7 +1,7 @@
 import LandingHeader from './LandingHeader'
 import Hero from './sections/Hero'
 import ReasonWhySection from './sections/ReasonWhySection'
-import OrchestratorSection from './sections/OrchestratorSection'
+import DecisionScenario from './sections/DecisionScenario'
 import PillarTransparency from './sections/PillarTransparency'
 import HowItWorks from './sections/HowItWorks'
 import PillarTraceability from './sections/PillarTraceability'
@@ -17,7 +17,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <ReasonWhySection />
-        <OrchestratorSection />
+        <DecisionScenario />
         <PillarTransparency />
         <HowItWorks />
         <PillarTraceability />
