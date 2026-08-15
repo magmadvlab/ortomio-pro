@@ -1,20 +1,59 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import LandingHeader from '@/components/landing/LandingHeader'
 import LandingFooter from '@/components/landing/LandingFooter'
-import { documentationLinks, orchestratorSignals, specialistCrops } from '@/components/landing/content'
+import { orchestratorSignals, specialistCrops } from '@/components/landing/content'
+import FinalCta from '@/components/landing/sections/FinalCta'
 
 export const metadata: Metadata = {
-  title: 'Come funziona OrtoMio | Decisioni agronomiche verificabili',
-  description: 'Scopri come OrtoMio collega dati di campo, priorità, attività ed esiti per aziende agricole e consulenti agronomici.',
+  title: 'Come funziona OrtoMio | Dal satellite alla singola pianta',
+  description:
+    'Scopri come OrtoMio collega dati satellitari, misure IoT e storia delle piante per preparare decisioni agronomiche spiegabili.',
   alternates: { canonical: '/come-funziona' },
 }
 
-const chapters = [
-  { number: '01', title: 'Dal segnale al briefing', text: 'Ogni dato viene collegato a un contesto preciso: azienda, zona, coltura, fase agronomica e momento operativo. Il briefing ordina ciò che merita attenzione e mostra la ragione della priorità.' },
-  { number: '02', title: 'Dati con una provenienza visibile', text: 'Misurato, stimato, assente e simulato rimangono stati distinti. Il livello di affidabilità accompagna la lettura e permette al responsabile di valutare la solidità del suggerimento.' },
-  { number: '03', title: 'Decisione, esecuzione ed esito', text: 'Il sistema conserva il contesto della scelta, collega il task eseguito e registra il risultato osservato. Questa storia rende confrontabili previsione e realtà.' },
-  { number: '04', title: 'Pianificazione che ricorda', text: 'Regole agronomiche e scenari assistiti confluiscono in un piano annuale. Rese e costi registrati permettono di preparare correzioni per il ciclo successivo.' },
+const reasoningQuestions = [
+  {
+    question: 'Cosa propone?',
+    answer: 'L’intervento da valutare, il luogo interessato e il momento in cui può essere utile.',
+  },
+  {
+    question: 'Su cosa si basa?',
+    answer: 'Campo, sensori, meteo, coltura, storico disponibile e informazioni ancora da completare.',
+  },
+  {
+    question: 'Perché viene prima?',
+    answer: 'Urgenza agronomica, conseguenze del ritardo, costi e qualità delle informazioni raccolte.',
+  },
+  {
+    question: 'Quali alternative ha considerato?',
+    answer: 'Intervenire, programmare, continuare a osservare oppure richiedere un controllo sul campo.',
+  },
+] as const
+
+const plantHistory = [
+  {
+    label: 'Identità',
+    text: 'Codice, varietà e posizione esatta accompagnano la pianta dal vivaio al filare.',
+  },
+  {
+    label: 'Ciò che riceve',
+    text: 'Acqua, nutrimenti e trattamenti restano associati alla pianta con quantità, data e operatore.',
+  },
+  {
+    label: 'Come risponde',
+    text: 'Stato di salute prima e dopo, lavorazioni ed efficacia osservata completano la lettura.',
+  },
+  {
+    label: 'Ciò che produce',
+    text: 'Quantità, qualità, destinazione e valore mantengono il raccolto collegato alla sua origine.',
+  },
+] as const
+
+const certificationEvidence = [
+  'Storia delle lavorazioni e dei prodotti utilizzati.',
+  'Collegamento tra lotto, pianta, raccolto e destinazione.',
+  'Autocontrolli, piani di gestione dei rischi e procedure di richiamo.',
+  'Bozze AI iniziali da completare e verificare prima dell’uso.',
 ] as const
 
 export default function ComeFunzionaPage() {
@@ -22,17 +61,205 @@ export default function ComeFunzionaPage() {
     <div className="min-h-screen bg-ortomio-paper text-ortomio-green-900">
       <LandingHeader />
       <main>
-        <header className="bg-ortomio-green-900 px-6 py-24 text-white sm:py-32">
-          <div className="mx-auto max-w-5xl"><p className="font-mono text-xs uppercase tracking-[0.2em] text-ortomio-harvest">Dentro OrtoMio</p><h1 className="mt-6 max-w-4xl font-display text-5xl font-extrabold leading-tight sm:text-7xl">Una decisione si può usare meglio quando si può ricostruire.</h1><p className="mt-8 max-w-2xl text-lg leading-relaxed text-ortomio-green-100">Questa guida raccoglie i meccanismi che trasformano osservazioni, attività e risultati in una memoria agronomica verificabile.</p></div>
+        <header className="relative overflow-hidden bg-ortomio-green-900 px-6 py-24 text-white sm:py-32">
+          <div
+            className="absolute inset-y-0 right-0 hidden w-1/3 border-l border-white/10 bg-[linear-gradient(90deg,transparent_49%,rgba(255,255,255,0.08)_50%)] bg-[length:3rem_100%] lg:block"
+            aria-hidden="true"
+          />
+          <div className="relative mx-auto max-w-5xl">
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+              Dal campo alla decisione, senza perdere nessun passaggio
+            </p>
+            <h1 className="mt-6 max-w-5xl font-display text-5xl font-extrabold leading-[1.05] sm:text-7xl">
+              Dal satellite alla singola pianta: come OrtoMio costruisce una decisione.
+            </h1>
+            <p className="mt-8 max-w-3xl text-lg leading-relaxed text-ortomio-green-100 sm:text-xl">
+              OrtoMio avvicina livelli che di solito restano separati: osservazione dall’alto,
+              misure sul campo, storia delle piante e lavoro svolto. L’AI li mette in relazione,
+              mostra il proprio ragionamento e lascia la decisione al responsabile.
+            </p>
+          </div>
         </header>
 
-        <section className="px-6 py-20 sm:py-28"><div className="mx-auto max-w-5xl divide-y divide-ortomio-earth/20 border-y border-ortomio-earth/20">{chapters.map((chapter) => <article key={chapter.number} className="grid gap-4 py-9 md:grid-cols-[4rem_1fr_1fr]"><span className="font-mono text-xs text-ortomio-harvest">{chapter.number}</span><h2 className="font-display text-2xl font-bold">{chapter.title}</h2><p className="leading-relaxed text-gray-700">{chapter.text}</p></article>)}</div></section>
+        <section aria-labelledby="osservazione-title" className="px-6 py-20 sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr] lg:items-end">
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                  Osservare e misurare
+                </p>
+                <h2 id="osservazione-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
+                  Parte dalla situazione reale del campo.
+                </h2>
+              </div>
+              <p className="text-lg leading-relaxed text-gray-700">
+                Ti mostra cosa richiede attenzione mettendo vicini dati satellitari, misure IoT,
+                meteo, colture e lavori già registrati. Ogni informazione mantiene chiara la propria
+                origine e i propri limiti.
+              </p>
+            </div>
 
-        <section className="bg-white px-6 py-20 sm:py-28"><div className="mx-auto max-w-5xl"><p className="font-mono text-xs uppercase tracking-[0.2em] text-ortomio-harvest">Cosa coordina</p><h2 className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">Una lettura comune per segnali diversi.</h2><div className="mt-10 grid gap-6 sm:grid-cols-2">{orchestratorSignals.map((signal) => <article key={signal.label} className="border-t-2 border-ortomio-green-600 pt-5"><h3 className="font-bold">{signal.label}</h3><p className="mt-2 text-gray-700">{signal.value}</p></article>)}</div></div></section>
+            <div className="mt-12 grid gap-px overflow-hidden border border-ortomio-earth/20 bg-ortomio-earth/20 lg:grid-cols-2">
+              <article className="bg-white p-7 sm:p-9">
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-harvest">Vista ampia · NDVI</p>
+                <h3 className="mt-4 font-display text-2xl font-bold">Indica dove andare a controllare.</h3>
+                <p className="mt-4 leading-relaxed text-gray-700">
+                  Quando i dati satellitari sono disponibili, le differenze di vigore diventano
+                  aree da verificare e vengono collegate a filari, irrigazioni e interventi passati.
+                  NDVI supporta lo scouting: orienta il controllo in campo, non formula diagnosi.
+                </p>
+              </article>
+              <article className="bg-white p-7 sm:p-9">
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-harvest">Vista vicina · IoT</p>
+                <h3 className="mt-4 font-display text-2xl font-bold">Distingue una misura da una previsione.</h3>
+                <p className="mt-4 leading-relaxed text-gray-700">
+                  Con un dispositivo associato alla singola pianta, la telemetria può registrare
+                  portata e litri erogati. I valori misurati restano distinti da quelli inseriti
+                  manualmente, pianificati o calcolati: un comando non dimostra da solo quanta acqua
+                  sia arrivata alle radici.
+                </p>
+              </article>
+            </div>
 
-        <section className="px-6 py-20 sm:py-28"><div className="mx-auto max-w-5xl"><p className="font-mono text-xs uppercase tracking-[0.2em] text-ortomio-harvest">Colture specialistiche</p><h2 className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">Dal filare alla singola pianta.</h2><div className="mt-10 grid gap-5 md:grid-cols-2">{specialistCrops.map((crop) => <article key={crop.id} className="border border-ortomio-earth/20 bg-white p-6"><div className="flex justify-between gap-4"><h3 className="font-display text-2xl font-bold">{crop.label}</h3><span className="font-mono text-[10px] uppercase text-ortomio-harvest">{crop.maturity}</span></div><p className="mt-3 font-semibold text-ortomio-green-700">{crop.proof}</p><p className="mt-3 text-sm leading-relaxed text-gray-700">{crop.detail}</p></article>)}</div></div></section>
+            <div className="mt-12">
+              <h3 className="max-w-3xl font-display text-2xl font-bold sm:text-3xl">
+                Condizioni del campo, colture, lavori e costi nello stesso quadro.
+              </h3>
+              <div className="mt-7 grid gap-x-8 gap-y-7 sm:grid-cols-2">
+                {orchestratorSignals.map((item) => (
+                  <article key={item.label} className="border-t-2 border-ortomio-green-600 pt-4">
+                    <h4 className="font-bold">{item.label}</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-700">{item.value}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <section className="bg-ortomio-green-900 px-6 py-20 text-white sm:py-28"><div className="mx-auto max-w-5xl"><p className="font-mono text-xs uppercase tracking-[0.2em] text-ortomio-harvest">Documentazione completa</p><h2 className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">Approfondisci metodi, flussi e limiti.</h2><div className="mt-10 grid gap-px bg-white/15 sm:grid-cols-2">{documentationLinks.map((item) => <Link key={item.href} href={item.href} className="min-h-32 bg-ortomio-green-900 p-6 transition hover:bg-ortomio-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ortomio-harvest"><h3 className="font-bold">{item.label} →</h3><p className="mt-2 text-sm text-ortomio-green-100">{item.description}</p></Link>)}</div></div></section>
+        <section aria-labelledby="reasoning-title" className="bg-ortomio-green-900 px-6 py-20 text-white sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid gap-8 lg:grid-cols-[0.75fr_1fr]">
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                  Ragionamento visibile
+                </p>
+                <h2 id="reasoning-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
+                  Quattro domande aprono ogni proposta.
+                </h2>
+              </div>
+              <div>
+                <p className="text-lg leading-relaxed text-ortomio-green-100">
+                  Spiega perché propone un intervento senza nascondere informazioni mancanti o
+                  possibilità diverse. La decisione resta al responsabile: OrtoMio prepara una
+                  lettura motivata e conserva il motivo della scelta.
+                </p>
+              </div>
+            </div>
+
+            <ol className="mt-12 grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2">
+              {reasoningQuestions.map((item, index) => (
+                <li key={item.question} className="bg-ortomio-green-900 p-7 sm:p-9">
+                  <span className="font-mono text-xs text-ortomio-harvest">0{index + 1}</span>
+                  <h3 className="mt-5 font-display text-2xl font-bold">{item.question}</h3>
+                  <p className="mt-3 leading-relaxed text-ortomio-green-100">{item.answer}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section aria-labelledby="plant-title" className="px-6 py-20 sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+              Una storia per ogni pianta
+            </p>
+            <h2 id="plant-title" className="mt-4 max-w-4xl font-display text-4xl font-extrabold sm:text-5xl">
+              Da ciò che riceve a ciò che raccogli.
+            </h2>
+            <p className="mt-6 max-w-3xl text-lg leading-relaxed text-gray-700">
+              Ogni pianta, vite o albero può mantenere codice e posizione. Collega il lavoro al risultato e permette di
+              confrontare lo stato prima e dopo ogni intervento.
+            </p>
+
+            <ol className="mt-12 border-y border-ortomio-earth/20">
+              {plantHistory.map((item, index) => (
+                <li
+                  key={item.label}
+                  className="grid gap-3 border-b border-ortomio-earth/20 py-7 last:border-b-0 sm:grid-cols-[4rem_0.7fr_1.3fr] sm:items-start"
+                >
+                  <span className="font-mono text-xs text-ortomio-harvest">0{index + 1}</span>
+                  <h3 className="font-display text-xl font-bold">{item.label}</h3>
+                  <p className="leading-relaxed text-gray-700">{item.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section aria-labelledby="certification-title" className="bg-white px-6 py-20 sm:py-28">
+          <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-16">
+            <div>
+              <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                Evidenze recuperabili
+              </p>
+              <h2 id="certification-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
+                Il lavoro documentato prepara la verifica.
+              </h2>
+              <p className="mt-6 leading-relaxed text-gray-700">
+                Per biologico e GlobalG.A.P., OrtoMio aiuta a organizzare ciò che è già documentato
+                e a vedere cosa deve essere completato. Prepara evidenze; il certificato e la
+                valutazione restano agli organismi competenti.
+              </p>
+            </div>
+            <ul className="border-t border-ortomio-earth/20">
+              {certificationEvidence.map((item) => (
+                <li key={item} className="flex gap-4 border-b border-ortomio-earth/20 py-5 leading-relaxed text-gray-700">
+                  <span className="mt-2 h-2 w-2 shrink-0 bg-ortomio-harvest" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section aria-labelledby="planning-title" className="px-6 py-20 sm:py-28">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr]">
+              <div>
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                  Pianificare e imparare
+                </p>
+                <h2 id="planning-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
+                  Il piano continua anche dopo l’inizio della stagione.
+                </h2>
+              </div>
+              <div className="space-y-5 text-lg leading-relaxed text-gray-700">
+                <p>
+                  Regole agronomiche, rotazioni, periodi di semina e compatibilità costruiscono la
+                  base. L’AI confronta periodi, costi, ricavi potenziali e rischi senza sostituire
+                  l’esperienza di chi conduce l’azienda.
+                </p>
+                <p>
+                  Quando lavorazioni, rese e costi reali vengono registrati, il confronto con il
+                  piano aiuta a preparare il ciclo successivo.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-14 grid gap-5 md:grid-cols-2">
+              {specialistCrops.map((crop) => (
+                <article key={crop.id} className="border border-ortomio-earth/20 bg-white p-6 sm:p-7">
+                  <h3 className="font-display text-2xl font-bold">{crop.label}</h3>
+                  <p className="mt-3 font-semibold text-ortomio-green-700">{crop.proof}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-700">{crop.detail}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <FinalCta />
       </main>
       <LandingFooter />
     </div>

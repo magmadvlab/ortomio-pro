@@ -156,6 +156,22 @@ test('come funziona uses commercial agronomic language instead of system jargon'
   }
 })
 
+test('come funziona expands the four differentiated mechanisms', () => {
+  const source = read('app/come-funziona/page.tsx').toLowerCase()
+
+  for (const phrase of [
+    'dal satellite alla singola pianta',
+    'dati satellitari',
+    'telemetria',
+    'acqua, nutrimenti e trattamenti',
+    'biologico e globalg.a.p.',
+    'ragionamento',
+  ]) {
+    assert.equal(source.includes(phrase), true, phrase)
+  }
+  assert.equal((source.match(/<finalcta \/>/g) ?? []).length, 1)
+})
+
 test('hero states the differentiated AI promise', () => {
   const content = read('components/landing/content.ts')
   const hero = read('components/landing/sections/Hero.tsx')
