@@ -2,17 +2,13 @@
 
 /* Tailwind v4 Theme Configuration */
 @theme {
-  /* Primary Green Colors - Usa sintassi con trattini per colori annidati */
-  --color-ortomio-green-50: #f0fdf4;
-  --color-ortomio-green-100: #dcfce7;
-  --color-ortomio-green-200: #bbf7d0;
-  --color-ortomio-green-300: #86efac;
-  --color-ortomio-green-400: #4ade80;
-  --color-ortomio-green-500: #22c55e;
-  --color-ortomio-green-600: #16a34a;
-  --color-ortomio-green-700: #15803d;
-  --color-ortomio-green-800: #166534;
-  --color-ortomio-green-900: #14532d;
+  /* Primary Green Colors - Verde Petrolio Teal-Green Brand Ramp */
+  --color-ortomio-green-50: #eaf5f3;
+  --color-ortomio-green-100: #cde9e3;
+  --color-ortomio-green-500: #1f9483;
+  --color-ortomio-green-600: #1b7a6b;
+  --color-ortomio-green-700: #146054;
+  --color-ortomio-green-900: #0c332c;
 
   /* Earth/Terra Colors */
   --color-ortomio-earth-50: #faf5f0;
