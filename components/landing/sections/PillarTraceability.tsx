@@ -3,7 +3,7 @@ const PIPELINE = ['Semina/acquisto', 'Germinazione', 'Nursing', 'Hardening', 'Pi
 export default function PillarTraceability() {
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Dal seme al raccolto, una pianta alla volta
         </h2>

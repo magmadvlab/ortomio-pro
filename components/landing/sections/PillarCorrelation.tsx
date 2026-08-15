@@ -1,7 +1,7 @@
 export default function PillarCorrelation() {
   return (
     <section className="border-b border-ortomio-earth-200 bg-ortomio-earth-100 px-6 py-16">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Excel contiene i dati. OrtoMio li mette in relazione.
         </h2>
