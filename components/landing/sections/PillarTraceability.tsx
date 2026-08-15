@@ -67,20 +67,19 @@ export default function PillarTraceability() {
               { label: 'Trattamento', before: 85, after: 88 },
             ].map((op) => (
               <div key={op.label} className="flex flex-1 flex-col items-center gap-1">
-                <div className="flex h-16 w-full items-end gap-1">
+                <span className="sr-only">{op.label}: Prima {op.before}, dopo {op.after}</span>
+                <div className="flex h-16 w-full items-end gap-1" aria-hidden="true">
                   <div
                     className="flex-1 rounded-t-sm bg-ortomio-earth-200"
                     style={{ height: `${op.before}%` }}
-                    title={`Prima: ${op.before}`}
                   />
                   <div
                     className="flex-1 rounded-t-sm bg-ortomio-green-600"
                     style={{ height: `${op.after}%` }}
-                    title={`Dopo: ${op.after}`}
                   />
                 </div>
-                <span className="text-center text-xs leading-tight text-gray-600">{op.label}</span>
-                <span className="font-mono text-xs text-gray-600">{op.before}→{op.after}</span>
+                <span aria-hidden="true" className="text-center text-xs leading-tight text-gray-600">{op.label}</span>
+                <span aria-hidden="true" className="font-mono text-xs text-gray-600">{op.before}→{op.after}</span>
               </div>
             ))}
           </div>

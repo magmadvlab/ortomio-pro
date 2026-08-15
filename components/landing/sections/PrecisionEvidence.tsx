@@ -21,7 +21,7 @@ export default function PrecisionEvidence() {
     <section className="border-b border-ortomio-earth/30 bg-ortomio-earth-50 px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-3xl">
-          <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
             Osservazione e misure
           </p>
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
@@ -39,7 +39,7 @@ export default function PrecisionEvidence() {
               key={title}
               className="border-b border-ortomio-earth/30 py-8 last:border-b-0 lg:border-b-0 lg:px-10 lg:first:pl-0 lg:last:pr-0"
             >
-              <span className="font-mono text-xs font-bold text-ortomio-harvest">
+              <span className="font-mono text-xs font-bold text-ortomio-green-700">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <h3 className="mt-4 font-display text-2xl font-bold text-ortomio-green-900">
