@@ -117,11 +117,14 @@ git commit -m "feat: add pure root routing decision for landing vs redirect"
 
 **Revision note (added after Task 1 was already complete):** the original version of this task assumed `useAuth()` could be called from `app/page.tsx` directly. It cannot — `AuthProvider` (from `@/packages/core/hooks/useAuth`) is only mounted inside `app/app/layout.tsx` and `app/dashboard/layout.tsx`, not in the root `app/layout.tsx` that `app/page.tsx` renders under. Calling `useAuth()` outside an `AuthProvider` throws `Error: useAuth must be used within an AuthProvider` immediately. Human decision: mount `AuthProvider` at the **root** layout instead, shared by the whole app, and remove the now-redundant nested providers from `app/app/layout.tsx` and `app/dashboard/layout.tsx`. This task now touches three files instead of one.
 
+**Second revision note:** implementing the first revision surfaced a second, unrelated pre-existing gap: `packages/core/hooks/useAuth.tsx` uses `useState`/`useEffect`/`createContext` but has no `'use client'` directive at the top of the file. This was invisible until now because every existing importer (`app/app/layout.tsx`, `app/dashboard/layout.tsx`) was already itself a client component; importing it from the true Server Component root layout exposes the gap and 500s every route. Fix: add `'use client'` as the first line of `packages/core/hooks/useAuth.tsx` — a one-line, single-option fix (the hook already only contains client-only logic), not an architectural choice, so this task's scope now includes that file too.
+
 **Files:**
 - Modify: `app/layout.tsx`
 - Modify: `app/app/layout.tsx`
 - Modify: `app/dashboard/layout.tsx`
 - Modify: `app/page.tsx`
+- Modify: `packages/core/hooks/useAuth.tsx` (add `'use client'` as line 1 — no other change)
 
 **Interfaces:**
 - Consumes: `decideRootRouting`, `RootRoutingInput` from `@/lib/landing/rootRouting` (Task 1). `useAuth`, `AuthProvider` from `@/packages/core/hooks/useAuth` (existing — `useAuth()` exposes `{ user, loading }`; `AuthProvider` is an existing client component that takes `children`).
@@ -335,7 +338,7 @@ Expected: after the loading spinner, the page shows "Landing placeholder" instea
 - [ ] **Step 9: Commit**
 
 ```bash
-git add app/layout.tsx app/app/layout.tsx app/dashboard/layout.tsx app/page.tsx
+git add app/layout.tsx app/app/layout.tsx app/dashboard/layout.tsx app/page.tsx packages/core/hooks/useAuth.tsx
 git commit -m "feat: share AuthProvider at root layout, make root page session-aware"
 ```
 
