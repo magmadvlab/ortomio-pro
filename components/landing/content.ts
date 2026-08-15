@@ -54,7 +54,7 @@ export const specialistCrops: SpecialistCrop[] = [
     id: 'vivaio',
     label: 'Vivaio',
     proof: 'Dal seme al trapianto',
-    detail: 'Semina o acquisto, germinazione, nursing, hardening e trapianto restano nello stesso percorso.',
+    detail: 'Dalla semina alla germinazione, alla crescita in vivaio e alla preparazione al trapianto. Una volta in campo, il codice della piantina viene collegato alla sua posizione nel filare.',
     maturity: 'Stabile',
   },
 ]

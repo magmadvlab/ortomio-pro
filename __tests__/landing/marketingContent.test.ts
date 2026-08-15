@@ -113,6 +113,17 @@ test('homepage explains the operational journey, nursery flow, and per-row plant
   }
 })
 
+test('specialist crop copy describes the nursery flow in customer-facing Italian', () => {
+  const source = read('components/landing/content.ts').toLowerCase()
+
+  for (const phrase of ['crescita in vivaio', 'preparazione al trapianto', 'posizione nel filare']) {
+    assert.equal(source.includes(phrase), true, phrase)
+  }
+  for (const internalTerm of ['nursing', 'hardening']) {
+    assert.equal(source.includes(internalTerm), false, internalTerm)
+  }
+})
+
 test('commercial pages do not link to technical manuals or generic contacts', () => {
   const source = [
     read('components/landing/LandingHeader.tsx'),
@@ -220,6 +231,16 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
   ]) {
     assert.equal(precisionEvidence.includes(requiredIoTPhrase.toLowerCase()), true, requiredIoTPhrase)
   }
+})
+
+test('certification and planning sections are contiguous after plant traceability', () => {
+  const home = read('components/landing/LandingPage.tsx')
+
+  assert.match(
+    home,
+    /<PillarTraceability \/>\s*<CertificationEvidence \/>\s*<PlanningMemory \/>\s*<SpecialistCrops \/>/,
+  )
+  assert.equal(home.includes('HowItWorks'), false)
 })
 
 test('homepage follows the approved persuasion order and ends with one CTA', () => {
