@@ -14,7 +14,6 @@ export default function LandingHeader() {
         <nav aria-label="Navigazione principale" className="flex items-center gap-1 sm:gap-5">
           <a href="#come-funziona" className={`hidden min-h-11 items-center px-2 text-sm text-ortomio-green-900 hover:text-ortomio-green-600 md:flex ${focus}`}>Come funziona</a>
           <a href="#colture" className={`hidden min-h-11 items-center px-2 text-sm text-ortomio-green-900 hover:text-ortomio-green-600 md:flex ${focus}`}>Colture</a>
-          <Link href="/come-funziona" className={`hidden min-h-11 items-center px-2 text-sm text-ortomio-green-900 hover:text-ortomio-green-600 sm:flex ${focus}`}>Documentazione</Link>
           <Link href="/login" className={`flex min-h-11 items-center border-l border-ortomio-earth/30 px-3 text-sm font-bold text-ortomio-green-900 hover:text-ortomio-green-600 sm:pl-5 ${focus}`}>Accedi</Link>
         </nav>
       </div>

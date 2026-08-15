@@ -318,3 +318,36 @@ test('homepage closes with action-oriented audience benefits and the approved gu
     assert.equal(taskSixSource.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden)
   }
 })
+
+test('landing shell keeps manuals and contacts out of the post-CTA navigation', () => {
+  const shell = [
+    read('components/landing/LandingHeader.tsx'),
+    read('components/landing/LandingFooter.tsx'),
+  ].join('\n')
+
+  for (const excluded of ['/docs/manual/', 'Manuali', 'Documentazione', 'mailto:', 'Contatti']) {
+    assert.equal(shell.includes(excluded), false, excluded)
+  }
+  assert.equal(shell.includes('Accedi'), true)
+  assert.equal(shell.includes('Come funziona'), true)
+})
+
+test('verification benefits use the exact neutral checklist without source-state machinery', () => {
+  const source = read('components/landing/sections/BenefitsList.tsx')
+
+  for (const phrase of [
+    "'Dove serve attenzione prima di organizzare la giornata.'",
+    "'Perché viene proposto un intervento.'",
+    "'Cosa ha ricevuto ogni pianta e come ha risposto.'",
+    "'Come piano, lavorazioni, costi e raccolto si confrontano.'",
+    "'Quali informazioni sono pronte per registri e certificazioni.'",
+    "'Come la storia aziendale continua tra una stagione e la successiva.'",
+  ]) {
+    assert.equal(source.includes(phrase), true, phrase)
+  }
+
+  assert.equal(source.includes('{ text:'), false)
+  assert.equal(source.includes('swatch'), false)
+  assert.equal(source.includes('Swatch'), false)
+  assert.match(source, /<Check[^>]+aria-hidden="true"/)
+})

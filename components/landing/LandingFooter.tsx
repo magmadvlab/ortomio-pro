@@ -7,8 +7,6 @@ export default function LandingFooter() {
         <div><p className="font-display text-xl font-bold text-white">OrtoMio</p><p className="mt-2 max-w-md text-sm leading-relaxed">Memoria operativa e supporto decisionale per aziende agricole e consulenti agronomici.</p></div>
         <nav aria-label="Link nel footer" className="flex flex-wrap gap-x-6 gap-y-2">
           <Link href="/come-funziona" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Come funziona</Link>
-          <Link href="/docs/manual/README" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Manuali</Link>
-          <a href="mailto:roberto.lalinga@gmail.com" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Contatti</a>
         </nav>
       </div>
     </footer>
