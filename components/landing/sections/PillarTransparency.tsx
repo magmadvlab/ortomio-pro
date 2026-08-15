@@ -31,10 +31,22 @@ const TAB_CONTENT: Record<Tab, React.ReactNode> = {
   'Perché viene prima': null, // rendered by the illustrative calculation below
   Alternative: (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li><strong>Intervenire</strong> — preparare il lavoro dopo il controllo del responsabile.</li>
-      <li><strong>Programmare</strong> — inserire l&apos;intervento nel momento più adatto.</li>
-      <li><strong>Continuare a osservare</strong> — attendere nuove informazioni prima di agire.</li>
-      <li><strong>Richiedere un controllo sul campo</strong> — verificare direttamente la situazione.</li>
+      <li>
+        <strong>Intervenire — Proposta da valutare.</strong> Le possibili conseguenze del ritardo
+        rendono opportuno verificare l&apos;intervento.
+      </li>
+      <li>
+        <strong>Programmare — Non scelta per ora.</strong> Nel confronto illustrato, rimandare pesa
+        più del beneficio di attendere.
+      </li>
+      <li>
+        <strong>Continuare a osservare — Non scelta.</strong> Le informazioni disponibili indicano
+        dove controllare; attendere soltanto non chiarirebbe meglio la situazione.
+      </li>
+      <li>
+        <strong>Richiedere un controllo sul campo — Incluso nella proposta.</strong> Il responsabile
+        verifica direttamente la zona prima di confermare l&apos;intervento.
+      </li>
     </ul>
   ),
 }
