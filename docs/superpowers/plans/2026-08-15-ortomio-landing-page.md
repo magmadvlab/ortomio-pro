@@ -115,14 +115,132 @@ git commit -m "feat: add pure root routing decision for landing vs redirect"
 
 ### Task 2: Wire `app/page.tsx` to the routing decision
 
+**Revision note (added after Task 1 was already complete):** the original version of this task assumed `useAuth()` could be called from `app/page.tsx` directly. It cannot — `AuthProvider` (from `@/packages/core/hooks/useAuth`) is only mounted inside `app/app/layout.tsx` and `app/dashboard/layout.tsx`, not in the root `app/layout.tsx` that `app/page.tsx` renders under. Calling `useAuth()` outside an `AuthProvider` throws `Error: useAuth must be used within an AuthProvider` immediately. Human decision: mount `AuthProvider` at the **root** layout instead, shared by the whole app, and remove the now-redundant nested providers from `app/app/layout.tsx` and `app/dashboard/layout.tsx`. This task now touches three files instead of one.
+
 **Files:**
+- Modify: `app/layout.tsx`
+- Modify: `app/app/layout.tsx`
+- Modify: `app/dashboard/layout.tsx`
 - Modify: `app/page.tsx`
 
 **Interfaces:**
-- Consumes: `decideRootRouting`, `RootRoutingInput` from `@/lib/landing/rootRouting` (Task 1). `useAuth` from `@/packages/core/hooks/useAuth` (existing — exposes `{ user, loading }`).
-- Consumes: `LandingPage` default export from `@/components/landing/LandingPage` (Task 8 creates this — until Task 8 lands, Step 3 below temporarily renders a placeholder `<div>Landing placeholder</div>` instead of `<LandingPage />`; Task 8's last step swaps the placeholder for the real import).
+- Consumes: `decideRootRouting`, `RootRoutingInput` from `@/lib/landing/rootRouting` (Task 1). `useAuth`, `AuthProvider` from `@/packages/core/hooks/useAuth` (existing — `useAuth()` exposes `{ user, loading }`; `AuthProvider` is an existing client component that takes `children`).
+- Consumes: `LandingPage` default export from `@/components/landing/LandingPage` (Task 8 creates this — until Task 8 lands, Step 4 below temporarily renders a placeholder `<div>Landing placeholder</div>` instead of `<LandingPage />`; Task 8's last step swaps the placeholder for the real import).
 
-- [ ] **Step 1: Replace `app/page.tsx` with the session-aware version**
+- [ ] **Step 1: Mount `AuthProvider` once, at the root layout**
+
+`app/layout.tsx` is a server component (it exports `metadata`) — that's fine, a server component can render a client component like `AuthProvider` as a wrapper around its children without itself becoming a client component. Add the import and wrap `{children}`:
+
+```typescript
+import '../index.css'
+import type { Metadata, Viewport } from 'next'
+import { AuthProvider } from '@/packages/core/hooks/useAuth'
+
+export const metadata: Metadata = {
+  title: 'OrtoMio Agricoltura',
+  description: 'Centro operativo per gestione agricola, appezzamenti e coltivazioni',
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'OrtoMio',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#10b981',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="it" suppressHydrationWarning>
+      <body className="bg-gray-50">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+(This is the existing file with only the `AuthProvider` import added and `{children}` wrapped — every other line is unchanged from today's `app/layout.tsx`. Read the current file first to confirm no other lines have drifted since this plan was written, and preserve anything present that isn't shown above.)
+
+- [ ] **Step 2: Remove the now-redundant nested `AuthProvider` from `app/app/layout.tsx`**
+
+Read the current `app/app/layout.tsx` first. Remove the `AuthProvider` import and its wrapping JSX tags only — keep every other provider (`CapabilityProvider`, `StorageProvider`, `TierProvider`) and `AuthGuard` exactly as they are today, just no longer nested inside a second `AuthProvider`. The file's shape goes from:
+
+```tsx
+import { AuthProvider } from '@/packages/core/hooks/useAuth'
+// ...
+    <AuthProvider>
+      <AuthGuard>
+        <CapabilityProvider>
+          {/* ... */}
+        </CapabilityProvider>
+      </AuthGuard>
+    </AuthProvider>
+```
+
+to:
+
+```tsx
+// AuthProvider import removed — it's mounted once at app/layout.tsx now
+// ...
+    <AuthGuard>
+      <CapabilityProvider>
+        {/* ... */}
+      </CapabilityProvider>
+    </AuthGuard>
+```
+
+- [ ] **Step 3: Remove the now-redundant nested `AuthProvider` from `app/dashboard/layout.tsx`**
+
+Same pattern — read the current file, remove the `AuthProvider` import and its wrapping tags, keep `StorageProvider` and `TierProvider` as they are:
+
+```tsx
+'use client'
+
+import React from 'react'
+import { TierProvider } from '@/packages/core/context/TierContext'
+import { StorageProvider } from '@/packages/core/context/StorageContext'
+import { AppTier } from '@/packages/core/config/tiers'
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  console.log('🔍 Dashboard Layout with providers loading...')
+
+  return (
+    <StorageProvider>
+      <TierProvider defaultTier={AppTier.PRO}>
+        <div style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb'
+        }}>
+          {children}
+        </div>
+      </TierProvider>
+    </StorageProvider>
+  )
+}
+```
+
+- [ ] **Step 4: Replace `app/page.tsx` with the session-aware version**
 
 ```typescript
 'use client'
@@ -194,26 +312,31 @@ export default function HomePage() {
 }
 ```
 
-- [ ] **Step 2: Manual verification — authenticated redirect still works**
+- [ ] **Step 5: Manual verification — `/app` and `/dashboard` still work with a single shared `AuthProvider`**
 
-Run: `npm run dev`, sign in with a test account, navigate to `/`.
+Run: `npm run dev`, sign in with a test account, navigate to `/app`.
+Expected: loads exactly as before this change (no duplicate-provider errors, no infinite loading, `AuthGuard` still gates access). If `/dashboard` is reachable in this environment, check it too.
+
+- [ ] **Step 6: Manual verification — authenticated redirect from root still works**
+
+While still signed in, navigate to `/`.
 Expected: brief spinner, then automatic redirect to `/app` (same as before this change).
 
-- [ ] **Step 3: Manual verification — auth callback still works**
+- [ ] **Step 7: Manual verification — auth callback still works**
 
 Navigate to `/?code=test123` while logged out.
 Expected: immediate redirect to `/auth/callback?code=test123` (same as before this change).
 
-- [ ] **Step 4: Manual verification — unauthenticated visitor sees the placeholder**
+- [ ] **Step 8: Manual verification — unauthenticated visitor sees the placeholder**
 
 Open `/` in a private/incognito window (no session).
 Expected: after the loading spinner, the page shows "Landing placeholder" instead of redirecting — confirms the routing decision now reaches `SHOW_LANDING`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add app/page.tsx
-git commit -m "feat: make root page session-aware, show landing for logged-out visitors"
+git add app/layout.tsx app/app/layout.tsx app/dashboard/layout.tsx app/page.tsx
+git commit -m "feat: share AuthProvider at root layout, make root page session-aware"
 ```
 
 ---
