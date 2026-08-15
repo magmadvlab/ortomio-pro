@@ -49,7 +49,7 @@ export default function HomePage() {
       return
     }
     if (decision === 'REDIRECT_APP') {
-      router.push('/app')
+      router.replace('/app')
     }
   }, [decision, callbackParams, router])
 

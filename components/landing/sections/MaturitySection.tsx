@@ -1,6 +1,6 @@
 export default function MaturitySection() {
   return (
-    <section id="maturita" className="border-b border-ortomio-earth-200 bg-ortomio-earth-100 px-6 py-16">
+    <section id="maturita" className="scroll-mt-20 border-b border-ortomio-earth-200 bg-ortomio-earth-100 px-6 py-16">
       <div className="mx-auto max-w-3xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Dove siamo davvero — funzione per funzione, non a parole

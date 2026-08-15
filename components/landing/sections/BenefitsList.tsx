@@ -3,7 +3,7 @@ const BENEFITS = [
   { text: 'Sai sempre chi ha deciso, chi ha eseguito, chi ha verificato.', swatch: 'measured' },
   { text: 'Il sistema distingue in modo esplicito dato misurato, stimato, assente o simulato — mai un numero inventato spacciato per misura.', swatch: 'estimated' },
   { text: 'Meno dipendenza dalla memoria di una singola persona in azienda.', swatch: 'measured' },
-  { text: 'Una base dati reale per confrontare previsione ed esito, non solo sensazioni.', swatch: 'absent' },
+  { text: 'Una base dati reale per confrontare previsione ed esito, non solo sensazioni.', swatch: 'measured' },
 ] as const
 
 function Swatch({ kind }: { kind: (typeof BENEFITS)[number]['swatch'] }) {

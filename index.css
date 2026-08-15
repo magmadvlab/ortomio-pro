@@ -37,6 +37,11 @@
   --color-semantic-warning: #f59e0b;
   --color-semantic-error: #ef4444;
   --color-semantic-info: #3b82f6;
+
+  /* Typography */
+  --font-display: 'DM Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 /* Design System CSS Variables (for JavaScript access) */
@@ -77,11 +82,6 @@
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
-
-    /* Typography */
-    --font-display: 'DM Sans', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
   }
 
   body {
