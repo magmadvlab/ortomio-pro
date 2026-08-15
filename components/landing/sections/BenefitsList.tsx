@@ -1,9 +1,10 @@
 const BENEFITS = [
-  { text: 'Una sola memoria per attività, osservazioni e risultati — non più tra quaderno, Excel e messaggi.', swatch: 'measured' },
-  { text: 'Sai sempre chi ha deciso, chi ha eseguito, chi ha verificato.', swatch: 'measured' },
-  { text: 'Il sistema distingue in modo esplicito dato misurato, stimato, assente o simulato — mai un numero inventato spacciato per misura.', swatch: 'estimated' },
-  { text: 'Meno dipendenza dalla memoria di una singola persona in azienda.', swatch: 'measured' },
-  { text: 'Una base dati reale per confrontare previsione ed esito, non solo sensazioni.', swatch: 'measured' },
+  { text: 'Dove serve attenzione prima di organizzare la giornata.', swatch: 'measured' },
+  { text: 'Perché viene proposto un intervento.', swatch: 'measured' },
+  { text: 'Cosa ha ricevuto ogni pianta e come ha risposto.', swatch: 'measured' },
+  { text: 'Come piano, lavorazioni, costi e raccolto si confrontano.', swatch: 'measured' },
+  { text: 'Quali informazioni sono pronte per registri e certificazioni.', swatch: 'measured' },
+  { text: 'Come la storia aziendale continua tra una stagione e la successiva.', swatch: 'measured' },
 ] as const
 
 function Swatch({ kind }: { kind: (typeof BENEFITS)[number]['swatch'] }) {
@@ -18,7 +19,7 @@ export default function BenefitsList() {
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-3xl">
         <h2 className="mb-8 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Cosa cambia davvero
+          Cosa puoi verificare
         </h2>
         <ul className="divide-y divide-ortomio-earth-200 border-t border-ortomio-earth-200">
           {BENEFITS.map((benefit) => (

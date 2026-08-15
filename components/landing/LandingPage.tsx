@@ -8,6 +8,8 @@ import PillarTraceability from './sections/PillarTraceability'
 import CertificationEvidence from './sections/CertificationEvidence'
 import SpecialistCrops from './sections/SpecialistCrops'
 import PlanningMemory from './sections/PlanningMemory'
+import AudienceSplit from './sections/AudienceSplit'
+import BenefitsList from './sections/BenefitsList'
 import FinalCta from './sections/FinalCta'
 import LandingFooter from './LandingFooter'
 
@@ -25,6 +27,8 @@ export default function LandingPage() {
         <CertificationEvidence />
         <PlanningMemory />
         <SpecialistCrops />
+        <AudienceSplit />
+        <BenefitsList />
         <FinalCta />
       </main>
       <LandingFooter />

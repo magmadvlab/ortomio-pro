@@ -266,3 +266,55 @@ test('homepage follows the approved persuasion order and ends with one CTA', () 
     previous = index
   }
 })
+
+test('homepage closes with action-oriented audience benefits and the approved guided-trial copy', () => {
+  const audiences = read('components/landing/sections/AudienceSplit.tsx')
+  const benefits = read('components/landing/sections/BenefitsList.tsx')
+  const finalCta = read('components/landing/sections/FinalCta.tsx')
+  const taskSixSource = [audiences, benefits, finalCta].join('\n')
+  const normalizedSource = taskSixSource.replace(/\s+/g, ' ')
+
+  for (const phrase of [
+    'memoria condivisa',
+    'dalla decisione alla verifica',
+    'Confronta i clienti',
+    'prepara ogni visita',
+    'storia del consiglio',
+  ]) {
+    assert.equal(normalizedSource.includes(phrase), true, phrase)
+  }
+
+  for (const phrase of [
+    'Cosa puoi verificare',
+    'Dove serve attenzione prima di organizzare la giornata.',
+    'Perché viene proposto un intervento.',
+    'Cosa ha ricevuto ogni pianta e come ha risposto.',
+    'Come piano, lavorazioni, costi e raccolto si confrontano.',
+    'Quali informazioni sono pronte per registri e certificazioni.',
+    'Come la storia aziendale continua tra una stagione e la successiva.',
+  ]) {
+    assert.equal(benefits.includes(phrase), true, phrase)
+  }
+
+  for (const phrase of [
+    'Porta un caso reale. Lo ricostruiamo insieme in OrtoMio.',
+    'Indicaci azienda, coltura ed esigenza principale. Prepareremo una prova guidata sui flussi più vicini al tuo lavoro: osservazione del campo, priorità AI, tracciabilità delle piante, pianificazione, IoT, NDVI o preparazione delle evidenze per le certificazioni.',
+    'Ti ricontatteremo per preparare una dimostrazione coerente con il tuo contesto.',
+  ]) {
+    assert.equal(normalizedSource.includes(phrase), true, phrase)
+  }
+
+  for (const forbidden of [
+    'briefing',
+    'orchestratore',
+    'segnali correlati',
+    'mailto:',
+    'manuali',
+    'NO-GO',
+    'release candidate',
+    'maturità verificabile',
+    'funzione in beta',
+  ]) {
+    assert.equal(taskSixSource.toLowerCase().includes(forbidden.toLowerCase()), false, forbidden)
+  }
+})

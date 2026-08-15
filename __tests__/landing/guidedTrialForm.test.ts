@@ -6,6 +6,9 @@ test('guided trial collects and submits the four approved fields', () => {
   const source = readFileSync('components/landing/PilotRequestForm.tsx', 'utf8')
   for (const field of ['name', 'email', 'company', 'message']) assert.match(source, new RegExp(`name="${field}"`))
   assert.match(source, /guided_trial/)
+  assert.match(source, /placeholder="Coltura, dimensione aziendale ed esigenza che vuoi approfondire"/)
+  assert.match(source, /onClose\?: \(\) => void/)
+  assert.match(source, /aria-label="Chiudi il modulo"/)
 })
 
 test('support route preserves the company on guided trial requests', () => {
