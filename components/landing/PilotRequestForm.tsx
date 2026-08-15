@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 interface PilotRequestFormProps {
@@ -12,6 +12,11 @@ export default function PilotRequestForm({ onClose }: PilotRequestFormProps) {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    nameInputRef.current?.focus()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,6 +82,7 @@ export default function PilotRequestForm({ onClose }: PilotRequestFormProps) {
         <input
           id="pilot-name"
           type="text"
+          ref={nameInputRef}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required

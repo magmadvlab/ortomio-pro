@@ -6,7 +6,7 @@ export default function StatusBanner() {
           <strong className="text-semantic-warning-text">Demo/beta pubblica.</strong>{' '}
           Codice in produzione, dati di prova.
         </span>
-        <a href="#maturita" className="text-sm font-semibold underline-offset-2 hover:underline sm:ml-auto">
+        <a href="#maturita" className="inline-block py-2 text-sm font-semibold underline-offset-2 hover:underline sm:ml-auto">
           → leggi lo stato reale
         </a>
       </div>

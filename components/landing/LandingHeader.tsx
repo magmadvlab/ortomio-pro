@@ -6,7 +6,7 @@ export default function LandingHeader() {
     <header className="sticky top-0 z-20 border-b border-ortomio-earth-200 bg-ortomio-green-50/90 backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
         <div className="flex items-baseline gap-2">
-          <Image src="/logo.png" alt="OrtoMio" width={28} height={28} className="rounded" />
+          <Image src="/logo.png" alt="" width={28} height={28} className="rounded" />
           <span className="font-display text-lg font-extrabold tracking-tight text-ortomio-green-900">
             OrtoMio
           </span>
@@ -19,7 +19,7 @@ export default function LandingHeader() {
           </span>
           <Link
             href="/login"
-            className="text-sm text-ortomio-earth-700 underline-offset-2 hover:underline"
+            className="py-2 text-sm text-ortomio-earth-700 underline-offset-2 hover:underline"
           >
             Accedi
           </Link>
