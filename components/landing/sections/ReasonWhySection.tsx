@@ -24,8 +24,8 @@ export default function ReasonWhySection() {
           <p className="max-w-2xl text-lg leading-relaxed text-gray-700">
             Quando i dati satellitari sono disponibili, OrtoMio evidenzia le zone da controllare,
             integra le misure dei sensori collegati, associa acqua, nutrimenti e trattamenti alle
-            singole piante e confronta ogni intervento con il risultato ottenuto. La sua AI mette
-            queste informazioni in relazione e le trasforma in indicazioni motivate.
+            singole piante e confronta ogni intervento con il risultato ottenuto: un unico filo
+            che tiene insieme cosa hai osservato, cosa hai fatto e come ha risposto la coltura.
           </p>
         </div>
 

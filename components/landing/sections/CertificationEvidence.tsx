@@ -16,13 +16,13 @@ export default function CertificationEvidence() {
               Registri e certificazioni
             </p>
             <h2 className="font-display text-3xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-              Il lavoro registrato diventa evidenza pronta da recuperare.
+              Il lavoro che registri oggi è la prova che ti serve domani.
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-gray-700">
               OrtoMio prepara e organizza le evidenze utili ai percorsi per il biologico e
               GlobalG.A.P., collegando il lavoro svolto in campo ai registri e ai documenti
-              dell’azienda. La sua AI mette queste informazioni in relazione, così puoi vedere
-              cosa è già documentato e cosa deve essere completato.
+              dell’azienda. Ogni evidenza resta collegata alla lavorazione che l’ha generata:
+              vedi subito cosa è già documentato e cosa deve essere completato.
             </p>
           </div>
 

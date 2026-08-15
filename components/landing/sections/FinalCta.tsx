@@ -56,7 +56,7 @@ export default function FinalCta() {
         </div>
         {showForm && <PilotRequestForm onClose={closeForm} />}
         <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ortomio-green-900">
-          Ti ricontatteremo per preparare una dimostrazione coerente con il tuo contesto.
+          Ti ricontattiamo per preparare una demo sul tuo caso, non una presentazione generica.
         </p>
       </div>
     </section>
