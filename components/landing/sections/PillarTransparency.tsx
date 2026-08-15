@@ -21,14 +21,14 @@ export default function PillarTransparency() {
           componente reale che accompagna ogni proposta nel prodotto.
         </p>
 
-        <div className="mb-6 flex gap-1 border-b border-ortomio-earth-200 font-mono text-sm">
+        <div className="mb-6 flex flex-nowrap gap-1 overflow-x-auto border-b border-ortomio-earth-200 font-mono text-sm">
           {TABS.map((tab) => (
             <span
               key={tab}
               className={
                 tab === 'Calcoli'
-                  ? 'border-b-2 border-ortomio-green-600 px-3 py-2 font-bold text-ortomio-green-700'
-                  : 'px-3 py-2 text-gray-400'
+                  ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2 font-bold text-ortomio-green-700'
+                  : 'shrink-0 whitespace-nowrap px-3 py-2 text-gray-400'
               }
             >
               {tab}
