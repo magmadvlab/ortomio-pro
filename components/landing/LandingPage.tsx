@@ -6,6 +6,7 @@ import PillarTransparency from './sections/PillarTransparency'
 import PrecisionEvidence from './sections/PrecisionEvidence'
 import HowItWorks from './sections/HowItWorks'
 import PillarTraceability from './sections/PillarTraceability'
+import CertificationEvidence from './sections/CertificationEvidence'
 import SpecialistCrops from './sections/SpecialistCrops'
 import PlanningMemory from './sections/PlanningMemory'
 import FinalCta from './sections/FinalCta'
@@ -23,8 +24,9 @@ export default function LandingPage() {
         <PrecisionEvidence />
         <PillarTraceability />
         <HowItWorks />
-        <SpecialistCrops />
+        <CertificationEvidence />
         <PlanningMemory />
+        <SpecialistCrops />
         <FinalCta />
       </main>
       <LandingFooter />
