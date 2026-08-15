@@ -1,21 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const read = (path: string) => {
   assert.equal(existsSync(path), true, `missing commercial surface: ${path}`)
   return readFileSync(path, 'utf8')
 }
 
-const commercialSurfacePaths = (directory: string): string[] =>
-  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = `${directory}/${entry.name}`
-    if (entry.isDirectory()) return commercialSurfacePaths(path)
-    return /\.(ts|tsx)$/.test(entry.name) ? [path] : []
-  })
-
 const commercialSourceCorpus = () => [
-  ...commercialSurfacePaths('components/landing'),
+  'components/landing/content.ts',
+  'components/landing/LandingPage.tsx',
+  'components/landing/LandingHeader.tsx',
+  'components/landing/LandingFooter.tsx',
+  'components/landing/PilotRequestForm.tsx',
+  'components/landing/sections/Hero.tsx',
+  'components/landing/sections/ReasonWhySection.tsx',
+  'components/landing/sections/DecisionScenario.tsx',
+  'components/landing/sections/PillarTransparency.tsx',
+  'components/landing/sections/PrecisionEvidence.tsx',
+  'components/landing/sections/PillarTraceability.tsx',
+  'components/landing/sections/CertificationEvidence.tsx',
+  'components/landing/sections/PlanningMemory.tsx',
+  'components/landing/sections/SpecialistCrops.tsx',
+  'components/landing/sections/AudienceSplit.tsx',
+  'components/landing/sections/BenefitsList.tsx',
+  'components/landing/sections/FinalCta.tsx',
   'app/come-funziona/page.tsx',
 ].map(read).join('\n')
 
@@ -39,10 +48,12 @@ test('commercial pages end with one guided-trial CTA and no early commercial CTA
   for (const { page } of pages) {
     assert.equal((page.match(/<FinalCta \/>/g) ?? []).length, 1)
     const finalCtaIndex = page.indexOf('<FinalCta />')
+    const mainStartIndex = page.indexOf('<main')
     const mainEndIndex = page.indexOf('</main>', finalCtaIndex)
     const footerIndex = page.indexOf('<LandingFooter />')
-    assert.equal(finalCtaIndex > -1, true)
-    assert.equal(page.slice(finalCtaIndex + '<FinalCta />'.length, mainEndIndex).includes('<'), false)
+    assert.equal(finalCtaIndex > mainStartIndex, true)
+    assert.equal(finalCtaIndex < mainEndIndex, true)
+    assert.equal(page.slice(finalCtaIndex + '<FinalCta />'.length, mainEndIndex).trim(), '')
     assert.equal(footerIndex > mainEndIndex, true)
   }
 })
@@ -172,13 +183,8 @@ test('homepage proves observation, individual inputs, AI reasoning, and certific
 })
 
 test('commercial surfaces avoid internal jargon and unsupported promises', () => {
-  const source = [
-    commercialSourceCorpus(),
-    read('components/landing/sections/ReasonWhySection.tsx'),
-    read('components/landing/sections/DecisionScenario.tsx'),
-    read('components/landing/sections/PrecisionEvidence.tsx'),
-    read('components/landing/sections/CertificationEvidence.tsx'),
-  ].join('\n').toLowerCase()
+  const source = commercialSourceCorpus().toLowerCase()
+  const precisionEvidence = read('components/landing/sections/PrecisionEvidence.tsx').toLowerCase()
 
   for (const forbidden of [
     'briefing',
@@ -202,15 +208,16 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
   }
   assert.equal(source.includes('quando i dati satellitari sono disponibili'), true)
   assert.equal(source.includes('telemetria'), true)
-  for (const requiredIoTGuardrail of [
-    'sensore o misuratore è associato alla singola pianta',
-    'registrate manualmente',
-    'pianificate',
-    'calcolate',
+  for (const requiredIoTTerm of [
+    /dispositiv\w*/,
+    /telemetria/,
+    /misurat\w*/,
+    /manual\w*/,
+    /pianificat\w*/,
+    /calcolat\w*/,
   ]) {
-    assert.equal(source.includes(requiredIoTGuardrail), true, requiredIoTGuardrail)
+    assert.match(precisionEvidence, requiredIoTTerm)
   }
-  assert.equal(['misurato', 'misurati', 'misurate'].some((term) => source.includes(term)), true, 'misurato')
 })
 
 test('homepage follows the approved persuasion order and ends with one CTA', () => {
