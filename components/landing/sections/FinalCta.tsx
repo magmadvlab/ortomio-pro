@@ -31,15 +31,14 @@ export default function FinalCta() {
               Prova guidata
             </p>
             <h2 className="mt-5 font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-6xl">
-              Porta un caso reale. Lo ricostruiamo insieme in OrtoMio.
+              Porta un caso reale: lo ricostruiamo insieme in OrtoMio.
             </h2>
           </div>
           <div>
             <p className="text-lg leading-relaxed text-ortomio-green-900">
-              Indicaci azienda, coltura ed esigenza principale. Prepareremo una prova guidata sui
-              flussi più vicini al tuo lavoro: osservazione del campo, priorità AI, tracciabilità
-              delle piante, pianificazione, IoT, NDVI o preparazione delle evidenze per le
-              certificazioni.
+              Indicaci azienda, coltura ed esigenza principale: prepariamo una prova guidata sul
+              flusso più vicino al tuo lavoro, che si tratti di priorità AI, tracciabilità delle
+              piante o preparazione delle evidenze per le certificazioni.
             </p>
             {!showForm && (
               <button

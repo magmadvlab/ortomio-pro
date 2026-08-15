@@ -7,9 +7,9 @@ export type SpecialistCrop = {
 
 export const landingContent = {
   eyebrow: 'AI agronomica dal satellite alla singola pianta',
-  title: 'Tutto ciò che accade in campo diventa una decisione che puoi spiegare.',
+  title: 'Il perché di ogni intervento resta, anche quando tu non te lo ricordi più.',
   summary:
-    'Quando devi spiegare perché hai trattato una zona, quanto è costato un intervento o come sta rispondendo una singola pianta, OrtoMio ha già la risposta pronta. Collega NDVI, meteo, sensori, stato delle colture, lavorazioni, costi e raccolti in un\'unica lettura, per ogni intervento e ogni pianta.',
+    'OrtoMio segue ogni intervento dal satellite alla singola pianta — cosa hai osservato, cosa hai fatto, quanto è costato, come ha risposto la coltura — e tiene la risposta pronta per quando ti serve: a un cliente, a un controllo, o solo a te.',
   finalCta: 'Prenota la tua prova guidata',
 } as const
 
