@@ -7,19 +7,47 @@ const read = (path: string) => {
   return readFileSync(path, 'utf8')
 }
 
-test('homepage exposes one guided-trial CTA and no early demo CTA', () => {
-  const source = [
-    read('components/landing/LandingHeader.tsx'),
-    read('components/landing/sections/Hero.tsx'),
-    read('components/landing/sections/FinalCta.tsx'),
-    read('components/landing/content.ts'),
-  ].join('\n')
+test('commercial pages end with one guided-trial CTA and no early commercial CTA', () => {
+  const finalCta = read('components/landing/sections/FinalCta.tsx')
+  const pages = [
+    {
+      page: read('components/landing/LandingPage.tsx'),
+      source: [
+        read('components/landing/LandingPage.tsx'),
+        read('components/landing/LandingHeader.tsx'),
+        read('components/landing/sections/Hero.tsx'),
+        finalCta,
+        read('components/landing/LandingFooter.tsx'),
+        read('components/landing/content.ts'),
+      ].join('\n'),
+    },
+    {
+      page: read('app/come-funziona/page.tsx'),
+      source: [
+        read('app/come-funziona/page.tsx'),
+        read('components/landing/LandingHeader.tsx'),
+        finalCta,
+        read('components/landing/LandingFooter.tsx'),
+        read('components/landing/content.ts'),
+      ].join('\n'),
+    },
+  ]
 
-  assert.equal((source.match(/Richiedi una prova guidata/g) ?? []).length, 1)
-  assert.equal(source.includes('Prova la demo ora'), false)
+  for (const { page, source } of pages) {
+    assert.equal((source.match(/Richiedi una prova guidata/g) ?? []).length, 1)
+    assert.equal((page.match(/<FinalCta \/>/g) ?? []).length, 1)
+    assert.equal(source.includes('Prova la demo ora'), false)
+    assert.equal(source.includes('mailto:'), false)
+  }
+
+  assert.equal(pageEndsWithFinalCta(pages[0].page, '<BenefitsList />'), true)
+  assert.equal(pageEndsWithFinalCta(pages[1].page, '</section>'), true)
 })
 
-test('homepage names decision verification, specialist crops, and commercial maturity', () => {
+const pageEndsWithFinalCta = (page: string, precedingSurface: string) =>
+  page.lastIndexOf('<FinalCta />') > page.lastIndexOf(precedingSurface)
+
+test('homepage names decision verification and specialist crops without technical audit language', () => {
   assert.equal(existsSync('components/landing/content.ts'), true)
   const source = read('components/landing/content.ts')
 
@@ -29,16 +57,75 @@ test('homepage names decision verification, specialist crops, and commercial mat
     'oliveto',
     'frutteto',
     'vivaio',
-    'NO-GO',
   ]) {
     assert.equal(source.toLowerCase().includes(phrase.toLowerCase()), true, phrase)
   }
+
+  const homepage = [
+    read('components/landing/LandingPage.tsx'),
+    read('components/landing/LandingFooter.tsx'),
+    read('components/landing/sections/SpecialistCrops.tsx'),
+    read('components/landing/sections/PlanningMemory.tsx'),
+  ].join('\n')
+
+  for (const technicalLabel of ['NO-GO', 'release candidate', 'maturità verificabile', 'funzione in beta']) {
+    assert.equal(homepage.toLowerCase().includes(technicalLabel.toLowerCase()), false, technicalLabel)
+  }
+  assert.equal(homepage.includes('MaturitySection'), false)
 })
 
-test('come funziona route links to the existing manuals', () => {
+test('homepage explains the operational journey, nursery flow, and per-row plant traceability', () => {
+  const source = [
+    read('components/landing/sections/HowItWorks.tsx'),
+    read('components/landing/sections/PillarTraceability.tsx'),
+  ].join('\n')
+
+  for (const phrase of [
+    'filo conduttore',
+    'Descrivi il contesto in cui lavori',
+    'Decidi cosa fare e quando',
+    'Dal vivaio al filare',
+    'posizione esatta nel filare',
+    'ogni pianta, vite o albero',
+  ]) {
+    assert.equal(source.toLowerCase().includes(phrase.toLowerCase()), true, phrase)
+  }
+
+  for (const jargon of ['priorità spiegabili', 'pianifichi il task', 'nursing', 'hardening']) {
+    assert.equal(source.toLowerCase().includes(jargon.toLowerCase()), false, jargon)
+  }
+})
+
+test('commercial pages do not link to technical manuals or generic contacts', () => {
+  const source = [
+    read('components/landing/LandingHeader.tsx'),
+    read('components/landing/LandingFooter.tsx'),
+    read('app/come-funziona/page.tsx'),
+  ].join('\n')
+
+  for (const excluded of ['/docs/manual/', 'Manuali', 'Documentazione', 'mailto:']) {
+    assert.equal(source.includes(excluded), false, excluded)
+  }
+})
+
+test('come funziona uses commercial agronomic language instead of system jargon', () => {
   assert.equal(existsSync('app/come-funziona/page.tsx'), true)
-  const source = read('app/come-funziona/page.tsx') + read('components/landing/content.ts')
-  assert.match(source, /\/docs\/manual\//)
+  const source = read('app/come-funziona/page.tsx')
+
+  for (const phrase of [
+    'Dal campo alla decisione, senza perdere nessun passaggio',
+    'Parte dalla situazione reale del campo',
+    'Ti mostra cosa richiede attenzione',
+    'Spiega perché propone un intervento',
+    'Collega il lavoro al risultato',
+    'Condizioni del campo, colture, lavori e costi nello stesso quadro',
+  ]) {
+    assert.equal(source.toLowerCase().includes(phrase.toLowerCase()), true, phrase)
+  }
+
+  for (const jargon of ['segnale', 'briefing', 'provenienza', 'fase fenologica', 'task', 'esito']) {
+    assert.equal(source.toLowerCase().includes(jargon.toLowerCase()), false, jargon)
+  }
 })
 
 test('hero states the differentiated AI promise', () => {
@@ -75,6 +162,10 @@ test('homepage proves observation, individual inputs, AI reasoning, and certific
     'IoT',
     'biologico',
     'GlobalG.A.P.',
+    'AI mette queste informazioni in relazione',
+    'decisione resta al responsabile',
+    'evidenza pronta da recuperare',
+    'bozze AI iniziali da completare e verificare',
   ]) {
     assert.equal(source.toLowerCase().includes(phrase.toLowerCase()), true, phrase)
   }
@@ -91,11 +182,30 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
     read('app/come-funziona/page.tsx'),
   ].join('\n').toLowerCase()
 
-  for (const forbidden of ['briefing', 'orchestratore', 'segnali correlati', 'certificazione automatica']) {
+  for (const forbidden of [
+    'briefing',
+    'orchestratore',
+    'segnali correlati',
+    'certificazione automatica',
+    'emette certificati',
+    'sostituisce l’ente certificatore',
+    'diagnosi automatica',
+    'risultati garantiti',
+    'ROI garantito',
+    '100% di successo',
+  ]) {
     assert.equal(source.includes(forbidden), false, forbidden)
   }
   assert.equal(source.includes('quando i dati satellitari sono disponibili'), true)
   assert.equal(source.includes('telemetria'), true)
+  for (const requiredIoTGuardrail of [
+    'sensore o misuratore è associato alla singola pianta',
+    'registrate manualmente',
+    'pianificate',
+    'calcolate',
+  ]) {
+    assert.equal(source.includes(requiredIoTGuardrail), true, requiredIoTGuardrail)
+  }
 })
 
 test('homepage follows the approved persuasion order and ends with one CTA', () => {
