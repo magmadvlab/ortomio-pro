@@ -17,6 +17,19 @@ export default function MaturitySection() {
           dall&apos;interfaccia stessa.
         </blockquote>
 
+        <div className="mb-6 flex h-4 w-full max-w-md overflow-hidden rounded-sm border border-ortomio-earth-200" role="img" aria-label="15 capability stabili, 14 in beta, 2 in simulazione, su 31 totali">
+          <div className="bg-ortomio-green-600" style={{ width: `${(15 / 31) * 100}%` }} title="15 stabili" />
+          <div
+            className="bg-ortomio-green-100"
+            style={{
+              width: `${(14 / 31) * 100}%`,
+              backgroundImage: 'repeating-linear-gradient(45deg, #1b7a6b 0 3px, transparent 3px 7px)',
+            }}
+            title="14 in beta"
+          />
+          <div className="border-l border-dashed border-ortomio-earth-500 bg-white" style={{ width: `${(2 / 31) * 100}%` }} title="2 in simulazione" />
+        </div>
+
         <ul className="mb-6 divide-y divide-ortomio-earth-200 border-y border-ortomio-earth-200 bg-white">
           <li className="flex items-start gap-3 p-4 text-sm">
             <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-sm bg-ortomio-green-600" />
