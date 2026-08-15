@@ -56,6 +56,7 @@ export default function PillarTransparency() {
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
+              aria-selected={tab === activeTab}
               className={
                 tab === activeTab
                   ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2 font-bold text-ortomio-green-700'

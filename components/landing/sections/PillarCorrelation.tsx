@@ -12,7 +12,7 @@ export default function PillarCorrelation() {
         </p>
 
         <div className="mb-8 max-w-2xl rounded-md border border-ortomio-earth-200 bg-white p-4">
-          <svg viewBox="0 0 400 150" className="w-full" role="img" aria-label="Tre segnali — fase lunare, stress idrico, pH — che incrociano la soglia critica nello stesso momento, sulla stessa zona">
+          <svg viewBox="0 0 400 155" className="w-full" role="img" aria-label="Tre segnali — fase lunare, stress idrico, pH — che incrociano la soglia critica nello stesso momento, sulla stessa zona">
             <line x1="0" y1="20" x2="400" y2="20" stroke="#e8d4c0" strokeWidth="1" />
             <line x1="0" y1="75" x2="400" y2="75" stroke="#e8d4c0" strokeWidth="1" />
             <line x1="0" y1="130" x2="400" y2="130" stroke="#e8d4c0" strokeWidth="1" />

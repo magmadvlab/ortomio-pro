@@ -3,8 +3,8 @@ import Image from 'next/image'
 
 export default function LandingHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-ortomio-earth-200 bg-ortomio-green-50/90 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+    <header className="sticky top-0 z-20 border-b border-ortomio-earth-200 bg-ortomio-green-50/90 px-6 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-5xl items-center justify-between py-3">
         <div className="flex items-baseline gap-2">
           <Image src="/logo.png" alt="" width={28} height={28} className="rounded" />
           <span className="font-display text-lg font-extrabold tracking-tight text-ortomio-green-900">
@@ -13,7 +13,7 @@ export default function LandingHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="hidden items-center gap-1.5 rounded-full border border-semantic-warning/50 bg-semantic-warning/10 px-2.5 py-1 font-mono text-xs text-semantic-warning sm:inline-flex">
+          <span className="hidden items-center gap-1.5 rounded-full border border-semantic-warning/50 bg-semantic-warning/10 px-2.5 py-1 font-mono text-xs text-semantic-warning-text sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-semantic-warning" />
             demo/beta
           </span>
