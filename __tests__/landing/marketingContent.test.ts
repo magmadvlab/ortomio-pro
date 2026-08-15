@@ -1,51 +1,51 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 
 const read = (path: string) => {
   assert.equal(existsSync(path), true, `missing commercial surface: ${path}`)
   return readFileSync(path, 'utf8')
 }
 
+const commercialSurfacePaths = (directory: string): string[] =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = `${directory}/${entry.name}`
+    if (entry.isDirectory()) return commercialSurfacePaths(path)
+    return /\.(ts|tsx)$/.test(entry.name) ? [path] : []
+  })
+
+const commercialSourceCorpus = () => [
+  ...commercialSurfacePaths('components/landing'),
+  'app/come-funziona/page.tsx',
+].map(read).join('\n')
+
 test('commercial pages end with one guided-trial CTA and no early commercial CTA', () => {
-  const finalCta = read('components/landing/sections/FinalCta.tsx')
+  const commercialSource = commercialSourceCorpus()
   const pages = [
     {
       page: read('components/landing/LandingPage.tsx'),
-      source: [
-        read('components/landing/LandingPage.tsx'),
-        read('components/landing/LandingHeader.tsx'),
-        read('components/landing/sections/Hero.tsx'),
-        finalCta,
-        read('components/landing/LandingFooter.tsx'),
-        read('components/landing/content.ts'),
-      ].join('\n'),
     },
     {
       page: read('app/come-funziona/page.tsx'),
-      source: [
-        read('app/come-funziona/page.tsx'),
-        read('components/landing/LandingHeader.tsx'),
-        finalCta,
-        read('components/landing/LandingFooter.tsx'),
-        read('components/landing/content.ts'),
-      ].join('\n'),
     },
   ]
 
-  for (const { page, source } of pages) {
-    assert.equal((source.match(/Richiedi una prova guidata/g) ?? []).length, 1)
-    assert.equal((page.match(/<FinalCta \/>/g) ?? []).length, 1)
-    assert.equal(source.includes('Prova la demo ora'), false)
-    assert.equal(source.includes('mailto:'), false)
+  assert.equal((commercialSource.match(/Richiedi una prova guidata/g) ?? []).length, 1)
+  for (const actionLabel of ['Prova la demo ora', 'Richiedi una demo', 'Prenota una demo', 'Inizia la prova']) {
+    assert.equal(commercialSource.includes(actionLabel), false, actionLabel)
   }
+  assert.equal(commercialSource.includes('mailto:'), false)
 
-  assert.equal(pageEndsWithFinalCta(pages[0].page, '<BenefitsList />'), true)
-  assert.equal(pageEndsWithFinalCta(pages[1].page, '</section>'), true)
+  for (const { page } of pages) {
+    assert.equal((page.match(/<FinalCta \/>/g) ?? []).length, 1)
+    const finalCtaIndex = page.indexOf('<FinalCta />')
+    const mainEndIndex = page.indexOf('</main>', finalCtaIndex)
+    const footerIndex = page.indexOf('<LandingFooter />')
+    assert.equal(finalCtaIndex > -1, true)
+    assert.equal(page.slice(finalCtaIndex + '<FinalCta />'.length, mainEndIndex).includes('<'), false)
+    assert.equal(footerIndex > mainEndIndex, true)
+  }
 })
-
-const pageEndsWithFinalCta = (page: string, precedingSurface: string) =>
-  page.lastIndexOf('<FinalCta />') > page.lastIndexOf(precedingSurface)
 
 test('homepage names decision verification and specialist crops without technical audit language', () => {
   assert.equal(existsSync('components/landing/content.ts'), true)
@@ -173,13 +173,11 @@ test('homepage proves observation, individual inputs, AI reasoning, and certific
 
 test('commercial surfaces avoid internal jargon and unsupported promises', () => {
   const source = [
-    read('components/landing/content.ts'),
-    read('components/landing/LandingPage.tsx'),
+    commercialSourceCorpus(),
     read('components/landing/sections/ReasonWhySection.tsx'),
     read('components/landing/sections/DecisionScenario.tsx'),
     read('components/landing/sections/PrecisionEvidence.tsx'),
     read('components/landing/sections/CertificationEvidence.tsx'),
-    read('app/come-funziona/page.tsx'),
   ].join('\n').toLowerCase()
 
   for (const forbidden of [
@@ -189,10 +187,16 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
     'certificazione automatica',
     'emette certificati',
     'sostituisce l’ente certificatore',
+    'conformità garantita',
+    'certificazione garantita',
+    'decisioni autonome',
+    'decide autonomamente',
     'diagnosi automatica',
     'risultati garantiti',
     'ROI garantito',
     '100% di successo',
+    'clienti soddisfatti',
+    'pilot completato',
   ]) {
     assert.equal(source.includes(forbidden), false, forbidden)
   }
@@ -206,6 +210,7 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
   ]) {
     assert.equal(source.includes(requiredIoTGuardrail), true, requiredIoTGuardrail)
   }
+  assert.equal(['misurato', 'misurati', 'misurate'].some((term) => source.includes(term)), true, 'misurato')
 })
 
 test('homepage follows the approved persuasion order and ends with one CTA', () => {
