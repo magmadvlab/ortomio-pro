@@ -7,6 +7,8 @@ const read = (path: string) => {
   return readFileSync(path, 'utf8')
 }
 
+const readIfExists = (path: string) => existsSync(path) ? readFileSync(path, 'utf8') : ''
+
 const commercialSourceCorpus = () => [
   'components/landing/content.ts',
   'components/landing/LandingPage.tsx',
@@ -28,7 +30,9 @@ const commercialSourceCorpus = () => [
   'components/landing/sections/BenefitsList.tsx',
   'components/landing/sections/FinalCta.tsx',
   'app/come-funziona/page.tsx',
-].map(read).join('\n')
+].map(read).concat(
+  readIfExists('components/landing/sections/MaturitySection.tsx'),
+).join('\n')
 
 test('commercial pages end with one guided-trial CTA and no early commercial CTA', () => {
   const commercialSource = commercialSourceCorpus()
