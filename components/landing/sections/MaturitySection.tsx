@@ -1,4 +1,11 @@
+'use client'
+
+import { useState } from 'react'
+import PilotRequestForm from '../PilotRequestForm'
+
 export default function MaturitySection() {
+  const [showForm, setShowForm] = useState(false)
+
   return (
     <section id="maturita" className="scroll-mt-20 border-b border-ortomio-earth-200 bg-ortomio-earth-100 px-6 py-16">
       <div className="mx-auto max-w-3xl">
@@ -43,9 +50,17 @@ export default function MaturitySection() {
           garantiamo certificazioni ufficiali.
         </p>
 
-        <a href="mailto:roberto.lalinga@gmail.com" className="font-bold text-ortomio-green-700 underline-offset-2 hover:underline">
-          Vuoi un pilot reale sulla tua azienda? Parliamone →
-        </a>
+        {showForm ? (
+          <PilotRequestForm onClose={() => setShowForm(false)} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="font-bold text-ortomio-green-700 underline-offset-2 hover:underline"
+          >
+            Vuoi un pilot reale sulla tua azienda? Parliamone →
+          </button>
+        )}
       </div>
     </section>
   )
