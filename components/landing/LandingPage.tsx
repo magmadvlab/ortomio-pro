@@ -3,6 +3,7 @@ import Hero from './sections/Hero'
 import ReasonWhySection from './sections/ReasonWhySection'
 import DecisionScenario from './sections/DecisionScenario'
 import PillarTransparency from './sections/PillarTransparency'
+import PrecisionEvidence from './sections/PrecisionEvidence'
 import HowItWorks from './sections/HowItWorks'
 import PillarTraceability from './sections/PillarTraceability'
 import SpecialistCrops from './sections/SpecialistCrops'
@@ -19,8 +20,9 @@ export default function LandingPage() {
         <ReasonWhySection />
         <DecisionScenario />
         <PillarTransparency />
-        <HowItWorks />
+        <PrecisionEvidence />
         <PillarTraceability />
+        <HowItWorks />
         <SpecialistCrops />
         <PlanningMemory />
         <FinalCta />
