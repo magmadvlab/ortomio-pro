@@ -13,7 +13,7 @@ export default function Hero() {
           </div>
         </div>
         <figure className="relative min-h-[28rem] overflow-hidden lg:min-h-full">
-          <Image src="/landing/field-decision.webp" alt="Responsabile di vivaio che controlla le colture con un tablet" fill priority sizes="(min-width: 1024px) 46vw, 100vw" className="object-cover" />
+          <Image src="/landing/production-greenhouse.webp" alt="Serra agricola professionale con filari di pomodori in produzione" fill priority sizes="(min-width: 1024px) 46vw, 100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-ortomio-green-900/50 via-transparent to-transparent" aria-hidden="true" />
         </figure>
       </div>

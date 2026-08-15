@@ -486,3 +486,11 @@ test('verification benefits use the exact neutral checklist without source-state
   assert.equal(source.includes('Swatch'), false)
   assert.match(source, /<Check[^>]+aria-hidden="true"/)
 })
+
+test('the opening visual represents production agriculture rather than a plant nursery', () => {
+  const hero = read('components/landing/sections/Hero.tsx')
+
+  assert.match(hero, /src="\/landing\/production-greenhouse\.webp"/)
+  assert.match(hero, /alt="Serra agricola professionale con filari di pomodori in produzione"/)
+  assert.doesNotMatch(hero, /vivaio/i)
+})
