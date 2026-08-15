@@ -158,11 +158,14 @@ test('come funziona uses commercial agronomic language instead of system jargon'
 
 test('come funziona expands the four differentiated mechanisms', () => {
   const source = read('app/come-funziona/page.tsx').toLowerCase()
+  const finalCtaCopy = read('components/landing/content.ts').match(/finalCta:\s*'[^']*'/)?.[0]
+  assert.notEqual(finalCtaCopy, undefined, 'landingContent.finalCta source')
   const sharedRenderedCopy = [
     read('components/landing/LandingHeader.tsx'),
     read('components/landing/LandingFooter.tsx'),
     read('components/landing/sections/FinalCta.tsx'),
     read('components/landing/PilotRequestForm.tsx'),
+    finalCtaCopy,
   ].join('\n').toLowerCase()
 
   for (const phrase of [
