@@ -1,6 +1,6 @@
 import LandingHeader from './LandingHeader'
 import Hero from './sections/Hero'
-import AudienceSplit from './sections/AudienceSplit'
+import ReasonWhySection from './sections/ReasonWhySection'
 import OrchestratorSection from './sections/OrchestratorSection'
 import PillarTransparency from './sections/PillarTransparency'
 import HowItWorks from './sections/HowItWorks'
@@ -17,7 +17,7 @@ export default function LandingPage() {
       <LandingHeader />
       <main>
         <Hero />
-        <AudienceSplit />
+        <ReasonWhySection />
         <OrchestratorSection />
         <PillarTransparency />
         <HowItWorks />

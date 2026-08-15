@@ -64,12 +64,12 @@ test('commercial pages end with one guided-trial CTA and no early commercial CTA
   }
 })
 
-test('homepage names decision verification and specialist crops without technical audit language', () => {
+test('homepage names the differentiated AI promise and specialist crops without technical audit language', () => {
   assert.equal(existsSync('components/landing/content.ts'), true)
   const source = read('components/landing/content.ts')
 
   for (const phrase of [
-    'decisioni agronomiche verificabili',
+    'AI agronomica dal satellite alla singola pianta',
     'vigneto',
     'oliveto',
     'frutteto',

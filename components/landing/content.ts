@@ -7,12 +7,11 @@ export type SpecialistCrop = {
 }
 
 export const landingContent = {
-  eyebrow: 'Sistema decisionale agronomico trasparente',
-  title: 'Dai dati di campo a decisioni agronomiche verificabili.',
+  eyebrow: 'AI agronomica dal satellite alla singola pianta',
+  title: 'Tutto ciò che accade in campo diventa una decisione che puoi spiegare.',
   summary:
-    'OrtoMio aiuta aziende agricole strutturate e consulenti agronomici a collegare condizioni ambientali, stato delle colture, attività, costi e risultati. Ogni priorità mostra dati utilizzati, calcoli, affidabilità e alternative valutate.',
+    'OrtoMio aiuta aziende agricole e consulenti agronomici a collegare NDVI, meteo, sensori, stato delle colture, lavorazioni, costi e raccolti. Per ogni intervento mostra perché è importante e conserva come ha risposto ogni singola pianta, vite o albero.',
   finalCta: 'Richiedi una prova guidata',
-  commercialState: 'Release candidate tecnica · validazione commerciale 1.0: NO-GO',
 } as const
 
 export const orchestratorSignals = [
