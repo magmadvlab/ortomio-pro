@@ -158,6 +158,12 @@ test('come funziona uses commercial agronomic language instead of system jargon'
 
 test('come funziona expands the four differentiated mechanisms', () => {
   const source = read('app/come-funziona/page.tsx').toLowerCase()
+  const sharedRenderedCopy = [
+    read('components/landing/LandingHeader.tsx'),
+    read('components/landing/LandingFooter.tsx'),
+    read('components/landing/sections/FinalCta.tsx'),
+    read('components/landing/PilotRequestForm.tsx'),
+  ].join('\n').toLowerCase()
 
   for (const phrase of [
     'dal satellite alla singola pianta',
@@ -170,6 +176,11 @@ test('come funziona expands the four differentiated mechanisms', () => {
     assert.equal(source.includes(phrase), true, phrase)
   }
   assert.equal((source.match(/<finalcta \/>/g) ?? []).length, 1)
+  assert.equal(source.includes("from '@/components/landing/content'"), false)
+  for (const forbidden of ['segnale', 'briefing', 'task', 'esito', 'orchestratore']) {
+    assert.equal(source.includes(forbidden), false, `route: ${forbidden}`)
+    assert.equal(sharedRenderedCopy.includes(forbidden), false, `shared rendered copy: ${forbidden}`)
+  }
 })
 
 test('hero states the differentiated AI promise', () => {

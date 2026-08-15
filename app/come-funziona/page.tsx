@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import LandingHeader from '@/components/landing/LandingHeader'
 import LandingFooter from '@/components/landing/LandingFooter'
-import { orchestratorSignals, specialistCrops } from '@/components/landing/content'
 import FinalCta from '@/components/landing/sections/FinalCta'
 
 export const metadata: Metadata = {
@@ -54,6 +53,58 @@ const certificationEvidence = [
   'Collegamento tra lotto, pianta, raccolto e destinazione.',
   'Autocontrolli, piani di gestione dei rischi e procedure di richiamo.',
   'Bozze AI iniziali da completare e verificare prima dell’uso.',
+] as const
+
+const fieldContext = [
+  {
+    label: 'Meteo e terreno',
+    text: 'Pioggia, temperatura, acqua disponibile, tipo di suolo ed esposizione.',
+  },
+  {
+    label: 'Coltura',
+    text: 'Varietà, momento del ciclo, stato delle piante e necessità di acqua o nutrimento.',
+  },
+  {
+    label: 'Lavori e persone',
+    text: 'Interventi svolti o programmati, operatori coinvolti e risposta osservata.',
+  },
+  {
+    label: 'Costi e raccolto',
+    text: 'Costo dell’intervento, conseguenze di un ritardo e risultato produttivo.',
+  },
+] as const
+
+const cropPlanning = [
+  {
+    id: 'orticole',
+    label: 'Orticole e seminativi',
+    proof: 'Semine, successioni, rotazioni, irrigazioni e raccolti',
+    detail: 'Il piano collega periodi, appezzamenti e lavori, poi confronta quanto previsto con ciò che è avvenuto.',
+  },
+  {
+    id: 'vigneto',
+    label: 'Vigneto',
+    proof: 'Dal filare alla singola vite',
+    detail: 'Potature, carico di gemme, trattamenti e produzione restano legati alla posizione corretta.',
+  },
+  {
+    id: 'oliveto',
+    label: 'Oliveto',
+    proof: 'Una storia per ogni albero',
+    detail: 'Posizione, varietà, interventi, stato vegetativo e raccolti accompagnano ogni olivo nel tempo.',
+  },
+  {
+    id: 'frutteto',
+    label: 'Frutteto',
+    proof: 'Sviluppo e produzione per zona o albero',
+    detail: 'Varietà, fioritura, salute, trattamenti, qualità e produzione possono essere letti alla scala utile.',
+  },
+  {
+    id: 'vivaio',
+    label: 'Vivaio',
+    proof: 'Dal seme alla posizione nel filare',
+    detail: 'Germinazione, crescita e preparazione al trapianto seguono la piantina fino alla sua posizione in campo.',
+  },
 ] as const
 
 export default function ComeFunzionaPage() {
@@ -126,10 +177,10 @@ export default function ComeFunzionaPage() {
                 Condizioni del campo, colture, lavori e costi nello stesso quadro.
               </h3>
               <div className="mt-7 grid gap-x-8 gap-y-7 sm:grid-cols-2">
-                {orchestratorSignals.map((item) => (
+                {fieldContext.map((item) => (
                   <article key={item.label} className="border-t-2 border-ortomio-green-600 pt-4">
                     <h4 className="font-bold">{item.label}</h4>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-700">{item.value}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-700">{item.text}</p>
                   </article>
                 ))}
               </div>
@@ -248,7 +299,7 @@ export default function ComeFunzionaPage() {
             </div>
 
             <div className="mt-14 grid gap-5 md:grid-cols-2">
-              {specialistCrops.map((crop) => (
+              {cropPlanning.map((crop) => (
                 <article key={crop.id} className="border border-ortomio-earth/20 bg-white p-6 sm:p-7">
                   <h3 className="font-display text-2xl font-bold">{crop.label}</h3>
                   <p className="mt-3 font-semibold text-ortomio-green-700">{crop.proof}</p>
