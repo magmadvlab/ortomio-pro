@@ -16,8 +16,6 @@ const commercialSourceCorpus = () => [
   'components/landing/LandingFooter.tsx',
   'components/landing/PilotRequestForm.tsx',
   'components/landing/sections/Hero.tsx',
-  'components/landing/sections/OrchestratorSection.tsx',
-  'components/landing/sections/HowItWorks.tsx',
   'components/landing/sections/ReasonWhySection.tsx',
   'components/landing/sections/DecisionScenario.tsx',
   'components/landing/sections/PillarTransparency.tsx',
@@ -91,16 +89,16 @@ test('homepage names the differentiated AI promise and specialist crops without 
   assert.equal(homepage.includes('MaturitySection'), false)
 })
 
-test('homepage explains the operational journey, nursery flow, and per-row plant traceability', () => {
+test('homepage explains the rendered operational journey, nursery flow, and per-row plant traceability', () => {
   const source = [
-    read('components/landing/sections/HowItWorks.tsx'),
+    read('components/landing/sections/DecisionScenario.tsx'),
     read('components/landing/sections/PillarTraceability.tsx'),
   ].join('\n')
 
   for (const phrase of [
     'filo conduttore',
-    'Descrivi il contesto in cui lavori',
-    'Decidi cosa fare e quando',
+    'Osservazione',
+    'Decisione motivata',
     'Dal vivaio al filare',
     'posizione esatta nel filare',
     'ogni pianta, vite o albero',
@@ -270,7 +268,6 @@ test('certification and planning sections are contiguous after plant traceabilit
     home,
     /<PillarTraceability \/>\s*<CertificationEvidence \/>\s*<PlanningMemory \/>\s*<SpecialistCrops \/>/,
   )
-  assert.equal(home.includes('HowItWorks'), false)
 })
 
 test('homepage follows the approved persuasion order and ends with one CTA', () => {

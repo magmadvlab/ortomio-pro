@@ -29,7 +29,8 @@ export default function DecisionScenario() {
             In un’azienda con NDVI e sensori collegati, il satellite evidenzia una zona con vigore
             diverso e i sensori mostrano poca umidità nel terreno. La coltura è in una fase delicata
             e le previsioni non indicano pioggia. OrtoMio collega queste informazioni allo storico
-            delle irrigazioni, allo stato delle piante e ai costi dell’intervento.
+            delle irrigazioni, allo stato delle piante e ai costi dell’intervento. Questo filo conduttore
+            accompagna ciò che accade in campo fino alla decisione e al risultato.
           </p>
         </div>
 
