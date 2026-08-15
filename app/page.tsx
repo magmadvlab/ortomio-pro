@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/packages/core/hooks/useAuth'
 import { decideRootRouting } from '@/lib/landing/rootRouting'
+import LandingPage from '@/components/landing/LandingPage'
 
 export default function HomePage() {
   const router = useRouter()
@@ -63,5 +64,5 @@ export default function HomePage() {
     )
   }
 
-  return <div>Landing placeholder</div>
+  return <LandingPage />
 }
