@@ -14,6 +14,8 @@ const commercialSourceCorpus = () => [
   'components/landing/LandingFooter.tsx',
   'components/landing/PilotRequestForm.tsx',
   'components/landing/sections/Hero.tsx',
+  'components/landing/sections/OrchestratorSection.tsx',
+  'components/landing/sections/HowItWorks.tsx',
   'components/landing/sections/ReasonWhySection.tsx',
   'components/landing/sections/DecisionScenario.tsx',
   'components/landing/sections/PillarTransparency.tsx',
@@ -208,15 +210,11 @@ test('commercial surfaces avoid internal jargon and unsupported promises', () =>
   }
   assert.equal(source.includes('quando i dati satellitari sono disponibili'), true)
   assert.equal(source.includes('telemetria'), true)
-  for (const requiredIoTTerm of [
-    /dispositiv\w*/,
-    /telemetria/,
-    /misurat\w*/,
-    /manual\w*/,
-    /pianificat\w*/,
-    /calcolat\w*/,
+  for (const requiredIoTPhrase of [
+    'Con dispositivi associati, la telemetria registra portata e litri erogati.',
+    'OrtoMio mantiene distinti valori misurati, inseriti manualmente, pianificati e calcolati.',
   ]) {
-    assert.match(precisionEvidence, requiredIoTTerm)
+    assert.equal(precisionEvidence.includes(requiredIoTPhrase.toLowerCase()), true, requiredIoTPhrase)
   }
 })
 
