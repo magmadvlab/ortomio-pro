@@ -9,6 +9,26 @@ const read = (path: string) => {
 
 const readIfExists = (path: string) => existsSync(path) ? readFileSync(path, 'utf8') : ''
 
+const cssHexToken = (source: string, token: string) => {
+  const value = source.match(new RegExp(`--color-${token}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1]
+  assert.notEqual(value, undefined, `missing color token: ${token}`)
+  return value as string
+}
+
+const relativeLuminance = (hex: string) => {
+  const channels = hex.slice(1).match(/.{2}/g)?.map((channel) => Number.parseInt(channel, 16) / 255)
+  assert.notEqual(channels, undefined, `invalid color: ${hex}`)
+  const [red, green, blue] = channels!.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  )
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+}
+
+const contrastRatio = (foreground: string, background: string) => {
+  const values = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a)
+  return (values[0] + 0.05) / (values[1] + 0.05)
+}
+
 const commercialSourceCorpus = () => [
   'components/landing/content.ts',
   'components/landing/LandingPage.tsx',
@@ -357,6 +377,76 @@ test('landing shell keeps manuals and contacts out of the post-CTA navigation', 
   }
   assert.equal(shell.includes('Accedi'), true)
   assert.equal(shell.includes('Come funziona'), true)
+})
+
+test('header fragment navigation resolves to homepage sections from every commercial route', () => {
+  const header = read('components/landing/LandingHeader.tsx')
+
+  for (const href of ['/#come-funziona', '/#colture']) {
+    assert.equal(header.includes(`href="${href}"`), true, href)
+  }
+  for (const page of [
+    read('components/landing/LandingPage.tsx'),
+    read('app/come-funziona/page.tsx'),
+  ]) {
+    assert.match(page, /<LandingHeader \/>/)
+  }
+})
+
+test('small text and explicit focus rings meet the commercial surface contrast contract', () => {
+  const css = read('index.css')
+  const paper = cssHexToken(css, 'ortomio-paper')
+  const harvest = cssHexToken(css, 'ortomio-harvest')
+  const green700 = cssHexToken(css, 'ortomio-green-700')
+  const green900 = cssHexToken(css, 'ortomio-green-900')
+
+  assert.ok(contrastRatio(green700, paper) >= 4.5, 'green-700 text on paper')
+  assert.ok(contrastRatio(green700, '#ffffff') >= 4.5, 'green-700 text on white')
+  assert.ok(contrastRatio(harvest, green900) >= 4.5, 'harvest text on green-900')
+  assert.ok(contrastRatio(green900, harvest) >= 3, 'green-900 focus ring on harvest')
+
+  for (const path of [
+    'components/landing/sections/ReasonWhySection.tsx',
+    'components/landing/sections/DecisionScenario.tsx',
+    'components/landing/sections/CertificationEvidence.tsx',
+    'components/landing/sections/PlanningMemory.tsx',
+  ]) {
+    assert.equal(read(path).includes('text-ortomio-harvest'), false, path)
+  }
+
+  const howItWorks = read('app/come-funziona/page.tsx')
+  const observationStart = howItWorks.indexOf('aria-labelledby="osservazione-title"')
+  const reasoningStart = howItWorks.indexOf('aria-labelledby="reasoning-title"')
+  const plantStart = howItWorks.indexOf('aria-labelledby="plant-title"')
+  const finalCtaStart = howItWorks.indexOf('<FinalCta />')
+  assert.ok(observationStart >= 0 && reasoningStart > observationStart)
+  assert.ok(plantStart > reasoningStart && finalCtaStart > plantStart)
+  const lightRouteSections = [
+    howItWorks.slice(observationStart, reasoningStart),
+    howItWorks.slice(plantStart, finalCtaStart),
+  ].join('\n')
+  assert.equal(lightRouteSections.includes('text-ortomio-harvest'), false)
+
+  const header = read('components/landing/LandingHeader.tsx')
+  const finalCta = read('components/landing/sections/FinalCta.tsx')
+  assert.match(header, /focus-visible:ring-ortomio-green-700/)
+  assert.match(finalCta, /focus-visible:ring-ortomio-green-900/)
+  assert.equal(finalCta.includes('text-ortomio-green-900/80'), false)
+})
+
+test('obsolete problem and status surfaces cannot be remounted', () => {
+  for (const path of [
+    'components/landing/sections/ProblemSection.tsx',
+    'components/landing/sections/StatusBanner.tsx',
+  ]) {
+    assert.equal(existsSync(path), false, path)
+  }
+
+  const renderedPages = [
+    read('components/landing/LandingPage.tsx'),
+    read('app/come-funziona/page.tsx'),
+  ].join('\n')
+  assert.doesNotMatch(renderedPages, /ProblemSection|StatusBanner/)
 })
 
 test('verification benefits use the exact neutral checklist without source-state machinery', () => {

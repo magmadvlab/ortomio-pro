@@ -1,12 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDownRight } from 'lucide-react'
 import PilotRequestForm from '../PilotRequestForm'
 import { landingContent } from '../content'
 
 export default function FinalCta() {
   const [showForm, setShowForm] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const returnFocusAfterClose = useRef(false)
+
+  useEffect(() => {
+    if (!showForm && returnFocusAfterClose.current) {
+      triggerRef.current?.focus()
+      returnFocusAfterClose.current = false
+    }
+  }, [showForm])
+
+  const closeForm = () => {
+    returnFocusAfterClose.current = true
+    setShowForm(false)
+  }
 
   return (
     <section className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
@@ -29,9 +43,10 @@ export default function FinalCta() {
             </p>
             {!showForm && (
               <button
+                ref={triggerRef}
                 type="button"
                 onClick={() => setShowForm(true)}
-                className="mt-8 inline-flex min-h-12 items-center gap-3 bg-ortomio-green-900 px-6 py-3 font-bold text-white transition hover:bg-ortomio-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-ortomio-harvest"
+                className="mt-8 inline-flex min-h-12 items-center gap-3 bg-ortomio-green-900 px-6 py-3 font-bold text-white transition hover:bg-ortomio-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-green-900 focus-visible:ring-offset-2 focus-visible:ring-offset-ortomio-harvest"
               >
                 {landingContent.finalCta}
                 <ArrowDownRight className="h-5 w-5" aria-hidden="true" />
@@ -39,8 +54,8 @@ export default function FinalCta() {
             )}
           </div>
         </div>
-        {showForm && <PilotRequestForm onClose={() => setShowForm(false)} />}
-        <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ortomio-green-900/80">
+        {showForm && <PilotRequestForm onClose={closeForm} />}
+        <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ortomio-green-900">
           Ti ricontatteremo per preparare una dimostrazione coerente con il tuo contesto.
         </p>
       </div>

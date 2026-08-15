@@ -32,7 +32,7 @@ export default function ReasonWhySection() {
         <div className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30">
           {PROOFS.map(([title, text], index) => (
             <article key={title} className="border-b border-ortomio-earth/30 py-8 last:border-b-0 md:border-b-0 md:px-8 md:first:pl-0 md:last:pr-0">
-              <span className="font-mono text-xs font-bold text-ortomio-harvest">
+              <span className="font-mono text-xs font-bold text-ortomio-green-700">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <h3 className="mt-5 font-display text-2xl font-bold text-ortomio-green-900">{title}</h3>

@@ -30,7 +30,7 @@ export default function CertificationEvidence() {
             <ol className="divide-y divide-ortomio-earth/30 border-y border-ortomio-earth/30">
               {CERTIFICATION_EVIDENCE.map((item, index) => (
                 <li key={item} className="grid grid-cols-[2.5rem_1fr] gap-4 py-4">
-                  <span className="font-mono text-xs font-bold text-ortomio-harvest">
+                  <span className="font-mono text-xs font-bold text-ortomio-green-700">
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   <span className="font-semibold leading-relaxed text-ortomio-green-900">

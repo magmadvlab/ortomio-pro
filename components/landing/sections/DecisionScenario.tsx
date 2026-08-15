@@ -41,7 +41,7 @@ export default function DecisionScenario() {
               className="border-b border-ortomio-earth/30 py-7 last:border-b-0 lg:border-b-0 lg:px-6 lg:first:pl-0 lg:last:pr-0"
             >
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold text-ortomio-harvest">
+                <span className="font-mono text-xs font-bold text-ortomio-green-700">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <h3 className="font-display text-xl font-bold text-ortomio-green-900">{label}</h3>

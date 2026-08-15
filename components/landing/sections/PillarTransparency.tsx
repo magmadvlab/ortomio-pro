@@ -69,8 +69,6 @@ export default function PillarTransparency() {
     }
   }
 
-  const activeIndex = TABS.indexOf(activeTab)
-
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-5xl">
@@ -102,8 +100,8 @@ export default function PillarTransparency() {
               onClick={() => setActiveTab(tab)}
               className={
                 tab === activeTab
-                  ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2.5 font-bold text-ortomio-green-700'
-                  : 'shrink-0 whitespace-nowrap px-3 py-2.5 text-gray-600 hover:text-ortomio-green-700'
+                  ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2.5 font-bold text-ortomio-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ortomio-green-700'
+                  : 'shrink-0 whitespace-nowrap px-3 py-2.5 text-gray-600 hover:text-ortomio-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ortomio-green-700'
               }
             >
               {tab}
@@ -111,51 +109,48 @@ export default function PillarTransparency() {
           ))}
         </div>
 
-        {activeTab !== 'Perché viene prima' && (
+        {TABS.map((tab, i) => (
           <div
-            id={`transparency-panel-${activeIndex}`}
+            key={tab}
+            id={`transparency-panel-${i}`}
             role="tabpanel"
-            aria-labelledby={`transparency-tab-${activeIndex}`}
-            className="mb-6"
+            aria-labelledby={`transparency-tab-${i}`}
+            hidden={tab !== activeTab}
+            className={tab === 'Perché viene prima'
+              ? 'mb-6 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5'
+              : 'mb-6'}
           >
-            {TAB_CONTENT[activeTab]}
+            {tab === 'Perché viene prima' ? (
+              <>
+                <p className="mb-3 text-sm text-gray-600">
+                  Esempio illustrativo: valori dimostrativi, meccanismo reale del pannello.
+                </p>
+                {CALC_ROWS.map(([label, value]) => (
+                  <div key={label} className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                    <span className="text-gray-700">{label}</span>
+                    <span className="font-bold text-ortomio-green-700">{value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                  <span className="text-gray-700">Parziale</span>
+                  <span className="font-bold text-ortomio-green-700">89</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                  <span className="text-gray-700">Convenienza economica: conviene agire ora</span>
+                  <span className="text-gray-600">soglia ≥75</span>
+                </div>
+                <div className="mt-2 flex justify-between border-t border-ortomio-green-900 pt-2 font-mono text-base font-bold text-ortomio-green-900">
+                  <span>Priorità finale</span>
+                  <span>89/100</span>
+                </div>
+                <div className="mt-1 flex justify-between font-mono text-sm">
+                  <span className="text-gray-700">Affidabilità del dato</span>
+                  <span className="font-bold">84%</span>
+                </div>
+              </>
+            ) : TAB_CONTENT[tab]}
           </div>
-        )}
-
-        {activeTab === 'Perché viene prima' && (
-          <div
-            id="transparency-panel-2"
-            role="tabpanel"
-            aria-labelledby="transparency-tab-2"
-            className="rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5"
-          >
-            <p className="mb-3 text-sm text-gray-600">
-              Esempio illustrativo: valori dimostrativi, meccanismo reale del pannello.
-            </p>
-            {CALC_ROWS.map(([label, value]) => (
-              <div key={label} className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-                <span className="text-gray-700">{label}</span>
-                <span className="font-bold text-ortomio-green-700">{value}</span>
-              </div>
-            ))}
-            <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-              <span className="text-gray-700">Parziale</span>
-              <span className="font-bold text-ortomio-green-700">89</span>
-            </div>
-            <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-              <span className="text-gray-700">Convenienza economica: conviene agire ora</span>
-              <span className="text-gray-600">soglia ≥75</span>
-            </div>
-            <div className="mt-2 flex justify-between border-t border-ortomio-green-900 pt-2 font-mono text-base font-bold text-ortomio-green-900">
-              <span>Priorità finale</span>
-              <span>89/100</span>
-            </div>
-            <div className="mt-1 flex justify-between font-mono text-sm">
-              <span className="text-gray-700">Affidabilità del dato</span>
-              <span className="font-bold">84%</span>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
     </section>
   )

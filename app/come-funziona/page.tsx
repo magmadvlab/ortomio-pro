@@ -136,7 +136,7 @@ export default function ComeFunzionaPage() {
           <div className="mx-auto max-w-5xl">
             <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr] lg:items-end">
               <div>
-                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
                   Osservare e misurare
                 </p>
                 <h2 id="osservazione-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
@@ -152,7 +152,7 @@ export default function ComeFunzionaPage() {
 
             <div className="mt-12 grid gap-px overflow-hidden border border-ortomio-earth/20 bg-ortomio-earth/20 lg:grid-cols-2">
               <article className="bg-white p-7 sm:p-9">
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-harvest">Vista ampia · NDVI</p>
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-green-700">Vista ampia · NDVI</p>
                 <h3 className="mt-4 font-display text-2xl font-bold">Indica dove andare a controllare.</h3>
                 <p className="mt-4 leading-relaxed text-gray-700">
                   Quando i dati satellitari sono disponibili, le differenze di vigore diventano
@@ -161,7 +161,7 @@ export default function ComeFunzionaPage() {
                 </p>
               </article>
               <article className="bg-white p-7 sm:p-9">
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-harvest">Vista vicina · IoT</p>
+                <p className="font-mono text-xs uppercase tracking-[0.16em] text-ortomio-green-700">Vista vicina · IoT</p>
                 <h3 className="mt-4 font-display text-2xl font-bold">Distingue una misura da una previsione.</h3>
                 <p className="mt-4 leading-relaxed text-gray-700">
                   Con un dispositivo associato alla singola pianta, la telemetria può registrare
@@ -222,7 +222,7 @@ export default function ComeFunzionaPage() {
 
         <section aria-labelledby="plant-title" className="px-6 py-20 sm:py-28">
           <div className="mx-auto max-w-5xl">
-            <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
               Una storia per ogni pianta
             </p>
             <h2 id="plant-title" className="mt-4 max-w-4xl font-display text-4xl font-extrabold sm:text-5xl">
@@ -239,7 +239,7 @@ export default function ComeFunzionaPage() {
                   key={item.label}
                   className="grid gap-3 border-b border-ortomio-earth/20 py-7 last:border-b-0 sm:grid-cols-[4rem_0.7fr_1.3fr] sm:items-start"
                 >
-                  <span className="font-mono text-xs text-ortomio-harvest">0{index + 1}</span>
+                  <span className="font-mono text-xs text-ortomio-green-700">0{index + 1}</span>
                   <h3 className="font-display text-xl font-bold">{item.label}</h3>
                   <p className="leading-relaxed text-gray-700">{item.text}</p>
                 </li>
@@ -251,7 +251,7 @@ export default function ComeFunzionaPage() {
         <section aria-labelledby="certification-title" className="bg-white px-6 py-20 sm:py-28">
           <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-16">
             <div>
-              <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+              <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
                 Evidenze recuperabili
               </p>
               <h2 id="certification-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
@@ -278,7 +278,7 @@ export default function ComeFunzionaPage() {
           <div className="mx-auto max-w-5xl">
             <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr]">
               <div>
-                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-harvest">
+                <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
                   Pianificare e imparare
                 </p>
                 <h2 id="planning-title" className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
