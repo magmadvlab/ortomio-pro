@@ -7,7 +7,6 @@ import HowItWorks from './sections/HowItWorks'
 import PillarTraceability from './sections/PillarTraceability'
 import SpecialistCrops from './sections/SpecialistCrops'
 import PlanningMemory from './sections/PlanningMemory'
-import MaturitySection from './sections/MaturitySection'
 import FinalCta from './sections/FinalCta'
 import LandingFooter from './LandingFooter'
 
@@ -24,7 +23,6 @@ export default function LandingPage() {
         <PillarTraceability />
         <SpecialistCrops />
         <PlanningMemory />
-        <MaturitySection />
         <FinalCta />
       </main>
       <LandingFooter />
