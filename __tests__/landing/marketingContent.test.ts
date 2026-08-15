@@ -109,6 +109,24 @@ test('homepage names the differentiated AI promise and specialist crops without 
   assert.equal(homepage.includes('MaturitySection'), false)
 })
 
+test('production build does not download fonts from external providers', () => {
+  const layout = read('app/layout.tsx')
+  const css = read('index.css')
+  const tailwind = read('tailwind.config.js')
+
+  assert.equal(layout.includes('next/font/google'), false)
+  assert.equal(layout.includes('DM_Sans'), false)
+  assert.equal(layout.includes('Inter'), false)
+  assert.equal(layout.includes('JetBrains_Mono'), false)
+  assert.equal(css.includes('var(--font-dm-sans)'), false)
+  assert.equal(css.includes('var(--font-inter)'), false)
+  assert.equal(css.includes('var(--font-jb-mono)'), false)
+
+  for (const fallback of ['Arial', 'system-ui', 'ui-monospace']) {
+    assert.equal((css + tailwind).includes(fallback), true, fallback)
+  }
+})
+
 test('homepage explains the rendered operational journey, nursery flow, and per-row plant traceability', () => {
   const source = [
     read('components/landing/sections/DecisionScenario.tsx'),
