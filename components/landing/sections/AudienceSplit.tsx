@@ -7,27 +7,24 @@ export default function AudienceSplit() {
         </h2>
         <div className="grid overflow-hidden rounded-md border border-ortomio-earth-200 sm:grid-cols-2">
           <div className="border-b border-ortomio-earth-200 p-7 sm:border-b-0 sm:border-r">
-            <span className="mb-3 block font-mono text-xs uppercase tracking-wide text-gray-500">
-              Aziende agricole
-            </span>
-            <h3 className="mb-2 font-display text-lg font-bold text-ortomio-green-900">
-              Coordini zone, filari e operatori senza rincorrerli.
-            </h3>
+            <h3 className="mb-1 text-sm font-bold text-ortomio-green-700">Aziende agricole</h3>
+            <p className="mb-4 font-display text-lg font-bold text-ortomio-green-900">
+              Coordina il lavoro con una memoria condivisa, dalla decisione alla verifica.
+            </p>
             <p className="max-w-sm text-sm text-gray-700">
-              Ogni zona ha la sua storia: colture, trattamenti, irrigazioni, esiti. Chi lavora in
-              campo trova il contesto già pronto, chi coordina vede tutto in un unico posto.
+              Chi decide, chi esegue e chi verifica lavora sulla stessa storia di zone, filari,
+              colture e piante. Interventi e risultati restano collegati anche quando cambiano
+              operatori e stagioni.
             </p>
           </div>
           <div className="bg-ortomio-green-50 p-7">
-            <span className="mb-3 block font-mono text-xs uppercase tracking-wide text-ortomio-green-700">
-              Tecnici e consulenti
-            </span>
-            <h3 className="mb-2 font-display text-lg font-bold text-ortomio-green-900">
-              Segui più aziende con dati che si possono confrontare.
-            </h3>
+            <h3 className="mb-1 text-sm font-bold text-ortomio-green-700">Tecnici e consulenti</h3>
+            <p className="mb-4 font-display text-lg font-bold text-ortomio-green-900">
+              Confronta i clienti e prepara ogni visita con il contesto già pronto.
+            </p>
             <p className="max-w-sm text-sm text-gray-700">
-              Stessa struttura, stessi criteri, stessa provenienza del dato per ogni cliente che
-              segui. Meno tempo a ricostruire il contesto a ogni visita.
+              Vedi dove approfondire prima di arrivare in azienda e conserva la storia del
+              consiglio, dell’esecuzione e del risultato per ogni cliente.
             </p>
           </div>
         </div>

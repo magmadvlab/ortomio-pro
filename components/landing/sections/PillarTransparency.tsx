@@ -2,65 +2,106 @@
 
 import { useState } from 'react'
 
-const TABS = ['Panoramica', 'Dati usati', 'Calcoli', 'Alternative'] as const
+const TABS = ['Cosa propone', 'Su cosa si basa', 'Perché viene prima', 'Alternative'] as const
+type Tab = (typeof TABS)[number]
 
 const CALC_ROWS: Array<[string, string]> = [
-  ['baseScore', '62'],
-  ['+ confidenza segnali disponibili', '+9'],
-  ['+ copertura segnali P0', '+6'],
-  ['+ bonus fase critica', '+8'],
-  ['+ fonte profilo (plant_id)', '+4'],
+  ['Punteggio di partenza', '62'],
+  ['+ Qualità delle informazioni disponibili', '+9'],
+  ['+ Conseguenze del ritardo', '+6'],
+  ['+ Momento della stagione', '+8'],
+  ['+ Costi dell’intervento', '+4'],
 ]
 
-const TAB_CONTENT: Record<(typeof TABS)[number], React.ReactNode> = {
-  Panoramica: (
+const TAB_CONTENT: Record<Tab, React.ReactNode> = {
+  'Cosa propone': (
     <p className="text-sm text-gray-700">
-      OrtoMio propone di intervenire ora su questa zona perché il punteggio agronomico è alto
-      e il ritardo avrebbe un costo economico stimato superiore al beneficio di aspettare.
+      Controllare la zona interessata e valutare l&apos;intervento nel momento indicato, prima che
+      il ritardo possa incidere sulla coltura.
     </p>
   ),
-  'Dati usati': (
+  'Su cosa si basa': (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li>Storico irrigazioni e trattamenti della zona (misurato)</li>
-      <li>Profilo colturale riconosciuto tramite <code className="font-mono text-xs">plant_id</code> (misurato)</li>
-      <li>Previsione meteo a 72 ore (stimato)</li>
-      <li>Umidità del suolo in tempo reale — segnale non disponibile su questa zona (assente)</li>
+      <li>Condizioni osservate nella zona e stato della coltura.</li>
+      <li>Misure disponibili dai sensori collegati.</li>
+      <li>Previsioni meteo e momento della stagione.</li>
+      <li>Storico di irrigazioni e trattamenti, con le informazioni mancanti rese visibili.</li>
     </ul>
   ),
-  Calcoli: null, // rendered by the existing calc-block below, not through this map
+  'Perché viene prima': null, // rendered by the illustrative calculation below
   Alternative: (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li><strong>Rimandare al prossimo ciclo</strong> — scartata: il costo del ritardo supera il valore protetto stimato.</li>
-      <li><strong>Solo monitorare</strong> — scartata: la copertura dei segnali critici è sufficiente per agire, non solo osservare.</li>
+      <li>
+        <strong>Intervenire — Proposta da valutare.</strong> Le possibili conseguenze del ritardo
+        rendono opportuno verificare l&apos;intervento.
+      </li>
+      <li>
+        <strong>Programmare — Non scelta per ora.</strong> Nel confronto illustrato, rimandare pesa
+        più del beneficio di attendere.
+      </li>
+      <li>
+        <strong>Continuare a osservare — Non scelta.</strong> Le informazioni disponibili indicano
+        dove controllare; attendere soltanto non chiarirebbe meglio la situazione.
+      </li>
+      <li>
+        <strong>Richiedere un controllo sul campo — Incluso nella proposta.</strong> Il responsabile
+        verifica direttamente la zona prima di confermare l&apos;intervento.
+      </li>
     </ul>
   ),
 }
 
 export default function PillarTransparency() {
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>('Calcoli')
+  const [activeTab, setActiveTab] = useState<Tab>('Cosa propone')
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const idx = TABS.indexOf(activeTab)
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      const next = TABS[(idx + 1) % TABS.length]
+      setActiveTab(next)
+      document.getElementById(`transparency-tab-${TABS.indexOf(next)}`)?.focus()
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      const prev = TABS[(idx - 1 + TABS.length) % TABS.length]
+      setActiveTab(prev)
+      document.getElementById(`transparency-tab-${TABS.indexOf(prev)}`)?.focus()
+    }
+  }
 
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-5xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Non &quot;fidati di noi&quot;. Apri il pannello di trasparenza.
+          Ogni indicazione mostra il proprio ragionamento.
         </h2>
         <p className="mb-6 max-w-2xl text-gray-700">
-          Ogni suggerimento AI si può aprire in un pannello dedicato — non una demo isolata, il
-          componente reale che accompagna ogni proposta nel prodotto.
+          L&apos;AI di OrtoMio non restituisce soltanto una risposta. Ogni proposta può essere
+          aperta per verificare quali informazioni ha considerato, come è arrivata alla priorità
+          e quali alternative ha valutato. La decisione resta al responsabile: OrtoMio prepara
+          una lettura motivata e conserva il motivo della scelta.
         </p>
 
-        <div className="mb-6 flex flex-nowrap gap-1 overflow-x-auto border-b border-ortomio-earth-200 font-mono text-sm">
-          {TABS.map((tab) => (
+        <div
+          role="tablist"
+          aria-label="Dettaglio del consiglio"
+          onKeyDown={onKeyDown}
+          className="mb-2 flex flex-nowrap gap-1 overflow-x-auto border-b border-ortomio-earth-200 text-sm"
+        >
+          {TABS.map((tab, i) => (
             <button
               key={tab}
+              id={`transparency-tab-${i}`}
               type="button"
-              onClick={() => setActiveTab(tab)}
+              role="tab"
               aria-selected={tab === activeTab}
+              aria-controls={`transparency-panel-${i}`}
+              tabIndex={tab === activeTab ? 0 : -1}
+              onClick={() => setActiveTab(tab)}
               className={
                 tab === activeTab
-                  ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2 font-bold text-ortomio-green-700'
-                  : 'shrink-0 whitespace-nowrap px-3 py-2 text-gray-400 hover:text-gray-600'
+                  ? 'shrink-0 whitespace-nowrap border-b-2 border-ortomio-green-600 px-3 py-2.5 font-bold text-ortomio-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ortomio-green-700'
+                  : 'shrink-0 whitespace-nowrap px-3 py-2.5 text-gray-600 hover:text-ortomio-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ortomio-green-700'
               }
             >
               {tab}
@@ -68,37 +109,48 @@ export default function PillarTransparency() {
           ))}
         </div>
 
-        {activeTab !== 'Calcoli' && <div className="mb-6">{TAB_CONTENT[activeTab]}</div>}
-
-        {activeTab === 'Calcoli' && (
-          <div className="rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5">
-            <div className="mb-3 font-mono text-xs uppercase tracking-wide text-gray-500">
-              tab &quot;calcoli&quot; — esempio illustrativo, meccanismo reale
-            </div>
-            {CALC_ROWS.map(([label, value]) => (
-              <div key={label} className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-                <span className="text-gray-600">{label}</span>
-                <span className="font-bold text-ortomio-green-700">{value}</span>
-              </div>
-            ))}
-            <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-              <span className="text-gray-600">subtotale</span>
-              <span className="font-bold text-ortomio-green-700">89</span>
-            </div>
-            <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
-              <span className="text-gray-600">lettura economica (ROI alto → soglia minima)</span>
-              <span className="text-gray-500">≥75</span>
-            </div>
-            <div className="mt-2 flex justify-between border-t border-ortomio-green-900 pt-2 font-mono text-base font-bold text-ortomio-green-900">
-              <span>punteggio finale</span>
-              <span>89/100</span>
-            </div>
-            <div className="mt-1 flex justify-between font-mono text-sm">
-              <span className="text-gray-600">confidenza dichiarata</span>
-              <span className="font-bold">0.84</span>
-            </div>
+        {TABS.map((tab, i) => (
+          <div
+            key={tab}
+            id={`transparency-panel-${i}`}
+            role="tabpanel"
+            aria-labelledby={`transparency-tab-${i}`}
+            hidden={tab !== activeTab}
+            className={tab === 'Perché viene prima'
+              ? 'mb-6 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5'
+              : 'mb-6'}
+          >
+            {tab === 'Perché viene prima' ? (
+              <>
+                <p className="mb-3 text-sm text-gray-600">
+                  Esempio illustrativo: valori dimostrativi, meccanismo reale del pannello.
+                </p>
+                {CALC_ROWS.map(([label, value]) => (
+                  <div key={label} className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                    <span className="text-gray-700">{label}</span>
+                    <span className="font-bold text-ortomio-green-700">{value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                  <span className="text-gray-700">Parziale</span>
+                  <span className="font-bold text-ortomio-green-700">89</span>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+                  <span className="text-gray-700">Convenienza economica: conviene agire ora</span>
+                  <span className="text-gray-600">soglia ≥75</span>
+                </div>
+                <div className="mt-2 flex justify-between border-t border-ortomio-green-900 pt-2 font-mono text-base font-bold text-ortomio-green-900">
+                  <span>Priorità finale</span>
+                  <span>89/100</span>
+                </div>
+                <div className="mt-1 flex justify-between font-mono text-sm">
+                  <span className="text-gray-700">Affidabilità del dato</span>
+                  <span className="font-bold">84%</span>
+                </div>
+              </>
+            ) : TAB_CONTENT[tab]}
           </div>
-        )}
+        ))}
       </div>
     </section>
   )

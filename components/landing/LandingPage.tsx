@@ -1,30 +1,36 @@
 import LandingHeader from './LandingHeader'
 import Hero from './sections/Hero'
-import StatusBanner from './sections/StatusBanner'
-import ProblemSection from './sections/ProblemSection'
+import ReasonWhySection from './sections/ReasonWhySection'
+import DecisionScenario from './sections/DecisionScenario'
 import PillarTransparency from './sections/PillarTransparency'
-import PillarCorrelation from './sections/PillarCorrelation'
+import PrecisionEvidence from './sections/PrecisionEvidence'
 import PillarTraceability from './sections/PillarTraceability'
+import CertificationEvidence from './sections/CertificationEvidence'
+import SpecialistCrops from './sections/SpecialistCrops'
+import PlanningMemory from './sections/PlanningMemory'
 import AudienceSplit from './sections/AudienceSplit'
 import BenefitsList from './sections/BenefitsList'
-import MaturitySection from './sections/MaturitySection'
 import FinalCta from './sections/FinalCta'
 import LandingFooter from './LandingFooter'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white font-body">
+    <div className="min-h-screen bg-ortomio-paper font-body text-ortomio-green-900">
       <LandingHeader />
-      <Hero />
-      <StatusBanner />
-      <ProblemSection />
-      <PillarTransparency />
-      <PillarCorrelation />
-      <PillarTraceability />
-      <AudienceSplit />
-      <BenefitsList />
-      <MaturitySection />
-      <FinalCta />
+      <main>
+        <Hero />
+        <ReasonWhySection />
+        <DecisionScenario />
+        <PillarTransparency />
+        <PrecisionEvidence />
+        <PillarTraceability />
+        <CertificationEvidence />
+        <PlanningMemory />
+        <SpecialistCrops />
+        <AudienceSplit />
+        <BenefitsList />
+        <FinalCta />
+      </main>
       <LandingFooter />
     </div>
   )

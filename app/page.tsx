@@ -1,68 +1,49 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '@/packages/core/hooks/useAuth'
-import { decideRootRouting } from '@/lib/landing/rootRouting'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import LandingPage from '@/components/landing/LandingPage'
+import AuthedRedirect from '@/components/landing/AuthedRedirect'
 
-export default function HomePage() {
-  const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
-  const [callbackParams, setCallbackParams] = useState<URLSearchParams | null>(null)
+export const metadata: Metadata = {
+  title: 'OrtoMio | Decisioni agronomiche verificabili',
+  description: 'OrtoMio collega dati di campo, attività, costi ed esiti per aziende agricole strutturate e consulenti agronomici.',
+  alternates: { canonical: '/' },
+  openGraph: { title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'Una memoria agronomica che mostra dati, calcoli, affidabilità e alternative.', type: 'website' },
+  twitter: { card: 'summary_large_image', title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'Una memoria agronomica che mostra dati, calcoli, affidabilità e alternative.' },
+}
 
-  useEffect(() => {
-    setCallbackParams(new URLSearchParams(window.location.search))
-  }, [])
+type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
-  const hasAuthCallbackParams = useMemo(() => {
-    if (!callbackParams) return false
-    return Boolean(
-      callbackParams.get('code') || callbackParams.get('token_hash') || callbackParams.get('error')
-    )
-  }, [callbackParams])
+function firstValue(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key]
+  if (typeof value === 'string' && value.length > 0) return value
+  if (Array.isArray(value) && value.length > 0) return value[0]
+  return null
+}
 
-  // callbackParams starts null on first render (before the effect above runs) so we
-  // don't know yet whether this is an auth-callback link; treat that as still loading.
-  const decision = callbackParams === null
-    ? 'LOADING'
-    : decideRootRouting({
-        hasAuthCallbackParams,
-        authLoading,
-        isAuthenticated: Boolean(user),
-      })
+export default async function HomePage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams
 
-  useEffect(() => {
-    if (decision === 'AUTH_CALLBACK' && callbackParams) {
-      const forward = new URLSearchParams()
-      const code = callbackParams.get('code')
-      const tokenHash = callbackParams.get('token_hash')
-      const type = callbackParams.get('type')
-      const error = callbackParams.get('error')
-      const errorDescription = callbackParams.get('error_description')
-      if (code) forward.set('code', code)
-      if (tokenHash) forward.set('token_hash', tokenHash)
-      if (type) forward.set('type', type)
-      if (error) forward.set('error', error)
-      if (errorDescription) forward.set('error_description', errorDescription)
-      router.replace(`/auth/callback?${forward.toString()}`)
-      return
-    }
-    if (decision === 'REDIRECT_APP') {
-      router.replace('/app')
-    }
-  }, [decision, callbackParams, router])
-
-  if (decision === 'LOADING' || decision === 'AUTH_CALLBACK' || decision === 'REDIRECT_APP') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ortomio-green-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ortomio-green-600 mx-auto" />
-          <p className="text-sm text-gray-500 mt-4">Caricamento...</p>
-        </div>
-      </div>
-    )
+  // I link di callback Supabase che arrivano sulla root vanno inoltrati al
+  // gestore auth; la verifica avviene lato server così la landing resta statica.
+  const code = firstValue(params, 'code')
+  const tokenHash = firstValue(params, 'token_hash')
+  const error = firstValue(params, 'error')
+  if (code || tokenHash || error) {
+    const forward = new URLSearchParams()
+    if (code) forward.set('code', code)
+    if (tokenHash) forward.set('token_hash', tokenHash)
+    const type = firstValue(params, 'type')
+    const errorDescription = firstValue(params, 'error_description')
+    if (type) forward.set('type', type)
+    if (error) forward.set('error', error)
+    if (errorDescription) forward.set('error_description', errorDescription)
+    redirect(`/auth/callback?${forward.toString()}`)
   }
 
-  return <LandingPage />
+  return (
+    <>
+      <AuthedRedirect />
+      <LandingPage />
+    </>
+  )
 }

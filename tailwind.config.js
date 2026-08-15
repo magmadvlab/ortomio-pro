@@ -53,9 +53,9 @@ export default {
         },
       },
       fontFamily: {
-        display: ['DM Sans', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        display: ['Arial', 'Helvetica', 'sans-serif'],
+        body: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       fontSize: {
         xs: ['0.75rem', { lineHeight: '1rem' }],
@@ -82,4 +82,3 @@ export default {
   },
   plugins: [],
 }
-
