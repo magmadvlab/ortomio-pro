@@ -1,5 +1,6 @@
 import '../index.css'
 import type { Metadata, Viewport } from 'next'
+import { AuthProvider } from '@/packages/core/hooks/useAuth'
 
 export const metadata: Metadata = {
   title: 'OrtoMio Agricoltura',
@@ -34,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="it" suppressHydrationWarning>
       <body className="bg-gray-50">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )
