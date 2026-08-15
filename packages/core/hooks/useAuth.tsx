@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * useAuth Hook
  * Gestisce stato autenticazione e integrazione con Supabase Auth
