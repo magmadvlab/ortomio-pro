@@ -6,7 +6,6 @@ const CALC_ROWS: Array<[string, string]> = [
   ['+ copertura segnali P0', '+6'],
   ['+ bonus fase critica', '+8'],
   ['+ fonte profilo (plant_id)', '+4'],
-  ['→ lettura economica (ROI alto)', 'soglia ~75'],
 ]
 
 export default function PillarTransparency() {
@@ -46,9 +45,17 @@ export default function PillarTransparency() {
               <span className="font-bold text-ortomio-green-700">{value}</span>
             </div>
           ))}
+          <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+            <span className="text-gray-600">subtotale</span>
+            <span className="font-bold text-ortomio-green-700">89</span>
+          </div>
+          <div className="flex justify-between border-b border-dashed border-ortomio-earth-200 py-1.5 font-mono text-sm">
+            <span className="text-gray-600">lettura economica (ROI alto → soglia minima)</span>
+            <span className="text-gray-500">≥75</span>
+          </div>
           <div className="mt-2 flex justify-between border-t border-ortomio-green-900 pt-2 font-mono text-base font-bold text-ortomio-green-900">
             <span>punteggio finale</span>
-            <span>78/100</span>
+            <span>89/100</span>
           </div>
           <div className="mt-1 flex justify-between font-mono text-sm">
             <span className="text-gray-600">confidenza dichiarata</span>
