@@ -7,9 +7,9 @@ export type SpecialistCrop = {
 
 export const landingContent = {
   eyebrow: 'Per aziende agricole e consulenti agronomici',
-  title: 'Ogni intervento, ogni pianta, un motivo che resta.',
+  title: 'OrtoMio ricorda perché hai trattato ogni pianta, sempre.',
   summary:
-    'OrtoMio è il sistema che collega satellite, sensori, storico e costi delle tue colture in un\'unica decisione — che puoi riaprire con un cliente, in un controllo, o solo per te.',
+    'È il sistema che collega satellite, sensori, storico e costi delle tue colture in un\'unica decisione — che puoi riaprire con un cliente, in un controllo, o solo per te.',
   finalCta: 'Prenota la tua prova guidata',
 } as const
 
