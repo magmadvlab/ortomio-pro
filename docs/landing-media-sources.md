@@ -17,3 +17,10 @@ Retrieved: 2026-08-15
 - Source: https://unsplash.com/photos/fIQKqc1taao
 - License: Unsplash License
 - Use: specialist-crops editorial media
+
+## Screenshot prodotto (`orchard.webp`, `plants.webp`, `briefing-ai.webp`, `consigli-ai.webp`, `semenzaio.webp`)
+
+- Subject: schermate reali dell'app OrtoMio (frutteto test, dati non fittizi)
+- Source: cattura diretta dal prodotto, 2026-08-16
+- License: proprietà OrtoMio
+- Use: sezione "L'applicazione" (ProductGallery), galleria prodotto in homepage

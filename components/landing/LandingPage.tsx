@@ -1,5 +1,6 @@
 import LandingHeader from './LandingHeader'
 import Hero from './sections/Hero'
+import ProductGallery from './sections/ProductGallery'
 import ReasonWhySection from './sections/ReasonWhySection'
 import DecisionScenario from './sections/DecisionScenario'
 import PillarTransparency from './sections/PillarTransparency'
@@ -19,6 +20,7 @@ export default function LandingPage() {
       <LandingHeader />
       <main>
         <Hero />
+        <ProductGallery />
         <ReasonWhySection />
         <DecisionScenario />
         <PillarTransparency />
