@@ -6,10 +6,10 @@ export type SpecialistCrop = {
 }
 
 export const landingContent = {
-  eyebrow: 'AI agronomica dal satellite alla singola pianta',
-  title: 'OrtoMio non guarda un dato alla volta. Guarda il campo intero, fino alla singola pianta.',
+  eyebrow: 'Per aziende agricole e consulenti agronomici',
+  title: 'Ogni intervento, ogni pianta, un motivo che resta.',
   summary:
-    'OrtoMio è la piattaforma che collega satellite, sensori, storico e costi delle tue colture in un\'unica decisione spiegabile, dalla zona alla singola pianta — riapribile e verificabile ogni volta che ti serve.',
+    'OrtoMio è il sistema che collega satellite, sensori, storico e costi delle tue colture in un\'unica decisione — che puoi riaprire con un cliente, in un controllo, o solo per te.',
   finalCta: 'Prenota la tua prova guidata',
 } as const
 
