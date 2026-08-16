@@ -6,11 +6,11 @@ export type SpecialistCrop = {
 }
 
 export const landingContent = {
-  eyebrow: 'AI agronomica dal satellite alla singola pianta',
-  title: 'Tutto ciò che accade in campo diventa una decisione che puoi spiegare.',
+  eyebrow: 'Per aziende agricole e consulenti agronomici',
+  title: 'Con OrtoMio sai sempre dove, come, quando e perché intervenire.',
   summary:
-    'OrtoMio aiuta aziende agricole e consulenti agronomici a collegare NDVI, meteo, sensori, stato delle colture, lavorazioni, costi e raccolti. Per ogni intervento mostra perché è importante e conserva come ha risposto ogni singola pianta, vite o albero.',
-  finalCta: 'Richiedi una prova guidata',
+    'OrtoMio riunisce dati satellitari, sensori, attività, costi e risultati. Tu vedi cosa richiede attenzione e quali informazioni il sistema ha considerato.',
+  finalCta: 'Prenota la tua prova guidata',
 } as const
 
 export const specialistCrops: SpecialistCrop[] = [

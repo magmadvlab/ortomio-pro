@@ -10,6 +10,12 @@ export default function Hero() {
             <p className="mb-6 text-xs font-bold uppercase tracking-[0.22em] text-ortomio-harvest">{landingContent.eyebrow}</p>
             <h1 className="font-display text-5xl font-extrabold leading-[0.98] tracking-[-0.04em] sm:text-7xl lg:text-[5.35rem]">{landingContent.title}</h1>
             <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ortomio-green-100">{landingContent.summary}</p>
+            <a
+              href="#prova-guidata"
+              className="mt-8 inline-flex min-h-12 items-center bg-ortomio-harvest px-6 py-3 font-bold text-ortomio-green-900 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest focus-visible:ring-offset-2 focus-visible:ring-offset-ortomio-green-900"
+            >
+              {landingContent.finalCta}
+            </a>
           </div>
         </div>
         <figure className="relative min-h-[28rem] overflow-hidden lg:min-h-full">

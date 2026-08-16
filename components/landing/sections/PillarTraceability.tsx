@@ -14,7 +14,7 @@ export default function PillarTraceability() {
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-5xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Dal vivaio al filare, ogni pianta conserva la sua storia
+          Segui ogni pianta dal vivaio al filare, senza perderne il filo
         </h2>
         <p className="mb-8 max-w-2xl text-gray-700">
           Nel vivaio segui la crescita delle piante dalla semina o dall’acquisto: germinazione,
@@ -43,7 +43,7 @@ export default function PillarTraceability() {
 
         <div className="mb-6 max-w-2xl rounded-md border border-ortomio-earth-200 bg-white p-4">
           <h3 className="mb-3 text-sm font-bold text-ortomio-green-900">
-            Come cambia la pianta dopo ogni intervento
+            Vedi cosa cambia dopo ogni intervento
           </h3>
           <p className="mb-4 text-sm leading-relaxed text-gray-700">
             Una volta trapiantata, ogni pianta, vite o albero continua ad avere una scheda propria.

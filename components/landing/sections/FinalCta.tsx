@@ -23,7 +23,7 @@ export default function FinalCta() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
+    <section id="prova-guidata" className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-5xl">
         <div className="grid gap-10 lg:grid-cols-[1fr_0.75fr] lg:items-end">
           <div>
@@ -31,15 +31,14 @@ export default function FinalCta() {
               Prova guidata
             </p>
             <h2 className="mt-5 font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-6xl">
-              Porta un caso reale. Lo ricostruiamo insieme in OrtoMio.
+              Porta un caso reale: lo ricostruiamo insieme in OrtoMio.
             </h2>
           </div>
           <div>
             <p className="text-lg leading-relaxed text-ortomio-green-900">
-              Indicaci azienda, coltura ed esigenza principale. Prepareremo una prova guidata sui
-              flussi più vicini al tuo lavoro: osservazione del campo, priorità AI, tracciabilità
-              delle piante, pianificazione, IoT, NDVI o preparazione delle evidenze per le
-              certificazioni.
+              Indicaci azienda, coltura ed esigenza principale: prepariamo una prova guidata sul
+              flusso più vicino al tuo lavoro, che si tratti di priorità AI, tracciabilità delle
+              piante o preparazione delle evidenze per le certificazioni.
             </p>
             {!showForm && (
               <button
@@ -56,7 +55,7 @@ export default function FinalCta() {
         </div>
         {showForm && <PilotRequestForm onClose={closeForm} />}
         <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ortomio-green-900">
-          Ti ricontatteremo per preparare una dimostrazione coerente con il tuo contesto.
+          Ti ricontattiamo per preparare una demo sul tuo caso, non una presentazione generica.
         </p>
       </div>
     </section>
