@@ -23,7 +23,7 @@ export default function FinalCta() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
+    <section id="prova-guidata" className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-5xl">
         <div className="grid gap-10 lg:grid-cols-[1fr_0.75fr] lg:items-end">
           <div>

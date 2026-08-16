@@ -52,8 +52,10 @@ const commercialSourceCorpus = () => [
   readIfExists('components/landing/sections/MaturitySection.tsx'),
 ).join('\n')
 
-test('commercial pages end with one guided-trial CTA and no early commercial CTA', () => {
+test('commercial pages expose the guided-trial CTA in the hero and at the end', () => {
   const commercialSource = commercialSourceCorpus()
+  const hero = read('components/landing/sections/Hero.tsx')
+  const finalCta = read('components/landing/sections/FinalCta.tsx')
   const pages = [
     {
       page: read('components/landing/LandingPage.tsx'),
@@ -63,7 +65,10 @@ test('commercial pages end with one guided-trial CTA and no early commercial CTA
     },
   ]
 
-  assert.equal((commercialSource.match(/Richiedi una prova guidata/g) ?? []).length, 1)
+  assert.equal(hero.includes('href="#prova-guidata"'), true)
+  assert.equal(finalCta.includes('id="prova-guidata"'), true)
+  assert.equal(hero.includes('{landingContent.finalCta}'), true)
+  assert.equal(finalCta.includes('{landingContent.finalCta}'), true)
   for (const actionLabel of ['Prova la demo ora', 'Richiedi una demo', 'Prenota una demo', 'Inizia la prova']) {
     assert.equal(commercialSource.includes(actionLabel), false, actionLabel)
   }
@@ -87,7 +92,8 @@ test('homepage names the differentiated AI promise and specialist crops without 
   const source = read('components/landing/content.ts')
 
   for (const phrase of [
-    'AI agronomica dal satellite alla singola pianta',
+    'Con OrtoMio sai sempre dove, come, quando e perché intervenire',
+    'dati satellitari',
     'vigneto',
     'oliveto',
     'frutteto',
@@ -227,10 +233,10 @@ test('hero states the differentiated AI promise', () => {
   const hero = read('components/landing/sections/Hero.tsx')
 
   for (const phrase of [
-    'AI agronomica dal satellite alla singola pianta',
-    'Tutto ciò che accade in campo diventa una decisione che puoi spiegare',
-    'NDVI',
-    'ogni singola pianta, vite o albero',
+    'Con OrtoMio sai sempre dove, come, quando e perché intervenire',
+    'dati satellitari',
+    'sensori',
+    'quali informazioni il sistema ha considerato',
   ]) {
     assert.equal((content + hero).toLowerCase().includes(phrase.toLowerCase()), true, phrase)
   }
@@ -241,6 +247,7 @@ test('homepage proves observation, individual inputs, AI reasoning, and certific
     read('components/landing/LandingPage.tsx'),
     read('components/landing/sections/ReasonWhySection.tsx'),
     read('components/landing/sections/DecisionScenario.tsx'),
+    read('components/landing/sections/PillarTransparency.tsx'),
     read('components/landing/sections/PrecisionEvidence.tsx'),
     read('components/landing/sections/PillarTraceability.tsx'),
     read('components/landing/sections/CertificationEvidence.tsx'),
@@ -256,9 +263,9 @@ test('homepage proves observation, individual inputs, AI reasoning, and certific
     'IoT',
     'biologico',
     'GlobalG.A.P.',
-    'AI mette queste informazioni in relazione',
+    'quali informazioni ha considerato',
     'decisione resta al responsabile',
-    'evidenza pronta da recuperare',
+    'Ogni evidenza resta collegata alla lavorazione',
     'bozze AI iniziali da completare e verificare',
   ]) {
     assert.equal(source.toLowerCase().includes(phrase.toLowerCase()), true, phrase)
@@ -362,9 +369,9 @@ test('homepage closes with action-oriented audience benefits and the approved gu
   }
 
   for (const phrase of [
-    'Porta un caso reale. Lo ricostruiamo insieme in OrtoMio.',
-    'Indicaci azienda, coltura ed esigenza principale. Prepareremo una prova guidata sui flussi più vicini al tuo lavoro: osservazione del campo, priorità AI, tracciabilità delle piante, pianificazione, IoT, NDVI o preparazione delle evidenze per le certificazioni.',
-    'Ti ricontatteremo per preparare una dimostrazione coerente con il tuo contesto.',
+    'Porta un caso reale: lo ricostruiamo insieme in OrtoMio.',
+    'Indicaci azienda, coltura ed esigenza principale: prepariamo una prova guidata sul flusso più vicino al tuo lavoro, che si tratti di priorità AI, tracciabilità delle piante o preparazione delle evidenze per le certificazioni.',
+    'Ti ricontattiamo per preparare una demo sul tuo caso, non una presentazione generica.',
   ]) {
     assert.equal(normalizedSource.includes(phrase), true, phrase)
   }

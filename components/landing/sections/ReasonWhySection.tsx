@@ -1,10 +1,10 @@
 const PROOFS = [
   [
-    'Osserva dove serve attenzione',
+    'Individua dove serve attenzione',
     'NDVI, meteo e sensori disponibili aiutano a individuare zone, filari e piante da controllare.',
   ],
   [
-    'Ricostruisce cosa è stato fatto',
+    'Ricostruisci cosa è stato fatto',
     'Acqua, nutrimenti, trattamenti, operatori e quantità restano collegati al punto in cui sono stati applicati.',
   ],
   [
