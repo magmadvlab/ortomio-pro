@@ -24,7 +24,7 @@ const menuItems = [
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
   { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio', tier: 'all' },
   { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
-  { icon: Lightbulb, label: 'Consigli AI', path: '/app/advice', tier: 'all' },
+  { icon: Lightbulb, label: 'Consigli AI', path: '/app/planner?tab=ai-suggestions', tier: 'all' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },
   { icon: ChefHat, label: 'Ricette', path: '/app/recipes', tier: 'PRO_CONSUMER', badge: 'PRO' },
   { icon: Book, label: 'Guide Premium', path: '/app/guides', tier: 'PRO_CONSUMER', badge: 'PRO' },

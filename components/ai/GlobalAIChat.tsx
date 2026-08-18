@@ -60,6 +60,7 @@ const routeModuleHints: RouteModuleHint[] = [
     label: 'Planner operativo',
     routingHints: [
       { label: 'Rivedi attività pianificate', route: '/app/planner' },
+      { label: 'Suggerimenti AI', route: '/app/planner?tab=ai-suggestions' },
       { label: 'Controlla stato salute', route: '/app/health' },
     ],
   },
@@ -115,15 +116,6 @@ const routeModuleHints: RouteModuleHint[] = [
     routingHints: [
       { label: 'Apri previsioni AI', route: '/app/farm?tab=predictions' },
       { label: 'Valuta attività', route: '/app/planner' },
-    ],
-  },
-  {
-    match: '/app/advice',
-    module: 'advice',
-    label: 'Consigli agronomici',
-    routingHints: [
-      { label: 'Apri consigli', route: '/app/advice' },
-      { label: 'Trasforma in attività', route: '/app/planner' },
     ],
   },
 ]

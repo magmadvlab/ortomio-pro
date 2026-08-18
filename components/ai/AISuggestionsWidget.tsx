@@ -287,7 +287,7 @@ export default function AISuggestionsWidget({
             <button
               onClick={() => {
                 // Navigate to full suggestions page
-                window.location.href = '/app/advice?tab=suggestions';
+                window.location.href = '/app/planner?tab=ai-suggestions';
               }}
               className="text-purple-600 text-sm font-medium hover:text-purple-700 transition-colors"
             >

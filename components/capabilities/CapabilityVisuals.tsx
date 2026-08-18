@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  BarChart3, BookOpen, Bot, Brain, CircleDot, Crown, Database, Droplets,
+  BarChart3, BookOpen, Bot, CircleDot, Crown, Database, Droplets,
   FlaskConical, Grape, Heart, LayoutDashboard, Leaf, Link2, Map, MapPinned,
   Satellite, Settings, Shield, Sprout, Tractor, TreePine, Wifi,
   type LucideIcon,
@@ -11,7 +11,7 @@ import { CAPABILITIES, getCapabilityBadge, type CapabilityDescriptor, type Capab
 
 const ICONS: Record<CapabilityIcon, LucideIcon> = {
   dashboard: LayoutDashboard, farm: MapPinned, garden: Sprout, planner: Bot,
-  plants: Leaf, health: Heart, advice: Brain, diary: BookOpen, orchard: TreePine,
+  plants: Leaf, health: Heart, diary: BookOpen, orchard: TreePine,
   olive: CircleDot, vineyard: Grape, irrigation: Droplets, nutrition: FlaskConical,
   mechanical: Tractor, certifications: Shield, satellite: Satellite,
   map: Map, analytics: BarChart3, smart: Wifi, export: Database, help: BookOpen,

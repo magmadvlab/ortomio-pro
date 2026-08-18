@@ -13,7 +13,6 @@ export type CapabilityIcon =
   | 'planner'
   | 'plants'
   | 'health'
-  | 'advice'
   | 'diary'
   | 'orchard'
   | 'olive'
@@ -75,7 +74,6 @@ export const CAPABILITIES: CapabilityDescriptor[] = [
   { id: 'planner', label: 'Planner AI', description: 'Pianificazione assistita delle colture.', group: 'PRINCIPALE', icon: 'planner', route: '/app/planner', helpHref: '/docs/manual/09-planner-ai-chat', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'beta', targets: [...APP_TARGETS, 'bottom'], featureFlag: 'PLANNER_BASE', bottomOrder: 4 },
   { id: 'plants', label: 'Piante', description: 'Anagrafica e stato delle singole piante.', group: 'PRINCIPALE', icon: 'plants', route: '/app/plants', helpHref: '/docs/manual/21-individual-plants', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['garden_plants'], maturity: 'stable', targets: APP_TARGETS, featureFlag: 'INDIVIDUAL_PLANTS' },
   { id: 'health', label: 'Salute', description: 'Osservazioni, rischi e interventi fitosanitari.', group: 'PRINCIPALE', icon: 'health', route: '/app/health', helpHref: '/docs/manual/16-nutrition-treatments', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['treatment'] },
-  { id: 'advice', label: 'Consigli AI', description: 'Suggerimenti agronomici contestuali.', group: 'PRINCIPALE', icon: 'advice', route: '/app/advice', helpHref: '/docs/manual/07-ai-overview', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'beta', targets: APP_TARGETS, featureFlag: 'ADVICE_BASE' },
   { id: 'diary', label: 'Diario operativo', description: 'Timeline canonica di attività ed esiti.', group: 'PRINCIPALE', icon: 'diary', route: '/app/diary', helpHref: '/docs/manual/10-activity-registry', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['daily_diary_entries'], maturity: 'beta', targets: APP_TARGETS, featureFlag: 'JOURNAL', searchResultTypes: ['task'] },
   { id: 'seedbed', label: 'Semenzaio', description: 'Gestione di semi e semine.', group: 'PRINCIPALE', icon: 'seedbed', route: '/app/semenzaio', helpHref: '/docs/manual/30-use-cases', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['seed'] },
   { id: 'harvest', label: 'Raccolti', description: 'Registro delle raccolte e delle rese.', group: 'PRINCIPALE', icon: 'harvest', route: '/app/harvest', helpHref: '/docs/manual/22-business-intelligence', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['harvest'] },
@@ -111,6 +109,7 @@ export const TECHNICAL_ROUTES = [
   { route: '/app/calendar', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=calendar' },
   { route: '/app/planner-classic', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=classic' },
   { route: '/app/ai-predictions', classification: 'legacy-alias', canonicalEntry: '/app/farm?tab=predictions' },
+  { route: '/app/advice', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=ai-suggestions' },
 ] as const
 
 export function isCapabilityVisible(
