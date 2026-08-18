@@ -1355,11 +1355,11 @@ export default function PlantHealthPage() {
                 Vai al Planner AI
               </a>
               <a
-                href="/app/planner-classic"
+                href="/app/planner?tab=classic"
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
               >
                 <Calendar className="w-4 h-4" />
-                Planner Classico
+                Piano colturale
               </a>
             </div>
           </div>

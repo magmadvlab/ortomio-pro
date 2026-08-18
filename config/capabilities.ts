@@ -35,7 +35,6 @@ export type CapabilityIcon =
   | 'traceability'
   | 'harvest'
   | 'seedbed'
-  | 'calendar'
 
 export interface CapabilityDescriptor {
   id: string
@@ -75,14 +74,12 @@ export const CAPABILITIES: CapabilityDescriptor[] = [
   { id: 'farm', label: 'Centro operativo', description: 'Vista coordinata di campi, segnali e priorità.', group: 'PRINCIPALE', icon: 'farm', route: '/app/farm', helpHref: '/docs/manual/34-director-orchestrator', roles: ALL_ROLES, tiers: PRO, maturity: 'beta', targets: [...APP_TARGETS, 'bottom'], bottomOrder: 2 },
   { id: 'garden', label: 'Appezzamenti', description: 'Gestione di orti, zone e filari.', group: 'PRINCIPALE', icon: 'garden', route: '/app/garden', helpHref: '/docs/manual/29-interface-navigation', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['gardens'], maturity: 'stable', targets: [...APP_TARGETS, 'bottom'], searchResultTypes: ['garden'], bottomOrder: 3 },
   { id: 'planner', label: 'Planner AI', description: 'Pianificazione assistita delle colture.', group: 'PRINCIPALE', icon: 'planner', route: '/app/planner', helpHref: '/docs/manual/09-planner-ai-chat', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'beta', targets: [...APP_TARGETS, 'bottom'], featureFlag: 'PLANNER_BASE', bottomOrder: 4 },
-  { id: 'planner-classic', label: 'Piano colturale', description: 'Piano colturale strutturato e verificabile.', group: 'PRINCIPALE', icon: 'planner', route: '/app/planner-classic', helpHref: '/docs/manual/30-use-cases', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS },
   { id: 'plants', label: 'Piante', description: 'Anagrafica e stato delle singole piante.', group: 'PRINCIPALE', icon: 'plants', route: '/app/plants', helpHref: '/docs/manual/21-individual-plants', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['garden_plants'], maturity: 'stable', targets: APP_TARGETS, featureFlag: 'INDIVIDUAL_PLANTS' },
   { id: 'health', label: 'Salute', description: 'Osservazioni, rischi e interventi fitosanitari.', group: 'PRINCIPALE', icon: 'health', route: '/app/health', helpHref: '/docs/manual/16-nutrition-treatments', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['treatment'] },
   { id: 'advice', label: 'Consigli AI', description: 'Suggerimenti agronomici contestuali.', group: 'PRINCIPALE', icon: 'advice', route: '/app/advice', helpHref: '/docs/manual/07-ai-overview', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'beta', targets: APP_TARGETS, featureFlag: 'ADVICE_BASE' },
   { id: 'diary', label: 'Diario operativo', description: 'Timeline canonica di attività ed esiti.', group: 'PRINCIPALE', icon: 'diary', route: '/app/diary', helpHref: '/docs/manual/10-activity-registry', roles: ALL_ROLES, tiers: ALL_TIERS, schema: ['daily_diary_entries'], maturity: 'beta', targets: APP_TARGETS, featureFlag: 'JOURNAL', searchResultTypes: ['task'] },
   { id: 'seedbed', label: 'Semenzaio', description: 'Gestione di semi e semine.', group: 'PRINCIPALE', icon: 'seedbed', route: '/app/semenzaio', helpHref: '/docs/manual/30-use-cases', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['seed'] },
   { id: 'harvest', label: 'Raccolti', description: 'Registro delle raccolte e delle rese.', group: 'PRINCIPALE', icon: 'harvest', route: '/app/harvest', helpHref: '/docs/manual/22-business-intelligence', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS, searchResultTypes: ['harvest'] },
-  { id: 'calendar', label: 'Calendario', description: 'Vista calendario di tutte le attività pianificate.', group: 'PRINCIPALE', icon: 'calendar', route: '/app/calendar', helpHref: '/docs/manual/29-interface-navigation', roles: ALL_ROLES, tiers: ALL_TIERS, maturity: 'stable', targets: APP_TARGETS },
 
   { id: 'orchard', label: 'Frutteto', description: 'Gestione agronomica del frutteto.', group: 'COLTURE SPECIALIZZATE', icon: 'orchard', route: '/app/orchard', helpHref: '/docs/manual/18-orchard-management', roles: ALL_ROLES, tiers: PRO, maturity: 'stable', targets: APP_TARGETS, featureFlag: 'ORCHARD' },
   { id: 'olives', label: 'Oliveto', description: 'Gestione agronomica dell’oliveto.', group: 'COLTURE SPECIALIZZATE', icon: 'olive', route: '/app/olives', helpHref: '/docs/manual/19-olive-management', roles: ALL_ROLES, tiers: PRO, maturity: 'stable', targets: APP_TARGETS, featureFlag: 'OLIVE_GROVE' },
@@ -113,6 +110,8 @@ export const TECHNICAL_ROUTES = [
   { route: '/app/reports', classification: 'technical', canonicalEntry: '/app/export' },
   { route: '/app/zones', classification: 'legacy-alias', canonicalEntry: '/app/garden/zones' },
   { route: '/app/pianifica', classification: 'legacy-alias', canonicalEntry: '/app/planner' },
+  { route: '/app/calendar', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=calendar' },
+  { route: '/app/planner-classic', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=classic' },
 ] as const
 
 export function isCapabilityVisible(

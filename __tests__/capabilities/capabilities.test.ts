@@ -67,7 +67,8 @@ test('search result destinations are canonical existing pages', () => {
 test('legacy technical routes redirect to their classified canonical entry', () => {
   for (const item of TECHNICAL_ROUTES.filter(item => item.classification !== 'contextual')) {
     const source = readFileSync(pagePath(item.route), 'utf8')
-    assert.match(source, new RegExp(`redirect\\(['\"]${item.canonicalEntry.replaceAll('/', '\\/')}['\"]\\)`))
+    const escaped = item.canonicalEntry.replaceAll(/[^a-zA-Z0-9]/g, (char) => `\\${char}`)
+    assert.match(source, new RegExp(`redirect\\(['\"]${escaped}['\"]\\)`))
   }
 })
 

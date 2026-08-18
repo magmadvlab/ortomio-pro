@@ -1,6 +1,7 @@
 'use client'
 
 import SmartPlanner from '@/components/planner/SmartPlanner'
+import ClassicPlannerWithRotation from '@/components/planner/ClassicPlannerWithRotation'
 import AgronomicQueueTaskPanel from '@/components/planner/AgronomicQueueTaskPanel'
 import TaskCalendar from '@/components/planner/TaskCalendar'
 import TaskList from '@/components/planner/TaskList'
@@ -14,11 +15,11 @@ import { useSearchParams } from 'next/navigation'
 import { Garden, GardenTask } from '@/types'
 import { handleTaskCompletion } from '@/services/taskCompletionHook'
 import { recordAgronomicQueueTaskOutcome } from '@/services/agronomicQueueOutcomeService'
-import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug } from 'lucide-react'
+import { Calendar, Clock, Activity, Target, CheckCircle, AlertTriangle, TrendingUp, List, Lightbulb, RefreshCw, Bug, Leaf } from 'lucide-react'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
-type PlannerTab = 'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'biological'
-const PLANNER_TABS: PlannerTab[] = ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'biological']
+type PlannerTab = 'planner' | 'calendar' | 'timeline' | 'list' | 'ai-suggestions' | 'rotation' | 'classic' | 'biological'
+const PLANNER_TABS: PlannerTab[] = ['planner', 'calendar', 'timeline', 'list', 'ai-suggestions', 'rotation', 'classic', 'biological']
 
 export default function PlannerPage() {
   const { storageProvider } = useStorage()
@@ -210,6 +211,7 @@ export default function PlannerPage() {
     { id: 'list' as const, label: '📋 Lista Task', icon: List, badge: tasks ? (tasks || []).filter(t => !t.completed).length : 0 },
     { id: 'timeline' as const, label: '📊 Timeline', icon: Activity },
     { id: 'rotation' as const, label: '🔄 Rotazione Colture', icon: RefreshCw },
+    { id: 'classic' as const, label: '🌱 Piano colturale', icon: Leaf },
     { id: 'biological' as const, label: '🐛 Controllo Biologico', icon: Bug }
   ]
 
@@ -295,7 +297,7 @@ export default function PlannerPage() {
                     }`}
                   >
                     <Icon size={14} />
-                    <span className="truncate">{tab.label.replace('📊 ', '').replace('🔄 ', '').replace('🐛 ', '')}</span>
+                    <span className="truncate">{tab.label.replace('📊 ', '').replace('🔄 ', '').replace('🌱 ', '').replace('🐛 ', '')}</span>
                   </button>
                 )
               })}
@@ -349,6 +351,10 @@ export default function PlannerPage() {
 
       {activeTab === 'rotation' && (
         <CropRotationPlanner />
+      )}
+
+      {activeTab === 'classic' && (
+        <ClassicPlannerWithRotation />
       )}
 
       {activeTab === 'biological' && (
