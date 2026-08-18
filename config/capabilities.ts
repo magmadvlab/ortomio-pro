@@ -22,7 +22,6 @@ export type CapabilityIcon =
   | 'nutrition'
   | 'mechanical'
   | 'certifications'
-  | 'prediction'
   | 'satellite'
   | 'map'
   | 'analytics'
@@ -90,7 +89,6 @@ export const CAPABILITIES: CapabilityDescriptor[] = [
   { id: 'mechanical', label: 'Lavorazioni', description: 'Lavorazioni meccaniche, costi ed esiti.', group: 'GESTIONE PROFESSIONALE', icon: 'mechanical', route: '/app/mechanical-work', helpHref: '/docs/manual/17-mechanical-operations', roles: ALL_ROLES, tiers: PRO, maturity: 'beta', targets: APP_TARGETS, featureFlag: 'MECHANICAL_WORK_BASE', searchResultTypes: ['mechanical'] },
   { id: 'certifications', label: 'Certificazioni', description: 'Evidenze e dossier di conformità.', group: 'GESTIONE PROFESSIONALE', icon: 'certifications', route: '/app/certifications', helpHref: '/docs/manual/04-certifications', roles: ALL_ROLES, tiers: PRO, maturity: 'beta', targets: APP_TARGETS, featureFlag: 'CERTIFICATIONS_BASE' },
 
-  { id: 'predictions', label: 'Predizioni AI', description: 'Previsioni sperimentali su resa, acqua e rischio.', group: 'ANALYTICS E SMART', icon: 'prediction', route: '/app/ai-predictions', helpHref: '/docs/manual/01-ai-predictions', roles: ALL_ROLES, tiers: PRO, maturity: 'beta', targets: APP_TARGETS, featureFlag: 'AI_PREDICTIONS' },
   { id: 'ndvi', label: 'NDVI satellitare', description: 'Analisi Sentinel reale con provenienza e quality gate.', group: 'ANALYTICS E SMART', icon: 'satellite', route: '/app/ndvi', helpHref: '/docs/manual/05-ndvi-satellite', roles: ALL_ROLES, tiers: PRO, providers: ['sentinel'], providerRequirement: 'required', maturity: 'beta', targets: APP_TARGETS },
   { id: 'prescription-maps', label: 'Prescription Maps', description: 'Mappe di prescrizione e tracciamento applicazioni.', group: 'ANALYTICS E SMART', icon: 'map', route: '/app/prescription-maps', helpHref: '/docs/manual/06-prescription-maps', roles: ALL_ROLES, tiers: PRO, maturity: 'beta', targets: APP_TARGETS },
   { id: 'analytics', label: 'Analytics', description: 'Indicatori tecnici ed economici.', group: 'ANALYTICS E SMART', icon: 'analytics', route: '/app/analytics', helpHref: '/docs/manual/22-business-intelligence', roles: ALL_ROLES, tiers: PRO, maturity: 'stable', targets: APP_TARGETS, featureFlag: 'ANALYTICS' },
@@ -112,6 +110,7 @@ export const TECHNICAL_ROUTES = [
   { route: '/app/pianifica', classification: 'legacy-alias', canonicalEntry: '/app/planner' },
   { route: '/app/calendar', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=calendar' },
   { route: '/app/planner-classic', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=classic' },
+  { route: '/app/ai-predictions', classification: 'legacy-alias', canonicalEntry: '/app/farm?tab=predictions' },
 ] as const
 
 export function isCapabilityVisible(

@@ -13,7 +13,7 @@ const ICONS: Record<CapabilityIcon, LucideIcon> = {
   dashboard: LayoutDashboard, farm: MapPinned, garden: Sprout, planner: Bot,
   plants: Leaf, health: Heart, advice: Brain, diary: BookOpen, orchard: TreePine,
   olive: CircleDot, vineyard: Grape, irrigation: Droplets, nutrition: FlaskConical,
-  mechanical: Tractor, certifications: Shield, prediction: Brain, satellite: Satellite,
+  mechanical: Tractor, certifications: Shield, satellite: Satellite,
   map: Map, analytics: BarChart3, smart: Wifi, export: Database, help: BookOpen,
   settings: Settings, admin: Crown, drone: Bot, traceability: Link2,
   harvest: Database, seedbed: Sprout,

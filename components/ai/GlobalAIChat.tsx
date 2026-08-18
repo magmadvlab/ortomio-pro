@@ -109,11 +109,11 @@ const routeModuleHints: RouteModuleHint[] = [
     ],
   },
   {
-    match: '/app/ai-predictions',
+    match: '/app/farm',
     module: 'ai-predictions',
     label: 'Previsioni AI',
     routingHints: [
-      { label: 'Apri previsioni AI', route: '/app/ai-predictions' },
+      { label: 'Apri previsioni AI', route: '/app/farm?tab=predictions' },
       { label: 'Valuta attività', route: '/app/planner' },
     ],
   },
