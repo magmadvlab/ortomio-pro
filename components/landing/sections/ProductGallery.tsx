@@ -36,6 +36,13 @@ const GALLERY = [
     title: 'Dal seme al trapianto',
     text: 'Batch, germinazione, sopravvivenza: il semenzaio resta collegato a ciò che nasce in campo.',
   },
+  {
+    id: 'intervento',
+    src: '/landing/intervento.webp',
+    alt: 'Schermata OrtoMio: registrazione di un intervento su una singola pianta (pomodoro datterino) tramite l’orchestratore interventi, con campi prodotto, note e pulsante salva intervento',
+    title: 'Ogni intervento, sulla pianta giusta',
+    text: 'Irrigazione, concimazione, trattamento: registri l’intervento sulla singola pianta e resta nello storico come dato, non come promemoria.',
+  },
 ] as const
 
 export default function ProductGallery() {
