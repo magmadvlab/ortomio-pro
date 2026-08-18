@@ -110,6 +110,8 @@ export const TECHNICAL_ROUTES = [
   { route: '/app/planner-classic', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=classic' },
   { route: '/app/ai-predictions', classification: 'legacy-alias', canonicalEntry: '/app/farm?tab=predictions' },
   { route: '/app/advice', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=ai-suggestions' },
+  { route: '/app/treatments', classification: 'legacy-alias', canonicalEntry: '/app/nutrition' },
+  { route: '/app/almanacco', classification: 'legacy-alias', canonicalEntry: '/app/planner?tab=calendar' },
 ] as const
 
 export function isCapabilityVisible(
