@@ -452,6 +452,8 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
           </div>
         </div>
 
+        {/* Corpo scrollabile: orchestratore, tabs e lista operazioni */}
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {/* Orchestratore + registrazione manuale/IOT */}
         <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-emerald-50 px-6 py-4">
           <div className="flex items-center justify-between gap-4 mb-4">
@@ -608,7 +610,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="p-6">
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
@@ -826,6 +828,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
               ))}
             </div>
           )}
+        </div>
         </div>
 
         {/* Footer */}
