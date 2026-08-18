@@ -542,7 +542,16 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
 
         {/* Statistiche rapide con integrazione filari */}
         <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-          <div className="bg-green-50 p-4 rounded-lg">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter(prev => prev === 'healthy' ? 'all' : 'healthy');
+              setViewMode('list');
+            }}
+            className={`bg-green-50 p-4 rounded-lg text-left transition-all hover:ring-2 hover:ring-green-400 ${
+              statusFilter === 'healthy' ? 'ring-2 ring-green-500' : ''
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-600">Sane</p>
@@ -552,9 +561,18 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
               </div>
               <CheckCircle className="text-green-600" size={24} />
             </div>
-          </div>
+          </button>
 
-          <div className="bg-orange-50 p-4 rounded-lg">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter(prev => prev === 'diseased' ? 'all' : 'diseased');
+              setViewMode('list');
+            }}
+            className={`bg-orange-50 p-4 rounded-lg text-left transition-all hover:ring-2 hover:ring-orange-400 ${
+              statusFilter === 'diseased' ? 'ring-2 ring-orange-500' : ''
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-orange-600">Malate</p>
@@ -564,7 +582,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
               </div>
               <AlertTriangle className="text-orange-600" size={24} />
             </div>
-          </div>
+          </button>
 
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex items-center justify-between">
