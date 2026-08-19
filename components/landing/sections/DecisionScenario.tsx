@@ -1,3 +1,7 @@
+'use client'
+
+import { motion, staggerParent, staggerItem } from '../motion'
+
 const MORNING_OUTPUTS = [
   {
     label: 'Briefing',
@@ -23,13 +27,15 @@ const MORNING_OUTPUTS = [
 
 export default function DecisionScenario() {
   return (
-    <section id="come-funziona" className="border-b border-ortomio-earth/30 bg-ortomio-paper px-6 py-20 sm:py-28">
-      <div className="mx-auto max-w-6xl">
+    <section id="come-funziona" className="relative isolate overflow-hidden bg-ortomio-green-900 px-6 py-20 text-white sm:py-28">
+      <div className="ortomio-grid-bg absolute inset-0" aria-hidden="true" />
+
+      <div className="relative mx-auto max-w-6xl">
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
-          <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
+          <h2 className="font-display text-4xl font-extrabold leading-tight sm:text-5xl">
             Dal briefing al campo, senza passaggi persi.
           </h2>
-          <p className="max-w-2xl text-lg leading-relaxed text-gray-700">
+          <p className="max-w-2xl text-lg leading-relaxed text-ortomio-green-100">
             Ogni mattina il Director compone ciò che serve in un unico flusso: il quadro del
             giorno, le azioni in ordine di priorità, i task pronti da eseguire, le previsioni
             firmate e la memoria di ogni decisione. Niente si perde tra uno strumento e l’altro,
@@ -37,22 +43,33 @@ export default function DecisionScenario() {
           </p>
         </div>
 
-        <ol className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-2 lg:grid-cols-5 lg:divide-x lg:divide-ortomio-earth/30">
+        <motion.ol
+          variants={staggerParent(0.1)}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="mt-14 grid gap-px overflow-hidden rounded-lg border border-white/15 bg-white/15 md:grid-cols-2 lg:grid-cols-5"
+        >
           {MORNING_OUTPUTS.map(({ label, text }, index) => (
-            <li
+            <motion.li
               key={label}
-              className="border-b border-ortomio-earth/30 py-7 last:border-b-0 md:border-b-0 lg:px-5 lg:first:pl-0 lg:last:pr-0"
+              variants={staggerItem(14)}
+              className="bg-ortomio-green-900 p-6 lg:p-5"
             >
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold text-ortomio-green-700">
+                <span className="font-mono text-xs font-bold text-ortomio-harvest">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <h3 className="font-display text-lg font-bold text-ortomio-green-900">{label}</h3>
+                <h3 className="font-display text-lg font-bold text-white">{label}</h3>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-gray-700">{text}</p>
-            </li>
+              <p className="mt-4 text-sm leading-relaxed text-ortomio-green-100">{text}</p>
+            </motion.li>
           ))}
-        </ol>
+        </motion.ol>
+
+        <p className="mt-6 font-mono text-xs uppercase tracking-wider text-ortomio-green-400">
+          Director · output giornaliero · decisione umana
+        </p>
       </div>
     </section>
   )

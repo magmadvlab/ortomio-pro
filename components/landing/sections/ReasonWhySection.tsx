@@ -1,3 +1,7 @@
+'use client'
+
+import { motion, staggerItem } from '../motion'
+
 const SCORING_FACTORS = [
   [
     'Confidenza dei dati',
@@ -31,8 +35,9 @@ function FactorRow({ factors, startIndex, separated }: { factors: ScoringFactor[
   return (
     <div className={`grid md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30 ${separated ? 'border-b border-ortomio-earth/30' : ''}`}>
       {factors.map(([title, text], index) => (
-        <article
+        <motion.article
           key={title}
+          variants={staggerItem()}
           className={`py-8 md:px-8 md:first:pl-0 md:last:pr-0 ${separated ? 'border-b border-ortomio-earth/30 md:border-b-0' : ''}`}
         >
           <span className="font-mono text-xs font-bold text-ortomio-green-700">
@@ -40,7 +45,7 @@ function FactorRow({ factors, startIndex, separated }: { factors: ScoringFactor[
           </span>
           <h3 className="mt-5 font-display text-2xl font-bold text-ortomio-green-900">{title}</h3>
           <p className="mt-3 leading-relaxed text-gray-700">{text}</p>
-        </article>
+        </motion.article>
       ))}
     </div>
   )
@@ -61,10 +66,16 @@ export default function ReasonWhySection() {
           </p>
         </div>
 
-        <div className="mt-14 border-y border-ortomio-earth/30">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
+          className="mt-14 border-y border-ortomio-earth/30"
+        >
           <FactorRow factors={SCORING_FACTORS.slice(0, 3)} startIndex={0} separated />
           <FactorRow factors={SCORING_FACTORS.slice(3)} startIndex={3} separated={false} />
-        </div>
+        </motion.div>
       </div>
     </section>
   )

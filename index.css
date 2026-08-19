@@ -260,3 +260,71 @@
     }
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Superfici tech della landing: le parti che il disegno non
+   disegna (selezione, caret, scrollbar) parlano la palette.
+   ───────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-ortomio-green-900);
+  color: var(--color-ortomio-harvest);
+}
+
+html {
+  caret-color: var(--color-ortomio-green-600);
+  scrollbar-color: var(--color-ortomio-green-700) var(--color-ortomio-paper);
+  scrollbar-width: thin;
+}
+
+/* Reticolo satellitare: griglia fine su fondi scuri, giustificata
+   dal mondo del prodotto (mappe di campo, NDVI, coordinate). */
+.ortomio-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(76, 191, 179, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 191, 179, 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Punto di segnale: stato "live" nei readout mono. */
+.ortomio-signal-dot {
+  position: relative;
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-semantic-success);
+}
+.ortomio-signal-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-semantic-success);
+  opacity: 0.5;
+  animation: ortomio-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ortomio-ping {
+  0% { transform: scale(0.6); opacity: 0.6; }
+  75%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Cursore da terminale nei readout del briefing. */
+.ortomio-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: 0.35em;
+  vertical-align: text-bottom;
+  background-color: var(--color-ortomio-harvest);
+  animation: ortomio-blink 1.1s steps(2, start) infinite;
+}
+@keyframes ortomio-blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ortomio-signal-dot::after,
+  .ortomio-caret {
+    animation: none;
+  }
+}

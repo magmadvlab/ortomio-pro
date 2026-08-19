@@ -1,3 +1,7 @@
+'use client'
+
+import { Reveal } from '../motion'
+
 const PLANT_AI = [
   [
     'Analisi fotografica',
@@ -17,7 +21,7 @@ export default function PlantIntelligence() {
   return (
     <section className="border-b border-ortomio-earth/30 bg-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-3xl">
+        <Reveal className="max-w-3xl">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
             Piante e alberi
           </p>
@@ -29,7 +33,7 @@ export default function PlantIntelligence() {
             crescita e fase. Ogni pianta e ogni albero mantiene codice, posizione, varietà e la
             sequenza di ciò che ha ricevuto e prodotto.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30">
           {PLANT_AI.map(([title, text], index) => (

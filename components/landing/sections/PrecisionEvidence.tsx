@@ -1,3 +1,7 @@
+'use client'
+
+import { Reveal } from '../motion'
+
 const PREDICTION_PROOFS = [
   [
     'Deterministiche e versionate',
@@ -17,7 +21,7 @@ export default function PrecisionEvidence() {
   return (
     <section className="border-b border-ortomio-earth/30 bg-ortomio-earth-50 px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-3xl">
+        <Reveal className="max-w-3xl">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
             Previsioni firmate
           </p>
@@ -29,7 +33,7 @@ export default function PrecisionEvidence() {
             versione del modello, versione delle regole, orizzonte e finestra di validità. Se un
             dato manca, la previsione lo dichiara invece di riempirlo.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30">
           {PREDICTION_PROOFS.map(([title, text], index) => (
