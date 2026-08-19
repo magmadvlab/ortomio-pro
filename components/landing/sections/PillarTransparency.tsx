@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import SectionHeader from '../SectionHeader'
 
 const TABS = ['Cosa propone', 'Su cosa si basa', 'Perché viene prima', 'Alternative'] as const
 type Tab = (typeof TABS)[number]
@@ -72,6 +73,7 @@ export default function PillarTransparency() {
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
       <div className="mx-auto max-w-6xl">
+        <SectionHeader index="03" label="proposal" />
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Quattro domande aprono ogni proposta. Ogni risposta è nei dati.
         </h2>

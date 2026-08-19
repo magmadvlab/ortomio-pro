@@ -1,3 +1,5 @@
+import SectionHeader from '../SectionHeader'
+
 const CERTIFICATION_EVIDENCE = [
   'Lavorazioni e prodotti utilizzati',
   'Lotto, pianta, raccolto e destinazione',
@@ -10,6 +12,7 @@ export default function CertificationEvidence() {
   return (
     <section className="border-b border-ortomio-earth/30 bg-ortomio-green-50 px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
+        <SectionHeader index="07" label="compliance" />
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div>
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">

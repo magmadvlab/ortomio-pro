@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, staggerItem } from '../motion'
+import SectionHeader from '../SectionHeader'
 
 const SCORING_FACTORS = [
   [
@@ -55,6 +56,7 @@ export default function ReasonWhySection() {
   return (
     <section id="perche-ortomio" className="border-b border-ortomio-earth/30 bg-ortomio-earth-50 px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
+        <SectionHeader index="01" label="score" />
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
             Le tue giornate non sono una lista di avvisi. Sono una coda punteggiata.

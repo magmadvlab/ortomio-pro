@@ -1,7 +1,10 @@
+import SectionHeader from '../SectionHeader'
+
 export default function AudienceSplit() {
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
+        <SectionHeader index="10" label="audience" />
         <h2 className="mb-8 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
           Pensato per chi decide sul campo, tutti i giorni
         </h2>

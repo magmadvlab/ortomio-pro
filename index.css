@@ -328,3 +328,43 @@ html {
     animation: none;
   }
 }
+
+/* Nastro dei segnali: la telemetria reale del kernel scorre come tape. */
+.ortomio-tape {
+  display: flex;
+  width: max-content;
+  animation: ortomio-marquee 46s linear infinite;
+}
+@keyframes ortomio-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Parcella di campo che si accende: lettura NDVI sul reticolo. */
+.ortomio-plot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background-color: var(--color-ortomio-green-400);
+  opacity: 0;
+  animation: ortomio-plot-read 7s ease-out infinite;
+}
+@keyframes ortomio-plot-read {
+  0% { opacity: 0; transform: scale(0.6); }
+  8% { opacity: 0.85; transform: scale(1); }
+  26% { opacity: 0.25; }
+  60%, 100% { opacity: 0; transform: scale(0.9); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ortomio-tape {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .ortomio-plot {
+    animation: none;
+    opacity: 0;
+  }
+}

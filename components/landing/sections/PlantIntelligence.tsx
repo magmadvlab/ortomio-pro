@@ -1,6 +1,7 @@
 'use client'
 
-import { Reveal } from '../motion'
+import { motion, Reveal, staggerParent, staggerItem } from '../motion'
+import SectionHeader from '../SectionHeader'
 
 const PLANT_AI = [
   [
@@ -21,6 +22,7 @@ export default function PlantIntelligence() {
   return (
     <section className="border-b border-ortomio-earth/30 bg-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
+        <SectionHeader index="05" label="plant-intel" />
         <Reveal className="max-w-3xl">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
             Piante e alberi
@@ -35,22 +37,28 @@ export default function PlantIntelligence() {
           </p>
         </Reveal>
 
-        <div className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30">
+        <motion.div
+          variants={staggerParent(0.1)}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="mt-14 grid gap-px overflow-hidden rounded-lg border border-ortomio-earth/30 bg-ortomio-earth/30 md:grid-cols-3"
+        >
           {PLANT_AI.map(([title, text], index) => (
-            <article
-              key={title}
-              className="border-b border-ortomio-earth/30 py-8 last:border-b-0 md:border-b-0 md:px-8 md:first:pl-0 md:last:pr-0"
-            >
-              <span className="font-mono text-xs font-bold text-ortomio-green-700">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <h3 className="mt-4 font-display text-2xl font-bold text-ortomio-green-900">
+            <motion.article key={title} variants={staggerItem()} className="bg-white p-6">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-bold text-ortomio-green-700">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="h-1.5 w-1.5 rounded-[2px] bg-ortomio-green-500" aria-hidden="true" />
+              </div>
+              <h3 className="mt-4 font-display text-xl font-bold text-ortomio-green-900">
                 {title}
               </h3>
-              <p className="mt-4 leading-relaxed text-gray-700">{text}</p>
-            </article>
+              <p className="mt-3 text-sm leading-relaxed text-gray-700">{text}</p>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

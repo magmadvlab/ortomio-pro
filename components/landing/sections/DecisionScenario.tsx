@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, staggerParent, staggerItem } from '../motion'
+import SectionHeader from '../SectionHeader'
 
 const MORNING_OUTPUTS = [
   {
@@ -31,6 +32,7 @@ export default function DecisionScenario() {
       <div className="ortomio-grid-bg absolute inset-0" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-6xl">
+        <SectionHeader index="02" label="daily-output" dark />
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
           <h2 className="font-display text-4xl font-extrabold leading-tight sm:text-5xl">
             Dal briefing al campo, senza passaggi persi.

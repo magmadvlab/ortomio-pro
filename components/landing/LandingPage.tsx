@@ -1,5 +1,6 @@
 import LandingHeader from './LandingHeader'
 import Hero from './sections/Hero'
+import SignalTape from './SignalTape'
 import ProductGallery from './sections/ProductGallery'
 import ReasonWhySection from './sections/ReasonWhySection'
 import DecisionScenario from './sections/DecisionScenario'
@@ -20,6 +21,7 @@ export default function LandingPage() {
       <LandingHeader />
       <main>
         <Hero />
+        <SignalTape />
         <ProductGallery />
         <ReasonWhySection />
         <DecisionScenario />

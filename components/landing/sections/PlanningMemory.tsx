@@ -1,8 +1,11 @@
+import SectionHeader from '../SectionHeader'
+
 export default function PlanningMemory() {
   return (
     <section className="bg-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-10 lg:grid-cols-2">
+          <SectionHeader index="08" label="planning" />
+          <div className="grid gap-10 lg:grid-cols-2">
           <div>
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">Pianificazione</p>
             <h2 className="font-display text-3xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">Il piano non finisce quando comincia la stagione.</h2>

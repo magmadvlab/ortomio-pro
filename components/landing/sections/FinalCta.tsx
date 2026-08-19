@@ -24,7 +24,7 @@ export default function FinalCta() {
 
   return (
     <section id="prova-guidata" className="relative overflow-hidden bg-ortomio-harvest px-6 py-20 sm:py-28">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <div className="grid gap-10 lg:grid-cols-[1fr_0.75fr] lg:items-end">
           <div>
             <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-900">
