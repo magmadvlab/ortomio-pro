@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden, GardenTask } from '@/types'
-import { Sprout, Package, TreePine, Plus, ArrowRight } from 'lucide-react'
+import { Sprout, Package, TreePine, Trees, Leaf, Plus, ArrowRight } from 'lucide-react'
 import { PlantsView } from '@/components/garden/PlantsView'
 import SeedInventory from '@/components/seedbank/SeedInventory'
 import SaplingDashboard from '@/components/seedbank/SaplingDashboard'
+import SeedlingDashboard from '@/components/seedling/SeedlingDashboard'
+import PlantingScheduler from '@/components/seedling/PlantingScheduler'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
 import Link from 'next/link'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
-type TabType = 'plants' | 'seeds' | 'saplings' | 'trees'
+type TabType = 'seeds' | 'seedlings' | 'plants' | 'saplings' | 'trees'
 
 export default function PlantsPage() {
   const { storageProvider } = useStorage()
@@ -22,11 +24,16 @@ export default function PlantsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('plants')
   const [showGardenWizard, setShowGardenWizard] = useState(false)
-  
+
   // URL parameters
   const gardenParam = searchParams.get('garden')
   const fieldRowParam = searchParams.get('fieldRow')
   const tabParam = searchParams.get('tab') as TabType | null
+  const shouldCreate = searchParams.get('create') === 'true'
+  const plantNameParam = searchParams.get('plant')
+  const varietyParam = searchParams.get('variety')
+  const initialPlantName = plantNameParam ? decodeURIComponent(plantNameParam) : undefined
+  const initialVariety = varietyParam ? decodeURIComponent(varietyParam) : undefined
 
   useEffect(() => {
     const loadData = async () => {
@@ -41,7 +48,7 @@ export default function PlantsPage() {
         // If a specific row is requested, force plants tab for coherent navigation
         if (fieldRowParam) {
           setActiveTab('plants')
-        } else if (tabParam && ['plants', 'seeds', 'saplings', 'trees'].includes(tabParam)) {
+        } else if (tabParam && ['plants', 'seeds', 'seedlings', 'saplings', 'trees'].includes(tabParam)) {
           setActiveTab(tabParam)
         }
       } catch (error) {
@@ -111,10 +118,11 @@ export default function PlantsPage() {
   }
 
   const tabs = [
-    { id: 'plants' as const, label: 'Piante in Orto', icon: Sprout, description: 'Piante già coltivate' },
-    { id: 'seeds' as const, label: 'Banca Semi', icon: Package, description: 'Inventario semi' },
-    { id: 'saplings' as const, label: 'Vivaio', icon: Sprout, description: 'Piantine da trapiantare' },
-    { id: 'trees' as const, label: 'Alberi & Perenni', icon: TreePine, description: 'Frutteto, vigneto, oliveto' }
+    { id: 'seeds' as const, label: 'Banca Semi', icon: Package, description: 'Inventario dei semi' },
+    { id: 'seedlings' as const, label: 'Piantine', icon: Sprout, description: 'Semine e trapianti in corso' },
+    { id: 'plants' as const, label: 'Piante in Orto', icon: Leaf, description: 'Piante coltivate a dimora' },
+    { id: 'saplings' as const, label: 'Alberelli', icon: TreePine, description: 'Giovani alberi da trapiantare' },
+    { id: 'trees' as const, label: 'Alberi & Perenni', icon: Trees, description: 'Frutteto, vigneto, oliveto' }
   ]
 
   return (
@@ -152,13 +160,6 @@ export default function PlantsPage() {
             </div>
             <div className="flex gap-3">
               <Link
-                href="/app/semenzaio"
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-              >
-                <Sprout size={16} />
-                Semenzaio
-              </Link>
-              <Link
                 href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
               >
@@ -184,10 +185,10 @@ export default function PlantsPage() {
                         : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <Icon size={18} />
+                    <Icon size={18} className="shrink-0" />
                     <div className="text-left">
                       <div className="font-medium">{tab.label}</div>
-                      <div className="text-xs text-gray-500">{tab.description}</div>
+                      <div className="hidden md:block text-xs text-gray-500">{tab.description}</div>
                     </div>
                   </button>
                 )
@@ -293,13 +294,6 @@ export default function PlantsPage() {
                   </div>
                   <div className="flex gap-3">
                     <Link
-                      href="/app/semenzaio"
-                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-                    >
-                      <Sprout size={16} />
-                      Vivaio
-                    </Link>
-                    <Link
                       href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
@@ -336,25 +330,47 @@ export default function PlantsPage() {
           <div className="space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                    <Package className="text-blue-600" />
-                    Banca dei Semi
-                  </h2>
-                  <p className="text-gray-600 mt-1">Gestisci il tuo inventario di semi e pianifica le semine</p>
-                </div>
-                <Link
-                  href="/app/semenzaio?action=add-seed"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Aggiungi Semi
-                </Link>
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                  <Package className="text-blue-600" />
+                  Banca dei Semi
+                </h2>
+                <p className="text-gray-600 mt-1">Gestisci il tuo inventario di semi e pianifica le semine</p>
               </div>
-              
-              <SeedInventory garden={activeGarden} />
+
+              <SeedInventory garden={activeGarden} plantName={initialPlantName} variety={initialVariety} />
             </div>
+          </div>
+        )}
+
+        {activeTab === 'seedlings' && (
+          <div className="space-y-6">
+            <PlantingScheduler
+              garden={activeGarden}
+              initialPlantName={initialPlantName}
+              initialVariety={initialVariety}
+            />
+
+            {shouldCreate && initialPlantName && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600">🔗</span>
+                  <h3 className="font-semibold text-blue-900">Integrazione con Planner</h3>
+                </div>
+                <p className="text-sm text-blue-800">
+                  Stai per creare un lotto per <strong>{initialPlantName}</strong>
+                  {initialVariety && ` (${initialVariety})`}.
+                  Compila il modulo qui sopra per procedere.
+                </p>
+              </div>
+            )}
+
+            <SeedlingDashboard
+              garden={activeGarden}
+              shouldCreate={shouldCreate}
+              plantName={initialPlantName}
+              variety={initialVariety}
+            />
           </div>
         )}
 
@@ -362,24 +378,15 @@ export default function PlantsPage() {
           <div className="space-y-6">
             {/* Header */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                    <Sprout className="text-orange-600" />
-                    Vivaio e Piantine
-                  </h2>
-                  <p className="text-gray-600 mt-1">Gestisci piantine da trapiantare e pianifica i trapianti</p>
-                </div>
-                <Link
-                  href="/app/semenzaio?action=add-sapling"
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Aggiungi Piantine
-                </Link>
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                  <TreePine className="text-orange-600" />
+                  Alberelli
+                </h2>
+                <p className="text-gray-600 mt-1">Gestisci i giovani alberi in vivaio e pianifica i trapianti a dimora</p>
               </div>
-              
-              <SaplingDashboard garden={activeGarden} />
+
+              <SaplingDashboard garden={activeGarden} plantName={initialPlantName} variety={initialVariety} />
             </div>
           </div>
         )}

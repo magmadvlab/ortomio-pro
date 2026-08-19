@@ -16,7 +16,7 @@ const ICONS: Record<CapabilityIcon, LucideIcon> = {
   mechanical: Tractor, certifications: Shield, satellite: Satellite,
   map: Map, analytics: BarChart3, smart: Wifi, export: Database, help: BookOpen,
   settings: Settings, admin: Crown, drone: Bot, traceability: Link2,
-  harvest: Database, seedbed: Sprout,
+  harvest: Database,
 }
 
 export function CapabilityIconView({ icon, size = 18 }: { icon: CapabilityIcon; size?: number }) {

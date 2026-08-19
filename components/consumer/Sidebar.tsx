@@ -22,7 +22,7 @@ import { useTier } from '@/packages/core/hooks/useTier'
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app', tier: 'all' },
   { icon: Sprout, label: 'Il Mio Orto', path: '/app/garden', tier: 'all' },
-  { icon: Leaf, label: 'Vivaio', path: '/app/semenzaio', tier: 'all' },
+  { icon: Leaf, label: 'Vivaio', path: '/app/plants?tab=seedlings', tier: 'all' },
   { icon: Heart, label: 'Salute', path: '/app/health', tier: 'all' },
   { icon: Lightbulb, label: 'Consigli AI', path: '/app/planner?tab=ai-suggestions', tier: 'all' },
   { icon: BarChart3, label: 'Progressi', path: '/app/progress', tier: 'all' },

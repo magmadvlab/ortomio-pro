@@ -110,7 +110,7 @@ export function CultivationSelector({
         {/* Pulsante per aprire vivaio */}
         <button
           type="button"
-          onClick={() => window.open('/app/semenzaio', '_blank')}
+          onClick={() => window.open('/app/plants?tab=seedlings', '_blank')}
           className="px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center gap-2"
           title="Apri Vivaio"
         >
@@ -192,7 +192,7 @@ export function CultivationSelector({
                   plant: value || '',
                   from: 'field-row'
                 })
-                window.open(`/app/semenzaio?${params.toString()}`, '_blank')
+                window.open(`/app/plants?tab=seedlings&${params.toString()}`, '_blank')
               }}
               className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 rounded flex items-center gap-2"
             >

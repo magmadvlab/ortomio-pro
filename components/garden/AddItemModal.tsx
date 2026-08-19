@@ -222,7 +222,7 @@ export function AddItemModal({ garden, isOpen, onClose, onAddTask, selectedDate 
             <div className="mt-3 pt-3 border-t border-gray-200">
               <button
                 onClick={() => {
-                  router.push('/app/semenzaio?action=create')
+                  router.push('/app/plants?tab=seedlings&create=true')
                   onClose()
                 }}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-medium text-orange-700 hover:bg-orange-100 transition-all touch-manipulation"
