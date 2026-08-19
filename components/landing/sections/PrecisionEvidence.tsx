@@ -20,7 +20,7 @@ const PREDICTION_PROOFS = [
 
 export default function PrecisionEvidence() {
   return (
-    <section className="border-b border-ortomio-earth/30 bg-ortomio-earth-50 px-6 py-20 sm:py-28">
+    <section className="border-b border-ortomio-earth/30 bg-ortomio-earth-100 px-6 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <SectionHeader index="04" label="predictions" />
         <Reveal className="max-w-3xl">

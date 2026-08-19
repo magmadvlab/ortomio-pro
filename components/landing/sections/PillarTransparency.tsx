@@ -71,7 +71,7 @@ export default function PillarTransparency() {
   }
 
   return (
-    <section className="border-b border-ortomio-earth-200 px-6 py-16">
+    <section className="border-b border-ortomio-earth-200 px-6 py-14">
       <div className="mx-auto max-w-6xl">
         <SectionHeader index="03" label="proposal" />
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
