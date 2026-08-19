@@ -5,6 +5,7 @@ import ReasonWhySection from './sections/ReasonWhySection'
 import DecisionScenario from './sections/DecisionScenario'
 import PillarTransparency from './sections/PillarTransparency'
 import PrecisionEvidence from './sections/PrecisionEvidence'
+import PlantIntelligence from './sections/PlantIntelligence'
 import PillarTraceability from './sections/PillarTraceability'
 import CertificationEvidence from './sections/CertificationEvidence'
 import SpecialistCrops from './sections/SpecialistCrops'
@@ -24,6 +25,7 @@ export default function LandingPage() {
         <DecisionScenario />
         <PillarTransparency />
         <PrecisionEvidence />
+        <PlantIntelligence />
         <PillarTraceability />
         <CertificationEvidence />
         <PlanningMemory />

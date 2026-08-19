@@ -5,10 +5,10 @@ import AuthedRedirect from '@/components/landing/AuthedRedirect'
 
 export const metadata: Metadata = {
   title: 'OrtoMio | Decisioni agronomiche verificabili',
-  description: 'OrtoMio collega dati di campo, attività, costi ed esiti per aziende agricole strutturate e consulenti agronomici.',
+  description: 'OrtoMio registra ogni intervento, punteggia le azioni del giorno su urgenza, impatto, fattibilità e costo, e firma ogni previsione con i dati usati. La decisione resta tua.',
   alternates: { canonical: '/' },
-  openGraph: { title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'Una memoria agronomica che mostra dati, calcoli, affidabilità e alternative.', type: 'website' },
-  twitter: { card: 'summary_large_image', title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'Una memoria agronomica che mostra dati, calcoli, affidabilità e alternative.' },
+  openGraph: { title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'L’orchestratore agronomico: registra, analizza, prevede — e spiega ogni proposta.', type: 'website' },
+  twitter: { card: 'summary_large_image', title: 'OrtoMio | Decisioni agronomiche verificabili', description: 'L’orchestratore agronomico: registra, analizza, prevede — e spiega ogni proposta.' },
 }
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>

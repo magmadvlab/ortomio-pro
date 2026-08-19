@@ -1,38 +1,38 @@
-const PREDICTION_PROOFS = [
+const PLANT_AI = [
   [
-    'Deterministiche e versionate',
-    'Ogni previsione è riproducibile: sai quale modello e quali regole l’hanno prodotta, e quando scade.',
+    'Analisi fotografica',
+    'Esposizione, salute, ritmo di crescita e fase fenologica: dalla foto dell’appezzamento o della singola pianta, con la confidenza dichiarata.',
   ],
   [
-    'Qualità della fonte esplicita',
-    'Misurato, stimato, misto o insufficiente: la provenienza del dato è parte del risultato, non un’annotazione nascosta.',
+    'Allerte salute',
+    'Rischio malattia dal meteo, parassiti stagionali, deficit idrico e soglie dei sensori: l’attenzione arriva prima del danno.',
   ],
   [
-    'Segnali mancanti visibili',
-    'Quando non c’è abbastanza per prevedere, OrtoMio dice cosa manca — e come procurarlo.',
+    'Storia per individuo',
+    'Codice, filare, posizione: potature, trattamenti e raccolte restano legati alla pianta, non alla media dell’appezzamento.',
   ],
 ] as const
 
-export default function PrecisionEvidence() {
+export default function PlantIntelligence() {
   return (
-    <section className="border-b border-ortomio-earth/30 bg-ortomio-earth-50 px-6 py-20 sm:py-28">
+    <section className="border-b border-ortomio-earth/30 bg-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-3xl">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
-            Previsioni firmate
+            Piante e alberi
           </p>
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-            Previsioni che puoi verificare, non promesse.
+            Ogni pianta ha un codice, una storia — e un occhio AI.
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-700">
-            Stesso input, stesso output: le previsioni di OrtoMio sono deterministiche e firmate —
-            versione del modello, versione delle regole, orizzonte e finestra di validità. Se un
-            dato manca, la previsione lo dichiara invece di riempirlo.
+            Scatta una foto: OrtoMio la analizza per esposizione solare, stato di salute, ritmo di
+            crescita e fase. Ogni pianta e ogni albero mantiene codice, posizione, varietà e la
+            sequenza di ciò che ha ricevuto e prodotto.
           </p>
         </div>
 
         <div className="mt-14 grid border-y border-ortomio-earth/30 md:grid-cols-3 md:divide-x md:divide-ortomio-earth/30">
-          {PREDICTION_PROOFS.map(([title, text], index) => (
+          {PLANT_AI.map(([title, text], index) => (
             <article
               key={title}
               className="border-b border-ortomio-earth/30 py-8 last:border-b-0 md:border-b-0 md:px-8 md:first:pl-0 md:last:pr-0"

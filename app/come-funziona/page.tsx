@@ -6,7 +6,7 @@ import FinalCta from '@/components/landing/sections/FinalCta'
 export const metadata: Metadata = {
   title: 'Come funziona OrtoMio | Dal satellite alla singola pianta',
   description:
-    'Scopri come OrtoMio collega dati satellitari, misure IoT e storia delle piante per preparare decisioni agronomiche spiegabili.',
+    'Come OrtoMio trasforma satellite, suolo, acqua e storia delle piante in una coda di azioni punteggiate e spiegate.',
   alternates: { canonical: '/come-funziona' },
 }
 

@@ -71,9 +71,9 @@ export default function PillarTransparency() {
 
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Ogni indicazione mostra il proprio ragionamento.
+          Quattro domande aprono ogni proposta. Ogni risposta è nei dati.
         </h2>
         <p className="mb-6 max-w-2xl text-gray-700">
           L&apos;AI di OrtoMio non restituisce soltanto una risposta. Ogni proposta può essere

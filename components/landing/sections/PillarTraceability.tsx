@@ -12,14 +12,16 @@ const PLANT_RECORD = [
 export default function PillarTraceability() {
   return (
     <section className="border-b border-ortomio-earth-200 px-6 py-16">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Segui ogni pianta dal vivaio al filare, senza perderne il filo
+          Il campo risponde. Il sistema prende nota.
         </h2>
         <p className="mb-8 max-w-2xl text-gray-700">
-          Nel vivaio segui la crescita delle piante dalla semina o dall’acquisto: germinazione,
-          cure, sviluppo e preparazione al trapianto. Quando una piantina entra in campo, il suo
-          codice viene associato alla posizione esatta nel filare.
+          Nel vivaio segui la crescita delle piante dalla semina o dall’acquisto; in campo, il
+          codice di ogni piantina si lega alla posizione esatta nel filare. Ogni decisione finisce
+          in un registro — fonte, motivazione, snapshot, esito — e il risultato reale che registri
+          rientra nei punteggi successivi: più usi OrtoMio, più le proposte assomigliano al tuo
+          campo, e non a una media.
         </p>
 
         <div className="mb-8 grid gap-5 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5 md:grid-cols-2">

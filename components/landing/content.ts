@@ -6,10 +6,10 @@ export type SpecialistCrop = {
 }
 
 export const landingContent = {
-  eyebrow: 'Per aziende agricole e consulenti agronomici',
-  title: 'Con OrtoMio sai sempre dove, come, quando e perché intervenire.',
+  eyebrow: 'L’orchestratore agronomico per aziende e consulenti',
+  title: 'Ogni mattina una coda di azioni motivate: cosa fare, perché, quanto costa aspettare.',
   summary:
-    'OrtoMio riunisce dati satellitari, sensori, attività, costi e risultati. Tu vedi cosa richiede attenzione e quali informazioni il sistema ha considerato.',
+    'OrtoMio registra ogni intervento e lo collega a satellite, suolo, acqua e fenologia. Punteggia le azioni del giorno su urgenza, impatto, fattibilità e costo, confronta intervenire ora, rinviare o monitorare — e firma ogni previsione con i dati usati. La decisione resta tua.',
   finalCta: 'Prenota la tua prova guidata',
 } as const
 
@@ -17,31 +17,31 @@ export const specialistCrops: SpecialistCrop[] = [
   {
     id: 'orticole',
     label: 'Orticole e seminativi',
-    proof: 'Pianifica semine, rotazioni e raccolti',
-    detail: 'Vedi cosa coltivare, dove e quando. Il sistema segnala successioni poco adatte e collega irrigazioni e lavorazioni al raccolto ottenuto.',
+    proof: 'Pianifica semine, rotazioni e raccordi operativi',
+    detail: 'Cosa coltivare, dove e quando, con la motivazione di ogni indicazione. Il sistema segnala le successioni poco adatte e collega irrigazioni e lavorazioni al raccolto ottenuto.',
   },
   {
     id: 'vigneto',
     label: 'Vigneto',
-    proof: 'Controlla filari e singole viti',
-    detail: 'Registra potature, trattamenti, carico di gemme e produzione: dalla parcella fino alla singola vite.',
+    proof: 'Dalla vite singola al filare',
+    detail: 'Ceppi individuali con varietà, salute e vigore; carico gemme e indice Ravaz con storico; impianto irriguo configurato per singolo filare.',
   },
   {
     id: 'oliveto',
     label: 'Oliveto',
-    proof: 'Conserva la storia di ogni albero',
-    detail: 'Posizione, varietà, potature, trattamenti, stato della pianta e raccolti rimangono collegati a ogni olivo.',
+    proof: 'Indice di Jaen e mosca olearia',
+    detail: 'Letture di maturazione con storico e raccomandazione di raccolta derivata dall’indice; trappole per mosca olearia monitorate a soglie calcolate sulle catture reali.',
   },
   {
     id: 'frutteto',
     label: 'Frutteto',
-    proof: 'Segui sviluppo e produzione',
-    detail: 'Controlli varietà, fioritura, trattamenti, stato di salute e raccolto per zona oppure per singolo albero.',
+    proof: 'Alberi individuali, potature e raccolte',
+    detail: 'Filtri per varietà, salute e vigore; sesti e densità di impianto come supporto alla configurazione; resa tracciata per pianta quando i dati ci sono.',
   },
   {
     id: 'vivaio',
     label: 'Vivaio',
     proof: 'Segui ogni piantina fino al trapianto',
-    detail: 'Dalla semina alla germinazione, alla crescita in vivaio e alla preparazione al trapianto. Una volta in campo, il codice della piantina viene collegato alla sua posizione nel filare.',
+    detail: 'Dalla semina alla germinazione, alla crescita in vivaio e alla preparazione al trapianto. In campo, il codice della piantina si lega alla sua posizione nel filare.',
   },
 ]
