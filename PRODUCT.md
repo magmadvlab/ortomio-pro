@@ -32,7 +32,7 @@ Flusso reale: configurazione azienda/garden/zone → registrazione colture, suol
 
 Confermate: gestione garden/zone/filari/piante, motore di priorità agronomiche, moduli irrigazione/nutrizione/salute, diario e ledger operativo persistente, NDVI e mappe di prescrizione (in fase di validazione, dipendenti da provider e qualità dato), organizzazioni/inviti/ruoli/piano PRO.
 
-Vincolo esplicito e non negoziabile per questo surface: il prodotto è **release candidate tecnica con decisione commerciale NO-GO** (non ancora una certificazione commerciale 1.0). Drone e blockchain sono laboratori simulati. La landing deve dichiarare questo stato con lo stesso peso visivo delle sezioni di vendita, non come nota legale minimizzata — è un requisito di prodotto confermato dall'utente (tono "ambizioso ma onesto"), non solo una preferenza estetica.
+Stato reale del prodotto: release candidate tecnica, non ancora una certificazione commerciale 1.0. Drone e blockchain sono laboratori simulati. Decisione di prodotto confermata il 2026-08-18: la landing **non** dedica una sezione/banner allo stato beta/NO-GO — la sezione `MaturitySection` che lo faceva è stata rimossa deliberatamente il 15/8 (commit `53dbdcf`) durante il redesign della landing, e la rimozione resta la scelta corretta. Questo non è un requisito di prodotto per questo surface.
 
 ## Brand Commitments
 
@@ -46,10 +46,9 @@ Assenze esplicite da non colmare con invenzioni: nessun logo-cliente reale, ness
 
 ## Product Principles
 
-- Onestà sullo stato beta come leva di fiducia, non come rischio da nascondere (Pratfall Effect confermato come principio di tono).
 - La decisione resta sempre umana: il sistema propone e spiega, non sostituisce il responsabile agronomico.
 - Specificità sopra la genericità: niente "ottimizza"/"innovativo" senza un meccanismo concreto dietro.
-- Un solo messaggio, un solo CTA primario (`Prova la demo ora` → `/app`), anche parlando a due pubblici diversi.
+- Un solo messaggio, un solo CTA primario (`Prenota la tua prova guidata` → `#prova-guidata`, form di richiesta pilot), anche parlando a due pubblici diversi.
 - Nessun dato, testimonianza o metrica non verificabile nel prodotto reale.
 
 ## Accessibility & Inclusion
