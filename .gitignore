@@ -50,3 +50,7 @@ vcchiortomio/
 
 # Visual brainstorming sessions
 .superpowers/
+
+# Claude Code local state
+.claude/worktrees/
+.claude/settings.local.json
