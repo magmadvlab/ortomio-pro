@@ -1,4 +1,7 @@
+'use client'
+
 import Image from 'next/image'
+import { useRef, useState } from 'react'
 
 const GALLERY = [
   {
@@ -41,11 +44,37 @@ const GALLERY = [
     src: '/landing/intervento.webp',
     alt: 'Schermata OrtoMio: registrazione di un intervento su una singola pianta (pomodoro datterino) tramite l’orchestratore interventi, con campi prodotto, note e pulsante salva intervento',
     title: 'Ogni intervento, sulla pianta giusta',
-    text: 'Irrigazione, concimazione, trattamento: registri l’intervento sulla singola pianta e resta nello storico come dato, non come promemoria.',
+    text: 'Irrigazione, concimazione, trattamento: ogni intervento resta nello storico come dato, non come promemoria.',
   },
 ] as const
 
 export default function ProductGallery() {
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const cardRefs = useRef<Array<HTMLElement | null>>([])
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  const onScroll = () => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    const scrollerCenter = scroller.scrollLeft + scroller.clientWidth / 2
+    let closest = 0
+    let closestDistance = Infinity
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2
+      const distance = Math.abs(cardCenter - scrollerCenter)
+      if (distance < closestDistance) {
+        closestDistance = distance
+        closest = index
+      }
+    })
+    setActiveIndex(closest)
+  }
+
+  const scrollToIndex = (index: number) => {
+    cardRefs.current[index]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+  }
+
   return (
     <section className="border-b border-ortomio-earth/30 bg-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl">
@@ -58,17 +87,20 @@ export default function ProductGallery() {
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-700">
             Queste schermate arrivano da un&rsquo;azienda che usa OrtoMio ogni giorno: alberi, piante,
-            consigli e semenzaio con i numeri reali che il sistema mostra a chi lavora in campo.
+            consigli, semenzaio e interventi con i numeri reali che il sistema mostra a chi lavora in campo.
           </p>
         </div>
 
         <div
+          ref={scrollerRef}
+          onScroll={onScroll}
           className="mt-14 -mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 [scrollbar-width:thin] sm:mx-0 sm:px-0"
           role="list"
         >
-          {GALLERY.map(({ id, src, alt, title, text }) => (
+          {GALLERY.map(({ id, src, alt, title, text }, index) => (
             <article
               key={id}
+              ref={(el) => { cardRefs.current[index] = el }}
               role="listitem"
               className="w-[85%] flex-none snap-start border border-ortomio-earth/30 bg-ortomio-paper sm:w-[60%] lg:w-[38%]"
             >
@@ -87,6 +119,29 @@ export default function ProductGallery() {
               </div>
             </article>
           ))}
+        </div>
+
+        <div className="mt-4 flex items-center gap-4">
+          <div className="flex gap-2" role="tablist" aria-label="Schermata selezionata">
+            {GALLERY.map(({ id }, index) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={index === activeIndex}
+                aria-label={`Vai alla schermata ${index + 1} di ${GALLERY.length}`}
+                onClick={() => scrollToIndex(index)}
+                className={
+                  index === activeIndex
+                    ? 'h-2 w-6 bg-ortomio-green-700 transition-all'
+                    : 'h-2 w-2 bg-ortomio-earth-200 transition-all hover:bg-ortomio-earth-300'
+                }
+              />
+            ))}
+          </div>
+          <span className="font-mono text-xs text-gray-500" aria-hidden="true">
+            {activeIndex + 1} / {GALLERY.length}
+          </span>
         </div>
       </div>
     </section>
