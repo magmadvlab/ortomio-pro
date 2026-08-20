@@ -17,20 +17,19 @@ export default function PillarTraceability() {
       <div className="mx-auto max-w-6xl">
         <SectionHeader index="06" label="ledger" />
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Il campo risponde. Il sistema prende nota.
+          Il campo risponde. OrtoMio impara e ottimizza i tuoi costi.
         </h2>
         <p className="mb-8 max-w-2xl text-gray-700">
-          Nel vivaio segui la crescita delle piante dalla semina o dall’acquisto; in campo, il
-          codice di ogni piantina si lega alla posizione esatta nel filare. Ogni decisione finisce
-          in un registro — fonte, motivazione, snapshot, esito — e il risultato reale che registri
-          rientra nei punteggi successivi: più usi OrtoMio, più le proposte assomigliano al tuo
-          campo, e non a una media.
+          Dal semenzaio al filare, ogni piantina conserva il suo codice e la sua storia. Ogni
+          intervento e il suo esito reale vengono salvati in automatico: più usi OrtoMio, più il
+          sistema impara a conoscere il microclima del tuo terreno, affinando le decisioni future
+          ed evitando sprechi di acqua, concimi e trattamenti inutili.
         </p>
 
         <div className="mb-8 grid gap-5 rounded-md border border-ortomio-earth-200 bg-ortomio-green-50 p-5 md:grid-cols-2">
           {[
-            { label: 'In vivaio', steps: NURSERY_STEPS },
-            { label: 'In campo', steps: FIELD_STEPS },
+            { label: 'Fase vivaio', steps: NURSERY_STEPS },
+            { label: 'Fase campo', steps: FIELD_STEPS },
           ].map((phase) => (
             <div key={phase.label}>
               <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-wider text-ortomio-green-700">{phase.label}</p>
@@ -48,11 +47,11 @@ export default function PillarTraceability() {
 
         <div className="mb-6 max-w-2xl rounded-md border border-ortomio-earth-200 bg-white p-4">
           <h3 className="mb-3 text-sm font-bold text-ortomio-green-900">
-            Vedi cosa cambia dopo ogni intervento
+            Misura l’impatto reale di ogni intervento
           </h3>
           <p className="mb-4 text-sm leading-relaxed text-gray-700">
-            Una volta trapiantata, ogni pianta, vite o albero continua ad avere una scheda propria.
-            Interventi, stato di salute e raccolto restano collegati a quella specifica posizione.
+            Non andare a tentativi: confronta lo stato di salute della pianta subito prima e dopo
+            ogni operazione per capire cosa funziona davvero nel tuo terreno.
           </p>
           <div className="mb-6 grid gap-2 sm:grid-cols-2">
             {PLANT_RECORD.map((item) => (
@@ -95,9 +94,10 @@ export default function PillarTraceability() {
         </div>
 
         <div className="max-w-2xl rounded-md border border-semantic-warning/40 bg-semantic-warning/10 p-4 text-sm text-gray-700">
-          <strong className="text-ortomio-green-900">Dati pronti per registri e certificazioni.</strong>{' '}
-          La storia completa di ogni pianta rende più semplice ricostruire le lavorazioni,
-          distinguere le produzioni e preparare le informazioni richieste.
+          <strong className="text-ortomio-green-900">Archivio pronto per quaderni di campagna e certificazioni.</strong>{' '}
+          Niente più corse all’ultimo minuto prima delle ispezioni: la storia completa di ogni
+          pianta organizza in automatico i dati per la tracciabilità delle produzioni e per le
+          verifiche del biologico e GlobalG.A.P.
         </div>
       </div>
     </section>

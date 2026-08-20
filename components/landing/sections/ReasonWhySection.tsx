@@ -6,27 +6,27 @@ import SectionHeader from '../SectionHeader'
 const SCORING_FACTORS = [
   [
     'Confidenza dei dati',
-    'Più i tuoi dati sono misurati, più la proposta sale. Un valore stimato non si finge una misura.',
+    'I dati misurati dai tuoi sensori hanno sempre priorità. Se un valore è stimato, il sistema lo dichiara chiaramente.',
   ],
   [
     'Copertura dei segnali',
-    'Satellite, suolo a tre profondità, acqua, pianta: il punteggio cresce con i segnali che hai davvero — e ti dice quali mancano.',
+    'Satellite, suolo a tre profondità, acqua e stato della pianta. Più segnali reali raccogli, più precisa è la raccomandazione — e ti segnala subito cosa manca per affinarla.',
   ],
   [
-    'Fase fenologica',
-    'GDD accumulati e fase della coltura: lo stesso intervento vale di più in una fase delicata.',
+    'Fase fenologica e GDD',
+    'Gradi giorno accumulati e stadio di sviluppo della coltura: lo stesso intervento pesa di più in un momento delicato.',
   ],
   [
     'Pressione ambientale',
-    'Giorni recenti di stress idrico o di pressione malattia pesano su irrigazione, nutrizione e difesa.',
+    'Stress idrico, sbalzi termici e rischio malattie degli ultimi giorni guidano le priorità su irrigazione, nutrizione e difesa.',
   ],
   [
-    'Feedback misurato',
-    'Come ha risposto il tuo campo le volte scorse modifica la proposta di oggi.',
+    'Risposta reale del terreno',
+    'OrtoMio impara dal tuo campo: la risposta registrata dopo gli interventi precedenti calibra le proposte di oggi.',
   ],
   [
-    'Economia',
-    'Perdite attese e costi a confronto: anche non intervenire è una scelta con un prezzo.',
+    'Impatto economico',
+    'Costi e benefici a confronto: il sistema stima le perdite potenziali, così sai quanto costa rinviare o non intervenire.',
   ],
 ] as const
 
@@ -59,12 +59,13 @@ export default function ReasonWhySection() {
         <SectionHeader index="01" label="score" />
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-            Le tue giornate non sono una lista di avvisi. Sono una coda punteggiata.
+            Niente più dubbi su cosa fare prima: OrtoMio ti mostra le priorità del giorno, spiegate passo dopo passo.
           </h2>
           <p className="max-w-2xl text-lg leading-relaxed text-gray-700">
-            Ogni proposta nasce da un calcolo esplicito, non da un punteggio opaco. Il Director
-            combina profilo colturale, fenologia, pressione ambientale e storia dei tuoi
-            interventi: il punteggio finale somma fattori che puoi leggere uno a uno.
+            Ogni proposta nasce da un calcolo esplicito: il sistema combina profilo colturale,
+            fenologia, pressione ambientale e storia dei tuoi interventi, e il punteggio finale
+            somma fattori che puoi leggere uno a uno. Margine di errore azzerato: decidi vedendo
+            gli stessi numeri che ha visto il sistema.
           </p>
         </div>
 

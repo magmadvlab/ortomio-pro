@@ -17,16 +17,16 @@ const CALC_ROWS: Array<[string, string]> = [
 const TAB_CONTENT: Record<Tab, React.ReactNode> = {
   'Cosa propone': (
     <p className="text-sm text-gray-700">
-      Controllare la zona interessata e valutare l&apos;intervento nel momento indicato, prima che
-      il ritardo possa incidere sulla coltura.
+      L’azione consigliata per il tuo campo, chiara e tempestiva, prima che un ritardo possa
+      incidere sulla produzione o sui costi.
     </p>
   ),
   'Su cosa si basa': (
     <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
-      <li>Condizioni osservate nella zona e stato della coltura.</li>
-      <li>Misure disponibili dai sensori collegati.</li>
-      <li>Previsioni meteo e momento della stagione.</li>
-      <li>Storico di irrigazioni e trattamenti, con le informazioni mancanti rese visibili.</li>
+      <li>Rilievi di campo e stato della coltura.</li>
+      <li>Sensori di suolo collegati.</li>
+      <li>Previsioni meteo di zona.</li>
+      <li>Storico aggiornato di trattamenti e irrigazioni.</li>
     </ul>
   ),
   'Perché viene prima': null, // rendered by the illustrative calculation below
@@ -37,12 +37,12 @@ const TAB_CONTENT: Record<Tab, React.ReactNode> = {
         rendono opportuno verificare l&apos;intervento.
       </li>
       <li>
-        <strong>Programmare — Non scelta per ora.</strong> Nel confronto illustrato, rimandare pesa
+        <strong>Programmare — Scartata per ora.</strong> Nel confronto illustrato, rimandare pesa
         più del beneficio di attendere.
       </li>
       <li>
-        <strong>Continuare a osservare — Non scelta.</strong> Le informazioni disponibili indicano
-        dove controllare; attendere soltanto non chiarirebbe meglio la situazione.
+        <strong>Continuare a osservare — Scartata.</strong> Le informazioni disponibili indicano
+        già dove controllare; attendere da solo non chiarirebbe di più.
       </li>
       <li>
         <strong>Richiedere un controllo sul campo — Incluso nella proposta.</strong> Il responsabile
@@ -75,13 +75,12 @@ export default function PillarTransparency() {
       <div className="mx-auto max-w-6xl">
         <SectionHeader index="03" label="proposal" />
         <h2 className="mb-4 font-display text-2xl font-extrabold text-ortomio-green-900 sm:text-3xl">
-          Quattro domande aprono ogni proposta. Ogni risposta è nei dati.
+          Ogni consiglio mostra i suoi conti, prima ancora che tu lo chieda.
         </h2>
         <p className="mb-6 max-w-2xl text-gray-700">
-          L&apos;AI di OrtoMio non restituisce soltanto una risposta. Ogni proposta può essere
-          aperta per verificare quali informazioni ha considerato, come è arrivata alla priorità
-          e quali alternative ha valutato. La decisione resta al responsabile: OrtoMio prepara
-          una lettura motivata e conserva il motivo della scelta.
+          Prima di decidere, vedi esattamente cosa ha considerato il sistema, perché ha assegnato
+          quella priorità e quali alternative ha valutato. L’ultima parola resta la tua, ma con
+          la certezza di dati chiari e trasparenti.
         </p>
 
         <div

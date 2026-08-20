@@ -8,43 +8,43 @@ const GALLERY = [
     id: 'orchard',
     src: '/landing/orchard.webp',
     alt: 'Schermata OrtoMio: gestione di 273 alberi in un frutteto, organizzati per fila e posizione, con stato di vigoria di ogni pianta',
-    title: '273 alberi, uno per uno',
-    text: 'Ogni albero ha fila, posizione e stato di vigoria. Non un totale: la singola pianta.',
+    title: '273 alberi, ognuno con la sua storia',
+    text: 'Ogni albero ha fila, posizione e stato di vigoria, letti pianta per pianta.',
   },
   {
     id: 'plants',
     src: '/landing/plants.webp',
     alt: 'Schermata OrtoMio: monitoraggio piante con 231 piante sane e 29 malate su un totale di 273, sincronizzazione al 100%',
     title: 'Sano o malato, per ogni pianta',
-    text: '231 sane, 29 da controllare. Il sistema separa i numeri, tu decidi dove intervenire.',
+    text: '231 sane, 29 da controllare. Il sistema separa i numeri: sai sempre dove intervenire.',
   },
   {
     id: 'briefing-ai',
     src: '/landing/briefing-ai.webp',
     alt: 'Schermata OrtoMio: briefing giornaliero AI con azione consigliata, ROI stimato di 1043 euro e impatto netto calcolato',
     title: 'Ogni consiglio, con il suo perché',
-    text: 'Costo, ritardo, impatto netto stimato: il calcolo dietro il consiglio resta visibile.',
+    text: 'Costo, ritardo, impatto netto stimato: ogni consiglio nasce da un calcolo che puoi aprire e verificare.',
   },
   {
     id: 'consigli-ai',
     src: '/landing/consigli-ai.webp',
     alt: 'Schermata OrtoMio: elenco di consigli AI con livello di priorità e percentuale di confidenza per ciascun suggerimento',
-    title: 'Suggerimenti con confidenza dichiarata',
-    text: 'Rotazione, nutrizione, filare per filare: ogni suggerimento indica quanto il sistema ne è sicuro.',
+    title: 'Suggerimenti ordinati per quanto dato hanno dietro',
+    text: 'Rotazione, nutrizione, filare per filare: chi ha più dati misurati sale in cima, gli altri ti dicono cosa manca per confermarli.',
   },
   {
     id: 'semenzaio',
     src: '/landing/semenzaio.webp',
     alt: 'Schermata OrtoMio: gestione semenzaio con batch di pomodori, 10 piantine e sopravvivenza al 100%',
     title: 'Dal seme al trapianto',
-    text: 'Batch, germinazione, sopravvivenza: il semenzaio resta collegato a ciò che nasce in campo.',
+    text: 'Lotto, germinazione, sopravvivenza: il semenzaio resta collegato a ciò che nasce in campo.',
   },
   {
     id: 'intervento',
     src: '/landing/intervento.webp',
     alt: 'Schermata OrtoMio: registrazione di un intervento su una singola pianta (pomodoro datterino) tramite l’orchestratore interventi, con campi prodotto, note e pulsante salva intervento',
-    title: 'Ogni intervento, sulla pianta giusta',
-    text: 'Irrigazione, concimazione, trattamento: ogni intervento resta nello storico come dato, non come promemoria.',
+    title: 'Ogni pianta ha il suo diario',
+    text: 'Irrigazione, concimazione, trattamento: ogni intervento finisce sulla scheda di quella pianta, pronto da riusare.',
   },
 ] as const
 
@@ -83,11 +83,11 @@ export default function ProductGallery() {
             L&rsquo;applicazione
           </p>
           <h2 className="font-display text-3xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-            Non una demo. L&rsquo;app con dati veri, presa così com&rsquo;è.
+            Ogni pianta ha fila, posizione e una storia propria: dalla semina al raccolto.
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-700">
             Queste schermate arrivano da un&rsquo;azienda che usa OrtoMio ogni giorno: alberi, piante,
-            consigli, semenzaio e interventi con i numeri reali che il sistema mostra a chi lavora in campo.
+            consigli, semenzaio e interventi, con i numeri veri che il sistema mostra a chi lavora in campo.
           </p>
         </div>
 

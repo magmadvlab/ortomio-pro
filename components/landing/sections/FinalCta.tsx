@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDownRight } from 'lucide-react'
 import PilotRequestForm from '../PilotRequestForm'
-import { landingContent } from '../content'
 
 export default function FinalCta() {
   const [showForm, setShowForm] = useState(false)
@@ -31,14 +30,14 @@ export default function FinalCta() {
               Prova guidata
             </p>
             <h2 className="mt-5 font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-6xl">
-              Porta un caso reale: lo ricostruiamo insieme in OrtoMio.
+              Metti alla prova OrtoMio sul tuo campo reale.
             </h2>
           </div>
           <div>
             <p className="text-lg leading-relaxed text-ortomio-green-900">
-              Indicaci azienda, coltura ed esigenza principale: prepariamo una prova guidata sul
-              flusso più vicino al tuo lavoro, che si tratti di priorità AI, tracciabilità delle
-              piante o preparazione delle evidenze per le certificazioni.
+              Non la solita demo generica: configuriamo la piattaforma direttamente con i tuoi
+              ettari, le tue colture e i tuoi flussi di lavoro principali — priorità d’intervento,
+              tracciabilità o registri per le certificazioni.
             </p>
             {!showForm && (
               <button
@@ -47,15 +46,29 @@ export default function FinalCta() {
                 onClick={() => setShowForm(true)}
                 className="mt-8 inline-flex min-h-12 items-center gap-3 bg-ortomio-green-900 px-6 py-3 font-bold text-white transition hover:bg-ortomio-green-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-green-900 focus-visible:ring-offset-2 focus-visible:ring-offset-ortomio-harvest"
               >
-                {landingContent.finalCta}
+                Richiedi la prova guidata con i tuoi dati
                 <ArrowDownRight className="h-5 w-5" aria-hidden="true" />
               </button>
             )}
           </div>
         </div>
+
+        <ol className="mt-10 grid gap-6 border-t border-ortomio-green-900/15 pt-8 sm:grid-cols-3">
+          {[
+            'Analizziamo le colture e gli ettari della tua azienda.',
+            'Ricostruiamo un caso d’uso reale del tuo campo.',
+            'Ti mostriamo le priorità e i suggerimenti calcolati per te.',
+          ].map((step, i) => (
+            <li key={step} className="flex gap-3">
+              <span className="font-mono text-sm font-bold text-ortomio-green-900">{String(i + 1).padStart(2, '0')}</span>
+              <span className="text-sm leading-relaxed text-ortomio-green-900">{step}</span>
+            </li>
+          ))}
+        </ol>
+
         {showForm && <PilotRequestForm onClose={closeForm} />}
         <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ortomio-green-900">
-          Ti ricontattiamo per preparare una demo sul tuo caso, non una presentazione generica.
+          Ti ricontattiamo per preparare la prova sui dati e sulla coltura della tua azienda.
         </p>
       </div>
     </section>

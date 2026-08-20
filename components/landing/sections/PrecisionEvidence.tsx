@@ -5,16 +5,16 @@ import SectionHeader from '../SectionHeader'
 
 const PREDICTION_PROOFS = [
   [
-    'Deterministiche e versionate',
-    'Ogni previsione è riproducibile: sai quale modello e quali regole l’hanno prodotta, e quando scade.',
+    'Scienza riproducibile e verificabile',
+    'Nessuna sensazione: ogni stima si basa su regole agronomiche precise e modelli aggiornati. Puoi sempre risalire ai criteri che l’hanno generata e verificarne la scadenza.',
   ],
   [
-    'Qualità della fonte esplicita',
-    'Misurato, stimato, misto o insufficiente: la provenienza del dato è parte del risultato, non un’annotazione nascosta.',
+    'Origine del dato sempre dichiarata',
+    'Che si tratti di un valore misurato sul campo, stimato o misto, la qualità della fonte viaggia sempre insieme al risultato. Sai esattamente quanta certezza c’è dietro ogni numero.',
   ],
   [
-    'Segnali mancanti visibili',
-    'Quando non c’è abbastanza per prevedere, OrtoMio dice cosa manca — e come procurarlo.',
+    'Dati mancanti subito in evidenza',
+    'Quando non ci sono abbastanza informazioni per una stima affidabile, OrtoMio lo dichiara apertamente e ti indica quali sensori o rilevamenti servono per sbloccare la previsione.',
   ],
 ] as const
 
@@ -28,12 +28,12 @@ export default function PrecisionEvidence() {
             Previsioni firmate
           </p>
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-            Previsioni che puoi verificare, non promesse.
+            Previsioni trasparenti e tracciabili. Zero stime al buio.
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-700">
-            Stesso input, stesso output: le previsioni di OrtoMio sono deterministiche e firmate —
-            versione del modello, versione delle regole, orizzonte e finestra di validità. Se un
-            dato manca, la previsione lo dichiara invece di riempirlo.
+            Ogni previsione di OrtoMio ha un’origine chiara: sai sempre quale modello è stato
+            usato, quali dati lo supportano e fino a quando è valida. Se le informazioni non
+            bastano, il sistema non tira a indovinare: ti mostra subito cosa manca.
           </p>
         </Reveal>
 

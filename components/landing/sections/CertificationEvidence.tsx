@@ -1,11 +1,10 @@
 import SectionHeader from '../SectionHeader'
 
 const CERTIFICATION_EVIDENCE = [
-  'Lavorazioni e prodotti utilizzati',
-  'Lotto, pianta, raccolto e destinazione',
-  'Autocontrolli e gestione dei rischi',
-  'Procedure di richiamo e documenti di supporto',
-  'Bozze AI da completare e verificare',
+  'Registro dei trattamenti e ingressi',
+  'Tracciabilità del lotto e del raccoglitore',
+  'Autocontrolli e valutazione rischi',
+  'Prontezza nei richiami e audit',
 ] as const
 
 export default function CertificationEvidence() {
@@ -16,16 +15,16 @@ export default function CertificationEvidence() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div>
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-ortomio-green-700">
-              Registri e certificazioni
+              Cosa trovi già organizzato nel tuo archivio
             </p>
             <h2 className="font-display text-3xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-              Il lavoro che registri oggi è la prova che ti serve domani.
+              I tuoi dati di campo già pronti per ispezioni e certificazioni.
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-gray-700">
-              OrtoMio prepara e organizza le evidenze utili ai percorsi per il biologico e
-              GlobalG.A.P., collegando il lavoro svolto in campo ai registri e ai documenti
-              dell’azienda. Ogni evidenza resta collegata alla lavorazione che l’ha generata:
-              vedi subito cosa è già documentato e cosa deve essere completato.
+              Elimina lo stress da burocrazia e le corse a fine stagione. OrtoMio trasforma ogni
+              operazione quotidiana in documentazione pronta all’uso per il biologico,
+              GlobalG.A.P. e per i controlli di filiera. Tutto viene archiviato all’istante,
+              esattamente nel momento in cui viene fatto in campo.
             </p>
           </div>
 
@@ -43,7 +42,10 @@ export default function CertificationEvidence() {
               ))}
             </ol>
             <p className="mt-6 border-l-2 border-ortomio-harvest pl-4 text-sm leading-relaxed text-gray-700">
-              Le bozze AI iniziali da completare e verificare sono un punto di partenza. La decisione resta al responsabile; valutazione e rilascio restano alle persone e agli organismi competenti.
+              <strong className="text-ortomio-green-900">Nota di trasparenza.</strong> OrtoMio
+              compila e organizza automaticamente tutte le bozze documentali basandosi sui tuoi
+              dati di campo. La verifica finale e il rilascio ufficiale della certificazione
+              restano a cura dell’ente di controllo preposto.
             </p>
           </div>
         </div>

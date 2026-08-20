@@ -5,16 +5,16 @@ import SectionHeader from '../SectionHeader'
 
 const PLANT_AI = [
   [
-    'Analisi fotografica',
-    'Esposizione, salute, ritmo di crescita e fase fenologica: dalla foto dell’appezzamento o della singola pianta, con la confidenza dichiarata.',
+    'Analisi fotografica istantanea',
+    'Scatta una foto all’appezzamento o alla singola pianta: l’AI di OrtoMio valuta salute, vigore e stadio fenologico, indicando sempre il livello di accuratezza della diagnosi.',
   ],
   [
-    'Allerte salute',
-    'Rischio malattia dal meteo, parassiti stagionali, deficit idrico e soglie dei sensori: l’attenzione arriva prima del danno.',
+    'Prevenzione e allerte anticipate',
+    'Intervieni prima che il danno sia visibile. Il sistema incrocia meteo, dati dei sensori e rischi stagionali per avvisarti di stress idrici, deficit nutrizionali o attacchi parassitari imminenti.',
   ],
   [
-    'Storia per individuo',
-    'Codice, filare, posizione: potature, trattamenti e raccolte restano legati alla pianta, non alla media dell’appezzamento.',
+    'Carta d’identità della singola pianta',
+    'Codice, filare e posizione esatta: potature, trattamenti localizzati e rese restano legati a quel singolo individuo. Tracciabilità totale dalla semina alla raccolta.',
   ],
 ] as const
 
@@ -28,12 +28,12 @@ export default function PlantIntelligence() {
             Piante e alberi
           </p>
           <h2 className="font-display text-4xl font-extrabold leading-tight text-ortomio-green-900 sm:text-5xl">
-            Ogni pianta ha un codice, una storia — e un occhio AI.
+            Mappatura chirurgica e intelligenza visiva al servizio del tuo campo.
           </h2>
           <p className="mt-6 text-lg leading-relaxed text-gray-700">
-            Scatta una foto: OrtoMio la analizza per esposizione solare, stato di salute, ritmo di
-            crescita e fase. Ogni pianta e ogni albero mantiene codice, posizione, varietà e la
-            sequenza di ciò che ha ricevuto e prodotto.
+            Assegna a ogni pianta una carta d’identità digitale. Basta una foto per analizzarne lo
+            stato di salute e la crescita, mentre il sistema registra trattamenti, potature e
+            raccolte punto per punto. Meno sprechi, più precisione.
           </p>
         </Reveal>
 

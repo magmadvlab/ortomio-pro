@@ -88,6 +88,12 @@ export default function Hero() {
             >
               {landingContent.finalCta}
             </motion.a>
+            <motion.p
+              {...rise(0.52)}
+              className="mt-3 text-sm text-ortomio-green-300"
+            >
+              Prenota una prova guidata sui tuoi dati reali.
+            </motion.p>
 
             {/* Readout del briefing: valori illustrativi, meccanismo reale */}
             <motion.dl
@@ -97,7 +103,7 @@ export default function Hero() {
             >
               <span className="flex items-center gap-2 text-ortomio-green-300">
                 <span className="ortomio-signal-dot" aria-hidden="true" />
-                DIRECTOR
+                SISTEMA
               </span>
               {BRIEFING_READOUT.map(([key, value]) => (
                 <span key={key} className="flex items-baseline gap-2 whitespace-nowrap">

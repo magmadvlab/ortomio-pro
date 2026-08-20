@@ -5,24 +5,24 @@ import SectionHeader from '../SectionHeader'
 
 const MORNING_OUTPUTS = [
   {
-    label: 'Briefing',
-    text: 'Meteo sintetico, stress idrico e termico, fotoperiodo, fase lunare, GDD accumulati: il quadro del giorno, con la qualità dichiarata di ogni fonte.',
+    label: 'Quadro del giorno',
+    text: 'Meteo, stress idrico e termico, fotoperiodo e GDD accumulati. Hai subito il quadro sintetico delle prossime ore, con la certezza dell’affidabilità di ogni fonte.',
   },
   {
-    label: 'Coda delle azioni',
-    text: 'Cosa fare prima, perché, con quale confidenza — e quali segnali mancano per decidere meglio.',
+    label: 'Priorità di intervento',
+    text: 'Cosa fare prima, perché conviene agire subito e con quale livello di precisione. Se mancano dati per decidere al meglio, il sistema ti indica subito come recuperarli.',
   },
   {
-    label: 'Task eseguibili',
-    text: 'Dalla proposta all’azione: link diretti a irrigazione, nutrizione, raccolta e lavorazioni.',
+    label: 'Azioni pronte all’uso',
+    text: 'Dalla teoria alla pratica in un click: avvia o assegna direttamente le operazioni di irrigazione, nutrizione, difesa, lavorazione o raccolta.',
   },
   {
-    label: 'Previsioni firmate',
-    text: 'Rischio malattie, resa e risorse: ogni previsione porta versione del modello, dati usati e finestra di validità.',
+    label: 'Previsioni verificabili',
+    text: 'Analisi di resa, risorse e rischio malattie basate su modelli scientifici trasparenti. Vedi sempre quali dati sono stati usati e fino a quando la stima è valida.',
   },
   {
-    label: 'Memoria',
-    text: 'Perché hai deciso, cosa è stato fatto, com’è andata: la storia che vale anche la prossima stagione.',
+    label: 'Storico e tracciabilità',
+    text: 'Registra il motivo di ogni scelta, l’intervento eseguito e il risultato finale. Costruisci una memoria storica attiva che aumenta il valore della tua azienda stagione dopo stagione.',
   },
 ] as const
 
@@ -35,13 +35,13 @@ export default function DecisionScenario() {
         <SectionHeader index="02" label="daily-output" dark />
         <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
           <h2 className="font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-            Dal briefing al campo, senza passaggi persi.
+            Dalla prima luce del mattino all’intervento in campo, senza dispersioni.
           </h2>
           <p className="max-w-2xl text-lg leading-relaxed text-ortomio-green-100">
-            Ogni mattina il Director compone ciò che serve in un unico flusso: il quadro del
-            giorno, le azioni in ordine di priorità, i task pronti da eseguire, le previsioni
-            firmate e la memoria di ogni decisione. Niente si perde tra uno strumento e l’altro,
-            perché tutto nasce dallo stesso contesto.
+            Ogni mattina OrtoMio trasforma una mole di dati complessi in un piano di lavoro
+            chiaro: le urgenze reali, gli interventi pronti da avviare e la memoria di ciò che è
+            stato fatto. Niente più appunti dispersi o decisioni al buio: tutto parte da un’unica
+            visione d’insieme.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export default function DecisionScenario() {
         </motion.ol>
 
         <p className="mt-6 font-mono text-xs uppercase tracking-wider text-ortomio-green-400">
-          Director · output giornaliero · decisione umana
+          Sistema · output giornaliero · decisione umana
         </p>
       </div>
     </section>
