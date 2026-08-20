@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   description:
     'Come OrtoMio trasforma satellite, suolo, acqua e storia delle piante in una coda di azioni punteggiate e spiegate.',
   alternates: { canonical: '/come-funziona' },
+  robots: { index: false, follow: false },
 }
 
 const reasoningQuestions = [
