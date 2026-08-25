@@ -10,6 +10,21 @@ export default function LandingFooter() {
           <Link href="/#colture" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Colture</Link>
         </nav>
       </div>
+
+      <div className="mx-auto mt-8 flex max-w-6xl flex-col gap-2 border-t border-white/10 px-6 pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
+        <p>© 2026 OrtoMio — Tutti i diritti riservati.</p>
+        <p>
+          Realizzato da{' '}
+          <a
+            href="https://magmastudio.it"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-white underline-offset-4 transition hover:text-ortomio-green-300 hover:underline"
+          >
+            MAGMA Design &amp; Innovation
+          </a>
+        </p>
+      </div>
     </footer>
   )
 }
