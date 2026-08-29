@@ -15,108 +15,95 @@ export default function PrivacyPage() {
           Torna alla registrazione
         </Link>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Privacy Policy</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Informativa sulla privacy</h1>
 
         <div className="prose prose-green max-w-none">
           <p className="text-gray-600 mb-4">
-            Ultimo aggiornamento: Gennaio 2026
+            Ultimo aggiornamento: 29 agosto 2026 — versione 1.0
+          </p>
+          <p className="text-gray-500 text-sm mb-4 italic">
+            Alcuni dati in questa pagina (indirizzo, regione dei fornitori cloud, periodo di
+            conservazione esatto) sono contrassegnati [da confermare]: sono in corso di verifica
+            e verranno aggiornati non appena disponibili, senza inventare valori nel frattempo.
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">1. Titolare del Trattamento</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">1. Titolare del trattamento</h2>
           <p className="text-gray-700 mb-4">
-            OrtoMio AI è il titolare del trattamento dei dati personali raccolti attraverso questa
-            applicazione, in conformità al Regolamento (UE) 2016/679 (GDPR).
+            Roberto Lalinga, titolare di OrtoMio.<br />
+            Contatto: roberto.lalinga@gmail.com <em>[provvisorio — sarà sostituito con l'email professionale su dominio]</em><br />
+            Sede/domicilio: <em>[da inserire]</em><br />
+            Partita IVA/Codice Fiscale: <em>[da inserire, se e quando esiste una posizione fiscale dedicata]</em>
+          </p>
+          <p className="text-gray-700 mb-4">
+            Non è nominato un Responsabile della Protezione dei Dati (DPO): l'attività non rientra,
+            allo stato, nei casi di nomina obbligatoria ex art. 37 GDPR. <em>[da riconfermare quando il volume di trattamento cambia scala]</em>
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">2. Dati Raccolti</h2>
-          <p className="text-gray-700 mb-4">
-            Raccogliamo i seguenti tipi di dati:
-          </p>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">2. Quali dati raccogliamo e perché</h2>
           <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li><strong>Dati di registrazione:</strong> nome, cognome, email, telefono (opzionale), data di nascita (opzionale), azienda (opzionale)</li>
-            <li><strong>Dati del giardino:</strong> informazioni sulle colture, trattamenti, raccolti, foto</li>
-            <li><strong>Dati di utilizzo:</strong> log di accesso, interazioni con l'applicazione</li>
-            <li><strong>Dati di geolocalizzazione:</strong> posizione del giardino (se fornita dall'utente)</li>
+            <li><strong>Nome, email, azienda, coltura/esigenza indicata</strong> — dal modulo "prova guidata" sulla landing, per rispondere alla richiesta e organizzare la demo (consenso / misure precontrattuali).</li>
+            <li><strong>Email e credenziali di accesso</strong> — creazione account, per erogare il servizio (esecuzione di un contratto).</li>
+            <li><strong>Dati aziendali e agronomici</strong> (colture, appezzamenti, interventi, foto, dati di raccolto, tracciabilità) — uso quotidiano della piattaforma, per fornire registro decisionale e memoria operativa (esecuzione di un contratto).</li>
+            <li><strong>Dati inviati alle funzioni di intelligenza artificiale</strong> (richieste di analisi, priorità, diagnosi) — per generare i suggerimenti richiesti (esecuzione di un contratto).</li>
+            <li><strong>Dati geografici/immagini satellitari delle particelle</strong> (funzione NDVI, beta) — solo se l'utente attiva il monitoraggio satellitare, per calcolare gli indici di vigoria/stress idrico (esecuzione di un contratto).</li>
+            <li><strong>Dati tecnici di navigazione</strong> (log server, indirizzo IP, cookie strettamente necessari) — sicurezza e funzionamento tecnico (legittimo interesse).</li>
           </ul>
-
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">3. Finalità del Trattamento</h2>
-          <p className="text-gray-700 mb-4">
-            I dati personali sono trattati per le seguenti finalità:
+          <p className="text-gray-500 text-sm mb-4 italic">
+            Non raccogliamo, allo stato, dati tramite cookie di profilazione o strumenti di analisi
+            del traffico. Questa riga va aggiornata nello stesso commit in cui si installa un analytics.
           </p>
+
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">3. A chi vengono comunicati i dati (responsabili del trattamento)</h2>
           <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li>Fornitura del servizio OrtoMio AI</li>
-            <li>Personalizzazione dei consigli agricoli</li>
-            <li>Comunicazioni relative al servizio</li>
-            <li>Miglioramento dell'applicazione</li>
-            <li>Adempimento di obblighi legali</li>
-            <li>Marketing (solo con consenso esplicito)</li>
+            <li><strong>Supabase</strong> — hosting del database applicativo, tutti i dati di account e piattaforma. Regione del progetto: <em>[da confermare]</em>.</li>
+            <li><strong>Vercel</strong> (o hosting equivalente) — hosting dell'applicazione web, log tecnici e dati in transito. <em>[da confermare]</em>.</li>
+            <li><strong>Google (Gemini API)</strong> — elaborazione delle funzioni AI, contenuto delle richieste inviate. Google dichiara proprie garanzie per i trasferimenti extra-SEE (clausole contrattuali tipo): <em>il testo esatto va verificato sui termini attuali di Google Cloud/Gemini API</em>.</li>
+            <li><strong>Sentinel Hub</strong> (o fornitore satellitare beta) — calcolo indici NDVI/NDMI, coordinate geografiche delle particelle se il modulo satellitare è attivo. Basato su dati Copernicus (UE): <em>fornitore contrattuale esatto e sede da confermare</em>.</li>
           </ul>
+          <p className="text-gray-700 mb-4">Non vendiamo né comunichiamo i dati a terzi per finalità commerciali di terzi.</p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">4. Base Giuridica</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">4. Trasferimento dei dati fuori dall'Unione Europea</h2>
           <p className="text-gray-700 mb-4">
-            Il trattamento dei dati si basa su:
-          </p>
-          <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li>Esecuzione del contratto di servizio</li>
-            <li>Consenso dell'utente (per marketing)</li>
-            <li>Legittimo interesse (per miglioramento del servizio)</li>
-            <li>Obblighi legali</li>
-          </ul>
-
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">5. Conservazione dei Dati</h2>
-          <p className="text-gray-700 mb-4">
-            I dati personali sono conservati per la durata dell'account utente e per un periodo
-            successivo necessario per adempiere agli obblighi legali. L'utente può richiedere la
-            cancellazione dei propri dati in qualsiasi momento.
+            Alcuni fornitori indicati al punto 3 (in particolare i servizi AI) possono comportare un
+            trasferimento verso paesi extra-SEE, soggetto alle garanzie previste dal fornitore
+            (tipicamente clausole contrattuali standard approvate dalla Commissione Europea).
+            <em> Il riferimento contrattuale preciso sarà aggiunto non appena verificato.</em>
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">6. Condivisione dei Dati</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">5. Periodo di conservazione</h2>
           <p className="text-gray-700 mb-4">
-            I dati possono essere condivisi con:
-          </p>
-          <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li><strong>Supabase:</strong> per l'archiviazione sicura dei dati</li>
-            <li><strong>Google (Gemini AI):</strong> per le funzionalità di intelligenza artificiale</li>
-            <li><strong>Autorità competenti:</strong> se richiesto dalla legge</li>
-          </ul>
-
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">7. Diritti dell'Utente</h2>
-          <p className="text-gray-700 mb-4">
-            In conformità al GDPR, l'utente ha diritto a:
-          </p>
-          <ul className="list-disc pl-6 text-gray-700 mb-4">
-            <li>Accedere ai propri dati personali</li>
-            <li>Rettificare i dati inesatti</li>
-            <li>Cancellare i propri dati ("diritto all'oblio")</li>
-            <li>Limitare il trattamento</li>
-            <li>Portabilità dei dati</li>
-            <li>Opporsi al trattamento</li>
-            <li>Revocare il consenso in qualsiasi momento</li>
-          </ul>
-
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">8. Sicurezza</h2>
-          <p className="text-gray-700 mb-4">
-            Adottiamo misure tecniche e organizzative appropriate per proteggere i dati personali
-            da accessi non autorizzati, perdita o distruzione. I dati sono crittografati in transito
-            e a riposo.
+            I dati sono conservati per la durata del rapporto contrattuale e, successivamente, per il
+            tempo necessario ad adempiere a obblighi di legge (es. fiscali/contabili) o a far valere
+            un diritto in sede giudiziaria. <em>Il periodo esatto in anni per ciascuna categoria di dato è in fase di definizione formale.</em>
+            L'utente può richiedere la cancellazione dei propri dati in qualsiasi momento (vedi punto 6).
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">9. Cookie</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">6. Diritti dell'interessato</h2>
           <p className="text-gray-700 mb-4">
-            L'applicazione utilizza cookie tecnici necessari per il funzionamento del servizio.
-            Non utilizziamo cookie di profilazione senza consenso esplicito.
+            In qualsiasi momento puoi richiedere: accesso ai tuoi dati, rettifica, cancellazione,
+            limitazione del trattamento, portabilità dei dati, opposizione al trattamento basato su
+            legittimo interesse, revoca del consenso. Puoi esercitare questi diritti scrivendo a{' '}
+            <a href="mailto:roberto.lalinga@gmail.com" className="text-green-700 underline">roberto.lalinga@gmail.com</a>{' '}
+            <em>[provvisorio]</em> oppure dalla pagina Impostazioni del tuo account. Hai inoltre diritto
+            di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">10. Modifiche alla Privacy Policy</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">7. Sicurezza</h2>
           <p className="text-gray-700 mb-4">
-            Ci riserviamo il diritto di modificare questa Privacy Policy. Le modifiche significative
-            saranno comunicate tramite email o notifica nell'applicazione.
+            Adottiamo misure tecniche e organizzative appropriate per proteggere i dati personali da
+            accessi non autorizzati, perdita o distruzione.
           </p>
 
-          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">11. Contatti</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">8. Minori</h2>
           <p className="text-gray-700 mb-4">
-            Per esercitare i propri diritti o per qualsiasi domanda relativa alla privacy,
-            contattare il supporto tramite l'applicazione.
+            Il servizio è rivolto ad attività professionali (aziende agricole, tecnici/consulenti) e
+            non è destinato a persone minori di 18 anni.
+          </p>
+
+          <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-3">9. Modifiche a questa informativa</h2>
+          <p className="text-gray-700 mb-4">
+            Questa informativa può essere aggiornata. La versione in vigore è sempre quella
+            pubblicata su questa pagina, con indicazione della data di ultima modifica.
           </p>
         </div>
 

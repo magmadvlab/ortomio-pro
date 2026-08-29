@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'OrtoMio',
   },
+  verification: {
+    google: 'KU4qZZ83PYq0xRmnm6-2xwvMBxOIelfEgx64ewSkT2A',
+  },
 }
 
 export const viewport: Viewport = {
