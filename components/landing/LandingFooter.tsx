@@ -8,6 +8,8 @@ export default function LandingFooter() {
         <nav aria-label="Link nel footer" className="flex flex-wrap gap-x-6 gap-y-2">
           <Link href="/#perche-ortomio" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Come funziona</Link>
           <Link href="/#colture" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Colture</Link>
+          <Link href="/privacy" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Privacy</Link>
+          <Link href="/terms" className="min-h-11 py-3 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ortomio-harvest">Termini</Link>
         </nav>
       </div>
 
