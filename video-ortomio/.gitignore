@@ -1,0 +1,9 @@
+node_modules
+out
+public/footage/*
+!public/footage/LICENZE.md
+public/audio
+public/music
+.omc
+# La root ignora ogni cartella «ortomio/»: qui è il codice del video.
+!src/ortomio/
