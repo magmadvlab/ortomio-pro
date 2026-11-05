@@ -1,0 +1,21 @@
+{
+  "nodes": [],
+  "edges": [],
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "failed_sources": [],
+  "skipped_sources": [
+    "/Volumes/990P/ortomio-main/docs/guides/help-resources.json",
+    "/Volumes/990P/ortomio-main/docs/guides/onboarding-tour.json",
+    "/Volumes/990P/ortomio-main/docs/reports/M06_REMOTE_MIGRATION_SNAPSHOT_2026-07-24.json",
+    "/Volumes/990P/ortomio-main/docs/video/.omc/state/idle-notif-cooldown.json",
+    "/Volumes/990P/ortomio-main/docs/video/.omc/state/sessions/077d1e92-2a8b-4eb1-8b76-4fae19bbcf24/pre-tool-advisory-throttle.json"
+  ],
+  "extracted_sources": [
+    "/Volumes/990P/ortomio-main/docs/guides/help-resources.json",
+    "/Volumes/990P/ortomio-main/docs/guides/onboarding-tour.json",
+    "/Volumes/990P/ortomio-main/docs/reports/M06_REMOTE_MIGRATION_SNAPSHOT_2026-07-24.json",
+    "/Volumes/990P/ortomio-main/docs/video/.omc/state/idle-notif-cooldown.json",
+    "/Volumes/990P/ortomio-main/docs/video/.omc/state/sessions/077d1e92-2a8b-4eb1-8b76-4fae19bbcf24/pre-tool-advisory-throttle.json"
+  ]
+}

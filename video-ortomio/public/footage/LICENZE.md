@@ -27,6 +27,23 @@ Tutte le clip: **Pexels License** (uso commerciale gratuito, nessuna attribuzion
 | `B7-39423510.mp4` | Pioggia sul frutteto, montagne sullo sfondo (breve B7) | 39423510 | Hashim Y | https://www.pexels.com/video/scenic-rainfall-over-orchard-with-mountain-view-39423510/ |
 | `B7-5354587.mp4` | Fiori bianchi di albero da frutto, cielo coperto (breve B7) | 5354587 | Magda Ehlers | https://www.pexels.com/video/white-blossoms-5354587/ |
 
+## Puntata pilota v3 — materiale importato da `~/Downloads/ortomio`
+
+Le clip seguenti sono state selezionate dall'utente come stock gratuito e importate il 26/10/2026. I numeri nei nomi sembrano ID Pexels, ma prima della pubblicazione vanno recuperate e annotate le pagine sorgente originali, così da conservare autore e prova di provenienza. Finché tale verifica non è completata, sono utilizzabili per animatic e revisione interna, non per la consegna pubblica finale.
+
+| File progetto | File ricevuto | Uso previsto | Provenienza da completare |
+|---|---|---|---|
+| `P1-19546340.mp4` | `19546340-uhd_3840_2160_30fps.mp4` | Campi dall'alto | ID 19546340 |
+| `P1-14823494.mp4` | `14823494_1920_1080_25fps.mp4` | Cassette di pomodori | ID 14823494 |
+| `P1-10039770.mp4` | `10039770-hd_1920_1080_24fps.mp4` | Prodotto raccolto in cassetta | ID 10039770 |
+| `P1-15688500.mp4` | `15688500-hd_1920_1080_25fps.mp4` | Agrumeto ampio | ID 15688500 |
+| `P1-14749090.mp4` | `14749090_1920_1080_30fps.mp4` | Controllo manuale della pianta | ID 14749090 |
+| `P1-14086016.mp4` | `14086016-hd_1920_1080_50fps.mp4` | Operatore e raccolta | ID 14086016 |
+| `P1-5766179.mp4` | `5766179-uhd_3840_2160_30fps.mp4` | Ortaggio e terreno | ID 5766179 |
+| `P1-10576691.mp4` | `10576691-hd_3840_2160_30fps.mp4` | Selezione del prodotto | ID 10576691 |
+| `P1V-10041435.mp4` | `10041435-hd_1080_1920_24fps.mp4` | Controllo del suolo verticale | ID 10041435 |
+| `P1V-14855160.mp4` | `14855160_1080_1920_30fps.mp4` | Frutto sulla pianta verticale | ID 14855160 |
+
 ## Musica
 | File | Traccia | Autore | Fonte | Licenza |
 |---|---|---|---|---|

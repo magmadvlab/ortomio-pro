@@ -18,7 +18,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 # Senza argomenti: la ripresa del titolare. Con «tecnico» o «coltura»: le frasi nuove del video del tecnico
 # o dei brevi per coltura (narrazione-*.txt, un paragrafo per frase).
-TEXTS = {"tecnico": "narrazione-tecnico-v1.txt", "coltura": "narrazione-brevi-coltura-v1.txt"}
+TEXTS = {
+    "tecnico": "narrazione-tecnico-v1.txt",
+    "coltura": "narrazione-brevi-coltura-v1.txt",
+    "aspettativa-v1": "narrazione-pilota-aspettativa-v1.txt",
+    "orchestratore-v2": "narrazione-pilota-orchestratore-v2.txt",
+}
+# Modi montati frase per frase (stacchi e sottotitoli brevi): si allinea ogni frase, non ogni paragrafo.
+BY_SENTENCE = {"orchestratore-v2"}
 MODE = sys.argv[1] if len(sys.argv) > 1 else None
 NAME = MODE or "take-v2"
 WORDS = ROOT / "out" / "voce" / f"{NAME}-words.json"
@@ -32,6 +39,9 @@ def norm(text: str) -> str:
 
 if MODE:
     sentences = [p.strip() for p in (ROOT / TEXTS[MODE]).read_text().split("\n\n") if p.strip()]
+    if MODE in BY_SENTENCE:
+        sentences = [s for p in sentences for s in re.findall(r"[^.]+\.", p)]
+        sentences = [s.strip() for s in sentences]
 else:
     body = (ROOT / "src" / "ortomio" / "narration.ts").read_text().split("export const SECTIONS")[1].split("];\n\nconst")[0]
     sentences = re.findall(r'"([^"]+)"', body)
@@ -49,7 +59,7 @@ for s in sentences:
     target = norm(s)
     window = spoken[pos : pos + 400]
     m = difflib.SequenceMatcher(None, window, target, autojunk=False).find_longest_match(0, len(window), 0, len(target))
-    if m.size < 6:
+    if m.size < min(6, len(target)):
         sys.exit(f"non trovata: {s}")
     start_idx = max(pos, pos + m.a - m.b)
     end_idx = min(len(spoken) - 1, start_idx + len(target) - 1)
@@ -66,7 +76,8 @@ silences = list(zip(edges[::2], edges[1::2]))
 # Ogni confine fra due frasi va sul silenzio più lungo vicino al confine stimato.
 for a, b in zip(result, result[1:]):
     lo, hi = min(a["end"], b["start"]) - 0.6, max(a["end"], b["start"]) + 0.6
-    near = [s for s in silences if s[1] > lo and s[0] < hi]
+    # Il silenzio deve cadere fra le due frasi: con frasi di una parola la finestra le scavalca.
+    near = [s for s in silences if s[1] > lo and s[0] < hi and s[0] > a["start"] and s[1] < b["end"]]
     if not near:
         sys.exit(f"nessun silenzio fra: {a['text'][:40]} | {b['text'][:40]}")
     s0, s1 = max(near, key=lambda s: s[1] - s[0])

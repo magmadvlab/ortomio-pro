@@ -1,0 +1,625 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1792924950576,
+  "projectRoot": "/Volumes/990P/ortomio-main",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=22.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "16.1.1",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.2.1",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.1",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 22.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "next dev -H localhost -p 3002",
+      "dev:turbo": "next dev -H localhost -p 3002",
+      "dev:next": "next dev -p 3002",
+      "dev:port": "next dev -p",
+      "build": "next build --webpack",
+      "build:next": "next build --webpack",
+      "start": "next start -p 3002",
+      "start:next": "next start -p 3002",
+      "type-check": "tsc --noEmit",
+      "type-check:watch": "tsc --noEmit --watch",
+      "check": "npm run type-check && npm run build",
+      "lint": "eslint --no-ignore app components services lib hooks config --ext .ts,.tsx,.js,.jsx",
+      "pre-deploy": "node scripts/pre-deploy-check.js",
+      "pre-deploy:fast": "node scripts/pre-deploy-check.js --skip-build",
+      "pre-commit": "npm run pre-deploy",
+      "generate:plant-migration": "tsx scripts/generatePlantTaxonomyMigration.ts",
+      "apply:plant-migration": "tsx scripts/applyPlantTaxonomyMigration.ts",
+      "test:health-check": "tsx scripts/test-health-check.ts",
+      "test:precision-hub": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/precision-hub/**/*.test.ts",
+      "test:security": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/security/**/*.test.ts",
+      "test:capabilities": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/capabilities/**/*.test.ts",
+      "test:persistence": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/persistence/**/*.test.ts",
+      "test:physical-operations": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/physical-operations/**/*.test.ts",
+      "test:health-predictions-monitoring": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/health-predictions-monitoring/**/*.test.ts",
+      "test:remote-data-isolation": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/remote-data-isolation/**/*.test.ts",
+      "test:regulatory-exports-admin": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/regulatory-exports-admin/**/*.test.ts",
+      "test:rollout-observability": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/rollout-observability/**/*.test.ts",
+      "test:landing": "NODE_OPTIONS=--conditions=react-server npx --yes tsx --test __tests__/landing/**/*.test.ts",
+      "test:release": "npm run test:security && npm run test:capabilities && npm run test:persistence && npm run test:physical-operations && npm run test:health-predictions-monitoring && npm run test:remote-data-isolation && npm run test:regulatory-exports-admin && npm run test:rollout-observability && npm run test:precision-hub && npm run test:landing",
+      "release:check": "node scripts/check-release-readiness.mjs",
+      "release:check:commercial-schema": "node scripts/check-commercial-schema.mjs --require-ready",
+      "release:check:remote": "node scripts/check-release-readiness.mjs --require-remote",
+      "docs:sync": "node scripts/sync-manual-docs.mjs",
+      "docs:sync:check": "node scripts/sync-manual-docs.mjs --check",
+      "docs:hygiene": "node scripts/check-docs-hygiene.mjs && npm run docs:sync:check",
+      "audit:p0": "node scripts/audit-p0-baseline.mjs",
+      "audit:release-debt": "node scripts/audit-release-debt.mjs --check",
+      "audit:migrations": "node scripts/audit-migration-history.mjs"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase/PascalCase",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "__tests__",
+      "app",
+      "components",
+      "docs",
+      "lib",
+      "public",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "SUPABASE_SQL_FIXES": {
+      "path": "SUPABASE_SQL_FIXES",
+      "purpose": null,
+      "fileCount": 16,
+      "lastAccessed": 1792924950542,
+      "keyFiles": [
+        "01_fix_ai_suggestions_prioritized.sql",
+        "02_fix_weather_cache_rls.sql",
+        "03_move_extensions.sql",
+        "04_fix_functions_search_path_part1.sql",
+        "05_fix_functions_search_path_part2.sql"
+      ]
+    },
+    "__tests__": {
+      "path": "__tests__",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1792924950542,
+      "keyFiles": []
+    },
+    "_quarantine": {
+      "path": "_quarantine",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1792924950545,
+      "keyFiles": []
+    },
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 7,
+      "lastAccessed": 1792924950547,
+      "keyFiles": [
+        "layout.tsx",
+        "layout.tsx.backup",
+        "page.tsx",
+        "page.tsx.backup",
+        "robots.ts"
+      ]
+    },
+    "come-mamma-video": {
+      "path": "come-mamma-video",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1792924950547,
+      "keyFiles": []
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 49,
+      "lastAccessed": 1792924950548,
+      "keyFiles": [
+        "AccessoriesManager.tsx",
+        "Advice.tsx",
+        "AgronomistManager.tsx",
+        "AromaticManagement.tsx",
+        "BackupSettings.tsx"
+      ]
+    },
+    "config": {
+      "path": "config",
+      "purpose": "Configuration files",
+      "fileCount": 4,
+      "lastAccessed": 1792924950549,
+      "keyFiles": [
+        "capabilities.ts",
+        "features.ts",
+        "release.ts",
+        "supabase.ts"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 44,
+      "lastAccessed": 1792924950550,
+      "keyFiles": [
+        "agronomicCropProfiles.ts",
+        "agronomicValidationScenarios.ts",
+        "aiResponses.json",
+        "almanacco-database.ts",
+        "archetypeProfiles.ts"
+      ]
+    },
+    "database": {
+      "path": "database",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1792924950551,
+      "keyFiles": [
+        "CARICA_QUESTO_SQL.sql",
+        "apply_migrations_online.sh",
+        "deploy_field_rows.sh",
+        "export_schema.sql",
+        "fix_login_issue.sql"
+      ]
+    },
+    "database_backups": {
+      "path": "database_backups",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1792924950551,
+      "keyFiles": [
+        "ortomio_backup_20260112_103611.sql",
+        "ortomio_backup_20260112_103619.sql"
+      ]
+    },
+    "deploy_sql": {
+      "path": "deploy_sql",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1792924950552,
+      "keyFiles": [
+        "step_1_20260105060000_add_plant_taxonomy_system.sql",
+        "step_2_20260105070000_seed_crop_archetypes.sql",
+        "step_3_20260105000000_add_cultivation_orchestrator.sql",
+        "step_4_20260105010000_add_orchestrator_triggers.sql",
+        "step_5_20260105020000_add_orchestrator_analytics.sql"
+      ]
+    },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1792924950552,
+      "keyFiles": [
+        "docker-compose.yml",
+        "generate-keys.sh",
+        "init-supabase-users.sql",
+        "start-supabase.sh",
+        "start.sh"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1792924950553,
+      "keyFiles": [
+        "DOCUMENTO_COMMERCIALE_ORTOMIO_PRO_2026-08-15_APPROFONDITO.md",
+        "landing-media-sources.md"
+      ]
+    },
+    "file da verificare": {
+      "path": "file da verificare",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1792924950554,
+      "keyFiles": [
+        "integrazione-modal-nuova-pianta.tsx",
+        "ortomio-cultivation-method-selector-adapted.tsx",
+        "ortomio-cultivation-method-selector.tsx",
+        "ortomio-integration-adapter.tsx",
+        "ortomio-navigation-integration.tsx"
+      ]
+    },
+    "hooks": {
+      "path": "hooks",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1792924950554,
+      "keyFiles": [
+        "useAICredits.ts",
+        "useChallengeNotifications.ts",
+        "useDeviceOrientation.ts",
+        "useFeature.ts",
+        "useOnboarding.ts"
+      ]
+    },
+    "lib": {
+      "path": "lib",
+      "purpose": "Library code",
+      "fileCount": 14,
+      "lastAccessed": 1792924950554,
+      "keyFiles": [
+        "ai-credits.server.ts",
+        "auth-bypass.ts",
+        "auth-site-url.ts",
+        "auth.client.ts",
+        "auth.server.ts"
+      ]
+    },
+    "logic": {
+      "path": "logic",
+      "purpose": null,
+      "fileCount": 73,
+      "lastAccessed": 1792924950555,
+      "keyFiles": [
+        "accessoriesEngine.ts",
+        "aeroponicDirector.ts",
+        "aeroponicEngine.ts",
+        "annualPlannerEngine.ts",
+        "anomalyDetectionEngine.ts"
+      ]
+    },
+    "ortomio": {
+      "path": "ortomio",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1792924950555,
+      "keyFiles": [
+        "App.tsx",
+        "README.md",
+        "index.html",
+        "index.tsx",
+        "metadata.json"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1792924950555,
+      "keyFiles": []
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 8,
+      "lastAccessed": 1792924950555,
+      "keyFiles": [
+        "apple-touch-icon.png",
+        "debug.html",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "favicon.ico"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 39,
+      "lastAccessed": 1792924950556,
+      "keyFiles": [
+        "apply-irrigation-migration.sql",
+        "applyPlantTaxonomyMigration.ts",
+        "audit-migration-history.mjs",
+        "audit-p0-baseline.mjs",
+        "audit-release-debt.mjs"
+      ]
+    },
+    "services": {
+      "path": "services",
+      "purpose": "Business logic services",
+      "fileCount": 215,
+      "lastAccessed": 1792924950557,
+      "keyFiles": [
+        "adaptiveMarketPricingService.ts",
+        "advancedIrrigationService.ts",
+        "advancedNutritionService.ts",
+        "agronomicActionQueueService.ts",
+        "agronomicDecisionExplanationService.ts"
+      ]
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1792924950557,
+      "keyFiles": [
+        "config.toml",
+        "start-supabase.sh"
+      ]
+    },
+    "types": {
+      "path": "types",
+      "purpose": "Type definitions",
+      "fileCount": 49,
+      "lastAccessed": 1792924950558,
+      "keyFiles": [
+        "accessories.ts",
+        "activeAIAdvice.ts",
+        "agronomicKernel.ts",
+        "agronomist.ts",
+        "aiFeedback.ts"
+      ]
+    },
+    "utils": {
+      "path": "utils",
+      "purpose": "Utility functions",
+      "fileCount": 23,
+      "lastAccessed": 1792924950558,
+      "keyFiles": [
+        "altitudeUtils.ts",
+        "areaConverter.ts",
+        "coordinates.ts",
+        "crypto.ts",
+        "dateParsing.ts"
+      ]
+    },
+    "vcchiortomio": {
+      "path": "vcchiortomio",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1792924950558,
+      "keyFiles": []
+    },
+    "x_ortomio_free": {
+      "path": "x_ortomio_free",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1792924950559,
+      "keyFiles": [
+        "README.md",
+        "test-social-sharing.js"
+      ]
+    },
+    "app/api": {
+      "path": "app/api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1792924950562,
+      "keyFiles": []
+    },
+    "app/app": {
+      "path": "app/app",
+      "purpose": "Application code",
+      "fileCount": 2,
+      "lastAccessed": 1792924950562,
+      "keyFiles": [
+        "layout.tsx",
+        "page.tsx"
+      ]
+    },
+    "app/docs": {
+      "path": "app/docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1792924950562,
+      "keyFiles": []
+    },
+    "come-mamma-video/node_modules": {
+      "path": "come-mamma-video/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1792924950563,
+      "keyFiles": []
+    },
+    "come-mamma-video/public": {
+      "path": "come-mamma-video/public",
+      "purpose": "Public files",
+      "fileCount": 1,
+      "lastAccessed": 1792924950564,
+      "keyFiles": []
+    },
+    "database/migrations": {
+      "path": "database/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 77,
+      "lastAccessed": 1792924950566,
+      "keyFiles": [
+        "20260104_extend_profiles_table.sql",
+        "20260204000000_add_field_row_crop_history.sql",
+        "20260204100000_add_land_zones_and_memory.sql"
+      ]
+    },
+    "public/docs": {
+      "path": "public/docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1792924950568,
+      "keyFiles": []
+    },
+    "supabase/migrations": {
+      "path": "supabase/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 137,
+      "lastAccessed": 1792924950573,
+      "keyFiles": [
+        "20251201000000_initial_schema.sql",
+        "20251226083205_add_field_rows_system.sql",
+        "20251226113000_create_weather_cache_table.sql"
+      ]
+    },
+    "x_ortomio_free/components": {
+      "path": "x_ortomio_free/components",
+      "purpose": "UI components",
+      "fileCount": 0,
+      "lastAccessed": 1792924950575,
+      "keyFiles": []
+    },
+    "x_ortomio_free/services": {
+      "path": "x_ortomio_free/services",
+      "purpose": "Business logic services",
+      "fileCount": 2,
+      "lastAccessed": 1792924950576,
+      "keyFiles": [
+        "integratedChallengeService.ts",
+        "socialSharingService.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "docs/video/BRIEF_VIDEO_ORTOMIO_2026-10-25.md",
+      "accessCount": 32,
+      "lastAccessed": 1792942845224,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/copione-titolare-v1.md",
+      "accessCount": 7,
+      "lastAccessed": 1792930894058,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/narrazione-titolare-v1.txt",
+      "accessCount": 4,
+      "lastAccessed": 1792930893631,
+      "type": "file"
+    },
+    {
+      "path": "MASTERDOC.md",
+      "accessCount": 3,
+      "lastAccessed": 1792925559520,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/voce-profilo-v1.md",
+      "accessCount": 3,
+      "lastAccessed": 1792930070872,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/src/ortomio/narration.ts",
+      "accessCount": 2,
+      "lastAccessed": 1792941568325,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/src/ortomio/ui.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1792943476367,
+      "type": "file"
+    },
+    {
+      "path": "PRODUCT.md",
+      "accessCount": 1,
+      "lastAccessed": 1792925559903,
+      "type": "file"
+    },
+    {
+      "path": "config/capabilities.ts",
+      "accessCount": 1,
+      "lastAccessed": 1792925560283,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/riprese-stock-v1.md",
+      "accessCount": 1,
+      "lastAccessed": 1792929708160,
+      "type": "file"
+    },
+    {
+      "path": "public/logo.png",
+      "accessCount": 1,
+      "lastAccessed": 1792931558352,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/scripts/align_voice.py",
+      "accessCount": 1,
+      "lastAccessed": 1792931586674,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/post-social-v1.md",
+      "accessCount": 1,
+      "lastAccessed": 1792941534742,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/src/ortomio/Brevi.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1792941586239,
+      "type": "file"
+    },
+    {
+      "path": "docs/manual/20-vineyard-management.md",
+      "accessCount": 1,
+      "lastAccessed": 1792942788197,
+      "type": "file"
+    },
+    {
+      "path": "docs/manual/19-olive-management.md",
+      "accessCount": 1,
+      "lastAccessed": 1792942788609,
+      "type": "file"
+    },
+    {
+      "path": "docs/manual/18-orchard-management.md",
+      "accessCount": 1,
+      "lastAccessed": 1792942789034,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/narrazione-brevi-coltura-v1.txt",
+      "accessCount": 1,
+      "lastAccessed": 1792942951595,
+      "type": "file"
+    },
+    {
+      "path": "video-ortomio/riprese-stock-brevi-coltura-v1.md",
+      "accessCount": 1,
+      "lastAccessed": 1792943459121,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

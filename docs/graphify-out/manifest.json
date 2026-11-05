@@ -1,0 +1,608 @@
+{
+  "guides/help-resources.json": {
+    "mtime": 1768991194.0,
+    "seen": 1793026455.2690141,
+    "ast_hash": "dbbcf3083491f1927ab58a2bd0e7fbc0",
+    "semantic_hash": "dbbcf3083491f1927ab58a2bd0e7fbc0"
+  },
+  "guides/onboarding-tour.json": {
+    "mtime": 1768991168.0,
+    "seen": 1793026455.2690182,
+    "ast_hash": "98eac498f991477339e5b203684467a9",
+    "semantic_hash": "98eac498f991477339e5b203684467a9"
+  },
+  "reports/M06_REMOTE_MIGRATION_SNAPSHOT_2026-07-24.json": {
+    "mtime": 1784866768.996619,
+    "seen": 1793026455.269019,
+    "ast_hash": "b57bdce0f2a0556ea4085f3a079c3449",
+    "semantic_hash": "b57bdce0f2a0556ea4085f3a079c3449"
+  },
+  "video/.omc/state/idle-notif-cooldown.json": {
+    "mtime": 1792941551.2217407,
+    "seen": 1793026455.2690198,
+    "ast_hash": "bcefe212dcff282257dd6d3dec78ab9e",
+    "semantic_hash": "bcefe212dcff282257dd6d3dec78ab9e"
+  },
+  "video/.omc/state/sessions/077d1e92-2a8b-4eb1-8b76-4fae19bbcf24/pre-tool-advisory-throttle.json": {
+    "mtime": 1792941410.4094594,
+    "seen": 1793026455.2690198,
+    "ast_hash": "3dde4d42d4cd7512728214efd91395cb",
+    "semantic_hash": "3dde4d42d4cd7512728214efd91395cb"
+  },
+  "DOCUMENTO_COMMERCIALE_ORTOMIO_PRO_2026-08-15_APPROFONDITO.md": {
+    "mtime": 1787079757.9715447,
+    "seen": 1793026455.269021,
+    "ast_hash": "4a1ec1b5732411f4f3b4f46345f98864",
+    "semantic_hash": "4a1ec1b5732411f4f3b4f46345f98864"
+  },
+  "archive/README.md": {
+    "mtime": 1784292191.5101554,
+    "seen": 1793026455.269022,
+    "ast_hash": "ac2e6affc3359d3fb1b1859932990050",
+    "semantic_hash": "ac2e6affc3359d3fb1b1859932990050"
+  },
+  "gtm/00_PRINCIPI_VINCOLANTI.md": {
+    "mtime": 1787924546.8177176,
+    "seen": 1793026455.269022,
+    "ast_hash": "706fae664c764969e887dcbd9b949ddf",
+    "semantic_hash": "706fae664c764969e887dcbd9b949ddf"
+  },
+  "gtm/01_ANALISI_COMPETITIVA.md": {
+    "mtime": 1787926309.5424416,
+    "seen": 1793026455.269023,
+    "ast_hash": "0f619c21246583393878bfad805a6b21",
+    "semantic_hash": "0f619c21246583393878bfad805a6b21"
+  },
+  "gtm/02_BUYER_PERSONAS.md": {
+    "mtime": 1787924625.075278,
+    "seen": 1793026455.269023,
+    "ast_hash": "069d24fe80310445ab83be21c0c433e7",
+    "semantic_hash": "069d24fe80310445ab83be21c0c433e7"
+  },
+  "gtm/03_MATRICE_CLAIM.md": {
+    "mtime": 1787924650.1897175,
+    "seen": 1793026455.269023,
+    "ast_hash": "6c621034a19a9d32ad0a2b3f84b7765f",
+    "semantic_hash": "6c621034a19a9d32ad0a2b3f84b7765f"
+  },
+  "gtm/04_STRATEGIA_GTM.md": {
+    "mtime": 1787924711.6408782,
+    "seen": 1793026455.269024,
+    "ast_hash": "5193cd6784013521df1dfada6f7c716d",
+    "semantic_hash": "5193cd6784013521df1dfada6f7c716d"
+  },
+  "gtm/05_PIANO_MATERIALI.md": {
+    "mtime": 1787924730.8383305,
+    "seen": 1793026455.269024,
+    "ast_hash": "2cb62418c009a1249cd18a2b69729921",
+    "semantic_hash": "2cb62418c009a1249cd18a2b69729921"
+  },
+  "gtm/README.md": {
+    "mtime": 1787924546.7984107,
+    "seen": 1793026455.269025,
+    "ast_hash": "6758f2c37eb0e3fc926cf1e426b21bcf",
+    "semantic_hash": "6758f2c37eb0e3fc926cf1e426b21bcf"
+  },
+  "landing-media-sources.md": {
+    "mtime": 1787079757.9719133,
+    "seen": 1793026455.269025,
+    "ast_hash": "e835a664c039dfc7b67b9a7bcce10251",
+    "semantic_hash": "e835a664c039dfc7b67b9a7bcce10251"
+  },
+  "manual/01-ai-predictions.md": {
+    "mtime": 1784292191.5104187,
+    "seen": 1793026455.269026,
+    "ast_hash": "5003970eaf4828ca9878cec0a047e6e2",
+    "semantic_hash": "5003970eaf4828ca9878cec0a047e6e2"
+  },
+  "manual/02-drone-operations.md": {
+    "mtime": 1784292191.5107403,
+    "seen": 1793026455.269026,
+    "ast_hash": "a325de07c34f19d10fc77507f440ced7",
+    "semantic_hash": "a325de07c34f19d10fc77507f440ced7"
+  },
+  "manual/03-traceability.md": {
+    "mtime": 1784292191.5112283,
+    "seen": 1793026455.269027,
+    "ast_hash": "2546843fcf503710236003a9b408cca7",
+    "semantic_hash": "2546843fcf503710236003a9b408cca7"
+  },
+  "manual/04-certifications.md": {
+    "mtime": 1787079757.972837,
+    "seen": 1793026455.269027,
+    "ast_hash": "0c1f3214ead401696dbadd0f6201e54a",
+    "semantic_hash": "0c1f3214ead401696dbadd0f6201e54a"
+  },
+  "manual/04b-bio-certification-guide.md": {
+    "mtime": 1784292191.5118797,
+    "seen": 1793026455.269027,
+    "ast_hash": "85e71d68b88e021a5ce170046bf70c79",
+    "semantic_hash": "85e71d68b88e021a5ce170046bf70c79"
+  },
+  "manual/05-ndvi-satellite.md": {
+    "mtime": 1784292191.512389,
+    "seen": 1793026455.2690282,
+    "ast_hash": "028a9362231c3f320c2589ad4b37cc64",
+    "semantic_hash": "028a9362231c3f320c2589ad4b37cc64"
+  },
+  "manual/06-prescription-maps.md": {
+    "mtime": 1784292191.5127456,
+    "seen": 1793026455.2690282,
+    "ast_hash": "5be6b0acd89ea7cb4d9a82150889fb50",
+    "semantic_hash": "5be6b0acd89ea7cb4d9a82150889fb50"
+  },
+  "manual/07-ai-overview.md": {
+    "mtime": 1784292191.513106,
+    "seen": 1793026455.2690291,
+    "ast_hash": "611467c4cd15b70bd79039ff3f1701eb",
+    "semantic_hash": "611467c4cd15b70bd79039ff3f1701eb"
+  },
+  "manual/08-global-ai-chat.md": {
+    "mtime": 1782483161.8495593,
+    "seen": 1793026455.2690291,
+    "ast_hash": "7f8986564e33f25570d9c307ad3694a2",
+    "semantic_hash": "7f8986564e33f25570d9c307ad3694a2"
+  },
+  "manual/09-planner-ai-chat.md": {
+    "mtime": 1782483161.8498847,
+    "seen": 1793026455.2690299,
+    "ast_hash": "ff83de4cd2e3a07770ee508212945757",
+    "semantic_hash": "ff83de4cd2e3a07770ee508212945757"
+  },
+  "manual/10-activity-registry.md": {
+    "mtime": 1782483161.8501382,
+    "seen": 1793026455.2690299,
+    "ast_hash": "142606e358dee88e1b97ef4cc9e42082",
+    "semantic_hash": "142606e358dee88e1b97ef4cc9e42082"
+  },
+  "manual/11-agronomist-consultations.md": {
+    "mtime": 1782483161.8503766,
+    "seen": 1793026455.2690308,
+    "ast_hash": "9c8665d45d28fb1ab64075584515036b",
+    "semantic_hash": "9c8665d45d28fb1ab64075584515036b"
+  },
+  "manual/14-smart-hub.md": {
+    "mtime": 1784292191.513433,
+    "seen": 1793026455.2690308,
+    "ast_hash": "42f918bebbfc28b07e5fa89541b85b26",
+    "semantic_hash": "42f918bebbfc28b07e5fa89541b85b26"
+  },
+  "manual/15-irrigation-system.md": {
+    "mtime": 1787079757.9734929,
+    "seen": 1793026455.269032,
+    "ast_hash": "0d7836c7195b82b961bdfb9618598ed1",
+    "semantic_hash": "0d7836c7195b82b961bdfb9618598ed1"
+  },
+  "manual/16-nutrition-treatments.md": {
+    "mtime": 1787079757.9742885,
+    "seen": 1793026455.269032,
+    "ast_hash": "6349b1efcefcc534843ebbb615641a32",
+    "semantic_hash": "6349b1efcefcc534843ebbb615641a32"
+  },
+  "manual/17-mechanical-operations.md": {
+    "mtime": 1782483161.85173,
+    "seen": 1793026455.269032,
+    "ast_hash": "04cedbc63f47779e2b1bf6f665932a46",
+    "semantic_hash": "04cedbc63f47779e2b1bf6f665932a46"
+  },
+  "manual/18-orchard-management.md": {
+    "mtime": 1782483161.85205,
+    "seen": 1793026455.269033,
+    "ast_hash": "d3779637b96f553df85648525e608b6a",
+    "semantic_hash": "d3779637b96f553df85648525e608b6a"
+  },
+  "manual/19-olive-management.md": {
+    "mtime": 1787079757.9746444,
+    "seen": 1793026455.269033,
+    "ast_hash": "420c91a6e3d3a68f0961262a77e07c05",
+    "semantic_hash": "420c91a6e3d3a68f0961262a77e07c05"
+  },
+  "manual/20-vineyard-management.md": {
+    "mtime": 1787079757.974988,
+    "seen": 1793026455.269034,
+    "ast_hash": "c68262991e1a2ad77339f9ca1cd6b718",
+    "semantic_hash": "c68262991e1a2ad77339f9ca1cd6b718"
+  },
+  "manual/21-individual-plants.md": {
+    "mtime": 1784292191.5146325,
+    "seen": 1793026455.269034,
+    "ast_hash": "898e39a42d82f05c3fcdd3149887cff3",
+    "semantic_hash": "898e39a42d82f05c3fcdd3149887cff3"
+  },
+  "manual/22-business-intelligence.md": {
+    "mtime": 1782483161.8532617,
+    "seen": 1793026455.269035,
+    "ast_hash": "aedd6064c1268a6a42b68e703bde9718",
+    "semantic_hash": "aedd6064c1268a6a42b68e703bde9718"
+  },
+  "manual/23-export-system.md": {
+    "mtime": 1784292191.514884,
+    "seen": 1793026455.269035,
+    "ast_hash": "a3ad2a477fbac452accd70a87ad1d934",
+    "semantic_hash": "a3ad2a477fbac452accd70a87ad1d934"
+  },
+  "manual/24-sustainability.md": {
+    "mtime": 1782483161.8538315,
+    "seen": 1793026455.269036,
+    "ast_hash": "3b6e2db7857f15843ba227cc27e39911",
+    "semantic_hash": "3b6e2db7857f15843ba227cc27e39911"
+  },
+  "manual/25-research-development.md": {
+    "mtime": 1782483161.8540778,
+    "seen": 1793026455.269036,
+    "ast_hash": "29174730412beb5de79d7018d073c36c",
+    "semantic_hash": "29174730412beb5de79d7018d073c36c"
+  },
+  "manual/26-integration-api.md": {
+    "mtime": 1784292191.5151203,
+    "seen": 1793026455.269036,
+    "ast_hash": "8c36df205857c9be7429b72ca2c06970",
+    "semantic_hash": "8c36df205857c9be7429b72ca2c06970"
+  },
+  "manual/27-quick-start.md": {
+    "mtime": 1784292191.5153656,
+    "seen": 1793026455.269037,
+    "ast_hash": "7951205684975ef5e0026ff5505091c1",
+    "semantic_hash": "7951205684975ef5e0026ff5505091c1"
+  },
+  "manual/28-economic-benefits.md": {
+    "mtime": 1782483161.8549542,
+    "seen": 1793026455.269037,
+    "ast_hash": "5701c89b0962693aca67b530d45df379",
+    "semantic_hash": "5701c89b0962693aca67b530d45df379"
+  },
+  "manual/29-interface-navigation.md": {
+    "mtime": 1784292191.5156105,
+    "seen": 1793026455.269038,
+    "ast_hash": "38de77a17a9e5740d3a0f0561444637f",
+    "semantic_hash": "38de77a17a9e5740d3a0f0561444637f"
+  },
+  "manual/30-use-cases.md": {
+    "mtime": 1782483161.8552074,
+    "seen": 1793026455.269038,
+    "ast_hash": "dc75de110932d0bd088ba3a096aebfda",
+    "semantic_hash": "dc75de110932d0bd088ba3a096aebfda"
+  },
+  "manual/31-success-stories.md": {
+    "mtime": 1782483161.8554459,
+    "seen": 1793026455.2690392,
+    "ast_hash": "eb68499c3f1dc0997d0f8feaa1ebb21f",
+    "semantic_hash": "eb68499c3f1dc0997d0f8feaa1ebb21f"
+  },
+  "manual/32-roadmap.md": {
+    "mtime": 1784292191.5158658,
+    "seen": 1793026455.2690392,
+    "ast_hash": "d615b4e05b9e98f219918d094d163459",
+    "semantic_hash": "d615b4e05b9e98f219918d094d163459"
+  },
+  "manual/33-support-contacts.md": {
+    "mtime": 1782483161.8559496,
+    "seen": 1793026455.26904,
+    "ast_hash": "242386774a490ba525e697883b26d849",
+    "semantic_hash": "242386774a490ba525e697883b26d849"
+  },
+  "manual/34-director-orchestrator.md": {
+    "mtime": 1784292191.5161834,
+    "seen": 1793026455.26904,
+    "ast_hash": "b255393b990a483d61b5cd31bb3889b1",
+    "semantic_hash": "b255393b990a483d61b5cd31bb3889b1"
+  },
+  "manual/35-automated-diary.md": {
+    "mtime": 1784292191.5165043,
+    "seen": 1793026455.2690408,
+    "ast_hash": "f2910a71e69ad0a242aa8cb66a79894e",
+    "semantic_hash": "f2910a71e69ad0a242aa8cb66a79894e"
+  },
+  "manual/README.md": {
+    "mtime": 1784292191.5167637,
+    "seen": 1793026455.2690408,
+    "ast_hash": "b44f2293501a55373ecc358fda6e80ca",
+    "semantic_hash": "b44f2293501a55373ecc358fda6e80ca"
+  },
+  "reports/M06_MIGRATION_RUNBOOK_2026-07-24.md": {
+    "mtime": 1784866768.9970067,
+    "seen": 1793026455.2690408,
+    "ast_hash": "b88ec92b3e9cdfb98ef0752befa61581",
+    "semantic_hash": "b88ec92b3e9cdfb98ef0752befa61581"
+  },
+  "reports/M06_SUPABASE_REMOTE_AUDIT_2026-07-26.md": {
+    "mtime": 1785072123.6651568,
+    "seen": 1793026455.269042,
+    "ast_hash": "dd78f2fe9f661cb877d2feb796a1f5dd",
+    "semantic_hash": "dd78f2fe9f661cb877d2feb796a1f5dd"
+  },
+  "reports/M07_BACKUP_RESTORE_DRILL_2026-07-24.md": {
+    "mtime": 1784866854.7883143,
+    "seen": 1793026455.269042,
+    "ast_hash": "acda1358278f0c50ed9b1d1876edef8d",
+    "semantic_hash": "acda1358278f0c50ed9b1d1876edef8d"
+  },
+  "reports/M08_MULTI_CLIENT_RLS_MATRIX_2026-07-24.md": {
+    "mtime": 1784866925.6589925,
+    "seen": 1793026455.269043,
+    "ast_hash": "a27962d45768d1d3c51848d8468460b7",
+    "semantic_hash": "a27962d45768d1d3c51848d8468460b7"
+  },
+  "reports/M09_CANONICAL_PROVIDER_MAP_2026-07-24.md": {
+    "mtime": 1784870810.9456947,
+    "seen": 1793026455.269043,
+    "ast_hash": "4532e5d000e667c5a36b0f9dc2459ebd",
+    "semantic_hash": "4532e5d000e667c5a36b0f9dc2459ebd"
+  },
+  "reports/M10_NOTIFICATION_DELIVERY_GAPS_2026-07-24.md": {
+    "mtime": 1784871220.2380676,
+    "seen": 1793026455.269044,
+    "ast_hash": "66d05e0f676b508f0f9481cbbebf9669",
+    "semantic_hash": "66d05e0f676b508f0f9481cbbebf9669"
+  },
+  "reports/M11_CORE_OPERATIONAL_DAY_2026-07-24.md": {
+    "mtime": 1784874303.058688,
+    "seen": 1793026455.269044,
+    "ast_hash": "d2ecf9ebb7d699df7e1bcbe8dcc35081",
+    "semantic_hash": "d2ecf9ebb7d699df7e1bcbe8dcc35081"
+  },
+  "reports/M12_AGRONOMIC_PILOT_PROTOCOL_2026-07-24.md": {
+    "mtime": 1784875027.5781693,
+    "seen": 1793026455.269044,
+    "ast_hash": "420bcfd3913805655e9a51b57cccc173",
+    "semantic_hash": "420bcfd3913805655e9a51b57cccc173"
+  },
+  "reports/M13_PROVIDER_SMOKE_2026-07-24.md": {
+    "mtime": 1784867365.3206153,
+    "seen": 1793026455.2690449,
+    "ast_hash": "16c1c57f8ea02c81f59c942c8a357f50",
+    "semantic_hash": "16c1c57f8ea02c81f59c942c8a357f50"
+  },
+  "reports/M14_AI_SHADOW_VALIDATION_2026-07-24.md": {
+    "mtime": 1784867396.6050792,
+    "seen": 1793026455.2690449,
+    "ast_hash": "8f86fb245c3b6f4d3b3afa30c9d5193d",
+    "semantic_hash": "8f86fb245c3b6f4d3b3afa30c9d5193d"
+  },
+  "reports/M15_COMMERCIAL_LIFECYCLE_GAPS_2026-07-24.md": {
+    "mtime": 1785061584.3669736,
+    "seen": 1793026455.269046,
+    "ast_hash": "c6a12f0f1e2fda5ee4540db016dc6195",
+    "semantic_hash": "c6a12f0f1e2fda5ee4540db016dc6195"
+  },
+  "reports/M15_PRODUCTION_MIGRATION_APPLY_2026-07-26.md": {
+    "mtime": 1785072076.9970832,
+    "seen": 1793026455.269046,
+    "ast_hash": "3a011403d453eee348e6dccc4d8cadfe",
+    "semantic_hash": "3a011403d453eee348e6dccc4d8cadfe"
+  },
+  "reports/M16_GO_NO_GO_2026-07-26.md": {
+    "mtime": 1785072123.6654007,
+    "seen": 1793026455.269047,
+    "ast_hash": "e3512ec92581c4daea97e92a22845884",
+    "semantic_hash": "e3512ec92581c4daea97e92a22845884"
+  },
+  "reports/P0_BASELINE_INVENTORY_2026-07-16.md": {
+    "mtime": 1784292191.517361,
+    "seen": 1793026455.269047,
+    "ast_hash": "dd0f7f9ed6309c91955f252319774666",
+    "semantic_hash": "dd0f7f9ed6309c91955f252319774666"
+  },
+  "reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5177116,
+    "seen": 1793026455.269047,
+    "ast_hash": "8ff04ad2c8f3ec1f482043adc45d64ad",
+    "semantic_hash": "8ff04ad2c8f3ec1f482043adc45d64ad"
+  },
+  "reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5179596,
+    "seen": 1793026455.269048,
+    "ast_hash": "a52f93e9abad13890befc697b0e76c5a",
+    "semantic_hash": "a52f93e9abad13890befc697b0e76c5a"
+  },
+  "reports/P4_PHYSICAL_OPERATIONS_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.518291,
+    "seen": 1793026455.269048,
+    "ast_hash": "f83c2f170d3a238a7ffeb5fa5ba7a83c",
+    "semantic_hash": "f83c2f170d3a238a7ffeb5fa5ba7a83c"
+  },
+  "reports/P5_HEALTH_PREDICTIONS_MONITORING_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5185401,
+    "seen": 1793026455.2690492,
+    "ast_hash": "7d9d17b017e473f7e9097acbe804ed5d",
+    "semantic_hash": "7d9d17b017e473f7e9097acbe804ed5d"
+  },
+  "reports/P6_REMOTE_DATA_DEMO_ISOLATION_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5187874,
+    "seen": 1793026455.2690492,
+    "ast_hash": "174b2cc7bfb1d22a01ae1c8bbf3807b6",
+    "semantic_hash": "174b2cc7bfb1d22a01ae1c8bbf3807b6"
+  },
+  "reports/P7_CERTIFICATIONS_EXPORT_ADMIN_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5190332,
+    "seen": 1793026455.2690501,
+    "ast_hash": "043023a112d94bf6197f7551379c28cc",
+    "semantic_hash": "043023a112d94bf6197f7551379c28cc"
+  },
+  "reports/P8_ROLLOUT_OBSERVABILITY_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.5192733,
+    "seen": 1793026455.2690501,
+    "ast_hash": "40cc9b4bf2e6a6871b0f52797953bdfa",
+    "semantic_hash": "40cc9b4bf2e6a6871b0f52797953bdfa"
+  },
+  "reports/P9_DOCUMENTATION_ALIGNMENT_EVIDENCE_2026-07-17.md": {
+    "mtime": 1784292191.519515,
+    "seen": 1793026455.2690508,
+    "ast_hash": "cacf7799372743fdfb7c74c4fd674c43",
+    "semantic_hash": "cacf7799372743fdfb7c74c4fd674c43"
+  },
+  "reports/P9_DOCUMENT_HYGIENE_REPORT_2026-07-17.md": {
+    "mtime": 1784292191.5203393,
+    "seen": 1793026455.2690508,
+    "ast_hash": "cb30b01b7af3be407ec03875611378a2",
+    "semantic_hash": "cb30b01b7af3be407ec03875611378a2"
+  },
+  "reports/T01_LINT_DEBT_BASELINE_2026-07-24.md": {
+    "mtime": 1786843284.851106,
+    "seen": 1793026455.2690508,
+    "ast_hash": "58975dc943affa54257b626d3ea63a2b",
+    "semantic_hash": "58975dc943affa54257b626d3ea63a2b"
+  },
+  "reports/execution-plans/ORTOMIO_PIANO_ESECUTIVO_COMPLETAMENTO_2026-07-16.md": {
+    "mtime": 1784292191.520823,
+    "seen": 1793026455.2690518,
+    "ast_hash": "17e6265ce18ade19e6f00aa4ff5b9774",
+    "semantic_hash": "17e6265ce18ade19e6f00aa4ff5b9774"
+  },
+  "reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md": {
+    "mtime": 1787079757.976639,
+    "seen": 1793026455.2690518,
+    "ast_hash": "3afd96bee920cae939133da2e6ed9503",
+    "semantic_hash": "3afd96bee920cae939133da2e6ed9503"
+  },
+  "reports/execution-plans/ORTOMIO_ROADMAP_INDUSTRIALIZZAZIONE_2026-07-22.md": {
+    "mtime": 1784865867.437619,
+    "seen": 1793026455.269053,
+    "ast_hash": "6d0a896531d08c37c5c0ce0fb49752aa",
+    "semantic_hash": "6d0a896531d08c37c5c0ce0fb49752aa"
+  },
+  "security/API_CAPABILITY_MATRIX.md": {
+    "mtime": 1784292191.5215101,
+    "seen": 1793026455.269053,
+    "ast_hash": "0cc4a9b1e647a42e54b2ef19546e28ae",
+    "semantic_hash": "0cc4a9b1e647a42e54b2ef19546e28ae"
+  },
+  "security/P1_SECURITY_REMEDIATION_2026-07-17.md": {
+    "mtime": 1784292191.521747,
+    "seen": 1793026455.269054,
+    "ast_hash": "4122c1e361512e3f125058eba5d876cf",
+    "semantic_hash": "4122c1e361512e3f125058eba5d876cf"
+  },
+  "security/SUPABASE_SECURITY_ADVISOR_2026-07-16.md": {
+    "mtime": 1784292191.522011,
+    "seen": 1793026455.269054,
+    "ast_hash": "771379382feb82c98573148003c6ccd9",
+    "semantic_hash": "771379382feb82c98573148003c6ccd9"
+  },
+  "superpowers/plans/2026-07-23-vineyard-bulk-vine-creation.md": {
+    "mtime": 1784865867.4378598,
+    "seen": 1793026455.269055,
+    "ast_hash": "62b0bab382cd66b8962e932c14dc05dc",
+    "semantic_hash": "62b0bab382cd66b8962e932c14dc05dc"
+  },
+  "superpowers/plans/2026-07-25-environmental-planning-restoration.md": {
+    "mtime": 1785052946.6828032,
+    "seen": 1793026455.269055,
+    "ast_hash": "0073b485d5ea1c077882f3388f43f33f",
+    "semantic_hash": "0073b485d5ea1c077882f3388f43f33f"
+  },
+  "superpowers/plans/2026-07-31-altitude-in-prediction-engine.md": {
+    "mtime": 1787079757.9778218,
+    "seen": 1793026455.269056,
+    "ast_hash": "315bcb9b33b6ce9a58dfa3031b37cbe8",
+    "semantic_hash": "315bcb9b33b6ce9a58dfa3031b37cbe8"
+  },
+  "superpowers/plans/2026-07-31-annual-plan-real-wiring.md": {
+    "mtime": 1787079757.9782238,
+    "seen": 1793026455.269056,
+    "ast_hash": "b92efc2f4e5f354a68b472c773659e50",
+    "semantic_hash": "b92efc2f4e5f354a68b472c773659e50"
+  },
+  "superpowers/plans/2026-07-31-vineyard-irrigation-defaults.md": {
+    "mtime": 1787079757.9795163,
+    "seen": 1793026455.269056,
+    "ast_hash": "9b3de96e3002d94581a345efea6156eb",
+    "semantic_hash": "9b3de96e3002d94581a345efea6156eb"
+  },
+  "superpowers/plans/2026-08-15-landing-page-refactor.md": {
+    "mtime": 1787079757.9807522,
+    "seen": 1793026455.269057,
+    "ast_hash": "c610c375d79e7342bab75ef5220820c0",
+    "semantic_hash": "c610c375d79e7342bab75ef5220820c0"
+  },
+  "superpowers/plans/2026-08-15-ortomio-differentiated-ai-positioning.md": {
+    "mtime": 1787079757.981403,
+    "seen": 1793026455.269058,
+    "ast_hash": "c2df85fbe154bc2d8762c4dcda9aef2a",
+    "semantic_hash": "c2df85fbe154bc2d8762c4dcda9aef2a"
+  },
+  "superpowers/plans/2026-08-15-ortomio-landing-page.md": {
+    "mtime": 1787079757.9824598,
+    "seen": 1793026455.269058,
+    "ast_hash": "43a359da54910dcd475c3a71682c3804",
+    "semantic_hash": "43a359da54910dcd475c3a71682c3804"
+  },
+  "superpowers/plans/2026-08-15-ortomio-premium-site-redesign.md": {
+    "mtime": 1787079757.9828606,
+    "seen": 1793026455.2690592,
+    "ast_hash": "8d1c8b280c72d819c0a580fbb196fa67",
+    "semantic_hash": "8d1c8b280c72d819c0a580fbb196fa67"
+  },
+  "superpowers/reports/2026-08-15-landing-page-impeccable-critique.md": {
+    "mtime": 1787079757.9836943,
+    "seen": 1793026455.2690592,
+    "ast_hash": "cd4415d03172d5e7cbbe817935acbcc0",
+    "semantic_hash": "cd4415d03172d5e7cbbe817935acbcc0"
+  },
+  "superpowers/specs/2026-07-25-environmental-planning-restoration-design.md": {
+    "mtime": 1785052946.6835716,
+    "seen": 1793026455.2690592,
+    "ast_hash": "5939395d4437392401b334428912e977",
+    "semantic_hash": "5939395d4437392401b334428912e977"
+  },
+  "superpowers/specs/2026-07-31-altitude-in-prediction-engine-design.md": {
+    "mtime": 1787079757.9842484,
+    "seen": 1793026455.2690601,
+    "ast_hash": "b8e626e9f64619198a0daf06d3c178c7",
+    "semantic_hash": "b8e626e9f64619198a0daf06d3c178c7"
+  },
+  "superpowers/specs/2026-07-31-annual-plan-real-wiring-design.md": {
+    "mtime": 1787079757.984808,
+    "seen": 1793026455.269061,
+    "ast_hash": "d64a44823bd71ceb44026a813394143d",
+    "semantic_hash": "d64a44823bd71ceb44026a813394143d"
+  },
+  "superpowers/specs/2026-07-31-vineyard-irrigation-defaults-design.md": {
+    "mtime": 1787079757.9851327,
+    "seen": 1793026455.269061,
+    "ast_hash": "bdcc3a482bf586d830f91927d1b45b5c",
+    "semantic_hash": "bdcc3a482bf586d830f91927d1b45b5c"
+  },
+  "superpowers/specs/2026-08-15-ortomio-differentiated-ai-positioning-design.md": {
+    "mtime": 1787079757.9853945,
+    "seen": 1793026455.2690618,
+    "ast_hash": "b92ff7925b923b635991276ad4acc365",
+    "semantic_hash": "b92ff7925b923b635991276ad4acc365"
+  },
+  "superpowers/specs/2026-08-15-ortomio-landing-copy-design.md": {
+    "mtime": 1787079757.985764,
+    "seen": 1793026455.2690618,
+    "ast_hash": "dadada3d9cca2d574d7745c1dd742051",
+    "semantic_hash": "dadada3d9cca2d574d7745c1dd742051"
+  },
+  "superpowers/specs/2026-08-15-ortomio-premium-site-redesign-design.md": {
+    "mtime": 1787079757.9868343,
+    "seen": 1793026455.2690618,
+    "ast_hash": "ddb249e339fa6c771826720e57a55252",
+    "semantic_hash": "ddb249e339fa6c771826720e57a55252"
+  },
+  "superpowers/specs/2026-08-15-ortomio-site-implementation-brief.md": {
+    "mtime": 1787079757.9872036,
+    "seen": 1793026455.269063,
+    "ast_hash": "f614e58c0831e9ffd493724eab8f1470",
+    "semantic_hash": "f614e58c0831e9ffd493724eab8f1470"
+  },
+  "superpowers/specs/2026-08-19-landing-concept-orchestratore.md": {
+    "mtime": 1787123452.4291887,
+    "seen": 1793026455.269063,
+    "ast_hash": "9eb0869407a56161ba4201c36724dd37",
+    "semantic_hash": "9eb0869407a56161ba4201c36724dd37"
+  },
+  "video/BRIEF_VIDEO_ORTOMIO_2026-10-25.md": {
+    "mtime": 1792945595.8398783,
+    "seen": 1793026455.269064,
+    "ast_hash": "50f56c3bc7bae680a067398b0c9b4ee1",
+    "semantic_hash": "50f56c3bc7bae680a067398b0c9b4ee1"
+  },
+  "gtm/ORTOMIO_SWOT_E_BENEFICI_2026-08-28.pdf": {
+    "mtime": 1787927774.5436366,
+    "seen": 1793026455.269064,
+    "ast_hash": "2d284f30b17dcbd7c4f1ef23c683ae94",
+    "semantic_hash": "2d284f30b17dcbd7c4f1ef23c683ae94"
+  }
+}

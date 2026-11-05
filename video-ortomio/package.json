@@ -9,6 +9,7 @@
   },
   "private": true,
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.74.0",
     "@remotion/cli": "4.0.536",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -26,7 +27,8 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src && tsc",
+    "voice:pilota": "node --env-file=.env.local scripts/generate_voice.mjs narrazione-pilota-aspettativa-v1.txt public/audio/adriatico/aspettativa-v1.mp3"
   },
   "allowScripts": {
     "esbuild": false
