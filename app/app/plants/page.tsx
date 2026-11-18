@@ -11,6 +11,7 @@ import SaplingDashboard from '@/components/seedbank/SaplingDashboard'
 import SeedlingDashboard from '@/components/seedling/SeedlingDashboard'
 import PlantingScheduler from '@/components/seedling/PlantingScheduler'
 import SmartPlantManager from '@/components/plants/SmartPlantManager'
+import AddIndividualPlantModal from '@/components/plants/AddIndividualPlantModal'
 import Link from 'next/link'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
 
@@ -24,6 +25,10 @@ export default function PlantsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('plants')
   const [showGardenWizard, setShowGardenWizard] = useState(false)
+  const [showAddPlant, setShowAddPlant] = useState(false)
+  const [plantRefresh, setPlantRefresh] = useState(0)
+  const [loadError, setLoadError] = useState('')
+  const [retry, setRetry] = useState(0)
 
   // URL parameters
   const gardenParam = searchParams.get('garden')
@@ -32,16 +37,19 @@ export default function PlantsPage() {
   const shouldCreate = searchParams.get('create') === 'true'
   const plantNameParam = searchParams.get('plant')
   const varietyParam = searchParams.get('variety')
-  const initialPlantName = plantNameParam ? decodeURIComponent(plantNameParam) : undefined
-  const initialVariety = varietyParam ? decodeURIComponent(varietyParam) : undefined
+  const initialPlantName = plantNameParam || undefined
+  const initialVariety = varietyParam || undefined
 
   useEffect(() => {
+    let active = true
     const loadData = async () => {
+      setLoading(true); setLoadError('')
       try {
         const [loadedGardens, loadedTasks] = await Promise.all([
           storageProvider.getGardens(),
           storageProvider.getTasks()
         ])
+        if (!active) return
         setGardens(loadedGardens)
         setTasks(loadedTasks)
         
@@ -51,14 +59,15 @@ export default function PlantsPage() {
         } else if (tabParam && ['plants', 'seeds', 'seedlings', 'saplings', 'trees'].includes(tabParam)) {
           setActiveTab(tabParam)
         }
-      } catch (error) {
-        console.error('Error loading data:', error)
+      } catch {
+        if (active) setLoadError('Impossibile caricare terreni e piante. Controlla la connessione e riprova.')
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
     loadData()
-  }, [storageProvider, tabParam, fieldRowParam])
+    return () => { active = false }
+  }, [storageProvider, tabParam, fieldRowParam, retry])
 
   const handleUpdateTask = async (updatedTask: GardenTask) => {
     try {
@@ -78,8 +87,11 @@ export default function PlantsPage() {
   }
 
   const activeGarden = gardenParam
-    ? gardens.find(g => g.id === gardenParam) || gardens[0]
+    ? gardens.find(g => g.id === gardenParam)
     : gardens[0]
+
+  if (loadError) return <div role="alert" className="m-6 rounded-lg bg-red-50 p-4 text-red-800">{loadError} <button onClick={() => setRetry(value => value + 1)} className="underline">Riprova</button></div>
+  if (gardenParam && !activeGarden) return <div role="alert" className="m-6 rounded-lg border p-4">Il terreno richiesto non è disponibile per questo account. <Link className="underline" href="/app/settings?section=gardens">Apri I Miei Orti</Link></div>
 
   if (!activeGarden) {
     return (
@@ -127,6 +139,8 @@ export default function PlantsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showAddPlant && <AddIndividualPlantModal garden={activeGarden} initialRowId={fieldRowParam || undefined}
+        onClose={() => setShowAddPlant(false)} onCreated={() => { setShowAddPlant(false); setActiveTab('plants'); setPlantRefresh(value => value + 1) }} />}
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-6">
         <div className="max-w-7xl mx-auto">
@@ -159,13 +173,13 @@ export default function PlantsPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Link
-                href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
+              <button
+                onClick={() => setShowAddPlant(true)}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
               >
                 <Plus size={16} />
                 Aggiungi Pianta
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -293,19 +307,19 @@ export default function PlantsPage() {
                     <p className="text-gray-600 mt-1">Sistema avanzato per tracciare ogni singola pianta</p>
                   </div>
                   <div className="flex gap-3">
-                    <Link
-                      href={`/app/garden?tab=plants&garden=${activeGarden.id}`}
+                    <button
+                      onClick={() => setShowAddPlant(true)}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
                       <Plus size={16} />
                       Aggiungi Pianta
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
               
               {/* Smart Plant Manager Component */}
-              <SmartPlantManager 
+              <SmartPlantManager key={`${activeGarden.id}-${plantRefresh}`}
                 garden={activeGarden} 
                 fieldRow={fieldRowParam || undefined}
               />

@@ -21,6 +21,7 @@ import type {
 import type { PrescriptionAgronomicIntelligenceSummary } from '../../services/prescriptionAgronomicIntelligenceService';
 import ZoneManagementPanel from './ZoneManagementPanel';
 import MapExportModal from './MapExportModal';
+import MapPreviewModal from './MapPreviewModal';
 import HistoricalComparisonPanel from './HistoricalComparisonPanel';
 import CostOptimizationPanel from './CostOptimizationPanel';
 import PrescriptionMapsIntro from './PrescriptionMapsIntro';
@@ -72,6 +73,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
   const [showIntro, setShowIntro] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showZoneManagement, setShowZoneManagement] = useState(false);
   const [showHistoricalComparison, setShowHistoricalComparison] = useState(false);
   const [showCostOptimization, setShowCostOptimization] = useState(false);
@@ -155,14 +157,17 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
       setGenerating(true);
       setGenerationProgress(0);
       
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setGenerationProgress(prev => Math.min(prev + 10, 90));
       }, 500);
       
-      const result = await prescriptionService.generatePrescriptionMap(request);
+      let result;
+      try {
+        result = await prescriptionService.generatePrescriptionMap(request);
+      } finally {
+        clearInterval(progressInterval);
+      }
       
-      clearInterval(progressInterval);
       setGenerationProgress(100);
       
       if (result.success) {
@@ -448,8 +453,8 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
                     
                     <button
                       onClick={() => {
-                        // TODO: Implement map preview
-                        alert('Anteprima mappa - funzionalità in sviluppo');
+                        setSelectedMap(map);
+                        setShowPreviewModal(true);
                       }}
                       className="p-3 text-green-600 hover:text-green-900 hover:bg-green-100 rounded-lg transition-colors"
                       title="Anteprima"
@@ -712,6 +717,7 @@ const PrescriptionMapsDashboard: React.FC<PrescriptionMapsDashboardProps> = ({ g
         />
       )}
 
+      {showPreviewModal && selectedMap && <MapPreviewModal map={selectedMap} onClose={() => setShowPreviewModal(false)} />}
       {showExportModal && selectedMap && (
         <MapExportModal
           prescriptionMap={selectedMap}
@@ -782,10 +788,10 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
     name: '',
     description: '',
     dataSources: {
-      ndviWeight: 0.4,
-      plantHealthWeight: 0.3,
-      soilWeight: 0.2,
-      historicalWeight: 0.1
+      ndviWeight: 1,
+      plantHealthWeight: 0,
+      soilWeight: 0,
+      historicalWeight: 0
     },
     zoneConfig: {
       minZoneSize: 500,
@@ -800,7 +806,7 @@ const CreatePrescriptionMapModal: React.FC<CreatePrescriptionMapModalProps> = ({
       variableRateEnabled: true,
       maxVariation: 30
     },
-    exportFormats: ['shapefile', 'kml'],
+    exportFormats: ['geojson'],
     analysisPeriod: {
       startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0]

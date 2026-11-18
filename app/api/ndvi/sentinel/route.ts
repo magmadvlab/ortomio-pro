@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+import { copernicusToken } from '@/services/copernicusAuth.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { accessErrorResponse, requireGardenAccess } from '@/lib/auth.server'
 import { requireSupabase } from '@/lib/supabase-server'
@@ -41,13 +41,9 @@ export async function POST(request: NextRequest) {
     const to = isoBoundary(body?.dateTo, now, true)
     if (new Date(from) >= new Date(to)) return NextResponse.json({ error: 'invalid_time_range' }, { status: 400 })
     const cloudCoverage = Math.max(0, Math.min(100, Number(body?.cloudCoverage ?? 20)))
-    const tokenResponse = await fetch('https://sh.dataspace.copernicus.eu/oauth/token', {
-      method: 'POST',
-      headers: { Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'grant_type=client_credentials',
-    })
-    if (!tokenResponse.ok) return NextResponse.json({ status: 'unavailable', sourceKind: 'fallback', error: 'sentinel_auth_failed' }, { status: 502 })
-    const token = await tokenResponse.json()
+    let token: string
+    try { token = await copernicusToken(clientId, clientSecret) }
+    catch { return NextResponse.json({ status: 'unavailable', sourceKind: 'fallback', error: 'sentinel_auth_failed' }, { status: 502 }) }
     const providerRequest = {
       input: {
         bounds: { bbox: [bbox.west, bbox.south, bbox.east, bbox.north], properties: { crs: 'http://www.opengis.net/def/crs/EPSG/0/4326' } },
@@ -57,7 +53,7 @@ export async function POST(request: NextRequest) {
       calculations: { ndvi: {} },
     }
     const statsResponse = await fetch('https://sh.dataspace.copernicus.eu/api/v1/statistics', {
-      method: 'POST', headers: { Authorization: `Bearer ${token.access_token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(providerRequest),
     })
     if (!statsResponse.ok) return NextResponse.json({ status: 'unavailable', sourceKind: 'fallback', error: 'sentinel_statistics_failed', providerStatus: statsResponse.status }, { status: 502 })

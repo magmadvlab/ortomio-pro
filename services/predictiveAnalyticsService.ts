@@ -346,7 +346,7 @@ export async function predictYield(
   task: GardenTask,
   masterData: PlantMasterSheet,
   garden: PredictiveGardenContext,
-  historicalHarvests: HarvestLogData[],
+  historicalHarvests: Pick<HarvestLogData, 'plantName' | 'date' | 'quantity' | 'unit'>[],
   currentDate: Date = new Date(),
   options: PredictiveEnvironmentalOptions = {}
 ): Promise<YieldPrediction> {
@@ -360,14 +360,14 @@ export async function predictYield(
   )
   
   // Calcola resa storica media per questa pianta
-  const plantHarvests = historicalHarvests.filter(h => h.plantName === task.plantName);
+  const plantHarvests = historicalHarvests.filter(h => h.plantName === task.plantName && ['kg', 'g'].includes(h.unit) && Number.isFinite(h.quantity) && h.quantity >= 0 && Number.isFinite(Date.parse(h.date)) && Date.parse(h.date) <= currentDate.getTime());
   let historicalAverage: number | undefined;
   if (plantHarvests.length > 0) {
     const totalKg = plantHarvests.reduce((sum, h) => {
       let kg = 0;
       if (h.unit === 'kg') kg = h.quantity;
       else if (h.unit === 'g') kg = h.quantity / 1000;
-      else kg = h.quantity * 0.1;
+      // Counts cannot be converted to mass without a measured per-unit weight.
       return sum + kg;
     }, 0);
     historicalAverage = totalKg / plantHarvests.length;
@@ -405,7 +405,7 @@ export async function predictYield(
   let predictedYield = baseYield;
   
   // Aggiusta per resa storica se disponibile
-  if (historicalAverage) {
+  if (historicalAverage !== undefined) {
     predictedYield = (predictedYield + historicalAverage) / 2;
   }
   
@@ -430,7 +430,7 @@ export async function predictYield(
   
   // Confidence
   let confidence = 0.6;
-  if (historicalAverage) confidence = 0.75;
+  if (historicalAverage !== undefined) confidence = 0.75;
   if (currentPhase === 'Production') confidence = 0.8;
   if (environmentalSummary) confidence = Math.min(0.88, confidence + 0.05)
 

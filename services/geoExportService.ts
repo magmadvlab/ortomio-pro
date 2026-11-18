@@ -10,6 +10,7 @@ import {
   MachineryCompatibility
 } from '../types/prescriptionMaps';
 import type { IStorageProvider } from '../packages/core/storage/interface';
+import { encodePrescriptionShapefile, transformPrescriptionZones } from '@/lib/prescription/geoEncoding';
 
 export interface ExportResult {
   success: boolean;
@@ -101,7 +102,8 @@ export class GeoExportService {
 
       // Transform coordinates if needed
       const transformedZones = await this.transformCoordinates(
-        prescriptionMap.zones
+        prescriptionMap.zones,
+        config
       );
 
       let result: ExportResult;
@@ -176,11 +178,11 @@ export class GeoExportService {
       
       // Create ZIP archive with all components
       const zipBuffer = await this.createZipArchive({
-        [`${prescriptionMap.name}.shp`]: components.shp,
-        [`${prescriptionMap.name}.shx`]: components.shx,
-        [`${prescriptionMap.name}.dbf`]: components.dbf,
-        [`${prescriptionMap.name}.prj`]: new TextEncoder().encode(components.prj).buffer as ArrayBuffer,
-        ...(components.cpg && { [`${prescriptionMap.name}.cpg`]: new TextEncoder().encode(components.cpg).buffer as ArrayBuffer })
+        [`${this.sanitizeFileName(prescriptionMap.name)}.shp`]: components.shp,
+        [`${this.sanitizeFileName(prescriptionMap.name)}.shx`]: components.shx,
+        [`${this.sanitizeFileName(prescriptionMap.name)}.dbf`]: components.dbf,
+        [`${this.sanitizeFileName(prescriptionMap.name)}.prj`]: new TextEncoder().encode(components.prj).buffer as ArrayBuffer,
+        ...(components.cpg && { [`${this.sanitizeFileName(prescriptionMap.name)}.cpg`]: new TextEncoder().encode(components.cpg).buffer as ArrayBuffer })
       });
       
       // Save to storage
@@ -322,12 +324,6 @@ export class GeoExportService {
       const geoJson = {
         type: 'FeatureCollection',
         name: prescriptionMap.name,
-        crs: {
-          type: 'name',
-          properties: {
-            name: this.getGeoJSONCRS(config.coordinateSystem)
-          }
-        },
         features: zones.map(zone => ({
           type: 'Feature',
           properties: {
@@ -552,20 +548,17 @@ export class GeoExportService {
   }
 
   private async transformCoordinates(
-    zones: PrescriptionZone[]
+    zones: PrescriptionZone[],
+    config: ExportConfiguration
   ): Promise<PrescriptionZone[]> {
-    // For now, return zones as-is (WGS84)
-    // In production, would implement coordinate transformation
-    return zones;
+    return transformPrescriptionZones(zones, config);
   }
 
   private async generateShapefileComponents(
     zones: PrescriptionZone[],
     config: ExportConfiguration
   ): Promise<ShapefileComponents> {
-    throw new Error(
-      `Shapefile export requires an audited binary encoder (${zones.length} zones, ${config.coordinateSystem})`
-    );
+    return encodePrescriptionShapefile(zones, config);
   }
 
   private generateKMLDocument(
@@ -738,33 +731,6 @@ export class GeoExportService {
 
   private sanitizeFileName(name: string): string {
     return name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
-  }
-
-  private getProjectionString(coordinateSystem: string, utmZone?: string): string {
-    switch (coordinateSystem) {
-      case 'WGS84':
-        return 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]';
-      case 'UTM':
-        return `PROJCS["WGS 84 / UTM zone ${utmZone}",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",${this.getUTMCentralMeridian(utmZone || '33N')}],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1]]`;
-      default:
-        return 'GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]';
-    }
-  }
-
-  private getUTMCentralMeridian(utmZone: string): number {
-    const zoneNumber = parseInt(utmZone.replace(/[NS]/, ''));
-    return (zoneNumber - 1) * 6 - 180 + 3;
-  }
-
-  private getGeoJSONCRS(coordinateSystem: string): string {
-    switch (coordinateSystem) {
-      case 'WGS84':
-        return 'urn:ogc:def:crs:OGC:1.3:CRS84';
-      case 'UTM':
-        return 'urn:ogc:def:crs:EPSG::32633'; // Example UTM zone
-      default:
-        return 'urn:ogc:def:crs:OGC:1.3:CRS84';
-    }
   }
 
   private formatCoordinate(coordinate: number, format: string): string {

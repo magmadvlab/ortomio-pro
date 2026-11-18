@@ -1,47 +1,17 @@
-import { GoogleGenerativeAI, type GenerateContentRequest } from '@google/generative-ai';
 import { isApiKeyConfigured } from "./geminiService";
 import { findAltitudeByComune, findAltitudeByCoordinates } from "../data/italianComunesAltitude";
 
-// Support both Next.js and Vite environments
-// In Next.js, use process.env.NEXT_PUBLIC_* for client-side
-// In Vite, use import.meta.env.VITE_* (but this file should work in Next.js)
-interface ViteEnvGlobal {
-  __VITE_ENV__?: { VITE_GEMINI_API_KEY?: string };
+// Provider credentials remain on the server; reuse the authenticated AI proxy.
+const generateGeoClimateContent = async (request: { model: string; contents: string; config?: Record<string, unknown> }): Promise<{ text: string }> => {
+  const response = await fetch('/api/ai/generate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...request, feature: 'advanced_analysis' }),
+  })
+  if (!response.ok) throw new Error('Geo-climate AI request unavailable')
+  const result = await response.json()
+  if (typeof result.text !== 'string') throw new Error('Invalid geo-climate response')
+  return { text: result.text }
 }
-
-const getApiKey = () => {
-  if (typeof window !== 'undefined') {
-    // Client-side: Next.js or Vite
-    const viteEnv = (globalThis as ViteEnvGlobal).__VITE_ENV__;
-    return process.env.NEXT_PUBLIC_GEMINI_API_KEY || viteEnv?.VITE_GEMINI_API_KEY;
-  } else {
-    // Server-side: Next.js only
-    return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  }
-};
-
-const apiKey = getApiKey();
-const ai = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-
-const generateGeoClimateContent = async (request: {
-  model: string;
-  contents: string;
-  config?: Record<string, unknown>;
-}): Promise<{ text: string }> => {
-  if (!ai) {
-    throw new Error('AI client not available');
-  }
-
-  const modelClient = ai.getGenerativeModel({ model: request.model });
-  const result = await modelClient.generateContent({
-    contents: request.contents,
-    generationConfig: request.config,
-  } as unknown as GenerateContentRequest);
-
-  return {
-    text: result.response.text() || '',
-  };
-};
 
 export interface GeoClimateInfo {
   altitude: number; // Metri sul livello del mare
@@ -308,9 +278,6 @@ Fornisci informazioni geoclimatiche accurate per questa zona:
 
 IMPORTANTE: L'altitudine deve essere quella del centro abitato più vicino, non la media della zona collinare circostante.`;
 
-    if (!ai) {
-      throw new Error('AI client not available');
-    }
     
     const result = await generateGeoClimateContent({
       model: "gemini-2.0-flash-exp",
@@ -408,7 +375,7 @@ const checkApiAvailable = (): boolean => {
   if (!isApiKeyConfigured()) {
     return false;
   }
-  return ai !== null;
+  return true;
 };
 
 // Funzioni calculateAltitudeDelay e adjustPlantingDates sono state spostate in utils/altitudeUtils.ts

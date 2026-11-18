@@ -3,7 +3,7 @@
  * Pannello per gestione avanzata delle zone prescription maps
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   PrescriptionMap, 
   PrescriptionZone,
@@ -55,13 +55,14 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   onUpdate
 }) => {
   const { storageProvider } = useStorage();
-  const zoneService = createZoneManagementService(storageProvider);
-  const prescriptionService = createPrescriptionMapsService(storageProvider);
+  const zoneService = useMemo(() => createZoneManagementService(storageProvider), [storageProvider]);
+  const prescriptionService = useMemo(() => createPrescriptionMapsService(storageProvider), [storageProvider]);
   
   // State
   const [zones, setZones] = useState<PrescriptionZone[]>(prescriptionMap.zones);
   const [selectedZone, setSelectedZone] = useState<PrescriptionZone | null>(null);
   const [zoneAnalysis, setZoneAnalysis] = useState<ZoneAnalysis | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [executionSummary, setExecutionSummary] = useState<PrescriptionExecutionSummary | null>(null);
   const [executionVarianceSummary, setExecutionVarianceSummary] = useState<PrescriptionExecutionVarianceSummary | null>(null);
   const [executionOutcomeSummary, setExecutionOutcomeSummary] = useState<PrescriptionExecutionOutcomeSummary | null>(null);
@@ -126,14 +127,17 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
   const loadZoneAnalysis = useCallback(async (zone: PrescriptionZone) => {
     try {
       setLoading(true);
-      const analysis = await zoneService.analyzeZone(zone.id);
+      setZoneAnalysis(null);
+      setAnalysisError(null);
+      const analysis = await zoneService.analyzeZone(zone.id, prescriptionMap.id, prescriptionMap.gardenId);
       setZoneAnalysis(analysis);
     } catch (error) {
       console.error('Error loading zone analysis:', error);
+      setAnalysisError(error instanceof Error ? error.message : 'Analisi non disponibile. Riprova.');
     } finally {
       setLoading(false);
     }
-  }, [zoneService]);
+  }, [zoneService, prescriptionMap.id, prescriptionMap.gardenId]);
 
   useEffect(() => {
     if (selectedZone) {
@@ -924,6 +928,8 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
                         <p className="text-gray-600">Analisi in corso...</p>
                       </div>
+                    ) : analysisError ? (
+                      <p role="alert" className="text-red-700">{analysisError}</p>
                     ) : zoneAnalysis ? (
                       <>
                         <div className="bg-green-50 p-4 rounded-lg">
@@ -931,11 +937,11 @@ const ZoneManagementPanel: React.FC<ZoneManagementPanelProps> = ({
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-green-700">Campi rilevati:</span>
-                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.fieldCount}</span>
+                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.fieldCount ?? 'Associazione non disponibile'}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-green-700">Filari rilevati:</span>
-                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.rowCount}</span>
+                              <span className="font-bold text-green-800">{zoneAnalysis.statistics.rowCount ?? 'Associazione non disponibile'}</span>
                             </div>
                           </div>
                         </div>

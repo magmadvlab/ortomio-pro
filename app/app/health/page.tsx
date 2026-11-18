@@ -1,5 +1,7 @@
 'use client'
 
+import RequestConsultationModal from '@/components/agronomist/RequestConsultationModal'
+
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   Heart, 
@@ -989,33 +991,6 @@ export default function PlantHealthPage() {
     }
   }
 
-  const submitAgronomistRequest = async (consultationType: string, urgency: string, notes: string) => {
-    if (!agronomistModal.alert) return
-
-    try {
-      const consultationRequest = {
-        id: `consultation-${Date.now()}`,
-        alertId: agronomistModal.alert.id,
-        plantName: agronomistModal.alert.plantName,
-        type: consultationType,
-        urgency,
-        notes,
-        cost: 50,
-        requestedAt: new Date().toISOString(),
-        status: 'pending'
-      }
-
-      console.log('Richiesta consulto inviata:', consultationRequest)
-      
-      setAgronomistModal({ isOpen: false })
-      
-      alert('Richiesta di consulto inviata! Riceverai una risposta entro 24 ore.')
-    } catch (error) {
-      console.error('Error submitting consultation request:', error)
-      alert('Errore durante l\'invio. Riprova.')
-    }
-  }
-
   if (loading || gardenLoading || !isInitialized) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1868,89 +1843,9 @@ export default function PlantHealthPage() {
         </div>
       )}
 
-      {/* Agronomist Modal */}
-      {agronomistModal.isOpen && agronomistModal.alert && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Consulto Specialistico</h3>
-                <button
-                  onClick={() => setAgronomistModal({ isOpen: false })}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div>
-                <h4 className="font-medium mb-2">Pianta: {agronomistModal.alert.plantName}</h4>
-                <p className="text-gray-600">{agronomistModal.alert.description}</p>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h5 className="font-medium text-purple-900 mb-2">Servizio Consulto Professionale</h5>
-                <div className="text-sm text-purple-800 space-y-1">
-                  <div>💰 Costo: €50 (consulto standard)</div>
-                  <div>⏱️ Risposta: Entro 24 ore</div>
-                  <div>👨‍🌾 Agronomo certificato</div>
-                  <div>📋 Report dettagliato incluso</div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo di Consulto
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                  <option>Diagnosi problema specifico</option>
-                  <option>Piano di trattamento</option>
-                  <option>Consulto preventivo</option>
-                  <option>Analisi generale salute</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Urgenza
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                  <option>Standard (24h) - €50</option>
-                  <option>Urgente (12h) - €75</option>
-                  <option>Immediato (4h) - €100</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Note aggiuntive
-                </label>
-                <textarea
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Descrivi il problema in dettaglio, sintomi osservati, trattamenti già effettuati..."
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setAgronomistModal({ isOpen: false })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annulla
-                </button>
-                <button
-                  onClick={() => submitAgronomistRequest('standard', 'standard', '')}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                >
-                  Richiedi Consulto (€50)
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {agronomistModal.isOpen && agronomistModal.alert && activeGarden && (
+        <RequestConsultationModal gardenId={activeGarden.id} topic={agronomistModal.alert.plantName}
+          description={agronomistModal.alert.description} onClose={() => setAgronomistModal({ isOpen: false })} />
       )}
     </div>
   )

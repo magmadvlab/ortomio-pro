@@ -1,5 +1,6 @@
 'use client'
 
+import AccountClosureRequests from '@/components/settings/AccountClosureRequests'
 import { useCallback, useEffect, useState } from 'react'
 import { Activity, AlertTriangle, Database, Mail, RefreshCw, Settings, Shield, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -89,6 +90,8 @@ export default function AdminDashboard() {
         {users.length === 0 && <tr><td colSpan={5} className="py-4 text-gray-500">Nessun utente disponibile.</td></tr>}
       </tbody></table></div>
     </section>
+
+    <AccountClosureRequests />
 
     <section className="bg-white p-6 rounded-lg shadow"><div className="flex items-center gap-2 mb-4"><AlertTriangle className="text-amber-600" /><h2 className="text-lg font-semibold">Audit amministrativo recente</h2></div>
       <div className="space-y-2">{(overview?.recentAudits || []).map(item => <div key={item.id} className="border rounded p-3 text-sm"><span className="font-medium">{item.action}</span> · {item.target_type} {item.target_id || ''} · <span className={item.outcome === 'success' ? 'text-green-700' : 'text-red-700'}>{item.outcome}</span><span className="text-gray-500 float-right">{new Date(item.created_at).toLocaleString('it-IT')}</span></div>)}{!overview?.recentAudits.length && <p className="text-sm text-gray-500">Nessuna azione amministrativa registrata.</p>}</div>

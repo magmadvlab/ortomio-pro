@@ -9,6 +9,7 @@ import { FieldMapPanel } from './FieldMapPanel';
 import { AlertPriorityList } from './AlertPriorityList';
 import type { FieldAlert } from '@/types/fieldAlerts';
 import type { Garden } from '@/types';
+import { gardenManagementHref } from '@/lib/gardens/navigation';
 
 const SUPABASE_FUNCTIONS_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1`
@@ -62,7 +63,8 @@ export function FarmCommandCenter() {
     if (!hasActiveAlert) {
       // Nessun alert per questo orto: non c'e' nulla su cui scorrere nella lista,
       // porta l'utente alla gestione dell'orto invece di lasciare il click senza effetto.
-      router.push(`/app/garden?garden=${gardenId}`);
+      const garden = gardens.find(item => item.id === gardenId);
+      if (garden) router.push(gardenManagementHref(garden));
       return;
     }
     setHighlightedId(gardenId);

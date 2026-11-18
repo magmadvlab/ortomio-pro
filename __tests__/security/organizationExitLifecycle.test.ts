@@ -2,14 +2,14 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
-import { handleAdminOrganizationLifecycle } from '@/app/api/organizations/lifecycle/route'
+import { handleAdminOrganizationLifecycle } from '@/app/api/organizations/lifecycle/handlers'
 
 const migration = readFileSync(
   'supabase/migrations/20260726170000_organization_exit_and_support_lifecycle.sql',
   'utf8',
 )
-const lifecycleRoute = readFileSync('app/api/organizations/lifecycle/route.ts', 'utf8')
-const supportRoute = readFileSync('app/api/admin/organization-support/route.ts', 'utf8')
+const lifecycleRoute = readFileSync('app/api/organizations/lifecycle/handlers.ts', 'utf8')
+const supportRoute = readFileSync('app/api/admin/organization-support/handlers.ts', 'utf8')
 
 test('cancellation requires a prior export and an explicit retention policy', () => {
   const cancellation = migration.slice(

@@ -1,103 +1,44 @@
-# Gestione Oliveto
+# Oliveto: alberi, maturazione e monitoraggio
 
-[← Torna all'Indice](./README.md)
+L’oliveto riunisce struttura dell’impianto, operazioni e letture specifiche sulle olive. La registrazione di una lettura aiuta il confronto nel tempo; la scelta dell’intervento resta al responsabile.
 
----
+## Configurare e aprire l’oliveto
 
-## Panoramica
+1. Apri **Oliveto** e scegli il giardino corretto.
+2. Se manca l’impianto, usa **Configura Oliveto** o **Nuovo Oliveto**.
+3. Compila dati dell’impianto, destinazione produttiva, disposizione, varietà e metodo di inserimento alberi.
+4. Controlla il riepilogo prima della creazione multipla.
+5. Dopo il salvataggio verifica l’impianto e le schede **Alberi**, **Filari** e **Olivi Individuali**.
 
-Il modulo Oliveto è un verticale operativo costruito sopra le fondazioni frutteto e piante legnose, con estensioni specialistiche per maturazione olive, monitoraggio mosca olearia e gestione filari. È reale come superficie di lavoro: dal 30/07/2026 anche i widget specialistici scrivono e leggono su tabelle reali, non più su stato locale.
+Il filtro **Zona/Filare/Porzione** può restringere la vista. Controllalo quando non trovi un albero.
 
-**Percorso**: Sidebar → "Oliveto"
+## Registrare una lettura di maturazione
 
----
+1. Apri **Maturazione**.
+2. Controlla l’oliveto e la sezione **Nuova Lettura Maturazione**.
+3. Inserisci l’indice rilevato, lo stadio di colore e gli altri dati del campione richiesti dal modulo.
+4. Aggiungi note sul campionamento per rendere confrontabili le letture.
+5. Premi **Salva Lettura**.
+6. Verifica data e valore in **Storico Letture**.
 
-## Stato modulo
+La scala colori e la guida all’indice sono strumenti di lettura. Non trasformano automaticamente un indice nella data obbligatoria di raccolta.
 
-**Stato attuale**: verticale orchard-backed, con persistenza reale su tutte le viste principali.
+## Registrare un controllo della mosca olearia
 
-La parte consolidata oggi è:
-- route `/app/olives`
-- risoluzione dei contesti olivo da giardini/frutteti
-- riuso di `orchardService` per configurazioni, alberi, potature e raccolte
-- gestione alberi e operazioni tramite componenti frutteto condivisi
-- integrazione con task olivo e lavorazioni meccaniche quando presenti
-- tab **Filari**: raggruppamento alberi per fila, allineamento filari legacy, configurazione dell'impianto irriguo per singolo filare (stessa vista gia' disponibile sul Frutteto)
-- tab **Maturazione**: letture Indice di Jaen persistite su `olive_maturity_tracking`, storico reale, raccomandazione di raccolta derivata dall'indice inserito
-- tab **Mosca Olearia**: ispezioni trappola persistite su `olive_fly_traps`/`olive_fly_monitoring`, soglie di intervento calcolate sulle catture reali
+1. Apri **Mosca Olearia**.
+2. In **Nuova Lettura Trappola** indica la trappola, le catture osservate e gli altri dati disponibili.
+3. Riporta la temperatura solo se possiedi una rilevazione pertinente.
+4. Scrivi nelle note le condizioni del controllo e premi **Salva Lettura**.
+5. Controlla la nuova riga in **Storico Catture**.
 
-**Verifica ancora aperta**: la migrazione che crea le tabelle `olive_maturity_tracking`/`olive_fly_traps`/`olive_fly_monitoring` non risulta confermata come applicata sul progetto Supabase di produzione. Se non e' stata applicata, le due viste falliranno nel salvataggio — verificarlo prima di considerarle operative in produzione.
+Soglie e opzioni di trattamento presenti nella pagina sono indicazioni da verificare sul caso concreto, con protocollo, coltura e professionista. Questo manuale non prescrive un trattamento a partire dal solo numero di catture.
 
-La parte ancora non pienamente chiusa è:
-- workflow DOP/IGP, qualità olio, molitura, stoccaggio e commercializzazione
-- tracciabilità bottiglia/lotto e blockchain end-to-end
+## Potature e raccolte
 
----
+Usa **Potature** per il relativo percorso e **Raccolte** per quantità effettive. Controlla terreno, impianto e albero quando il modulo li propone. Dopo il salvataggio verifica il registro: una data pianificata non è un lavoro eseguito.
 
-## Cosa è disponibile ora
+## Quando intervenire e limiti
 
-Puoi usare il modulo per:
-- lavorare su oliveti configurati come frutteti/impianti legnosi
-- gestire alberi, potature e raccolte attraverso il core frutteto
-- gestire i filari e l'impianto irriguo per filare
-- vedere sintesi su oliveti, alberi, criticità e raccolte programmate
-- registrare e consultare letture reali di maturazione (Indice di Jaen) e mosca olearia, con storico persistito
-- usare task, registri, irrigazione e trattamenti generali come supporto operativo
+Registra ogni lettura dopo il controllo reale secondo il programma concordato. Rivaluta il lavoro quando cambiano le osservazioni o il responsabile segnala urgenza. Uno storico vuoto significa assenza di registrazioni, non assenza del parassita o maturazione ottimale.
 
----
-
-## Maturazione e mosca olearia
-
-Le due viste specialistiche persistono ora su tabelle reali:
-- **Maturazione**: ogni lettura salvata include indice di Jaen, invaiatura (%), note; lo stadio colore e la raccomandazione di raccolta sono derivati dall'indice con una mappatura documentata, non inventati.
-- **Mosca Olearia**: ogni ispezione crea o riusa una trappola per numero e registra le catture; il livello di rischio e l'azione raccomandata usano le stesse soglie mostrate nella guida in pagina.
-
-Restano da compilare a mano (non stimati automaticamente): tipo di trappola specifico, stima erogatori/portata per filari senza impianto configurato.
-
----
-
-## Certificazioni e qualità olio
-
-BIO e GlobalG.A.P. vanno gestiti attraverso i moduli certificazioni già descritti nei capitoli dedicati.
-
-Il modulo Oliveto non sostituisce:
-- disciplinari DOP/IGP
-- organismo di controllo
-- analisi chimiche ufficiali
-- panel test
-- gestione frantoio
-- HACCP o tracciabilità commerciale completa
-
----
-
-## Uso consigliato
-
-Usa il modulo per:
-- organizzare oliveti e alberi
-- pianificare potature e raccolte
-- leggere indicatori operativi da record reali
-- usare maturazione e mosca come supporto agronomico specialistico
-- preparare dati utili per consulente o registri tecnici
-
-Non usarlo come:
-- piattaforma completa olio dal campo alla bottiglia
-- workflow DOP/IGP ufficiale
-- sistema automatico di difesa olearia
-- controllo qualità olio certificato
-- tracciabilità commerciale completa
-
----
-
-## Backlog tracciato
-
-Chiuso il 30/07/2026: collegamento widget olive alle tabelle `olive_*`, storico reale di maturazione e mosca.
-
-Da trattare come sviluppo futuro:
-- verificare che la migrazione `olive_*` sia applicata sul progetto Supabase di produzione
-- collegare trattamenti consigliati a registri operativi persistenti
-- definire se qualità olio/frantoio/DOP diventano un dominio prodotto separato
-- integrare tracciabilità lotti solo se supportata da flussi reali
-
----
-
-[← Torna all'Indice](./README.md)
+Se non compare l’impianto, verifica prima il giardino e la configurazione; non aggiungerne un secondo per aggirare un errore.

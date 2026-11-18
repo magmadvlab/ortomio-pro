@@ -1,109 +1,36 @@
-# Gestione Vigneto
+# Vigneto: filari, viti e registri
 
-[← Torna all'Indice](./README.md)
+Il modulo Vigneto descrive l’impianto e permette di ritrovare le singole viti. I lavori e le vendemmie devono essere verificati nei registri effettivi a cui la pagina rimanda.
 
----
+## Creare il vigneto
 
-## Panoramica
+1. Apri **Vigneto** e verifica il giardino.
+2. Usa **Nuovo Vigneto** o **Crea Nuovo Vigneto**. Se manca il terreno, usa prima **Crea Nuovo Giardino**.
+3. Compila **Informazioni Base**, nome, destinazione, data e superficie richieste.
+4. In **Layout e Design** indica le distanze e la forma di allevamento reali.
+5. Aggiungi varietà e portinnesti quando conosciuti.
+6. In **Impianto Viti** scegli il metodo di registrazione. Controlla numero di filari, posizioni e totale prima della creazione automatica.
+7. Completa la procedura e riapri il vigneto dalla Dashboard.
 
-Il modulo Vigneto è un verticale reale per configurare vigneti, gestire ceppi, monitorare carico gemme e seguire alcune operazioni viticole. È più maturo di una semplice pagina descrittiva, ma non è una suite cantina/market intelligence o un sistema completo dalla vigna al vino.
+## Leggere le viste
 
-**Percorso**: Sidebar → "Vigneto"
+**Viti** mostra l’anagrafica dell’impianto. **Filari** organizza le file e la loro configurazione. **Viti Individuali** consente il monitoraggio del singolo esemplare. Controlla sempre l’identificativo della vite oltre al nome della varietà.
 
----
+## Registrare un lavoro
 
-## Stato modulo
+1. Apri l’impianto e identifica il terreno o il filare interessato.
+2. Per le **Potature** segui il collegamento al registro lavorazioni.
+3. Per le **Vendemmie** segui il collegamento ai raccolti.
+4. Verifica il contesto dopo il passaggio di pagina: non dare per scontato che tutti i filtri siano trasferiti.
+5. Inserisci data, quantità e dettagli effettivi e salva.
+6. Controlla il registro e, dove disponibile, lo storico della vite.
 
-**Stato attuale**: operativo come verticale vigneto con confini espliciti.
+La presenza delle parole Potature e Vendemmie nella vista non significa che esistano registri indipendenti completi dentro ogni scheda del vigneto.
 
-La parte consolidata oggi è:
-- route `/app/vineyard`
-- servizio `vineyardService`
-- configurazioni vigneto su `vineyard_configurations`
-- ceppi/viti su `vineyard_vines`
-- dashboard, wizard e gestione viti
-- filtri per varietà, salute, vigore e necessità operative
-- bulk creation di viti (crea/aggiorna automaticamente anche i filari reali collegati)
-- tab **Filari** (dal 30/07/2026): raggruppamento viti per fila, allineamento filari legacy, configurazione dell'impianto irriguo per singolo filare — stessa vista gia' disponibile su Frutteto/Oliveto, adattata al modello dati vite
-- servizio `vineyardBudLoadService`
-- calcolo e storico Ravaz/carico gemme quando i dati sono presenti
+## Quando intervenire
 
-Non va presentato come già chiuso:
-- database ampelografico ufficiale completo
-- integrazione cantina o ERP vinicolo
-- mercato vino, pricing e marketing intelligence
-- vinificazione, fermentazioni, blend e tracciabilità bottiglia
-- microzonazione automatica completa
-- previsioni ML validate di resa/qualità per ogni vigneto
+Aggiorna l’anagrafica dopo impianti e sostituzioni. Registra un lavoro subito dopo l’esecuzione e le misure di maturazione dopo il campionamento. Concorda con il tecnico date e decisioni agronomiche: gli indicatori dell’app non sostituiscono questo passaggio.
 
----
+## Verificare i risultati e conoscere i limiti
 
-## Cosa è disponibile ora
-
-Il modulo può supportare:
-- creazione/configurazione vigneto
-- gestione viti/ceppi individuali
-- gestione filari e impianto irriguo per filare
-- informazioni su varietà, portinnesto, sistema allevamento e posizione quando valorizzate
-- stato salute, vigore e necessità di potatura/trattamento
-- indicatori dashboard basati sui record disponibili
-- calcolo densità come supporto
-- Ravaz index e suggerimenti sul carico gemme tramite servizio dedicato
-- maturazione uva come supporto operativo se il flusso raccoglie i dati
-
----
-
-## Carico gemme e maturazione
-
-`vineyardBudLoadService` consente di calcolare:
-- indice di Ravaz
-- equilibrio vegeto-produttivo indicativo
-- carico gemme consigliato
-- trend storico quando esistono record per più stagioni
-
-Questi calcoli sono supporto agronomico interno. Non sostituiscono rilievi professionali, campionamenti di laboratorio o decisioni enologiche.
-
----
-
-## Fuori perimetro attuale
-
-Restano fuori dal perimetro chiuso:
-- profilo irriguo "standard" a livello vigneto (esiste solo per singolo filare; il Frutteto ha in più un profilo di default applicabile a tutti i filari, il Vigneto no)
-- gestione cantina
-- conferimento, pigiatura, fermentazione e affinamento
-- analisi fenolica/aromatica di laboratorio come workflow completo
-- vendita vino, canali commerciali e premium pricing
-- integrazione ERP/contabilità vinicola
-- certificazioni denominazione o tracciabilità bottiglia end-to-end
-
----
-
-## Uso consigliato
-
-Usa il modulo per:
-- strutturare un vigneto
-- gestire anagrafica e stato delle viti
-- monitorare carico gemme e alcune metriche viticole
-- pianificare o seguire operazioni agronomiche
-- preparare dati utili per consulenza viticola
-
-Non usarlo come:
-- sistema cantina
-- piattaforma commerciale vino
-- fonte unica per scelte enologiche o mercato
-- motore predittivo validato di qualità del vino
-
----
-
-## Backlog tracciato
-
-Da trattare come sviluppo futuro:
-- collegare più stabilmente maturazione, raccolta e outcome qualità
-- aumentare copertura persistente delle operazioni viticole specialistiche
-- decidere se cantina e denominazioni sono domini prodotto separati
-- integrare eventuali analisi laboratorio solo con fonti e workflow reali
-- evitare promesse di mercato/ROI finché non esistono dati verificabili
-
----
-
-[← Torna all'Indice](./README.md)
+Controlla il numero di viti generate e la disposizione dopo il wizard. Le analisi di vigore, maturazione o resa dipendono dai dati presenti; un valore di esempio o una stima non dimostra un rilievo sul campo. Se il vigneto è vuoto, verifica la configurazione prima di eseguire di nuovo la creazione multipla.

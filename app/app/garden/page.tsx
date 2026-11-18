@@ -6,6 +6,7 @@ import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
 import { ArrowLeft, Sprout, Grid3x3, MapPin, Settings, Calendar } from 'lucide-react'
 import Link from 'next/link'
+import { gardenManagementHref } from '@/lib/gardens/navigation'
 
 export default function GardenHubPage() {
   const { storageProvider } = useStorage()
@@ -24,6 +25,11 @@ export default function GardenHubPage() {
         const allGardens = await storageProvider.getGardens()
         // Filtra: escludi colture specializzate (hanno le loro pagine dedicate)
         const specializedTypes = ['Orchard', 'OliveGrove', 'Vineyard']
+        const target = allGardens.find(g => g.id === gardenId)
+        if (target && specializedTypes.includes(target.gardenType || '')) {
+          router.replace(gardenManagementHref(target))
+          return
+        }
         const loadedGardens = allGardens.filter(g => !specializedTypes.includes(g.gardenType || ''))
         setGardens(loadedGardens)
         
@@ -31,9 +37,7 @@ export default function GardenHubPage() {
           ? loadedGardens.find(g => g.id === gardenId)
           : loadedGardens[0]
         
-        if (garden) {
-          setSelectedGarden(garden)
-        }
+        setSelectedGarden(garden ?? null)
       } catch (error) {
         console.error('Error loading gardens:', error)
       } finally {
@@ -41,7 +45,7 @@ export default function GardenHubPage() {
       }
     }
     loadData()
-  }, [storageProvider, gardenId])
+  }, [storageProvider, gardenId, router])
 
   if (loading) {
     return (

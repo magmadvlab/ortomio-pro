@@ -8,7 +8,7 @@ import { getLatestGardenSoilState } from '@/services/soilStateService'
 import {
   handleGetSoilState,
   handleUpdateSoilState,
-} from '@/app/api/garden/soil-state/route'
+} from '@/app/api/garden/soil-state/handlers'
 
 const request = (path: string, init?: RequestInit) =>
   new NextRequest(new Request(`http://localhost${path}`, init))

@@ -6,11 +6,21 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const root = process.cwd()
-const rootAllowlist = new Set(['README.md', 'MASTERDOC.md', 'TASKS.md'])
+const rootAllowlist = new Set(['README.md', 'MASTERDOC.md', 'TASKS.md', 'PRODUCT.md', 'AGENTS.md'])
 const exactAllowlist = new Set([
   'components/lunar/README.md',
+  'docs/DOCUMENTO_COMMERCIALE_ORTOMIO_PRO_2026-08-15_APPROFONDITO.md',
+  'docs/landing-media-sources.md',
+  'docs/reports/M06_SUPABASE_REMOTE_AUDIT_2026-07-26.md',
+  'docs/reports/M15_PRODUCTION_MIGRATION_APPLY_2026-07-26.md',
+  'docs/reports/M16_GO_NO_GO_2026-07-26.md',
+  'docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md',
+  'docs/reports/audit-2026-11-18/REPORT.md',
+  'docs/reports/audit-2026-11-18/EXECUTION.md',
+  'docs/reports/audit-2026-11-18/LOCAL_RUNBOOK.md',
   'x_ortomio_free/README.md',
   'docs/archive/README.md',
+  'docs/reports/ORTOMIO_AUDIT_LOCALE_MANUALE_2026-11-18.md',
   'docs/reports/P0_BASELINE_INVENTORY_2026-07-16.md',
   'docs/reports/P2_CAPABILITY_NAVIGATION_EVIDENCE_2026-07-17.md',
   'docs/reports/P3_CORE_PERSISTENCE_EVIDENCE_2026-07-17.md',
@@ -44,14 +54,19 @@ function allowed(path) {
   if (!path.includes('/')) return rootAllowlist.has(path)
   if (path.startsWith('docs/manual/') && path.endsWith('.md')) return true
   if (path.startsWith('public/docs/manual/') && path.endsWith('.md')) return true
+  // Historical specifications and marketing records are not the current execution queue.
+  if (/^docs\/(superpowers\/(plans|specs|reports)|gtm|video)\//.test(path)) return true
   return exactAllowlist.has(path)
 }
 
-const documents = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
+const inventory = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' })
   .split('\n')
   .filter(path => /\.(md|txt)$/i.test(path))
   .filter(path => existsSync(resolve(root, path)))
   .sort()
+// Tool/vendor instructions and quarantined implementations are outside product documentation.
+const excludedToolDocs = inventory.filter(path => /^(\.claude|\.impeccable|_quarantine|video-ortomio)\//.test(path))
+const documents = inventory.filter(path => !excludedToolDocs.includes(path))
 const forbidden = documents.filter(path => !allowed(path))
 const forbiddenNames = documents.filter(path => /(^|\/)(COMMIT_MESSAGE|PUSH_SUCCESS)|_(COMPLETE|SUCCESS)(_|\.)|SESSION_SUMMARY/i.test(path))
 
@@ -68,4 +83,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`Igiene documentale verificata: ${documents.length} Markdown/TXT ammessi, root ${rootAllowlist.size}/3`)
+console.log(`Igiene documentale verificata: ${documents.length} Markdown/TXT ammessi, root ${rootAllowlist.size}; documenti tooling/quarantena separati: ${excludedToolDocs.length}`)

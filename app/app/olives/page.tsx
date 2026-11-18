@@ -18,6 +18,8 @@ import {
   TreePine,
   Users,
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { resolveGardenSelection } from '@/lib/gardens/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import LocationSelector from '@/components/shared/LocationSelector'
@@ -56,6 +58,7 @@ const EMPTY_SUMMARY: OliveSummary = {
 
 export default function OlivesPage() {
   const { storageProvider } = useStorage()
+  const gardenParam = useSearchParams().get('garden')
   const [contexts, setContexts] = useState<OliveGardenContext[]>([])
   const [tasks, setTasks] = useState<GardenTask[]>([])
   const [filteredTasks, setFilteredTasks] = useState<GardenTask[]>([])
@@ -68,6 +71,13 @@ export default function OlivesPage() {
   const [summary, setSummary] = useState<OliveSummary>(EMPTY_SUMMARY)
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setSelectedGardenId(gardenParam ?? '')
+    setSelectedOrchardId('')
+    setSelectedLocation(null)
+    setViewMode('overview')
+  }, [gardenParam])
 
   const selectedContext = useMemo(
     () => contexts.find((context) => context.garden.id === selectedGardenId),
@@ -152,9 +162,9 @@ export default function OlivesPage() {
     }
 
     if (!selectedGardenId || !contexts.some((context) => context.garden.id === selectedGardenId)) {
-      setSelectedGardenId(contexts[0].garden.id)
+      setSelectedGardenId(resolveGardenSelection(contexts.map(context => context.garden), gardenParam, selectedGardenId))
     }
-  }, [contexts, selectedGardenId])
+  }, [contexts, selectedGardenId, gardenParam])
 
   useEffect(() => {
     if (!selectedContext) {

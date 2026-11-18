@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
-import { handleAcceptOrganizationInvitation } from '@/app/api/organizations/invitations/route'
+import { handleAcceptOrganizationInvitation } from '@/app/api/organizations/invitations/handlers'
 
 test('invitation acceptance derives identity and email from the authenticated request', async () => {
   let rpcArguments: Record<string, unknown> | undefined
@@ -53,7 +53,7 @@ test('organization invitation mutations are server-only and acceptance is atomic
     'supabase/migrations/20260726113000_server_organization_invitations.sql',
     'utf8',
   )
-  const route = readFileSync('app/api/organizations/invitations/route.ts', 'utf8')
+  const route = readFileSync('app/api/organizations/invitations/handlers.ts', 'utf8')
 
   assert.doesNotMatch(
     service,

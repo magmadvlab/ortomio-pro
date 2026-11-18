@@ -9,7 +9,7 @@ import {
   handleDeleteLandZone,
   handleGetLandZones,
   handleUpdateLandZone,
-} from '@/app/api/garden/zones/route'
+} from '@/app/api/garden/zones/handlers'
 
 const request = (path: string, init?: RequestInit) =>
   new NextRequest(new Request(`http://localhost${path}`, init))

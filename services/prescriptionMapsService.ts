@@ -55,7 +55,7 @@ type FusedDataPoint = DataFusionResult['dataPoints'][number];
 // che non ha questo campo): resta sempre `undefined`, coerente col comportamento attuale.
 type PrescriptionMapRecordInput = PrescriptionGenerationRequest & {
   zones: PrescriptionZone[];
-  costAnalysis: PrescriptionCostAnalysis;
+  costAnalysis?: PrescriptionCostAnalysis;
   quality: DataFusionResult['quality'];
   algorithmMetadata: PrescriptionMap['algorithmMetadata'];
   contentChecksum: string;
@@ -480,7 +480,8 @@ export class PrescriptionMapsService {
       const zones = await this.calculatePrescriptions(zoneResult.zones, request.prescriptionConfig);
 
       // 5. Perform cost analysis
-      const costAnalysis = await this.calculateCostAnalysis(zones, request);
+      // Monetary/yield estimates require verified tariffs and response curves.
+      const costAnalysis = undefined;
       const inputHash = await this.sha256({ request, dataPoints: fusionResult.dataPoints })
       const contentChecksum = await this.sha256({ zones, mapType: request.mapType, inputHash })
 
@@ -491,9 +492,9 @@ export class PrescriptionMapsService {
         costAnalysis,
         quality: fusionResult.quality,
         algorithmMetadata: {
-          algorithmVersion: 'prescription-fusion-kmeans-v2',
+          algorithmVersion: 'prescription-value-bands-v3',
           inputHash,
-          sourceQuality: fusionResult.dataPoints.every(point => point.sources.includes('ndvi')) ? 'measured' : 'mixed',
+          sourceQuality: 'mixed',
           generatedFrom: Array.from(new Set(fusionResult.dataPoints.flatMap(point => point.sources))).sort(),
         },
         contentChecksum,
@@ -504,6 +505,7 @@ export class PrescriptionMapsService {
       
       return {
         success: true,
+        warnings: ['Costi, ritorni economici e aumento di resa non calcolati: mancano tariffe e curve di risposta validate.'],
         prescriptionMapId: prescriptionMap.id,
         stats: {
           zonesGenerated: zones.length,
@@ -560,16 +562,18 @@ export class PrescriptionMapsService {
       }
     }
 
+    if (request.dataSources.historicalWeight > 0) throw new Error('Fusione dello storico non supportata: imposta il relativo peso a zero.');
+
     // Collect plant-level data
-    let plantData: PlantDataPoint[] = [];
+    const plantData: PlantDataPoint[] = [];
     if (request.dataSources.plantHealthWeight > 0) {
-      plantData = await this.getPlantLevelData();
+      throw new Error('Dati pianta georeferenziati non disponibili: imposta il peso salute piante a zero. Le coordinate locali in metri non sono GPS.');
     }
 
     // Collect soil data
-    let soilData: SoilDataPoint[] = [];
+    const soilData: SoilDataPoint[] = [];
     if (request.dataSources.soilWeight > 0) {
-      soilData = await this.getSoilData();
+      throw new Error('Fusione suolo non disponibile: mancano campioni georeferenziati e una regola di normalizzazione validata. Imposta il peso suolo a zero.');
     }
 
     // Create spatial grid for data fusion
@@ -699,9 +703,7 @@ export class PrescriptionMapsService {
         },
         sourceData: {
           avgNdvi: zone.averageValue,
-          plantCount: 0, // Would be calculated from actual plant data
-          avgPlantHealth: zone.averageValue * 100,
-          soilType: 'mixed'
+
         },
         dataQuality: Math.round(zone.confidence * 100),
         confidence: Math.round(zone.confidence * 100),
@@ -710,80 +712,6 @@ export class PrescriptionMapsService {
       };
     });
   }
-
-  /**
-   * Calculate cost analysis for prescription map
-   */
-  private async calculateCostAnalysis(
-    zones: PrescriptionZone[],
-    request: PrescriptionGenerationRequest
-  ): Promise<PrescriptionCostAnalysis> {
-    
-    const totalArea = zones.reduce((sum, zone) => sum + zone.areaSqm, 0);
-    const totalAreaHa = totalArea / 10000; // Convert to hectares
-    
-    // Calculate input costs
-    const avgApplicationRate = zones.reduce((sum, zone) => 
-      sum + zone.prescription.applicationRate * zone.areaSqm, 0
-    ) / totalArea;
-    
-    const productCostPerUnit = this.getProductCost(request.prescriptionConfig.productName || 'generic');
-    const totalInputCost = (avgApplicationRate * totalAreaHa * productCostPerUnit);
-    
-    // Calculate application costs
-    const applicationCostPerHa = 25; // €25/ha for application
-    const applicationCost = totalAreaHa * applicationCostPerHa;
-    
-    // Calculate uniform application cost for comparison
-    const uniformRate = request.prescriptionConfig.baseRate;
-    const uniformInputCost = uniformRate * totalAreaHa * productCostPerUnit;
-    const uniformApplicationCost = applicationCost; // Same application cost
-    const uniformTotalCost = uniformInputCost + uniformApplicationCost;
-    
-    // Calculate expected benefits
-    const expectedYieldIncrease = 0.15; // 15% yield increase from precision application
-    const expectedRevenuePerHa = 3000; // €3000/ha average revenue
-    const expectedRevenue = totalAreaHa * expectedRevenuePerHa * expectedYieldIncrease;
-    
-    const totalCost = totalInputCost + applicationCost;
-    const expectedProfit = expectedRevenue - totalCost;
-    const roi = totalCost > 0 ? (expectedProfit / totalCost) * 100 : 0;
-    
-    const savingsVsUniform = uniformTotalCost - totalCost;
-    const inputReduction = uniformInputCost > 0 ? 
-      ((uniformInputCost - totalInputCost) / uniformInputCost) * 100 : 0;
-
-    return {
-      totalInputCost: Math.round(totalInputCost * 100) / 100,
-      costPerHectare: Math.round((totalCost / totalAreaHa) * 100) / 100,
-      costPerZone: zones.reduce((acc, zone) => {
-        const zoneAreaHa = zone.areaSqm / 10000;
-        const zoneCost = zone.prescription.applicationRate * zoneAreaHa * productCostPerUnit;
-        acc[zone.id] = Math.round(zoneCost * 100) / 100;
-        return acc;
-      }, {} as Record<string, number>),
-      
-      applicationCost: Math.round(applicationCost * 100) / 100,
-      machineryHours: Math.round((totalAreaHa / 8) * 100) / 100, // 8 ha/hour average
-      laborHours: Math.round((totalAreaHa / 6) * 100) / 100, // 6 ha/hour average
-      
-      expectedYieldIncrease: Math.round(expectedYieldIncrease * 100),
-      expectedRevenue: Math.round(expectedRevenue * 100) / 100,
-      expectedProfit: Math.round(expectedProfit * 100) / 100,
-      roi: Math.round(roi * 100) / 100,
-      
-      uniformApplicationCost: Math.round(uniformTotalCost * 100) / 100,
-      savingsVsUniform: Math.round(savingsVsUniform * 100) / 100,
-      efficiencyGain: Math.round((savingsVsUniform / uniformTotalCost) * 100 * 100) / 100,
-      
-      inputReduction: Math.round(inputReduction * 100) / 100,
-      environmentalScore: Math.min(100, Math.round(inputReduction + 20)) // Base environmental score
-    };
-  }
-
-  /**
-   * HELPER METHODS
-   */
 
   private validateGenerationRequest(request: PrescriptionGenerationRequest): string[] {
     const errors: string[] = [];
@@ -839,8 +767,7 @@ export class PrescriptionMapsService {
     const latitude = Number(garden.coordinates?.latitude)
     const longitude = Number(garden.coordinates?.longitude)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) throw new Error('Geometria o coordinate garden insufficienti')
-    const buffer = 0.001
-    return { minLat: latitude - buffer, maxLat: latitude + buffer, minLon: longitude - buffer, maxLon: longitude + buffer };
+    throw new Error('Confini GPS del terreno mancanti: una coordinata centrale non definisce l’area da trattare.');
   }
 
   private async getNDVIData(
@@ -859,18 +786,6 @@ export class PrescriptionMapsService {
       latitude: Number(row.latitude), longitude: Number(row.longitude), ndviValue: Number(row.ndvi_value),
       date: row.data_date, quality: Number(row.data_quality), sourceKind: row.source_kind, algorithmVersion: row.algorithm_version,
     }));
-  }
-
-  private async getPlantLevelData(): Promise<PlantDataPoint[]> {
-    // This would query individual plant data
-    // For now, return sample data
-    return [];
-  }
-
-  private async getSoilData(): Promise<SoilDataPoint[]> {
-    // This would query soil data
-    // For now, return sample data
-    return [];
   }
 
   private createSpatialGrid(bounds: GardenBounds, gridSize: number): Array<{
@@ -988,7 +903,7 @@ export class PrescriptionMapsService {
   }
 
   private performKMeansClustering(
-    dataPoints: Array<{ latitude: number; longitude: number; fusedValue: number }>,
+    dataPoints: Array<{ latitude: number; longitude: number; fusedValue: number; confidence?: number }>,
     k: number
   ): Array<{
     points: Array<{ latitude: number; longitude: number; fusedValue: number }>;
@@ -1025,7 +940,7 @@ export class PrescriptionMapsService {
       if (clusterPoints.length > 0) {
         clusters[i].points = clusterPoints;
         clusters[i].averageValue = clusterPoints.reduce((sum, p) => sum + p.fusedValue, 0) / clusterPoints.length;
-        clusters[i].confidence = 0.8; // Simplified confidence calculation
+        clusters[i].confidence = clusterPoints.reduce((sum, point) => sum + (point.confidence ?? 0), 0) / clusterPoints.length; // Source coverage, not calibrated agronomic probability
       }
     }
     
@@ -1139,22 +1054,10 @@ export class PrescriptionMapsService {
       fusionQuality.completeness,
       fusionQuality.accuracy,
       fusionQuality.temporal_relevance,
-      zones.length > 0 ? zones.reduce((sum, z) => sum + z.confidence, 0) / zones.length * 100 : 0
+      zones.length > 0 ? zones.reduce((sum, z) => sum + z.confidence, 0) / zones.length : 0
     ];
     
     return Math.round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length);
-  }
-
-  private getProductCost(productName: string): number {
-    // Simplified product cost lookup
-    const costs: Record<string, number> = {
-      'fertilizer': 1.2, // €1.2 per kg
-      'seed': 0.8, // €0.8 per unit
-      'pesticide': 15.0, // €15 per liter
-      'generic': 2.0
-    };
-    
-    return costs[productName.toLowerCase()] || costs.generic;
   }
 
   private async createPrescriptionMapRecord(data: PrescriptionMapRecordInput): Promise<PrescriptionMap> {

@@ -3,8 +3,8 @@ import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getCreditCost, CREDIT_COSTS, type CreditFeature } from '@/lib/credits'
 import { consumeAICredits, isInsufficientAICreditsError } from '@/lib/ai-credits.server'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+import { normalizeLegacyContents } from '@/lib/ai/legacyContents'
+import { ZodError } from 'zod'
 
 const isCreditFeature = (value: unknown): value is CreditFeature =>
   typeof value === 'string' && value in CREDIT_COSTS
@@ -36,6 +36,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'model_and_contents_required' }, { status: 400 })
     }
 
+    const normalizedContents = normalizeLegacyContents(contents)
+    if (!process.env.GEMINI_API_KEY) return NextResponse.json({ error: 'provider_not_configured', message: 'Servizio AI non configurato sul server' }, { status: 503 })
+
     const cost = getCreditCost(feature)
     const available = (profile.ai_credits_total || 0) - (profile.ai_credits_used || 0)
 
@@ -50,11 +53,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const model = genAI.getGenerativeModel({ model: modelName })
+    const model = new GoogleGenerativeAI(process.env.GEMINI_API_KEY).getGenerativeModel({ model: modelName })
     const response = await model.generateContent({
-      contents,
+      contents: normalizedContents,
       generationConfig: config,
-    })
+    }, { timeout: 30000 })
 
     const text = response.response.text()
 
@@ -72,6 +75,7 @@ export async function POST(request: NextRequest) {
       creditsRemaining: remaining,
     })
   } catch (error: unknown) {
+    if (error instanceof ZodError || error instanceof SyntaxError) return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
     console.error('AI generate proxy error:', error)
     if (isInsufficientAICreditsError(error)) {
       return NextResponse.json(

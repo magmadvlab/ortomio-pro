@@ -10,6 +10,9 @@ import { GardenEditModal } from '@/components/settings/GardenEditModal'
 import APIKeysManager from '@/components/settings/APIKeysManager'
 import OrganizationManager from '@/components/settings/OrganizationManager'
 import SatelliteCredentialsManager from '@/components/settings/SatelliteCredentialsManager'
+import DataSettingsPanel from '@/components/settings/DataSettingsPanel'
+import UserSettingsPanels from '@/components/settings/UserSettingsPanels'
+import { gardenManagementHref } from '@/lib/gardens/navigation'
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('profile')
@@ -25,7 +28,6 @@ export default function SettingsPage() {
         setLoadingGardens(true)
         try {
           const loadedGardens = await storageProvider.getGardens()
-          console.log('📍 Settings: Gardens loaded:', loadedGardens.length, loadedGardens)
           setGardens(loadedGardens)
         } catch (error) {
           console.error('❌ Settings: Error loading gardens:', error)
@@ -38,7 +40,6 @@ export default function SettingsPage() {
   }, [activeSection, storageProvider])
 
   const handleGardenCreated = async (garden: Garden) => {
-    console.log('✅ Garden created:', garden)
     setShowGardenWizard(false)
     // Reload gardens list
     const loadedGardens = await storageProvider.getGardens()
@@ -191,20 +192,20 @@ export default function SettingsPage() {
                                 {(() => {
                                   // Determina link e label in base al tipo di garden
                                   const gardenType = garden.gardenType
-                                  let href = `/app/plants?garden=${garden.id}`
+                                  let href = `/app/plants?garden=${encodeURIComponent(garden.id)}`
                                   let label = 'Piante'
                                   let icon = '🌱'
                                   
                                   if (gardenType === 'Orchard') {
-                                    href = `/app/orchard`
+                                    href = gardenManagementHref(garden)
                                     label = 'Alberi'
                                     icon = '🌳'
                                   } else if (gardenType === 'OliveGrove') {
-                                    href = `/app/olives`
+                                    href = gardenManagementHref(garden)
                                     label = 'Alberi'
                                     icon = '🫒'
                                   } else if (gardenType === 'Vineyard') {
-                                    href = `/app/vineyard`
+                                    href = gardenManagementHref(garden)
                                     label = 'Viti'
                                     icon = '🍇'
                                   }
@@ -305,120 +306,9 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeSection === 'profile' && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Profilo Utente</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="Il tuo nome"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      placeholder="la-tua-email@esempio.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo di Coltivazione</label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                      <option>Orto domestico</option>
-                      <option>Agricoltura professionale</option>
-                      <option>Vivaio</option>
-                      <option>Ricerca</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
+            {(['profile', 'notifications', 'security', 'appearance'] as const).map(section => activeSection === section && <UserSettingsPanels key={section} section={section} />)}
 
-            {activeSection === 'notifications' && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Notifiche</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Promemoria Irrigazione</h3>
-                      <p className="text-sm text-gray-600">Ricevi notifiche quando è ora di innaffiare</p>
-                    </div>
-                    <input type="checkbox" className="rounded" defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Allerte Meteo</h3>
-                      <p className="text-sm text-gray-600">Avvisi per condizioni meteorologiche avverse</p>
-                    </div>
-                    <input type="checkbox" className="rounded" defaultChecked />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Suggerimenti AI</h3>
-                      <p className="text-sm text-gray-600">Consigli personalizzati dall'intelligenza artificiale</p>
-                    </div>
-                    <input type="checkbox" className="rounded" defaultChecked />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeSection === 'security' && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Sicurezza</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Cambia Password</h3>
-                    <div className="space-y-3">
-                      <input
-                        type="password"
-                        placeholder="Password attuale"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Nuova password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Conferma nuova password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeSection === 'data' && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Gestione Dati</h2>
-                <div className="space-y-6">
-                  {/* Backup */}
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h3 className="font-medium text-blue-900 mb-2">Backup Automatico</h3>
-                    <p className="text-sm text-blue-700 mb-3">I tuoi dati vengono salvati automaticamente nel cloud</p>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                      Scarica Backup
-                    </button>
-                  </div>
-
-                  {/* Elimina Account */}
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h3 className="font-medium text-red-900 mb-2">Elimina Account</h3>
-                    <p className="text-sm text-red-700 mb-3">Elimina permanentemente il tuo account e tutti i dati</p>
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-colors">
-                      Elimina Account
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            {activeSection === 'data' && <DataSettingsPanel />}
 
             {activeSection === 'satellite' && (
               <div>
@@ -438,36 +328,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {activeSection === 'appearance' && (
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Aspetto</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Tema</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <button className="p-3 border-2 border-green-500 rounded-lg bg-white">
-                        <div className="w-full h-8 bg-gradient-to-r from-green-400 to-green-600 rounded mb-2"></div>
-                        <span className="text-sm font-medium">Chiaro</span>
-                      </button>
-                      <button className="p-3 border-2 border-gray-300 rounded-lg bg-white">
-                        <div className="w-full h-8 bg-gradient-to-r from-gray-700 to-gray-900 rounded mb-2"></div>
-                        <span className="text-sm font-medium">Scuro</span>
-                      </button>
-                      <button className="p-3 border-2 border-gray-300 rounded-lg bg-white">
-                        <div className="w-full h-8 bg-gradient-to-r from-blue-400 to-purple-600 rounded mb-2"></div>
-                        <span className="text-sm font-medium">Auto</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                Salva Modifiche
-              </button>
-            </div>
           </div>
         </div>
       </div>

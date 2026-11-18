@@ -59,10 +59,12 @@ export interface ResourceOptimization {
   type: 'WATER' | 'FERTILIZER' | 'LABOR' | 'ENERGY'
   currentUsage: number
   optimizedUsage: number
+  comparisonKind?: 'historical_requirement'
+  period?: { start: string; end: string }
   savings: {
     amount: number
     percentage: number
-    cost: number // €
+    cost: number | null // €; null when no actual tariff is available
   }
   schedule: OptimizationSchedule[]
   recommendations: string[]

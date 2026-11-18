@@ -1,3 +1,4 @@
+import { selectDatedForecast } from '@/services/agronomicPredictionPipelineService'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCron } from '@/lib/auth.server'
 import { requireSupabase } from '@/lib/supabase-server'
@@ -22,6 +23,9 @@ type GardenTaskRow = {
 
 type WeatherLogRow = {
   log_date: string
+  temp_max?: number | string | null
+  temp_min?: number | string | null
+  humidity_avg?: number | string | null
   temperature_max?: number | string | null
   temperature_min?: number | string | null
   precipitation_mm?: number | string | null
@@ -33,6 +37,9 @@ type SensorReadingRow = {
   value: number | string
   recorded_at: string
   sensor_location?: string | null
+  irrigation_zone_id?: string | null
+  unit: string
+  is_simulated: boolean
 }
 
 const asRecord = (value: unknown): Record<string, unknown> =>
@@ -73,13 +80,13 @@ export async function GET(request: NextRequest) {
         const since = new Date(checkedAt.getTime() - 30 * 86_400_000).toISOString().slice(0, 10)
         const [tasksRes, weatherRes, sensorsRes, inventoryRes, prefsRes, profileRes] = await Promise.all([
           supabase.from('garden_tasks').select('*').eq('garden_id', gardenRow.id).order('date'),
-          supabase.from('daily_weather_log').select('*').eq('garden_id', gardenRow.id).gte('log_date', since).order('log_date', { ascending: false }),
-          supabase.from('sensor_readings').select('*').eq('garden_id', gardenRow.id).gte('recorded_at', new Date(checkedAt.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }),
+          supabase.from('daily_weather_log').select('*').eq('garden_id', gardenRow.id).gte('log_date', since).lte('log_date', checkedAt.toISOString().slice(0, 10)).order('log_date', { ascending: false }),
+          supabase.from('sensor_readings').select('*').eq('garden_id', gardenRow.id).eq('is_simulated', false).lte('recorded_at', checkedAt.toISOString()).gte('recorded_at', new Date(checkedAt.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }),
           supabase.from('phyto_inventory').select('id, quantity').eq('garden_id', gardenRow.id).gt('quantity', 0).limit(1),
           supabase.from('notification_preferences').select('*').eq('user_id', gardenRow.user_id).maybeSingle(),
           supabase.from('profiles').select('email').eq('id', gardenRow.user_id).maybeSingle(),
         ])
-        if (tasksRes.error) throw new Error(tasksRes.error.message)
+        for (const source of [tasksRes, weatherRes, sensorsRes, prefsRes, profileRes]) { if (source.error) throw new Error('monitoring_source_read_failed') }
         const tasks = ((tasksRes.data ?? []) as GardenTaskRow[]).map((row) => ({
           id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
           taskType: row.task_type, date: row.date, nextDueDate: row.next_due_date,
@@ -95,20 +102,22 @@ export async function GET(request: NextRequest) {
         const latestRawData = asRecord(latest?.raw_data)
         const latestSnapshotWeather = asRecord(asRecord(latestRawData.snapshot).weather)
         const sensors = (sensorsRes.data ?? []) as SensorReadingRow[]
-        const findSensor = (type: string) => sensors.find((row) => row.sensor_type === type)
-        const humiditySensor = findSensor('humidity')
-        const windSensor = findSensor('wind_speed')
-        const temp = latest ? finite(latest.temperature_max, latest.temperature_min) : undefined
+        const findSensor = (type: string, unit: string) => sensors.find(row => row.sensor_type === type && row.unit === unit)
+        const humiditySensor = findSensor('humidity_air', '%')
+        const windSensor = findSensor('wind', 'km/h')
+        const temp = latest ? finite(latest.temp_max, latest.temperature_max, latest.temp_min, latest.temperature_min) : undefined
+        const tomorrow = new Date(checkedAt.getTime() + 86400000).toISOString().slice(0, 10)
+        const tomorrowForecast = selectDatedForecast(weatherRows, checkedAt).find(row => row.forecastDate === tomorrow)
         const humidity = finite(
-          humiditySensor?.value,
+          humiditySensor?.value, latest?.humidity_avg,
           latestRawData.humidity,
           latestSnapshotWeather.humidityPercentage
         )
         const weather = temp !== undefined && humidity !== undefined ? {
           temp, humidity, rainMm: finite(latest?.precipitation_mm) ?? 0,
-          rainTomorrow: finite(weatherRows[1]?.precipitation_mm) ? Number(weatherRows[1].precipitation_mm) > 0 : false,
+          rainTomorrow: tomorrowForecast ? tomorrowForecast.precipitationMm > 0 : undefined,
           windSpeed: finite(windSensor?.value, latestSnapshotWeather.windSpeedKmh) ?? 0,
-          recordedAt: latest?.log_date ? `${latest.log_date}T12:00:00.000Z` : checkedAt.toISOString(),
+          recordedAt: latest?.log_date ? `${latest.log_date}T00:00:00.000Z` : checkedAt.toISOString(),
           source: 'persisted_daily_weather_log',
         } : undefined
         const environmentalSummary = summarizeGardenEnvironmentalHistory(extractGardenEnvironmentalHistory(
@@ -117,19 +126,19 @@ export async function GET(request: NextRequest) {
         ))
         const sensorData: SensorReading[] = sensors.flatMap((row) => {
           const type: SensorReading['type'] | null =
-            row.sensor_type === 'soil_moisture'
+            row.sensor_type === 'moisture' && row.unit === '%'
               ? 'soil_moisture'
-              : row.sensor_type === 'temperature'
+              : row.sensor_type === 'temperature_air' && ['°C', 'C'].includes(row.unit)
                 ? 'temperature'
-                : row.sensor_type === 'humidity'
+                : row.sensor_type === 'humidity_air' && row.unit === '%'
                   ? 'humidity'
                   : null
-          return type
+          return type && Number.isFinite(Number(row.value))
             ? [{
                 type,
                 value: Number(row.value),
                 timestamp: row.recorded_at,
-                zoneId: row.sensor_location || undefined,
+                zoneId: row.irrigation_zone_id || undefined,
               }]
             : []
         })
@@ -148,12 +157,13 @@ export async function GET(request: NextRequest) {
             .eq('garden_id', gardenRow.id).eq('fingerprint', fingerprint).eq('resolved', false).maybeSingle()
           let alertId: string
           if (existing) {
-            await supabase.from('health_alerts').update({
+            const { error: updateError } = await supabase.from('health_alerts').update({
               severity: alert.severity, message: alert.message, recommendation: alert.recommendation,
               metadata, last_seen_at: checkedAt.toISOString(), occurrence_count: (existing.occurrence_count || 1) + 1,
               confidence: metadata.confidence, freshness_hours: metadata.freshnessHours,
               contraindications: metadata.contraindications || [], input_snapshot: metadata.inputSnapshot || {},
             }).eq('id', existing.id)
+            if (updateError) throw new Error('health_alert_update_failed')
             alertId = existing.id
             result.alertsRefreshed += 1
           } else {
@@ -182,18 +192,20 @@ export async function GET(request: NextRequest) {
                 notes: ['PROPOSTA DA CONFERMARE - non e una diagnosi o esecuzione', alert.title, alert.message, alert.recommendation].filter(Boolean).join('\n'),
                 is_suggested: true, suggested_by: 'health-monitoring-cron', monitoring_source_key: sourceKey,
               })
-              if (!taskError) result.tasksCreated += 1
+              if (taskError) throw new Error('monitoring_task_write_failed')
+              result.tasksCreated += 1
             }
           }
 
           const emailAllowed = Boolean(prefsRes.data?.email_enabled && prefsRes.data?.weather_alerts)
-          await supabase.from('monitoring_notification_queue').upsert({
+          const { error: queueError } = await supabase.from('monitoring_notification_queue').upsert({
             alert_id: alertId, garden_id: gardenRow.id, user_id: gardenRow.user_id, channel: 'email',
             status: emailAllowed ? 'queued' : 'suppressed', suppression_reason: emailAllowed ? null : 'notification_preferences',
             payload: { title: alert.title, message: alert.message, severity: alert.severity },
           }, { onConflict: 'alert_id,channel', ignoreDuplicates: true })
+          if (queueError) throw new Error('monitoring_notification_queue_failed')
           if (emailAllowed && profileRes.data?.email) {
-            await supabase.from('notification_delivery_queue').upsert({
+            const { error: deliveryError } = await supabase.from('notification_delivery_queue').upsert({
               user_id: gardenRow.user_id,
               garden_id: gardenRow.id,
               channel: 'email',
@@ -206,13 +218,15 @@ export async function GET(request: NextRequest) {
               scheduled_for: checkedAt.toISOString(),
               next_attempt_at: checkedAt.toISOString(),
             }, { onConflict: 'idempotency_key', ignoreDuplicates: true })
+            if (deliveryError) throw new Error('monitoring_delivery_queue_failed')
           }
         }
-        await supabase.from('monitoring_runs').update({
+        const { error: completionError } = await supabase.from('monitoring_runs').update({
           status: 'completed', completed_at: new Date().toISOString(),
           input_snapshot: { weatherRows: weatherRows.length, sensors: sensors.length, tasks: tasks.length, environmentalSummary },
           result_summary: { alerts: alerts.length },
         }).eq('id', run.id)
+        if (completionError) throw new Error('monitoring_run_completion_failed')
       } catch (gardenError) {
         const message = gardenError instanceof Error ? gardenError.message : 'monitoring_garden_failed'
         await supabase.from('monitoring_runs').update({ status: 'failed', completed_at: new Date().toISOString(), last_error: message }).eq('id', run.id)

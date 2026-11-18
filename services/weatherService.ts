@@ -428,7 +428,9 @@ function getConditionFromCode(code: number): string {
 }
 
 class WeatherService {
-  private readonly OPENWEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  // Shared service: paid credentials may only be consumed during server execution.
+  // Browser weather uses the keyless provider or the authenticated provider proxy.
+  private readonly OPENWEATHER_API_KEY = typeof window === 'undefined' ? process.env.OPENWEATHER_API_KEY : undefined
   private readonly CACHE_DURATION = 10 * 60 * 1000 // 10 minuti
   private readonly PERSISTED_COORD_TOLERANCE = 0.2
   private readonly PERSISTED_LOOKBACK_DAYS = 7

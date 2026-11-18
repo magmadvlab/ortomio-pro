@@ -43,7 +43,7 @@ export interface AlertCheckContext {
 export interface WeatherData {
   temp: number
   humidity: number
-  rainTomorrow: boolean
+  rainTomorrow?: boolean
   rainMm?: number
   windSpeed?: number
   recordedAt?: string

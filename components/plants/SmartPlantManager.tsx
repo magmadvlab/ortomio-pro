@@ -76,6 +76,7 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   const [plants, setPlants] = useState<GardenPlant[]>([]);
   const [filteredPlants, setFilteredPlants] = useState<GardenPlant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(fieldRow ? 'list' : 'grid');
   const [selection, setSelection] = useState<PlantSelection>({
     mode: 'single',
@@ -126,34 +127,12 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
     try {
       setLoading(true);
       
-      // 1. Carica piante individuali esistenti dal database (trapiantate dal vivaio)
-      let existingPlants: GardenPlant[] = [];
-      try {
-        existingPlants = await storageProvider.getIndividualPlants?.(garden.id) || [];
-      } catch {
-        existingPlants = [];
-      }
-      
-      // 2. Se ci sono piante nel database, usale
-      if (existingPlants.length > 0) {
-        setPlants(existingPlants);
-        return;
-      }
-      
-      // 3. Fallback: genera piante demo dai filari (per compatibilità)
-      const fieldRows = await storageProvider.getFieldRows?.(garden.id) || [];
-      if (fieldRows.length > 0) {
-        const { fieldRowPlantIntegrationService } = await import('@/services/fieldRowPlantIntegrationService');
-        const generatedPlants = await fieldRowPlantIntegrationService.initializePlantsFromFieldRows(
-          garden.id,
-          fieldRows
-        );
-        setPlants(generatedPlants);
-      } else {
-        setPlants([]);
-      }
+      setLoadError('');
+      if (!storageProvider.getIndividualPlants) throw new Error('Archivio piante non disponibile.');
+      const existingPlants = await storageProvider.getIndividualPlants(garden.id);
+      setPlants(existingPlants);
     } catch (error) {
-      console.error('Error loading plants:', error);
+      setLoadError(error instanceof Error ? error.message : 'Impossibile caricare le piante.');
       setPlants([]);
     } finally {
       setLoading(false);
@@ -473,6 +452,8 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
       </div>
     );
   }
+
+  if (loadError) return <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">{loadError} <button onClick={() => void loadPlants()} className="underline">Riprova</button></div>;
 
   if (!garden) {
     return (

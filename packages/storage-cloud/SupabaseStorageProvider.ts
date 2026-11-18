@@ -3178,6 +3178,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
       plantName: db.plant_name,
       gardenId: db.garden_id,
       taskId: db.task_id,
+      fieldRowId: db.field_row_id || undefined,
+      plantId: db.plant_id || undefined,
       quantity: Number(db.quantity),
       unit: db.unit,
       rating: db.rating,
@@ -3206,6 +3208,8 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.plantName !== undefined) db.plant_name = log.plantName;
     if (log.gardenId !== undefined) db.garden_id = log.gardenId;
     if (log.taskId !== undefined) db.task_id = log.taskId;
+    if (log.fieldRowId !== undefined) db.field_row_id = log.fieldRowId;
+    if (log.plantId !== undefined) db.plant_id = log.plantId;
     if (log.quantity !== undefined) db.quantity = log.quantity;
     if (log.unit !== undefined) db.unit = log.unit;
     if (log.rating !== undefined) db.rating = log.rating;
@@ -6210,7 +6214,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       return (data || []).map(this.mapIndividualPlantFromDB);
     } catch (error) {
       console.error('Error loading individual plants:', error);
-      return [];
+      throw new Error('Impossibile caricare le piante dall’archivio. Riprova.');
     }
   }
 

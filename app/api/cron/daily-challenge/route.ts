@@ -109,12 +109,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let sentCount = 0
+    let queuedCount = 0
     let failedCount = 0
 
     if (emailNotifications.length > 0) {
       const result = await sendBatchNotifications(emailNotifications, supabase)
-      sentCount = result.sent
+      queuedCount = result.queued
       failedCount = result.failed
 
       if (result.errors.length > 0) {
@@ -128,7 +128,8 @@ export async function GET(request: NextRequest) {
       tasks_due_count: tasksDue?.length || 0,
       notifications_count: emailNotifications.length,
       task_reminder_notifications: emailNotifications.length,
-      sent_count: sentCount,
+      sent_count: 0,
+      queued_count: queuedCount,
       failed_count: failedCount,
       legacy_path: 'daily-challenge',
       mode: 'task_reminders_only',

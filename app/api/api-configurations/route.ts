@@ -1,180 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyTier } from '@/lib/auth.server';
-import { getSupabaseClient, isSupabaseAvailable } from '@/lib/auth.server';
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { verifyTier, getSupabaseClient } from '@/lib/auth.server'
+import { configurationSchema, encryptAPISecret, publicConfiguration } from '@/services/apiConfiguration.server'
 
-interface ApiConfigurationRow {
-  id: string;
-  user_id: string;
-  service_name: string;
-  provider_name: string;
-  config: Record<string, unknown>;
-  is_active: boolean;
-  is_default: boolean;
-  last_used_at: string | null;
-  last_error: string | null;
-  usage_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
+const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 export async function GET(request: NextRequest) {
+  const auth = await verifyTier(request, ['FREE', 'PLUS', 'PRO'])
+  if ('error' in auth) return json({ message: auth.error }, auth.status)
+  const { data, error } = await getSupabaseClient().from('api_configurations').select('*').eq('user_id', auth.user.id).order('service_name').order('is_default', { ascending: false })
+  if (error) return json({ message: 'Impossibile leggere le configurazioni.' }, 500)
+  return json({ configurations: (data ?? []).map(publicConfiguration) })
+}
+async function save(request: NextRequest, update: boolean) {
+  const auth = await verifyTier(request, ['FREE', 'PLUS', 'PRO'])
+  if ('error' in auth) return json({ message: auth.error }, auth.status)
   try {
-    if (!isSupabaseAvailable()) {
-      return NextResponse.json({ configurations: [] });
+    const db = getSupabaseClient()
+    const body = await request.json()
+    let previous
+    if (update) {
+      const id = z.string().uuid().parse(body.id)
+      const result = await db.from('api_configurations').select('*').eq('id', id).eq('user_id', auth.user.id).maybeSingle()
+      if (result.error) throw new Error('configuration_read_failed')
+      if (!result.data) return json({ message: 'Configurazione non trovata.' }, 404)
+      previous = result.data
     }
-
-    const result = await verifyTier(request, ['FREE', 'PRO']);
-    
-    // Se non autenticato, restituisci array vuoto invece di errore 401
-    // Questo permette al client di gestire graziosamente utenti non autenticati
-    if ('error' in result) {
-      if (result.status === 401) {
-        // Utente non autenticato: restituisci array vuoto
-        return NextResponse.json({ configurations: [] });
-      }
-      // Altri errori: restituisci errore
-      return NextResponse.json({ error: result.error }, { status: result.status });
-    }
-    
-    const { user } = result;
-    const supabase = getSupabaseClient();
-    
-    const { data: configurations, error } = await supabase
-      .from('api_configurations')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('service_name', { ascending: true })
-      .order('is_default', { ascending: false });
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Non restituire api_key_encrypted per sicurezza
-    const safeConfigs = (configurations || []).map((config: ApiConfigurationRow) => ({
-      id: config.id,
-      user_id: config.user_id,
-      service_type: config.service_name,
-      provider_name: config.provider_name,
-      config: config.config,
-      is_active: config.is_active,
-      is_default: config.is_default,
-      last_used_at: config.last_used_at,
-      last_error: config.last_error,
-      usage_count: config.usage_count,
-      created_at: config.created_at,
-      updated_at: config.updated_at,
-    }));
-    
-    return NextResponse.json({ configurations: safeConfigs });
+    const input = configurationSchema.parse({ ...(previous ? publicConfiguration(previous) : {}), ...body, has_api_key: undefined })
+    const keyless = ['weather_openmeteo', 'ai_ollama', 'ai_local'].includes(input.service_type)
+    if (!previous && !input.api_key && !keyless) return json({ message: 'Inserisci la chiave API.' }, 400)
+    const encrypted = input.api_key ? encryptAPISecret(input.api_key, auth.user.id) : previous?.api_key_encrypted ?? (keyless ? encryptAPISecret('', auth.user.id) : null)
+    const { data, error } = await db.rpc('save_api_configuration', {
+      p_id: previous?.id ?? null, p_user_id: auth.user.id, p_service_name: input.service_type,
+      p_provider_name: input.provider_name, p_encrypted_key: encrypted, p_config: input.config ?? {},
+      p_is_active: input.is_active ?? true, p_is_default: input.is_default ?? false,
+    })
+    if (error?.code === '23505') return json({ message: 'Esiste già una configurazione per questo servizio. Modifica quella presente.' }, 409)
+    if (error || !data) throw new Error('configuration_write_failed')
+    return json({ configuration: publicConfiguration(data) }, update ? 200 : 201)
   } catch (error) {
-    console.error('API configurations GET error:', error);
-    return NextResponse.json(
-      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    if (error instanceof z.ZodError || error instanceof SyntaxError) return json({ message: 'Parametri di configurazione non validi.' }, 400)
+    return json({ message: 'Salvataggio non disponibile: verificare configurazione server e migrazione delle credenziali.' }, 503)
   }
 }
-
-export async function POST(request: NextRequest) {
+export const POST = (request: NextRequest) => save(request, false)
+export const PATCH = (request: NextRequest) => save(request, true)
+export async function DELETE(request: NextRequest) {
+  const auth = await verifyTier(request, ['FREE', 'PLUS', 'PRO'])
+  if ('error' in auth) return json({ message: auth.error }, auth.status)
   try {
-    if (!isSupabaseAvailable()) {
-      return NextResponse.json({ error: 'supabase_unavailable' }, { status: 500 });
-    }
-
-    const result = await verifyTier(request, ['FREE', 'PRO']);
-    
-    if ('error' in result) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
-    }
-    
-    const { user } = result;
-    const body = await request.json();
-    
-    const {
-      service_type,
-      provider_name,
-      api_key,
-      config,
-      is_default,
-      is_active,
-    } = body;
-    
-    // Validazione
-    if (!service_type || !provider_name || !api_key) {
-      return NextResponse.json(
-        { error: 'missing_required_fields', message: 'Campi obbligatori: service_type, provider_name, api_key' },
-        { status: 400 }
-      );
-    }
-    
-    // Valida service_type
-    const validServiceTypes = [
-      'ai_gemini', 'ai_openai', 'ai_anthropic', 'ai_ollama', 'ai_local',
-      'weather_openmeteo', 'weather_weatherapi', 'weather_openweathermap', 'weather_custom'
-    ];
-    
-    if (!validServiceTypes.includes(service_type)) {
-      return NextResponse.json(
-        { error: 'invalid_service_type', message: `Tipo servizio non valido: ${service_type}` },
-        { status: 400 }
-      );
-    }
-    
-    // Cripta API key (semplificato - in produzione usa criptazione più sicura)
-    const encryptedKey = Buffer.from(api_key).toString('base64');
-    
-    const supabase = getSupabaseClient();
-    
-    // Se is_default = true, imposta altri a false
-    if (is_default) {
-      await supabase
-        .from('api_configurations')
-        .update({ is_default: false })
-        .eq('user_id', user.id)
-        .eq('service_name', service_type)
-        .eq('is_default', true);
-    }
-
-    const { data: configuration, error } = await supabase
-      .from('api_configurations')
-      .insert({
-        user_id: user.id,
-        service_name: service_type,
-        provider_name,
-        api_key_encrypted: encryptedKey,
-        config: config || {},
-        is_active: is_active ?? true,
-        is_default: is_default ?? false,
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Non restituire api_key_encrypted
-    const safeConfig = {
-      id: configuration.id,
-      user_id: configuration.user_id,
-      service_type: configuration.service_name,
-      provider_name: configuration.provider_name,
-      config: configuration.config,
-      is_active: configuration.is_active,
-      is_default: configuration.is_default,
-      last_used_at: configuration.last_used_at,
-      last_error: configuration.last_error,
-      usage_count: configuration.usage_count,
-    };
-    
-    return NextResponse.json({ configuration: safeConfig }, { status: 201 });
-  } catch (error) {
-    console.error('API configurations POST error:', error);
-    return NextResponse.json(
-      { error: 'internal_error', message: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
+    const id = z.string().uuid().parse((await request.json()).id)
+    const { data, error } = await getSupabaseClient().from('api_configurations').delete().eq('id', id).eq('user_id', auth.user.id).select('id')
+    if (error) return json({ message: 'Eliminazione non riuscita.' }, 500)
+    if (!data?.length) return json({ message: 'Configurazione non trovata.' }, 404)
+    return json({ deleted: true })
+  } catch { return json({ message: 'Identificativo non valido.' }, 400) }
 }
-

@@ -38,11 +38,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'No pending photo reminders',
-        notificationsSent: 0
+        notificationsQueued: 0
       });
     }
 
-    let notificationsSent = 0;
+    let notificationsQueued = 0;
     const errors: string[] = [];
 
     for (const reminder of allReminders) {
@@ -72,11 +72,12 @@ export async function GET(request: NextRequest) {
             link: `/app/journal?taskId=${reminder.task_id}`
           }
         };
-        await sendNotification(notification, supabase);
+        const result = await sendNotification(notification, supabase);
+        if (!result.success || !result.queued) throw new Error(result.error || 'Notification not queued');
 
-        // Marca reminder come inviato
+        // Avanza il promemoria solo quando la notifica è registrata nella coda
         await markReminderSent(supabase, reminder.id);
-        notificationsSent++;
+        notificationsQueued++;
       } catch (error: unknown) {
         const errorMsg = `Error processing reminder ${reminder.id}: ${errorMessage(error)}`;
         console.error(errorMsg);
@@ -86,8 +87,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Sent ${notificationsSent} photo reminders`,
-      notificationsSent,
+      message: `Queued ${notificationsQueued} photo reminders`,
+      notificationsQueued,
       errors: errors.length > 0 ? errors : undefined,
       date: new Date().toISOString()
     });

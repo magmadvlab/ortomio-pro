@@ -38,7 +38,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
   
   // State
   const [exportConfig, setExportConfig] = useState<ExportConfiguration>({
-    format: 'shapefile',
+    format: 'geojson',
     coordinateSystem: 'WGS84',
     compression: true,
     includeMetadata: true,
@@ -214,7 +214,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                             name="format"
                             value={format}
                             checked={exportConfig.format === format}
-                            onChange={(e) => setExportConfig(prev => ({ ...prev, format: e.target.value as ExportConfiguration['format'] }))}
+                            onChange={(e) => setExportConfig(prev => ({ ...prev, format: e.target.value as ExportConfiguration['format'], coordinateSystem: 'WGS84' }))}
                             className="sr-only"
                           />
                           
@@ -258,13 +258,14 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           type="radio"
                           name="coordinateSystem"
                           value="UTM"
+                          disabled={exportConfig.format !== 'shapefile'}
                           checked={exportConfig.coordinateSystem === 'UTM'}
-                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as ExportConfiguration['coordinateSystem'] }))}
+                          onChange={(e) => setExportConfig(prev => ({ ...prev, coordinateSystem: e.target.value as ExportConfiguration['coordinateSystem'], utmZone: prev.utmZone || '33N' }))}
                           className="mr-3"
                         />
                         <div>
                           <div className="font-medium">UTM</div>
-                          <div className="text-sm text-gray-600">Proiezione metrica</div>
+                          <div className="text-sm text-gray-600">Proiezione metrica (Shapefile)</div>
                         </div>
                       </label>
                     </div>
@@ -279,9 +280,7 @@ const MapExportModal: React.FC<MapExportModalProps> = ({
                           onChange={(e) => setExportConfig(prev => ({ ...prev, utmZone: e.target.value }))}
                           className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                         >
-                          <option value="32N">32N (Italia Ovest)</option>
-                          <option value="33N">33N (Italia Centro-Est)</option>
-                          <option value="34N">34N (Italia Sud-Est)</option>
+                          {['N', 'S'].flatMap(hemisphere => Array.from({ length: 60 }, (_, index) => `${index + 1}${hemisphere}`)).map(zone => <option key={zone} value={zone}>{zone}</option>)}
                         </select>
                       </div>
                     )}

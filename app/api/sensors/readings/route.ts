@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { accessErrorResponse, getSupabaseClient, isAccessError, isSupabaseAvailable, requireGardenAccess, requireUser } from '@/lib/auth.server';
+import { accessErrorResponse, getSupabaseClient, isSupabaseAvailable, requireGardenAccess, requireUser } from '@/lib/auth.server';
 import { isBypassActive } from '@/lib/auth-bypass';
 import {
   saveSensorReading,
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ reading }, { status: 201 });
   } catch (error: unknown) {
-    if (isAccessError(error)) return accessErrorResponse(error);
+    const accessResponse = accessErrorResponse(error); if (accessResponse) return accessResponse;
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Sensor readings POST error:', error);
     return NextResponse.json(

@@ -1,91 +1,43 @@
-# 🤖 PLANNER AI
+# Planner AI: scegliere la vista giusta
 
-[← Torna all'Indice](./README.md)
+Il Planner riunisce più strumenti nella pagina chiamata anche “Centrale Operativa”. Parti dalla vista adatta alla domanda che hai, poi controlla che le decisioni diventino attività registrate.
 
----
+## Le schede, una per una
 
-## 🎯 STATO MODULO
+| Scheda | Quando aprirla | Cosa controllare |
+| --- | --- | --- |
+| Planner AI | Per preparare una pianificazione assistita | Terreno, colture, ipotesi e risultati proposti |
+| Calendario | Per vedere e organizzare i lavori per data | Giorno, periodo e attività previste |
+| Suggerimenti AI | Per leggere proposte e motivazioni | Fonte, dati mancanti e creazione effettiva del task |
+| Lista Task | Per creare, cercare e gestire singole attività | Tipo, stato, terreno e data |
+| Timeline | Per rivedere l’andamento delle attività | Lavori registrati e periodo visualizzato |
+| Rotazione Colture | Per ragionare sulle successioni | Storico delle colture e compatibilità |
+| Piano colturale | Per il percorso di pianificazione classico | Specie, spazi, calendario e ipotesi |
+| Controllo Biologico | Per consultare informazioni di supporto | Pertinenza al problema e verifica del professionista |
 
-**Stato attuale**: **Ibrido**
+## Preparare il piano passo per passo
 
-Il Planner AI oggi unisce funzioni realmente persistite con parti ancora guidate o non completamente orchestrate.
+1. Seleziona l’appezzamento e verifica che colture e spazi siano descritti.
+2. Controlla **Calendario** e **Lista Task** per evitare di programmare due volte lo stesso lavoro.
+3. Apri la scheda di pianificazione che vuoi usare e inserisci dati reali nei campi richiesti.
+4. Leggi le ipotesi del risultato. Distingui una previsione di resa da un raccolto già ottenuto.
+5. Approva solo le proposte coerenti con il tuo terreno e con il responsabile agronomico.
+6. Verifica in **Lista Task** quali attività sono state davvero create. Se manca un’attività concordata, puoi registrarla manualmente seguendo [Calendario e attività](./38-calendar-tasks.md).
 
----
+## Usare un suggerimento
 
-## ✅ COSA È DISPONIBILE ORA
+Apri il dettaglio, identifica luogo e coltura, leggi motivazione e informazioni mancanti. Prima di accettare controlla che lo stesso lavoro non esista già. L’accettazione di alcuni suggerimenti non produce ancora tutti i task attesi: non interpretare un messaggio positivo come prova sufficiente.
 
-- vista calendario e lista task con persistenza reale
-- creazione e aggiornamento task nel planner classico e nelle viste principali
-- pagina `Advice` con azioni che possono creare task veri
-- navigazione integrata tra planner, advice e salute
-- task-aware launch verso irrigazione, nutrizione, raccolta e lavorazioni
-- per i task agronomici di nuova generazione: summary operativo in lista con urgenza, confidence, contesto sintetico e segnali mancanti
-- nei moduli esecutivi principali aperti da questi task: banner con contesto sorgente e contratto minimo di evidenze mostrato prima del salvataggio
+## Eseguire il lavoro
 
----
+Per irrigazione, nutrizione, raccolti e lavorazioni usa il percorso di esecuzione del task quando disponibile. Leggi il riepilogo nel modulo operativo, registra il lavoro reale e verifica lo storico. Il suggerimento, il task, la registrazione e l’esito successivo sono quattro momenti distinti.
 
-## ⚠️ LIMITI ATTUALI
+## Quando intervenire
 
-- non tutte le funzioni “smart” del planner scrivono ancora nello stesso flusso storico unificato
-- parte dei suggerimenti AI resta guidata o mock e non va trattata come piano agronomico già validato
-- il planner classico è ancora più adatto a **orto e colture annuali** che a frutteti, vigneti e coorti miste
-- il passaggio da suggerimento AI a operazione eseguita non è ancora completamente uniforme in tutti i moduli
-- il summary operativo esiste soprattutto per i task generati dalla coda agronomica, non ancora per ogni task manuale o legacy
-- il loop mobile più chiaro oggi vale soprattutto per irrigazione, nutrizione, raccolta e lavorazioni aperte da task agronomici recenti
+Rivedi il piano quando cambia una coltura, una data di trapianto, la disponibilità di acqua o una condizione rilevata sul campo. Una ripianificazione non deve cancellare la storia dei lavori già svolti.
 
----
+## Limiti attuali
 
-## 🧭 DIFFERENZA TRA LE SEZIONI
+I diversi strumenti non hanno tutti lo stesso livello di completamento. Il piano classico è orientato soprattutto a orticole e annuali. Le elaborazioni AI e agronomiche richiedono verifica; la presenza di una proposta non certifica che sia corretta o applicabile.
 
-### **Planner**
-- serve per calendario, lista task, pianificazione operativa
-- è il punto più solido per la gestione task
-
-### **Advice**
-- raccoglie suggerimenti, rotazione, controllo biologico e consigli stagionali
-- alcune azioni creano task reali
-- il contenuto dei consigli non è ancora sempre generato da un motore storico pienamente consolidato
-
-### **Planner Classico**
-- utile per pianificazioni manuali e rotazioni orticole
-- meno adatto oggi a domini complessi come frutteto con età miste o reimpianti
-
----
-
-## 🔄 WORKFLOW CONSIGLIATO
-
-### **1. Parti dal planner**
-- seleziona l'orto attivo
-- controlla task esistenti
-- verifica calendario e lista
-
-### **2. Usa Advice come supporto**
-- crea task dai consigli che ritieni validi
-- usa i suggerimenti come base, non come decisione cieca
-
-### **3. Esegui e registra**
-- completa i task nel planner
-- quando presente, usa il pulsante di esecuzione guidata dal task stesso
-- verifica nel banner e nel form quali evidenze minime sono richieste
-- collega poi l'esecuzione ai registri operativi quando disponibili
-
----
-
-## 📌 NOTE IMPORTANTI
-
-- Il planner sta convergendo verso un unico orchestratore, ma non ci è ancora arrivato in ogni sottosistema
-- Per audit e storico, oggi il task persistito è più affidabile del semplice suggerimento AI
-- I task agronomici piu evoluti portano gia con se parte della spiegazione decisionale che li ha generati
-- Nei moduli esecutivi coperti, il contratto minimo di evidenze e oggi esposto in modo visibile; questo migliora la coerenza operativa ma non equivale ancora a un ledger unico completo per tutto il prodotto
-
----
-
-## 🚧 ROADMAP
-
-- unificazione completa planner -> task -> operazione -> risultato
-- pianificazione nativa per frutteto, vigneto e oliveto con età/coorti
-- storicizzazione reale dei suggerimenti accettati e dei risultati ottenuti
-
----
-
-[← Torna all'Indice](./README.md)
+I vecchi collegamenti “Advice”, “Calendario”, “Planner Classico” e “Almanacco” possono aprire le schede di questa pagina. Usa il menu corrente per orientarti.

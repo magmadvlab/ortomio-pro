@@ -12,13 +12,14 @@ import { collaborativeAIService } from '@/services/collaborativeAIService'
 import { resolveGardenContext } from '@/services/gardenContextResolverService'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import AITransparencyPanel from '@/components/ai/AITransparencyPanel'
+import PlannerSuggestionTaskDialog from '@/components/planner/PlannerSuggestionTaskDialog'
 import type { AISuggestion, AITransparencyLog } from '@/types/aiFeedback'
 import type { Garden, GardenTask } from '@/types'
 
 interface PlannerAISuggestionsProps {
   garden: Garden
   tasks: GardenTask[]
-  onCreateTasks?: (tasks: GardenTask[]) => Promise<void>
+  onTasksCreated?: () => Promise<void>
 }
 
 // Tipi di suggerimenti rilevanti per il planner
@@ -28,7 +29,7 @@ const PLANNING_TYPES: Array<'PLANTING_PLAN' | 'HARVEST_TIMING' | 'ROTATION_PLAN'
   'ROTATION_PLAN'
 ]
 
-export default function PlannerAISuggestions({ garden }: PlannerAISuggestionsProps) {
+export default function PlannerAISuggestions({ garden, onTasksCreated }: PlannerAISuggestionsProps) {
   const { user } = useAuth()
   const { storageProvider } = useStorage()
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
@@ -36,6 +37,7 @@ export default function PlannerAISuggestions({ garden }: PlannerAISuggestionsPro
   const [selectedSuggestion, setSelectedSuggestion] = useState<AISuggestion | null>(null)
   const [transparencyLog, setTransparencyLog] = useState<AITransparencyLog | null>(null)
   const [showTransparency, setShowTransparency] = useState(false)
+  const [planningSuggestion, setPlanningSuggestion] = useState<AISuggestion | null>(null)
   
   // Filtri
   const [typeFilter, setTypeFilter] = useState<string>('ALL')
@@ -78,13 +80,7 @@ export default function PlannerAISuggestions({ garden }: PlannerAISuggestionsPro
   const handleAccept = async (suggestionId: string) => {
     if (!garden || !user?.id) return
 
-    await collaborativeAIService.acceptSuggestion(
-      user.id,
-      suggestionId,
-      'Accettato dal Planner'
-    )
-
-    loadSuggestions()
+    setPlanningSuggestion(suggestions.find(item => item.id === suggestionId) ?? null)
   }
 
   const handleReject = async (suggestionId: string) => {
@@ -350,6 +346,7 @@ export default function PlannerAISuggestions({ garden }: PlannerAISuggestionsPro
         </div>
       </div>
 
+      {planningSuggestion && <PlannerSuggestionTaskDialog suggestion={planningSuggestion} onClose={() => setPlanningSuggestion(null)} onCreated={async () => { await loadSuggestions(); await onTasksCreated?.() }} />}
       {/* Transparency Panel */}
       {showTransparency && selectedSuggestion && transparencyLog && (
         <AITransparencyPanel

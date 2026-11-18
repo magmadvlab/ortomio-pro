@@ -9,6 +9,7 @@ import {
   findPlantingWindows,
 } from '@/services/plantingWindowOptimizer'
 import { Obstacle3D } from '@/services/preciseSunCalculator'
+import type { Garden } from '@/types'
 
 /**
  * POST /api/garden/sun-exposure/planting-windows
@@ -26,7 +27,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const targetYear = year || new Date().getFullYear()
+    const targetYear = year ?? new Date().getFullYear()
+    if (!Number.isInteger(targetYear) || targetYear < 1900 || targetYear > 2200) {
+      return NextResponse.json({ error: 'invalid_year' }, { status: 400 })
+    }
     
     if (!isSupabaseAvailable()) {
       return NextResponse.json({ error: 'cloud_storage_unavailable' }, { status: 503 })
@@ -91,6 +95,13 @@ export async function POST(request: NextRequest) {
     
     const lat = garden.coordinates.latitude
     const lng = garden.coordinates.longitude
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return NextResponse.json({ error: 'invalid_coordinates' }, { status: 400 })
+    }
+    const soilTypes: NonNullable<Garden['soilType']>[] = ['Clay', 'Sandy', 'Loamy', 'Peaty', 'Chalky', 'Silty']
+    const soilType = soilTypes.includes(garden.soil_type) ? garden.soil_type as Garden['soilType'] : undefined
+    const altitude = garden.altitude_meters === null || garden.altitude_meters === undefined ? undefined : Number(garden.altitude_meters)
+    const altitudeMeters = Number.isFinite(altitude) ? altitude : undefined
     
     const windows = calculateSeasonalWindows(lat, lng, obstacles, targetYear)
     const classification = classifyGardenType(windows)
@@ -100,7 +111,9 @@ export async function POST(request: NextRequest) {
       lat,
       lng,
       obstacles,
-      targetYear
+      targetYear,
+      soilType,
+      altitudeMeters
     )
     
     // Serializza le date per la risposta JSON
@@ -114,6 +127,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       plantingWindows: serializedWindows,
       classification,
+      parameters: {
+        soilType: soilType ?? null,
+        altitudeMeters: altitudeMeters ?? null,
+        historicalWeather: 'not_supported',
+      },
     })
   } catch (error: unknown) {
     console.error('Planting windows POST error:', error)

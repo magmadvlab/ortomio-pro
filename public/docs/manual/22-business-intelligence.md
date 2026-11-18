@@ -1,68 +1,30 @@
-# 📊 BUSINESS INTELLIGENCE
+# Analytics: capire gli indicatori
 
-[← Torna all'Indice](./README.md)
+Gli indicatori riassumono ciò che è stato registrato. Prima di confrontare due numeri controlla che si riferiscano allo stesso periodo, insieme di dati e unità.
 
----
+## Dove andare
 
-## 🎯 STATO MODULO
+Apri **Analytics**. La pagina è intitolata **Business Intelligence**. Puoi scegliere **Ultimo Mese**, **Trimestre** o **Anno** e le viste **ROI & Performance**, **Produttività**, **Efficienza** e **Sostenibilità**.
 
-**Stato attuale**: **Ibrido / in consolidamento**
+## Leggere i risultati
 
-OrtoMio ha aree analytics reali e già utili, ma questo capitolo era scritto come se esistesse una suite enterprise di BI completamente chiusa. Oggi va descritto in modo più sobrio: alcune dashboard e sintesi esistono davvero, mentre molte promesse di forecasting finanziario, data mining e reporting executive avanzato restano oltre lo stato corrente del codice.
+1. Scegli il periodo coerente con la domanda.
+2. Controlla il perimetro dei dati: se la pagina non espone un filtro per singolo terreno, non attribuire automaticamente il totale al terreno visto in un altro modulo.
+3. Leggi la descrizione sotto ogni indicatore.
+4. Per la produzione confronta i raccolti del periodo e le unità.
+5. Per i tempi confronta le durate registrate sui lavori completati.
+6. Per qualità, valore/kg o ROI verifica la presenza delle misure e dei costi necessari.
 
-**Percorso dichiarato**: Sidebar → "Analytics"
+## Come interpretare le viste
 
----
+**ROI & Performance** riguarda risultati e attività. **Produttività** confronta produzione e dati di qualità. **Efficienza** richiede durate e dati sulle risorse. **Sostenibilità** raccoglie indicatori orientativi, non un rapporto ambientale certificato.
 
-## ✅ COSA È DISPONIBILE ORA
+**Dati insufficienti**, una baseline assente o un valore non disponibile sono limiti informativi: non significano automaticamente zero produzione o zero costo.
 
-- dashboard e pannelli analytics in più moduli specialistici
-- sintesi operative su task, outcome, confronti e benchmark in alcune aree precision-hub
-- analisi utili in prescription maps, storico decisionale, confronto strategie e quality history
-- visibilità su parte dei registri tecnici e dei risultati già persistiti
+## Quando intervenire
 
----
+Usa Analytics per una revisione periodica e dopo avere riconciliato i registri. Se un totale sorprende, controlla prima periodo, duplicati, unità e dati mancanti nei moduli di origine.
 
-## ⚠️ LIMITI ATTUALI
+## Limiti
 
-- non esiste oggi una piattaforma BI unificata enterprise con tutte le metriche economiche, ESG e di capacity mostrate nel testo precedente
-- molte metriche finanziarie o corporate restano aspirazionali rispetto al prodotto reale
-- forecasting, what-if analysis, customer segmentation e data mining generalista non vanno presentati come funzionalità chiuse
-- la qualità dell'analisi dipende ancora molto dai registri reali disponibili e dalla copertura dei moduli sottostanti
-
----
-
-## 🧭 COME USARLO OGGI
-
-Usa le analytics di OrtoMio per:
-- leggere benchmark operativi e confronti tra azioni
-- verificare andamento di outcome, execution variance e storico qualità dove supportato
-- ottenere sintesi utili per decisioni agronomiche e miglioramento operativo
-
-Non usarle oggi come:
-- suite completa di controllo di gestione aziendale
-- data warehouse unificato per tutta l'azienda
-- fonte unica per cash flow, P&L o investor reporting
-
----
-
-## 🔗 AREE ANALYTICS OGGI PIÙ CREDIBILI
-
-- aree `precision-hub` e decision ledger
-- prescription maps e confronto esecuzione/outcome
-- quality history e confronti storici di alcune aree produttive
-- indicatori operativi costruiti su task e registri tecnici reali
-
----
-
-## 🚧 ROADMAP
-
-Per rendere questo capitolo davvero aderente a una BI strutturata servirebbe:
-- unificazione delle fonti dati operative
-- metriche economiche persistite e verificabili
-- dashboard trasversali consolidate, non solo verticali
-- chiarezza tra analytics agronomiche e controllo di gestione aziendale
-
----
-
-[← Torna all'Indice](./README.md)
+Il sistema non può misurare un risparmio senza un confronto attendibile. La qualità adattiva dipende dalla storia registrata e non garantisce un prezzo di vendita. I processi automatici e la telemetria assenti non vanno conteggiati come automazione eseguita.

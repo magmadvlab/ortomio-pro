@@ -108,13 +108,21 @@ export interface PrioritizedAction {
   actionComparisonExplanation?: string | null
 }
 
-// `dailyDiaryService.getDailyEntry` non espone `weather_data`/`agronomic_data`/`lunar_phase`:
-// questi campi legacy sono qui solo perche' il codice a valle li legge ancora (sempre `undefined`
-// a runtime, i rami if non scattano mai). Tipizzati come opzionali per non alterare il comportamento.
-type DiaryEntrySummary = Awaited<ReturnType<typeof dailyDiaryService.getDailyEntry>> & {
-  weather_data?: { precipitation_mm?: number; temp_max?: number; temp_min?: number }
-  agronomic_data?: { heat_stress_hours?: number; water_stress_index?: number; gdd_base_10?: number }
-  lunar_phase?: { favorable_for?: string[] }
+type DiaryEntrySummary = Awaited<ReturnType<typeof dailyDiaryService.getDailyEntry>>
+
+// Stress indices are dimensionless (0..1), never hours. Use the worst observed
+// cultivation rather than the arbitrary first row; do not sum unlike crop GDD.
+export function summarizeDiaryTracking(tracking: DiaryEntrySummary['tracking']) {
+  const valid = (values: number[]) => values.filter(value => Number.isFinite(value) && value >= 0)
+  const maxIndex = (values: number[]) => {
+    const indices = valid(values).filter(value => value <= 1)
+    return indices.length ? Math.max(...indices) : undefined
+  }
+  return {
+    heat_stress_index: maxIndex(tracking.map(row => row.heat_stress_index)),
+    water_stress_index: maxIndex(tracking.map(row => row.water_stress_index)),
+    cultivationCount: tracking.length,
+  }
 }
 
 interface DailyBriefingStats {
@@ -139,7 +147,8 @@ export interface DailyBriefing {
   }
   agronomicInsights: {
     gdd_base_10?: number
-    heat_stress_hours?: number
+    heat_stress_index?: number
+    cultivationCount?: number
     water_stress_index?: number
     photoperiod_hours?: number
   }
@@ -372,10 +381,8 @@ class DirectorService {
         conditions: diaryEntry.weather.weather_conditions
       } : {}
       
-      const agronomicInsights = diaryEntry?.tracking?.[0] ? {
-        gdd_base_10: diaryEntry.tracking[0].daily_gdd,
-        heat_stress_hours: diaryEntry.tracking[0].heat_stress_index,
-        water_stress_index: diaryEntry.tracking[0].water_stress_index,
+      const agronomicInsights = diaryEntry?.tracking?.length ? {
+        ...summarizeDiaryTracking(diaryEntry.tracking),
         photoperiod_hours: gardenForContext?.coordinates
           ? calculatePhotoperiodHours(gardenForContext.coordinates.latitude, today)
           : 0
@@ -1149,15 +1156,15 @@ class DirectorService {
     const recommendations: string[] = []
     
     // Raccomandazioni meteo
-    if (diaryEntry?.weather_data) {
-      const weather = diaryEntry.weather_data
+    if (diaryEntry?.weather) {
+      const weather = diaryEntry.weather
       
       if ((weather.precipitation_mm ?? 0) > 20) {
-        recommendations.push('⛈️ Pioggia abbondante prevista: evita irrigazioni e trattamenti')
+        recommendations.push('⛈️ Pioggia abbondante nel diario: verifica suolo e previsioni prima di irrigare o trattare')
       }
 
       if ((weather.temp_max ?? 0) > 35) {
-        recommendations.push('🌡️ Temperature elevate: aumenta frequenza irrigazioni')
+        recommendations.push('🌡️ Temperature elevate: verifica stress e fabbisogno irriguo delle colture')
       }
 
       if ((weather.temp_min ?? 100) < 5) {
@@ -1166,19 +1173,15 @@ class DirectorService {
     }
 
     // Raccomandazioni agronomiche
-    if (diaryEntry?.agronomic_data) {
-      const agro = diaryEntry.agronomic_data
+    if (diaryEntry?.tracking?.length) {
+      const agro = summarizeDiaryTracking(diaryEntry.tracking)
 
-      if ((agro.heat_stress_hours ?? 0) > 4) {
-        recommendations.push('🔥 Stress termico rilevato: ombreggia piante sensibili')
+      if ((agro.heat_stress_index ?? 0) > 0.5) {
+        recommendations.push('🔥 Stress termico rilevato in almeno una coltura: verifica le piante sensibili')
       }
 
       if ((agro.water_stress_index ?? 0) > 0.7) {
-        recommendations.push('💧 Stress idrico elevato: irrigazione urgente necessaria')
-      }
-
-      if ((agro.gdd_base_10 ?? 0) > 100) {
-        recommendations.push('📈 Accumulo GDD significativo: monitora sviluppo colture')
+        recommendations.push('💧 Stress idrico elevato in almeno una coltura: verifica la misura locale e il piano irriguo')
       }
     }
 
@@ -1215,11 +1218,6 @@ class DirectorService {
         recommendations.push('🌱 Luna crescente: ottimo per semina, trapianto e interventi fogliari')
       } else if (lunarPhase !== 'full_moon' && lunarPhase !== 'new_moon') {
         recommendations.push('✂️ Luna calante: favorevole per potatura, trattamenti radicali e raccolta')
-      }
-    } else if (diaryEntry?.lunar_phase?.favorable_for) {
-      const favorable = diaryEntry.lunar_phase.favorable_for
-      if (favorable.length > 0) {
-        recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)
       }
     }
     
@@ -1259,9 +1257,11 @@ class DirectorService {
     const parts: string[] = []
     
     // Meteo
-    if (diaryEntry?.weather_data) {
-      const w = diaryEntry.weather_data
-      parts.push(`Meteo: ${w.temp_min}°-${w.temp_max}°C`)
+    if (diaryEntry?.weather) {
+      const w = diaryEntry.weather
+      if (Number.isFinite(w.temp_min) && Number.isFinite(w.temp_max)) {
+        parts.push(`Meteo: ${w.temp_min}°-${w.temp_max}°C`)
+      }
       if ((w.precipitation_mm ?? 0) > 0) {
         parts.push(`${w.precipitation_mm}mm pioggia`)
       }

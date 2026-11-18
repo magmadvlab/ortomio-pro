@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { thingsboardService } from '@/services/thingsboardService'
-import { accessErrorResponse, isAccessError, requireDeviceSource } from '@/lib/auth.server'
+import { accessErrorResponse, requireDeviceSource } from '@/lib/auth.server'
 
 export async function POST(req: NextRequest) {
     try {
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Telemetry sent to ThingsBoard' })
     } catch (error) {
-        if (isAccessError(error)) return accessErrorResponse(error)
+        const accessResponse = accessErrorResponse(error); if (accessResponse) return accessResponse
         console.error('API Error sending telemetry:', error)
         return NextResponse.json(
             { error: 'Failed to process telemetry' },

@@ -1,3 +1,4 @@
+import { selectIrrigationSensorSignals } from '@/lib/irrigation/sensorSignals'
 import { 
   IrrigationZone, 
   IrrigationSystem, 
@@ -228,6 +229,7 @@ interface RawWaterRequirementRow {
   recommended_duration_minutes?: number
   calculation_method: string
   weather_data_source?: string
+  weather_data?: Record<string, unknown>
   confidence_level: number
   ai_adjustment_factor: number
   ai_confidence_score?: number
@@ -236,6 +238,8 @@ interface RawWaterRequirementRow {
 }
 
 interface AgronomicSignalInputData extends Partial<WeatherData> {
+  localRainGaugeMm?: number
+  sensorProvenance?: Record<string, { source: string; observedAt: string; unit: string }>
   forecastSummary?: string
   forecastSource?: string
   forecastHours?: number
@@ -741,8 +745,17 @@ class AdvancedIrrigationService {
         }),
         waterQualityProfile,
       })
+      const asOf = new Date()
+      const { data: sensorRows, error: sensorError } = await supabase.from('sensor_readings')
+        .select('sensor_type,value,unit,recorded_at,garden_id,irrigation_zone_id,is_simulated')
+        .eq('garden_id', zone.garden_id).eq('irrigation_zone_id', zoneId).eq('is_simulated', false)
+        .gte('recorded_at', new Date(asOf.getTime() - 48 * 3600000).toISOString()).lte('recorded_at', asOf.toISOString())
+        .order('recorded_at', { ascending: false }).limit(500)
+      // These signals describe current conditions, never a backdated calculation.
+      const signals = !sensorError && date === asOf.toISOString().slice(0, 10)
+        ? selectIrrigationSensorSignals(sensorRows ?? [], { gardenId: zone.garden_id, zoneId, asOf }) : undefined
       const enrichedWeatherData = this.enrichWeatherDataWithWaterQuality(
-        weatherData,
+        { ...weatherData, ...signals },
         waterQualityProfile
       )
 
@@ -1920,7 +1933,8 @@ class AdvancedIrrigationService {
         temperatureAvgCelsius: data.temperature_avg_celsius,
         humidityAvgPercentage: data.humidity_avg_percentage,
         windSpeedAvgKmh: data.wind_speed_avg_kmh,
-        solarRadiationMjm2: data.solar_radiation_mjm2
+        solarRadiationMjm2: data.solar_radiation_mjm2,
+        ...(data.weather_data ?? {}),
       },
       soilWaterBalance: {
         soilWaterDeficitMm: data.soil_water_deficit_mm,
@@ -1965,6 +1979,7 @@ class AdvancedIrrigationService {
       recommended_duration_minutes: requirement.recommendedDurationMinutes,
       calculation_method: requirement.calculationMethod,
       weather_data_source: requirement.weatherDataSource,
+      weather_data: requirement.weatherData ?? {},
       confidence_level: requirement.confidenceLevel,
       ai_adjustment_factor: requirement.aiAdjustmentFactor,
       ai_confidence_score: requirement.aiConfidenceScore,
@@ -2571,7 +2586,7 @@ class AdvancedIrrigationService {
       availableSignals.add('weather_forecast')
     }
 
-    if (weatherData.effectiveRainfallMm !== undefined) {
+    if (weatherData.localRainGaugeMm !== undefined) {
       availableSignals.add('rain_gauge_local')
     }
 

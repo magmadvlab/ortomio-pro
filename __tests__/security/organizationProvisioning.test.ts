@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { NextRequest } from 'next/server'
-import { handleProvisionOrganization } from '@/app/api/organizations/provision/route'
+import { handleProvisionOrganization } from '@/app/api/organizations/provision/handlers'
 
 test('organization provisioning derives the owner from the authenticated request', async () => {
   let rpcArguments: Record<string, unknown> | undefined

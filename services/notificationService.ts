@@ -7,6 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type NotificationType =
+  | 'agronomist_request'
   | 'task_completed'
   | 'task_reminder'
   | 'task_created'
@@ -41,7 +42,7 @@ export interface NotificationPreferences {
 /**
  * Verifica preferenze utente per tipo di notifica
  */
-async function checkUserPreferences(
+export async function checkUserPreferences(
   userId: string,
   type: NotificationType,
   supabaseClient: SupabaseClient
@@ -99,13 +100,12 @@ async function checkUserPreferences(
 }
 
 /**
- * Invia notifica email tramite Supabase Edge Function
+ * Accoda la notifica; la consegna al provider avviene esclusivamente sul server.
  */
 export async function sendNotification(
   notification: NotificationData,
   supabaseClient: SupabaseClient,
   options: {
-    directProvider?: boolean
     idempotencyKey?: string
     gardenId?: string
     scheduledFor?: string
@@ -126,74 +126,21 @@ export async function sendNotification(
       };
     }
 
-    if (!options.directProvider) {
-      const { enqueueNotificationDelivery } = await import('./notificationDeliveryService')
-      const sourceId =
-        notification.templateData.taskId ||
-        notification.templateData.alertId ||
-        notification.templateData.challengeId ||
-        notification.subject
-      const day = (options.scheduledFor || new Date().toISOString()).slice(0, 10)
-      await enqueueNotificationDelivery(supabaseClient, notification, {
-        gardenId: options.gardenId,
-        scheduledFor: options.scheduledFor,
-        idempotencyKey:
-          options.idempotencyKey ||
-          `${notification.userId}:${notification.type}:${String(sourceId)}:${day}:email`,
-      })
-      return { success: true, queued: true }
-    }
-
-    // Ottieni URL Edge Function da variabile ambiente
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      // Non loggare come errore - è normale se le notifiche email non sono configurate
-      // Silently fail invece di loggare errori che confondono gli utenti
-      return {
-        success: false,
-        error: 'Notifications not configured',
-      };
-    }
-
-    // Chiama Edge Function
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/send-notification`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-        body: JSON.stringify({
-          to: notification.userEmail,
-          subject: notification.subject,
-          type: notification.type,
-          templateData: notification.templateData,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Edge Function error:', errorText);
-      return {
-        success: false,
-        error: `Edge Function failed: ${response.statusText}`,
-      };
-    }
-
-    const providerResponse = await response.json().catch(() => ({}));
-    return {
-      success: true,
-      providerMessageId:
-        providerResponse.messageId ||
-        providerResponse.message_id ||
-        providerResponse.id ||
-        response.headers.get('x-message-id') ||
-        undefined,
-    };
+    const { enqueueNotificationDelivery } = await import('./notificationDeliveryService')
+    const sourceId =
+      notification.templateData.taskId ||
+      notification.templateData.alertId ||
+      notification.templateData.challengeId ||
+      notification.subject
+    const day = (options.scheduledFor || new Date().toISOString()).slice(0, 10)
+    await enqueueNotificationDelivery(supabaseClient, notification, {
+      gardenId: options.gardenId,
+      scheduledFor: options.scheduledFor,
+      idempotencyKey:
+        options.idempotencyKey ||
+        `${notification.userId}:${notification.type}:${String(sourceId)}:${day}:email`,
+    })
+    return { success: true, queued: true }
   } catch (error) {
     console.error('Error sending notification:', error);
     return {
@@ -209,18 +156,18 @@ export async function sendNotification(
 export async function sendBatchNotifications(
   notifications: NotificationData[],
   supabaseClient: SupabaseClient
-): Promise<{ sent: number; failed: number; errors: string[] }> {
+): Promise<{ queued: number; sent: number; failed: number; errors: string[] }> {
   const results = await Promise.allSettled(
     notifications.map((notif) => sendNotification(notif, supabaseClient))
   );
 
-  let sent = 0;
+  let queued = 0;
   let failed = 0;
   const errors: string[] = [];
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled' && result.value.success) {
-      sent++;
+      queued++;
     } else {
       failed++;
       const error =
@@ -231,7 +178,7 @@ export async function sendBatchNotifications(
     }
   });
 
-  return { sent, failed, errors };
+  return { queued, sent: 0, failed, errors };
 }
 
 /**

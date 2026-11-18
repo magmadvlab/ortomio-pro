@@ -34,6 +34,8 @@ const input: CanonicalPredictionInput = {
     growthStage: 'growing', stressIndicators: [], diseases: [], pests: [],
     nutritionalStatus: { nitrogen: 'ADEQUATE', phosphorus: 'ADEQUATE', potassium: 'ADEQUATE' },
     lastUpdate: '2026-07-17T09:00:00.000Z',
+    plantingDate: '2026-05-15',
+    cycle: { minDays: 75, maxDays: 85, ruleId: 'test-approved-tomato-cycle' },
   }],
   tasks: [],
   provenance: {

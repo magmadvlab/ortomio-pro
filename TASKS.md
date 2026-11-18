@@ -1,23 +1,17 @@
 # Tasks
 
-- **Aggiornamento:** 24 luglio 2026
-- **Stato:** M01-M02 chiusi per la release; M03-M05 conclusi solo localmente o come censimento; M06-M15 aperti/bloccati; M16 non iniziato
-- **Deploy:** codice M01-M09 e le 8 migrazioni nuove sono in produzione dal 24/07/2026, per decisione esplicita dell'utente e senza staging (gate O06 non soddisfatto) — dettaglio in `ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md` §8
-- **Coda canonica:** `docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md`
-
-## Avanzamento sintetico
-
-- [x] M01 - consolidamento feature flag e chiusura D5 (`c458bd9`);
-- [x] M02 - dashboard senza dati fittizi e lint reale (`583902a`);
-- [ ] M03 - implementazione locale pronta; API legacy migrata alla route canonica (O02 chiuso 24/07, `fcd97de`); resta solo la certificazione staging della migrazione (O01);
-- [ ] M04 - implementazione locale pronta; migrazione staging e helper seed aperti;
-- [ ] M05 - censimento pronto; 81 esiti correnti da riconciliare nei milestone M13-M15; M11-M12 locali azzerati;
-- [ ] M06-M08 - migrazioni, restore e RLS bloccati senza staging;
-- [ ] M09 - convergenza locale verificata; resta la certificazione staging;
-- [ ] M10 - lifecycle locale pronto; consegna/webhook provider da certificare in staging;
-- [ ] M11-M15 - debito locale M11-M12 azzerato; giornata reale, pilot, provider, AI e commerciale incompleti;
-- [ ] M16 - audit finale non iniziato.
+- **Aggiornamento:** 18 novembre 2026.
+- **Coda canonica:** [piano master](./docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md), registro §5.1.
+- **Stato release:** M01-M02 chiusi per la release; M16 eseguita con NO-GO il 26 luglio. Le evidenze remote mancanti non sono state chiuse dall'audit locale.
+- **Verifica corrente:** [audit locale e manuale](./docs/reports/ORTOMIO_AUDIT_LOCALE_MANUALE_2026-11-18.md). Verifica applicativa 481/481, landing 17/30 (13 fallimenti preesistenti), lint 629 warning e zero errori; type-check e build verdi. Prove UI dei componenti con fixture, collaudo backend/provider aperto.
+- **Manuale:** 46 capitoli disponibili, indice ricercabile e guide per sezione implementati nel branch locale `codex/manuale-audit-locale`; non pubblicati. Test manuale 10/10, copia pubblica sincronizzata.
+- **Nuove scoperte:** O68-O86 nel piano master, con milestone proprietario e criterio di uscita. I rapporti di audit conservano le prove e non costituiscono una seconda coda.
+- **Piano correttivo app dopo login:** §5.2 del [piano master](./docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md#52-piano-correttivo-dellapp-dopo-il-login--18-novembre-2026), lotti L0-L7: baseline, comandi reali, dati dell'orchestratore, regole agronomiche, ciclo operativo, mappe/export, automazioni e accettazione. Comprende i residui storici e l'[audit applicativo](./docs/reports/audit-2026-11-18/REPORT.md); landing esclusa dal perimetro richiesto. Correzioni locali L0–L7 e collaudo Docker eseguiti: [rapporto esecuzione](./docs/reports/audit-2026-11-18/EXECUTION.md), [runbook](./docs/reports/audit-2026-11-18/LOCAL_RUNBOOK.md). API/SQL con due utenti, restore locale, export indipendenti; variabili server aggiunte su Vercel. Restano migrazione/pubblicazione remote, credenziali legacy/provider e validazione agronomica. Non equivalgono alla chiusura di tutti i lotti.
 
 ## Regola
 
-Il piano master e' l'unica coda operativa corrente. Il suo registro `O01-O44` e' il conteggio canonico del lavoro aperto. Ogni nuova scoperta deve aggiornare nello stesso commit il blocco proprietario, il registro e il riepilogo; `[L]` non equivale a chiuso per la release.
+Il piano master è l'unica coda operativa corrente. I 44 obiettivi originali e le scoperte successive hanno conteggi separati. Ogni nuova scoperta deve aggiornare il blocco proprietario, il registro e il riepilogo; `[L]` non equivale a chiuso per la release. Le prove locali e la navigazione in lettura non sostituiscono salvataggi, riletture, RLS, restore o verifica dei servizi esterni.
+
+- **Evidenza remota 18/11:** backup produttivo con ACL e ripristino Docker senza rete riusciti (10 utenti, 6 terreni, impronta uguale); tre migrazioni collaudate sulla copia. Candidato `/Volumes/990P/ortomio-audit-release` basato sulla produzione, landing preservata. Dominio Resend verificato; trasporto notifiche corretto, chiave Vercel e collaudo di consegna ancora richiesti. Nessun deploy o modifica DB produttivo.
+
+- **Candidato finale aggiornato:** build riuscita, test app 486/486, quattro migrazioni testate nella copia Docker. Trasporto Resend e recupero dei job corretti; i mittenti Production sono salvati, `RESEND_API_KEY` risulta ancora assente. Nessuna email reale e nessun deploy.

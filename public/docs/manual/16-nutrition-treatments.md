@@ -1,15 +1,45 @@
-# Nutrizione e trattamenti
+# Nutrizione e trattamenti: dal piano al registro
 
-[← Indice](./README.md)
+Questa sezione organizza prodotti, trattamenti, programmazioni e inventario. Inserisci ciò che hai deciso con il responsabile e registra ciò che hai realmente applicato.
 
-**Stato:** beta.
+## Dove andare
 
-Piani, prodotti, registri e inventario sono persistiti. La scorta cambia solo dopo un'applicazione confermata. Per i trattamenti il registro conserva prodotto, dose, unità, garden, operatore, data e intervallo di sicurezza quando disponibili.
+Apri **Nutrizione e trattamenti**. La pagina mostra **Nutrizione & Trattamenti** e il selettore **Seleziona Giardino**. Sono presenti le schede **Dashboard Pro**, **Panoramica**, **Prodotti**, **Trattamenti**, **Analytics** e **Inventario**.
 
-Calcolo dosi avanzato, compatibilità prodotti e certificazione automatica restano disattivati o fuori perimetro. Verifica etichetta, autorizzazioni, tempi di carenza e normativa con un professionista prima di intervenire.
+## Prima di inserire dati
 
-Dal 30/07/2026 la pagina mostra un selettore di orto quando ne hai più di uno configurato: prima il selettore mancava e la nutrizione era raggiungibile solo per il primo orto della lista, indipendentemente dalla coltura.
+Identifica il terreno, il prodotto effettivo, il tipo di operazione, l’unità della dose e la data. La guida spiega come compilare l’app: non stabilisce quali prodotti siano autorizzati o quale dose applicare. Verifica etichetta, istruzioni e indicazioni del professionista per il caso concreto.
 
-Il completamento di un task di concimazione dalla dashboard suggerisce ora un prodotto scelto tra quelli realmente presenti nel tuo inventario (in base alla fase della pianta), invece di suggerire sempre un prodotto dal catalogo generico indipendentemente da cosa hai davvero in magazzino. Se nessun prodotto adatto è in scorta, il suggerimento resta quello generico.
+## Preparare prodotti e inventario
 
-L'analisi del suolo (macro/micro-nutrienti, pH, materia organica, texture) si compila ora da `/app/garden/zones`, per singola zona — prima il dato era consumato da più calcoli di nutrizione/irrigazione ma non esisteva alcun modo per inserirlo.
+1. Apri **Prodotti** e cerca quello che intendi usare, evitando nomi duplicati o ambigui.
+2. Controlla nome, tipo e informazioni disponibili; completa i dati tramite il modulo mostrato.
+3. Apri **Inventario** per verificare le scorte registrate e le unità.
+4. Confronta le scorte con il magazzino reale. Un valore nell’app non è una verifica fisica della disponibilità.
+
+## Pianificare un trattamento
+
+1. Apri **Trattamenti** oppure l’azione **Nuovo Trattamento**.
+2. Scegli **Tipo trattamento** e **Prodotto**.
+3. Compila **Dose** e **Unità dose** insieme: controlla che l’unità corrisponda a quella prevista per l’intervento.
+4. Scegli **Metodo**, **Data prevista**, **Ora** e lo **Stato** appropriato.
+5. Verifica la destinazione e le eventuali informazioni del task di origine.
+6. Salva e controlla che l’elemento compaia nella lista del terreno corretto.
+
+Per una programmazione ripetuta, il modulo richiede anche nome, frequenza, descrizione, data iniziale e finale. Una programmazione non prova che i singoli interventi siano avvenuti.
+
+## Registrare l’esecuzione e il risultato
+
+1. Riapri il trattamento o usa il percorso del task collegato.
+2. Aggiorna lo stato soltanto dopo l’esecuzione.
+3. Registra prodotto, quantità/dose, data e note effettive.
+4. Compila **Efficacia percepita**, **Risposta coltura** e **Copertura reale** solo se hai un’osservazione da riportare. Una valutazione personale non diventa una misura strumentale.
+5. Salva, riapri il trattamento e verifica il collegamento al task o al diario, dove previsto.
+
+## Quando intervenire
+
+Controlla la pianificazione prima del lavoro; registra subito dopo; rivaluta l’esito al momento concordato con il responsabile. Se una pianta mostra sintomi, raccogli osservazioni nella sezione [Salute](./39-health-monitoring.md) prima di trattare un suggerimento AI come diagnosi.
+
+## Limiti e problemi
+
+Il modulo è beta. Alcune elaborazioni e azioni rapide dipendono da dati e servizi disponibili. In caso di errore del prodotto, inventario o salvataggio, non sostituire il dato mancante con un valore casuale. Verifica il registro prima di ritentare e conserva il messaggio per il supporto.

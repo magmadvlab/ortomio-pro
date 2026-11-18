@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'No sowing tasks found',
-        notificationsSent: 0
+        notificationsQueued: 0
       });
     }
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       new Date()
     );
 
-    let notificationsSent = 0;
+    let notificationsQueued = 0;
     for (const check of checks) {
       const task = tasks.find(t => t.id === check.taskId);
       if (!task || !task.profiles?.email || !task.user_id) {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         };
         const result = await sendNotification(notification, supabase);
         if (result.success) {
-          notificationsSent++;
+          notificationsQueued++;
         }
       } catch (error) {
         console.error(`Error sending germination notification for task ${check.taskId}:`, error);
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Sent ${notificationsSent} germination notifications`,
+      message: `Queued ${notificationsQueued} germination notifications`,
       checksFound: checks.length,
       date: new Date().toISOString()
     });

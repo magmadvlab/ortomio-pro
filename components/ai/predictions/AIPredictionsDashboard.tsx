@@ -9,6 +9,11 @@ import ResourceOptimizationCard from './ResourceOptimizationCard'
 import type { DiseasePredicition, YieldPrediction, ResourceOptimization } from '@/services/aiPredictiveEngine'
 import type { AIGroundingContext } from '@/services/aiGroundingService'
 
+function missingSignalLabels(signals: string[]) {
+  const labels: Record<string, string> = { persisted_weather: 'meteo registrato', soil_analysis_and_moisture: 'analisi del suolo e umidità', observed_plant_health: 'salute osservata delle piante', source_timestamps: 'date attendibili delle misure', dated_weather_forecast: 'previsione meteo aggiornata', comparable_irrigation_volumes: 'volumi irrigui confrontabili' }
+  return [...new Set(signals.map(signal => signal.startsWith('harvest_cycle:') ? 'ciclo o data di raccolta della coltivazione' : signal.startsWith('source_read_failed:') ? 'una fonte dati non è disponibile' : labels[signal] || 'misure complete e verificate'))].join(', ')
+}
+
 interface PredictionsData {
   status: 'generated' | 'insufficient_data'
   missingSignals: string[]
@@ -147,17 +152,18 @@ export default function AIPredictionsDashboard() {
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
             Modello {predictions?.modelVersion || 'non disponibile'} · regole {predictions?.ruleVersion || 'non disponibili'} ·
             orizzonte {predictions?.horizonDays || 0} giorni · qualita fonte {predictions?.sourceQuality || 'insufficiente'}.
-            I risultati sono rischi/previsioni, non diagnosi o conferme di esecuzione.
+            Modello sperimentale da validare sul campo. I risultati sono stime, non diagnosi o conferme di esecuzione.
           </div>
           {predictions?.status === 'insufficient_data' && (
             <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              Dati insufficienti per una previsione riproducibile. Mancano: {predictions.missingSignals.join(', ')}.
+              Dati insufficienti per una previsione riproducibile. Mancano: {missingSignalLabels(predictions.missingSignals)}.
               Registra misure meteo, analisi suolo/umidita e salute osservata delle piante.
             </div>
           )}
           {predictions?.status === 'generated' && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
-              Confidenza calibrabile: {Math.round((predictions.confidence || 0) * 100)}% · valida fino al {new Date(predictions.validUntil).toLocaleString('it-IT')}.
+              Indice sperimentale, non calibrato: {Math.round((predictions.confidence || 0) * 100)}% · valida fino al {new Date(predictions.validUntil).toLocaleString('it-IT')}.
+              {predictions.missingSignals.length > 0 && <p className="mt-2">Risultato parziale. Dati mancanti: {missingSignalLabels(predictions.missingSignals)}. Le stime che richiedono questi dati non sono disponibili.</p>}
             </div>
           )}
           {predictions?.grounding && (

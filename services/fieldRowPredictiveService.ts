@@ -219,7 +219,7 @@ export class FieldRowPredictiveService {
     }
 
     // Predizioni principali
-    const harvestPrediction = masterData ? await this.predictHarvest(virtualTask, masterData, context) : undefined
+    const harvestPrediction = masterData && fieldRow.planted_date ? await this.predictHarvest(virtualTask, masterData, context) : undefined
     const yieldPrediction = masterData ? await this.predictYield(virtualTask, masterData, context, rowOperations, rowContext) : undefined
     const healthStatus = await this.analyzeHealthStatus(fieldRow, rowPlants, rowOperations, context, rowContext, masterData, virtualTask)
     const waterRequirement = masterData ? await this.predictWaterRequirement(virtualTask, masterData, context, rowContext) : this.getDefaultWaterRequirement(fieldRow, rowContext)
@@ -330,6 +330,10 @@ export class FieldRowPredictiveService {
         const irrigations = await this.storageProvider.getWateringLogs(undefined, gardenId)
         operations.push(...(irrigations || []).map((i) => ({ ...i, type: 'irrigation' as const })))
       }
+      const harvests = await this.storageProvider.getHarvestLogs(gardenId)
+      operations.push(...harvests.filter(log => log.gardenId === gardenId && (log.fieldRowId || log.plantId)).map(log => ({
+        ...log, type: 'harvest' as const, harvest_date: log.date,
+      })))
     } catch (error) {
       console.warn('Error loading recent operations:', error)
     }
@@ -370,15 +374,14 @@ export class FieldRowPredictiveService {
    */
   private async predictYield(task: GardenTask, masterData: PlantMasterSheet, context: FieldRowAnalysisContext, operations: FieldRowOperationRecord[], rowContext?: FieldRowContext) {
     try {
-      // Simula harvest logs da operazioni
+      // Only persisted, explicitly attributed harvest measurements enter the model.
       const harvestLogs = operations
-        .filter(op => op.type === 'harvest')
+        .filter(op => op.type === 'harvest' && Boolean(op.date || op.harvest_date) && Number.isFinite(op.quantity) && op.quantity! >= 0 && ['kg', 'g', 'units'].includes(op.unit ?? ''))
         .map(op => ({
           plantName: task.plantName,
-          date: op.date || op.harvest_date || new Date().toISOString().split('T')[0],
-          quantity: op.quantity || 1,
-          unit: (op.unit === 'g' || op.unit === 'units' ? op.unit : 'kg') as 'kg' | 'g' | 'units',
-          rating: (typeof op.rating === 'number' ? op.rating : 3) as 1 | 2 | 3 | 4 | 5
+          date: (op.date || op.harvest_date)!,
+          quantity: op.quantity!,
+          unit: (op.unit === 'g' || op.unit === 'units' ? op.unit : 'kg') as 'kg' | 'g' | 'units'
         }))
 
       const prediction = await predictYield(task, masterData, context.garden, harvestLogs)

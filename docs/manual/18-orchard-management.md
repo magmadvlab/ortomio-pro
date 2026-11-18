@@ -1,104 +1,48 @@
-# Gestione Frutteto
+# Frutteto: impianto, alberi e lavori
 
-[← Torna all'Indice](./README.md)
+Il modulo Frutteto distingue il terreno dall’impianto e dagli alberi che contiene. Configura il contesto una volta e usa le schede per seguire i lavori nel tempo.
 
----
+## Dove andare e prima configurazione
 
-## Panoramica
+Apri **Frutteto** e controlla **Seleziona Giardino**. Se il terreno non esiste, crealo dalla Dashboard o da **Impostazioni → I Miei Orti**. Se esiste ma non ha un impianto, usa **Nuovo Frutteto**.
 
-Il modulo Frutteto è un verticale reale per gestire configurazioni di impianto, alberi, potature, raccolte e alcune analisi operative. È un prodotto specializzato DB-backed, ma non va descritto come piattaforma completa di robotica, computer vision, post-raccolta commerciale o precision orchard totalmente automatizzata.
+## Configurare il frutteto
 
-**Percorso**: Sidebar → "Frutteto"
+1. Premi **Nuovo Frutteto**.
+2. Inserisci nome e tipo di impianto nella procedura guidata.
+3. Compila superficie, data d’impianto, distanze e forma di allevamento con i dati reali.
+4. Aggiungi varietà e portinnesti quando disponibili.
+5. Scegli il metodo di inserimento alberi. **Aggiunta Manuale** permette l’inserimento successivo; **Creazione Automatica** genera gli esemplari a partire dalla disposizione.
+6. Controlla attentamente quantità, filari e posizioni prima di confermare.
+7. Completa e riapri l’impianto dalla panoramica.
 
----
+L’opzione di importazione da file mostrata come “prossimamente” non è un percorso disponibile.
 
-## Stato modulo
+## Le viste dell’impianto
 
-**Stato attuale**: operativo come verticale frutteto con analytics parziali.
+| Scheda | Cosa fare |
+| --- | --- |
+| Alberi | Controlla anagrafica, varietà e disposizione degli esemplari. |
+| Filari | Verifica la struttura e le configurazioni dei filari. |
+| Piante Individuali | Consulta foto, salute e storia di una singola pianta. |
+| Potature | Pianifica o registra le operazioni secondo lo stato effettivo. |
+| Raccolte | Inserisci quantità e dati effettivamente osservati. |
+| Analytics | In questa vista di dettaglio è dichiarata “Funzionalità in sviluppo”. |
 
-La parte consolidata oggi è:
-- route `/app/orchard`
-- servizio `orchardService`
-- configurazioni frutteto su `orchard_configurations`
-- alberi su `orchard_trees`
-- gestione alberi, potature e raccolte tramite componenti dedicati
-- calcolo densità impianto come supporto decisionale
-- tracking resa per pianta quando i dati sono presenti
-- collegamento a zone, filari e posizione dell'albero quando disponibili
+Nella Dashboard del frutteto trovi anche **Calcolo Densità** e **Resa per Pianta**: i calcoli dipendono da superficie, numero piante e raccolti registrati.
 
-Non va presentato come già chiuso:
-- database varietale ufficiale completo per tutte le specie
-- rilevamento automatico fenologico da immagini
-- conteggio automatico fiori/frutti da drone o computer vision
-- robot potatura/raccolta/diradamento
-- grading automatico commerciale dei frutti
-- gestione post-raccolta, packaging, canali vendita o ROI varietale garantito
+## Lavorare su un albero
 
----
+1. Apri **Gestisci** sull’impianto.
+2. In **Alberi** o **Piante Individuali** identifica fila e posizione.
+3. Apri il dettaglio prima di intervenire: evita di confondere due esemplari della stessa varietà.
+4. Registra l’operazione nel modulo pertinente e verifica lo storico dopo il salvataggio.
+5. Dopo un nuovo rilevamento aggiorna osservazione o risultato, mantenendo la data corretta.
 
-## Cosa è disponibile ora
+## Quando intervenire
 
-Il modulo può supportare:
-- creazione/configurazione frutteto
-- gestione alberi individuali nel frutteto
-- filtri per varietà, salute, vigore e necessità di potatura/trattamento
-- import massivo alberi dove previsto dal servizio
-- pianificazione o registrazione di potature e raccolte
-- dashboard con conteggi e indicatori derivati dai record disponibili
-- calcolo densità e sesti come strumento assistivo
+Aggiorna l’impianto dopo nuovi inserimenti, sostituzioni o cambiamenti strutturali. Registra potature e raccolte dopo il lavoro reale. Le date e i suggerimenti agronomici vanno verificati con chi gestisce il frutteto.
 
----
+## Limiti e problemi
 
-## Relazione con piante individuali
-
-Gli alberi del frutteto sono un dominio specialistico rispetto alle piante individuali generiche.
-
-Quando esistono record su albero, il frutteto può dare una vista più precisa di:
-- posizione nella fila
-- varietà
-- stato salute
-- vigore
-- necessità operative
-- resa o raccolta legata all'albero
-
-Non ogni pianta generica ha automaticamente lo stesso livello di storico frutteto.
-
----
-
-## Analytics
-
-Le analytics frutteto sono utili quando esistono dati reali di alberi, potature, raccolte e qualità.
-
-Sono indicatori gestionali, non prove commerciali o modelli predittivi universali. La qualità delle sintesi dipende dalla copertura dei record inseriti.
-
----
-
-## Uso consigliato
-
-Usa il modulo per:
-- strutturare un frutteto reale
-- mantenere anagrafica e stato degli alberi
-- pianificare o registrare operazioni specifiche
-- leggere resa e criticità per albero quando disponibili
-- preparare decisioni operative con supporto dei registri
-
-Non usarlo come:
-- sistema robotico o computer-vision
-- piattaforma completa post-raccolta/commerciale
-- fonte unica di previsioni economiche o qualità commerciale
-- certificazione di precision orchard management end-to-end
-
----
-
-## Backlog tracciato
-
-Da trattare come sviluppo futuro:
-- integrazione stabile con immagini e conteggi automatici
-- outcome qualità/raccolta più sistematici per albero
-- collegamento più forte con prescription maps e operazioni di campo
-- eventuale gestione post-raccolta come modulo dedicato
-- analytics pluriennali solo quando la base dati è sufficientemente popolata
-
----
-
-[← Torna all'Indice](./README.md)
+Un terreno creato non implica che siano stati generati tutti gli alberi. Se la lista è vuota, verifica configurazione e metodo di inserimento prima di ripetere il wizard. Gli indicatori di resa non dimostrano una raccolta per albero quando mancano collegamenti o misure specifiche.

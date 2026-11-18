@@ -1,73 +1,30 @@
-# Chat AI Globale
+# Chat AI: fare una domanda e usare la risposta
 
-[← Torna all'Indice](./README.md)
+La chat permette di chiedere spiegazioni durante il lavoro nell’app. È utile per chiarire un dato o preparare una verifica; non dimostra che siano stati modificati piani o registri.
 
----
+## Dove andare
 
-## Stato modulo
+Usa il pulsante della chat, riconoscibile dall’invito a fare una domanda all’AI, quando disponibile nell’app. La disponibilità dipende dalla configurazione dei servizi e dell’account.
 
-**Stato attuale**: **reale ma bounded**
+## Passo per passo
 
-La Chat AI Globale e disponibile nell'app e usa una route backend effettiva. Non e un agente autonomo con memoria durevole completa, azioni scriventi generalizzate o escalation umana integrata.
+1. Verifica il terreno attivo prima di aprire la chat.
+2. Scrivi una domanda concreta indicando coltura, periodo e ciò che hai osservato.
+3. Specifica le informazioni mancanti: “Non ho una misura dell’umidità del suolo” è più utile di un numero inventato.
+4. Invia e attendi la risposta prima di ripetere la domanda.
+5. Leggi l’intera risposta e confrontala con i dati della schermata.
+6. Se vengono proposte azioni, controlla cosa richiede conferma e verifica i risultati nelle sezioni pertinenti.
 
-Percorso: pulsante chat AI nel layout applicativo autenticato.
+## Esempio di richiesta
 
----
+“Spiegami perché questo suggerimento è prioritario, quali dati usa e che cosa dovrei verificare sul posto prima di pianificare il lavoro.” Non serve chiedere all’AI di decidere al posto del responsabile.
 
-## Cosa e disponibile ora
+## Quando passare a un altro modulo
 
-- widget chat globale accessibile dalle principali sezioni app
-- invio domanda utente alla route backend `POST /api/ai/chat`
-- controllo tier (`PLUS`/`PRO`) e verifica crediti AI
-- prompt bounded con regole esplicite: non dichiarare azioni non eseguite, usare solo contesto dichiarato
-- supporto contesto route/modulo con hint di navigazione (context type `director-context` e correlati)
-- gestione errori/crediti insufficenti con messaggi espliciti lato UI
+Per programmare un lavoro apri il Planner. Per registrare acqua, prodotto o raccolto usa il registro dedicato. Per una foto e sintomi usa Salute. Per un problema di accesso o salvataggio usa il supporto.
 
----
+## Errori e limiti
 
-## Limiti attuali
+Se la risposta non arriva, controlla l’errore e il servizio disponibile. Una quota o un credito indicano possibilità d’uso del servizio, non qualità garantita della risposta. Non considerare salvata un’attività perché la chat ne parla: riapri la lista dei task o il registro.
 
-- nessuna memoria durevole cross-session della conversazione in un registro dedicato
-- nessun registro ufficiale di action execution con conferma utente dal canale chat globale
-- nessun workflow nativo di handoff verso operatore umano
-- base conoscenza non e dichiarabile come "database scientifico verificato e versionato" nel prodotto corrente
-- suggerimenti UI restano assistivi; non equivalgono a operazioni persistite automatiche
-
----
-
-## Cosa non va promesso come chiuso
-
-- assistente universale con memoria storica completa aziendale
-- esecuzione autonoma di task, registrazioni, comandi dispositivi o modifiche dati da chat
-- SLA/tempi risposta garantiti o supporto multicanale enterprise
-- knowledge base certificata con copertura normativa/commerciale completa e aggiornata in tempo reale
-- comandi speciali (`/escalate`, `/export chat`, ecc.) come funzioni operative confermate se non implementate
-
----
-
-## Uso corretto oggi
-
-Usa la chat globale per:
-
-- chiarimenti agronomici e orientamento operativo
-- lettura guidata del contesto modulo corrente
-- suggerimenti su prossimo passo e su quale sezione aprire
-
-Non usarla come:
-
-- canale ufficiale di chiusura decisionale/audit
-- prova di esecuzione operativa o compliance normativa
-- sostituto di consulenza professionale nei casi ad alta criticita
-
----
-
-## Roadmap realistica
-
-- memoria contestuale durevole e governata
-- registro azioni suggerite -> confermate -> eseguite
-- handoff strutturato verso supporto umano
-- contract unificato tra chat, planner, director e ledger operativo
-
----
-
-[← Torna all'Indice](./README.md)
+Non affidare alla chat password, chiavi API o informazioni personali superflue.

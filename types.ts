@@ -701,6 +701,8 @@ export interface HarvestLogData {
     plantName?: string; // Nome pianta (da database o calcolato)
     gardenId?: string; // ID giardino
     taskId?: string; // ID task associato
+    fieldRowId?: string; // Persistent attribution captured at harvest time
+    plantId?: string;
     quantity: number;
     unit: 'kg' | 'g' | 'units';
     rating: 1 | 2 | 3 | 4 | 5; // Quality stars

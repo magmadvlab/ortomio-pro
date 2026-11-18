@@ -1,6 +1,8 @@
 # OrtoMio Pro - Piano master di completamento
 
-- **Versione:** 1.2
+- **Versione:** 1.4
+- **Piano correttivo app autenticata:** §5.2, 18 novembre 2026; in esecuzione locale, senza chiusura dei gate remoti. Copre audit corrente e residui funzionali storici; landing esclusa dall'intervento richiesto.
+- **Ultima verifica locale:** 18 novembre 2026; audit e manuale nel branch `codex/manuale-audit-locale`, non pubblicati.
 - **Data di apertura:** 24 luglio 2026
 - **Repository:** `magmadvlab/ortomio-pro`
 - **Branch di lavoro iniziale:** `claude/migrations-feature-flags-cd3c51`
@@ -70,7 +72,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 | M04 | `[L]` locale | Suolo persistente e seed senza fallback/cache autorevoli | Migrazione staging (`O03`) |
 | M05 | `[L]` censimento | Baseline iniziale di 203 occorrenze; gate nuove voci; M15 locale azzerato | 75 voci correnti assegnate a M13-M14 (`O05`) |
 | M06 | `[!]` bloccato | Inventario migrazioni e runbook; audit dashboard 26/07: 48 record, ultimo `20260724082916` | Piano Free, nessun branch/staging; servono dump, duplicati, orfana e applicazione controllata (`O06-O09`) |
-| M07 | `[!]` bloccato | Script backup/restore e template; dashboard conferma `No backups` | Piano Free senza backup provider; servono drill reale, restore selettivo, RPO/RTO (`O10-O12`) |
+| M07 | `[L]` parziale | 18/11: backup produttivo con ACL ripristinato in Docker senza rete; conteggi/impronta coerenti e tre migrazioni collaudate | Restano ripristino selettivo, Storage/configurazioni e RPO/RTO completo (`O10-O12`) |
 | M08 | `[!]` bloccato | Matrice RLS pronta | Prove SQL/API/UI, storage/admin e Security Advisor (`O13-O15`) |
 | M09 | `[L]` locale | Provider production convergenti; zero voci manifest M09; seed interamente asincroni | Certificazione staging (`O18`) |
 | M10 | `[L]` locale | Coda, scheduler, deduplica, retry, dead-letter, rate limit, webhook e metriche | Consegna provider reale in staging (`O23`) |
@@ -83,7 +85,7 @@ Per evitare che il lavoro sembri concluso e ricompaia in seguito:
 
 Il conteggio corretto non e' “M01-M05 completati”. Sono chiuse per la release soltanto **M01 e M02**. M03-M05 hanno prodotto risultati locali utili, ma non autorizzano a considerarli conclusi ai fini della release commerciale.
 
-## 2.2 Cruscotto operativo corrente - 28 luglio 2026
+## 2.2 Cruscotto operativo corrente - 18 novembre 2026
 
 Questa e' la vista da usare per capire dove siamo e quanto manca. I 44
 obiettivi originali e le scoperte successive sono conteggiati separatamente:
@@ -92,9 +94,29 @@ un nuovo problema non modifica retroattivamente il denominatore O01-O44.
 | Perimetro | Chiuso | Parziale | Aperto | Lettura corretta |
 |---|---:|---:|---:|---|
 | Piano originale O01-O44 | **13** | **5** | **26** | I 13 chiusi sono O02, O04, O16-O17, O19-O22, O24-O26, O40 e O44. O38-O39 e O41-O43 hanno codice/schema in Production ma attendono E2E. |
-| Scoperte O45-O67 | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
-| Debito lint T01 | **1.664 warning rimossi** | — | **978 warning** | Baseline operativa 2.642 -> 978 in 74 lotti. T01 non equivale a 978 funzionalita': ogni lotto distingue pulizia sicura da nuovi gap di prodotto. |
+| Scoperte O45-O67 (pregresse) | **14** | **0** | **9** | Sono aperti O48 (sicurezza credenziali provider), O60 (fonti dati pianta/suolo e resa attesa in `prescriptionMapsService.ts`), O61 (segnali agronomici estesi mai popolati in `advancedIrrigationService.ts`), O62 (sotto-sistema lettura/aggregazione irraggiungibile e con mappature errate in `unifiedOperationsService.ts`), O63 (colonne `irrigation_zones` assenti su Production, evidenza concreta del drift M06), O64 (motore ottimizzazione costi interamente mock in `costOptimizationService.ts`, dichiarato in UI ma mai implementato), O65 (raccolti non attribuibili a un filare in `fieldRowPredictiveService.ts`, `HarvestLogData` privo di `fieldRowId`/`plantId`), O66 (accettare un suggerimento AI nel Planner non crea mai i task corrispondenti, manca una mappatura suggerimento->task) e O67 (`zoneManagementService.ts` interroga tabelle inesistenti e riceve il tipo client sbagliato, "Analizza zona" fallisce silenziosamente in produzione). Le altre 14 scoperte sono chiuse e pubblicate. |
+| Scoperte O68-O75 (audit 18/11) | **0** | **0** | **8** | Correzioni locali O68-O73 implementate e testate nel rapporto manuale; restano prove backend/provider e lifecycle. O74-O75 aperti. Nessuna chiusura release attribuita alle fixture. |
+| Scoperte O76-O84 (audit app 18/11) | **0** | **0** | **9** | Briefing, forecast, raccolto, consumi idrici, finestre d'impianto, coordinate/formati export, provenienza delle predizioni e verifica delle automazioni. Registro §5.1 e sequenza correttiva §5.2. O76–O83 corretti o contenuti localmente; O84: confermata nel commit produttivo la sola pianificazione del diario. Restano rollout e osservazione dei nuovi job. |
+| Scoperte O85–O86 (collaudo 18/11) | **0** | **0** | **2** | Dipendenze vulnerabili e proxy AI legacy: correzioni e test locali; pubblicazione e smoke provider restano aperti. |
+| Debito lint T01 | — | — | **629 warning** | Misura locale del 18/11: zero errori. Il valore storico 978 non è la baseline corrente; questo audit non attribuisce a sé le riduzioni intervenute. |
 | Milestone release M01-M16 | **2 release-ready** | **9 locali/parziali** | **4 bloccate + M16 NO-GO** | M16 e' stato eseguito, ma il suo esito resta NO-GO finche' le prove mancanti non sono raccolte. |
+
+### Evidenza del 18 novembre 2026
+
+Aggiornamento lotti L0–L7: `test:app` 481/481, build con controllo TypeScript obbligatorio riuscita; SQL/HTTP con login reale e due proprietari nel clone Docker, restore locale riuscito, PDF e Shapefile letti indipendentemente. Dettagli e limiti nel [rapporto esecuzione](../audit-2026-11-18/EXECUTION.md). Nessuna voce locale riclassificata chiusa in produzione. Landing resta fuori perimetro (13 fallimenti nella baseline).
+
+Le scoperte successive contano ora **42 voci O45-O86: 14 chiuse e 28 aperte ai fini della release**.
+Il conteggio degli O01-O44 resta invariato: non sono state raccolte le prove
+remote necessarie a riclassificarli. Le verifiche locali hanno prodotto
+441/454 test release superati (13 fallimenti landing già presenti),
+13/13 test meteo e 10/10 test del nuovo manuale. Type-check e build passano;
+`release:check` distingue ancora `localReady=true` da `deployReady=false`.
+Il manuale corrente e il lettore aggiornato sono pronti localmente. Le cifre 441/454 sopra sono la baseline precedente: gli esiti correnti sono nel rapporto esecuzione. Nessun deploy o migrazione produttiva; scritture con fixture e migrazioni soltanto nel clone Docker, aggiunta di variabili server su Vercel.
+
+Evidenze, percorsi visitati e riproduzione: [audit locale e manuale](../ORTOMIO_AUDIT_LOCALE_MANUALE_2026-11-18.md).
+L'URL indicato per la prova è il sito pubblico: la navigazione autenticata
+è stata limitata alla lettura. Non è stata dimostrata la separazione di uno
+staging né chiuso alcun gate sulla sola base dell'accesso riuscito.
 
 ### Che cosa manca davvero negli O01-O44
 
@@ -202,6 +224,8 @@ e la riesecuzione M16.
 
 ### M05 - Censimento e chiusura TODO, FIXME e mock della release 1.0
 
+- **Correzione locale 18/11/2026 — O73 `[L]`:** anteprima implementata con geometrie della revisione, selezione/legenda, dose/unità, fonti e qualità disponibili. Test geometrie e browser mobile/tastiera nel rapporto manuale. Resta la validazione integrata con export e dati reali (L5).
+
 - **Stato:** `[L]` censimento completato il 24/07/2026; correzioni trasferite e ancora aperte
 - **Obiettivo:** classificare tutto il debito raggiungibile, senza correggere indiscriminatamente codice fuori perimetro.
 - **Attivita':**
@@ -286,6 +310,8 @@ e la riesecuzione M16.
 
 ### M09 - Provider autorevoli e convergenza reader/writer
 
+- **Correzione locale 18/11/2026 — O70-O71 `[L]`:** inserimento esemplare con writer, filare e rilettura; rimossa generazione demo al caricamento; routing per coltura con identificativo conservato. Test e prova UI con fixture passano. Resta il ciclo integrato nel database di prova (L4).
+
 - **Stato:** `[-]` mappa pronta e cloud fail-closed; convergenza incompleta
 - **Obiettivo:** scegliere un'unica verita' persistente per ogni dominio.
 - **Attivita':**
@@ -300,6 +326,9 @@ e la riesecuzione M16.
 - **Residuo:** helper cache sementi legacy e certificazione staging.
 
 ### M10 - Notifiche operative e osservabilita'
+
+- **Correzione locale 18/11/2026 — O69 `[L]`:** richiesta persistente nella coda canonica, contatto posseduto dall’utente, storico, invio Resend con ID/idempotenza e retry; rimossi falso successo e SLA inventato. Test positivo/errore/deduplica e UI con fixture passano. Consegna reale e scheduler restano da verificare insieme a O23/O84.
+- **Piano correttivo §5.2:** O84 verifica scheduler effettivo, invocazioni e registri; la mancanza di record recenti non prova da sola un guasto. Lotti L1 e L6 completano consulti e delivery con prove reali, senza duplicare O23.
 
 - **Stato:** `[L]` lifecycle locale completato; certificazione provider aperta
 - **Obiettivo:** completare reminder essenziali senza falsi stati di consegna.
@@ -347,6 +376,9 @@ e la riesecuzione M16.
 
 ### M13 - Provider esterni
 
+- **Correzione locale 18/11/2026 — O72 `[L]`:** endpoint admin separato per test OAuth reale, gestione HTTP/shape/timeout, segreti server; endpoint CDSE corretto anche nel recupero NDVI e cache token. Test con risposte controllate passano. Resta prova provider reale con credenziali dell’ambiente.
+- **Piano correttivo §5.2:** O81-O82 completano correttezza geografica e formati export nel lotto L5. O48 e O72 precedono le prove del provider; O61 collega soltanto segnali con fonti reali nel lotto L3.
+
 - **Stato:** `[-]` Open-Meteo verificato; provider avanzato non configurato
 - **Obiettivo:** validare Open-Meteo e un solo provider avanzato iniziale.
 - **Attivita':**
@@ -362,6 +394,8 @@ e la riesecuzione M16.
 - **Gap credenziali rilevato il 28/07/2026 durante T01 lotto 29 (`O48`):** `api_configurations` non applica cifratura reale a riposo ma soltanto Base64; la route autenticata per servizio decodifica e restituisce la chiave in chiaro al browser, dove gli adapter AI e meteo la consumano direttamente. Il flusso resta intatto in questo lotto per non interrompere i provider: la chiusura richiede migrazione cifrata, rotazione e chiamate provider esclusivamente server-side, non una correzione lint.
 
 ### M14 - Direttore, regole agronomiche e AI in shadow
+
+- **Audit app 18/11/2026 e piano §5.2:** O76-O80 e O83 coprono contratti del diario, separazione storico/forecast, ancoraggio del raccolto, volumi idrici, parametri delle finestre e qualità delle fonti. L2 corregge gli input; L3 definisce e verifica le regole; L7 richiede shadow e validazione agronomica. L'altitudine nella resa e il piano annuale sono già collegati: le annotazioni storiche sottostanti non descrivono integralmente il codice corrente.
 
 - **Stato:** `[-]` regressione locale verde; shadow reale mancante
 - **Obiettivo:** misurare utilita' e sicurezza prima dell'uso operativo.
@@ -382,6 +416,8 @@ e la riesecuzione M16.
 
 ### M15 - Lifecycle commerciale e ruoli
 
+- **Correzione locale 18/11/2026 — O68 `[-]`:** writer/reader per profilo, notifiche, password e tema; Export canonico collegato; richiesta di chiusura persistente, ritirabile e visibile ad Admin. Nessuna cancellazione automatica implementata: lifecycle effettivo e prove su database/account di test restano aperti. Test servizi e UI con fixture nel rapporto manuale.
+
 - **Stato:** `[L]` lifecycle implementato localmente; prove staging e provider aperti
 - **Obiettivo:** rendere il prodotto attivabile e amministrabile per clienti reali.
 - **Attivita':**
@@ -397,6 +433,8 @@ e la riesecuzione M16.
 - **Residuo:** provider inviti configurato e prove E2E O38-O43 su due aziende; l'assenza di staging/restore resta posseduta da M06-M08.
 
 ### M16 - Audit finale e go/no-go
+
+- **Audit 18/11/2026:** O74-O75: suite landing 17/30 e igiene documentale non verdi sulla baseline locale. L'audit corrente è diagnostico; non sostituisce il verbale NO-GO né autorizza una release.
 
 - **Stato:** `[x]` audit eseguito il 26/07/2026; decisione **NO-GO**
 - **Obiettivo:** produrre la decisione formale sulla release commerciale 1.0.
@@ -473,14 +511,14 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O07 | M06 | `[-]` History dashboard acquisita: 48 record, ultimo `20260724082916`; resta dump schema e confronto oggetto per oggetto | Drift classificato per ogni oggetto |
 | O08 | M06 | Risolvere timestamp duplicati e migrazione remota orfana | History univoca e motivata |
 | O09 | M06 | Applicare e verificare i batch di migrazioni | Audit post-batch verde e rollback disponibile |
-| O10 | M07 | `[!]` Piano Free senza backup provider; predisporre target e poi eseguire backup/restore drill reale | Restore completo ripetibile |
+| O10 | M07 | `[L]` 18/11: dump produttivo con ACL ripristinato in container isolato; 10 utenti, 6 terreni e impronta corrispondente. Tre migrazioni e assert con ruoli originali passati. Evidenza in `audit-2026-11-18/production-restore-drill.json`; restano Storage/configurazioni di piattaforma e prova servizio completa | Restore completo ripetibile |
 | O11 | M07 | Provare ripristino selettivo di un cliente | Dati cliente riconciliati |
 | O12 | M07 | Misurare e approvare RPO/RTO | Valori registrati nel runbook |
 | O13 | M08 | Eseguire matrice isolamento SQL/API/UI con due clienti | Tutti i negativi attesi risultano negati |
 | O14 | M08 | Certificare storage, cron, export, cache e admin | Nessun percorso cross-tenant |
 | O15 | M08 | Rieseguire Security Advisor | Nessun finding release-blocking aperto |
 | O18 | M09 | Certificare reader/writer canonici in staging | Stato ricostruibile per ogni dominio prioritario |
-| O23 | M10 | Registrare provider message ID e webhook delivery | Stato finale confermato dal provider |
+| O23 | M10 | `[L]` 18/11: rilevata funzione remota `send-notification` inesistente; sostituita nel candidato con Resend server-only, controllo destinatario/preferenze, ID obbligatorio e retry idempotente entro 23h. Dominio verificato; credenziale Vercel e prova reale ancora mancanti | Stato finale confermato dal provider |
 | O27 | M11 | Eseguire giornata completa con ruoli reali | Planner-outcome completato senza interventi fuori flusso |
 | O28 | M11 | Riconciliare ledger e risultato su staging | Stato finale unico e ricostruibile |
 | O29 | M12 | Identificare azienda, dataset, mezzi, cataloghi e responsabile pilot | Input pilot approvati |
@@ -523,6 +561,160 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 | O61 | M13/M14 | **Scoperto 28/07/2026 durante T01 lotto 43, `services/advancedIrrigationService.ts` (vivo su `/app/irrigation`):** `getAvailableAgronomicSignals`/`calculateAgronomicConfidenceLevel`/`buildAgronomicReasoning` verificano la disponibilita' di segnali agronomici estesi (umidita' suolo a 10/30/60cm, umidita' fogliare, VPD, punto di rugiada, temperatura chioma, portata/pressione linea, osservazione fenologica, risultato qualita', riferimento registro operazioni, NDVI, vigore satellitare) per pesare la confidenza del fabbisogno idrico calcolato. Con gli unici chiamanti attuali, l'oggetto passato e' sempre di tipo `WeatherData` (temperatura/umidita'/vento/radiazione/pioggia/qualita' acqua): nessuno di quei segnali estesi viene mai popolato, quindi i rami restanti sono strutturalmente irraggiungibili e la confidenza per le colture con segnali P0 in quelle categorie e' sistematicamente penalizzata. Nessuna azione presa: NDVI esiste gia' altrove (`ndvi_data_cache` in `prescriptionMapsService.ts`) ma non e' collegato qui; gli altri segnali (sensori suolo a profondita', umidita' fogliare, fenologia) potrebbero non avere alcuna fonte dati nel sistema. Decidere quali segnali collegare, da quale provider, e se il resto va rimosso come aspirazionale e' una decisione agronomica/di prodotto, non di tipizzazione. | Ogni segnale controllato ha una fonte dati reale collegata oppure viene rimosso dal calcolo; nessun ramo di confidenza strutturalmente morto |
 | O67 | M06/M09 | **Scoperto 29/07/2026 durante T01 lotto 69, `services/zoneManagementService.ts` (vivo via `components/prescription/ZoneManagementPanel.tsx` -> `PrescriptionMapsDashboard.tsx`, route `/app/prescription-maps`):** la classe interroga tabelle `zones`, `zone_fields` e `zone_rows` assenti in qualunque migrazione del repository (verificato con grep ricorsivo su `supabase/migrations/`; la tabella reale e' `land_zones`, creata in `20260204120000_add_land_zones_and_soil_memory.sql`). Il costruttore riceve inoltre `storageProvider` (`IStorageProvider`, l'astrazione di dominio usata ovunque nel progetto) ma il corpo chiama `this.supabase.from(...)` come un client Postgrest grezzo — `IStorageProvider` non espone alcun metodo `.from`. Il metodo pubblico `analyzeZone()` e' realmente invocato dal pannello live (`ZoneManagementPanel.tsx:129`): ogni "Analizza zona" cliccata da un utente reale fallisce silenziosamente (catturato da un try/catch che logga e rilancia). Nessuna correzione presa: serve rimappare l'intero servizio sullo schema `land_zones` reale (tabelle, colonne) e sostituire l'iniezione con un vero client Supabase o i metodi `IStorageProvider` equivalenti — una sessione dedicata, non un fix di lint. | Il servizio legge/scrive sulle tabelle reali dello schema Production e "Analizza zona" produce un risultato o un errore esplicito dichiarato, non un fallimento silenzioso |
 | T01 | Trasversale | Inventariare e ridurre i 2.733 warning lint storici — **in corso 25/07/2026**: 2642 -> 2589 -> 2563 -> 2516 -> 2496 -> 2486 -> 2476 -> 2453 -> 2429 -> 2413 -> 2386 -> 2344 -> 2329 -> 2298 dopo 13 lotti (`docs/reports/T01_LINT_DEBT_BASELINE_2026-07-24.md`); lotto 1 `HomeDashboard.tsx` 49->0 (+ scoperto un pannello con dati finti, vedi nota M14 sopra), lotto 2 `ContinuousMonitoringDashboard.tsx` 26->0, lotto 3 `PlantLifecycleManager.tsx` 24->0 e `Planner.tsx` 19->0 (+ sistemati 2 bottoni stagionali morti; scoperto poi il cluster "AI Planner" morto, ~6.100 righe/8 file, vedi nota M05 sopra — escluso da T01 su decisione dell'utente), lotto 4 `OrganizationManager.tsx` 11->0 e `ActivityRegistry.tsx` 9->0 dopo aver verificato la raggiungibilita' di ogni candidato, lotto 5 `aiPredictiveEngine.ts` 13->5 (+ trovato e corretto un gap algoritmico reale: evapotranspirazione/capacita' idrica del suolo calcolate e scartate, mai la formula finale — diverso da dato finto, qui i numeri usati erano reali ma la copertura piu' stretta del dichiarato), lotto 6 `GardenOnboarding.tsx` 11->1 (+ collegato su richiesta dell'utente il wizard "input visivo" mai raggiungibile prima; trovato ma lasciato non toccato un secondo gap, calibrazione bussola panoramica calcolata e mai passata all'analisi — vedi nota M05 sopra), lotto 7 (25/07) `PruningManager.tsx` 12->0 e `HarvestManager.tsx` 11->0 (entrambi vivi, montati da `/app/orchard` e `/app/olives`). Lotti 6 e 7 confluiti su `main` il 25/07/2026. Lotto 8 (25/07) `SeedlingManager.tsx` 13->1 e `NutritionAnalytics.tsx` 12->0 (entrambi vivi: il primo montato da `HomeDashboard`/`SeedlingReadyWidget`, il secondo da `/app/nutrition`): rimossi import/variabili morte, tipizzato `location` del batch semenzaio con l'union reale del service al posto di `as any`, `exhaustive-deps` sistemato con `useCallback`; lasciato 1 warning intenzionale `no-img-element` (foto batch in base64 data-URI, la conversione a `next/image` e' un cambio di comportamento non lint). Lotto 9 (25/07) `DailyGardenReport.tsx` 7->0 e `ProfessionalIrrigationDashboard.tsx` 9->0 (vivi: il primo via `GardenView`/`GardenCard`, il secondo da `/app/irrigation`): solo import morti, `exhaustive-deps` con `useCallback` e un `as any` sostituito con `{ message?: string }` gia' garantito dal guard; scartati per irraggiungibilita' (zero importer, verificato 25/07) `PrescriptionMapsDashboard_Mobile.tsx` e `FieldPlantManager.tsx` — candidati "codice morto" per il prossimo censimento M05 insieme al cluster AI Planner. Lotto 10 (25/07) `UnifiedTimelineDiary.tsx` 19->0 (vivo: `/app/diary` + `GardenView`; tipizzati props e foto con i tipi reali `Garden`/`GardenTask`/shape di `PhotoTimeline`) e `geoExportService.ts` 12->4 (vivo via `MapExportModal`/`PrescriptionMapsDashboard`; `storageProvider: any` tipizzato con `Pick<IStorageProvider,...>`): i 4 warning residui sono lasciati intenzionalmente su due stub onesti, `getMachineryCompatibility` (dichiara "return null for now", i chiamanti gestiscono il null) e `transformCoordinates`. **Gap funzionale trovato nel lotto 10, NON toccato (da decidere, stesso pattern M14):** `transformCoordinates` restituisce le zone in WGS84 non trasformate anche quando l'utente sceglie il sistema UTM nell'export — il file esportato dichiara UTM ma contiene coordinate WGS84, silenziosamente; anche `ZoneMemoryView.tsx` (e con lui `gardenMemoryService.ts`) risulta a zero importer, altro candidato codice morto M05. Lotto 11 (25/07), 5 file vivi: `ProfessionalNutritionDashboard.tsx` 7->0, `WeatherTaskAlert.tsx` 8->0, `VineyardDashboard.tsx` 8->0, `ProfessionalDashboard.tsx` 10->3 e `TreeManager.tsx` 30->18 (import morti, `useCallback` sui data-loader, due parametri modal mai usati rimossi da firma e chiamata). Su `TreeManager.tsx` e `ProfessionalDashboard.tsx` lasciati intenzionalmente i warning `no-explicit-any` (rispettivamente 12 e 3): file troppo estesi/rischiosi per una retipizzazione in questo lotto, candidati per un lotto dedicato futuro. Altri 5 file (`ProfessionalCalendar.tsx`, `EnhancedDashboard.tsx`, `MigrationWizard.tsx`, `OnboardingTier.tsx`, `IrrigationZonesWidget.tsx`, `VineyardPruningManager.tsx`) risultano a zero importer durante la verifica — nuovi candidati codice morto M05, ora registrati in O45. Lotto 12 (25/07): `plantMasterService.ts` 6->0 (import morti + parametri `lat`/`lng` di `convertMasterSheetToSpecificInfo` mai usati nel corpo, rimossi da firma e dal call site in `geminiService.ts`), `plantingWindowOptimizer.ts` 6->1 (5 import morti; lasciato apposta il warning su `historicalWeather`, **gap reale trovato**: `logic/solarClassificationHelper.ts` recupera e passa dati meteo storici veri a `findPlantingWindows`, che li ignora silenziosamente — stesso pattern M14 di aiPredictiveEngine nel lotto 5, non implementato qui), `app/app/orchard/page.tsx` 7 unused-vars +2 exhaustive-deps risolti su 28 totali (import morto, parametro handler morto, due `useCallback`; lasciati intenzionalmente i 17 `no-explicit-any` e la funzione `TropicalExoticSection` mai renderizzata nel file, candidata separata per M05). Scartati per irraggiungibilita' durante la selezione: `complianceAIService.ts`, `cultivationOrchestrator.ts`, `dominanceIntegrationService.ts`, `components/Dashboard.tsx` (tutti zero importer, da aggiungere a O45 se confermati). Totale 2344 -> 2329. Gap funzionali trovati nel lotto 7 e NON toccati (da decidere): in entrambi i detail modal il tab Registrazioni mostra sempre vuoto (`setRecords` mai chiamato, nessun fetch dei record) e i bottoni Play/Edit sulle card e "Nuova/Prima Registrazione" nei tab non hanno alcun `onClick` — stesso pattern bottoni-morti gia' visto nel Vigneto. Lotto 13 (25/07), 6 file vivi verificati uno per uno: `ComplianceChecklist.tsx` 5->0 e `TimelineView.tsx` 5->0 (zero warning residui), `Advice.tsx` 5->3, `AddCropWizard.tsx` 5->3 (lasciato apposta l'`exhaustive-deps` su `handleSearch`: wrapparlo in `useCallback` coi deps corretti includerebbe `foundArchetype`/`fuzzySuggestions`, che la funzione stessa aggiorna — rischio concreto di loop infinito, non e' un fix meccanico sicuro), `AddWoodyCropWizard.tsx` 7->6 (`exhaustive-deps` sistemato in sicurezza, era un semplice gate su props esterne non settate dallo stesso effect), `QuickEventModal.tsx` 5->2. Import morti, coppie state morte, parametri modal richiesti dall'interfaccia ma mai letti nel corpo (tenuti in interfaccia, solo non destrutturati, stesso pattern gia' usato su `PruningManager`/`ComplianceChecklist`). Confermato vivo `Advice.tsx` tramite `CropRotationPlanner.tsx` (`/app/advice` + `/app/planner`) e `ComplianceChecklist.tsx` tramite `BiologicalControlDashboard.tsx` (montato direttamente in `/app/planner`). Nuovo orfano trovato: `components/compliance/RecallProcedure.tsx` (zero importer, non ancora analizzato per O45). Totale 2329 -> 2298 | Baseline per categoria e trend registrati; zero warning release-blocking |
+| O68 | M15 | **Audit locale 18/11/2026:** `app/app/settings/page.tsx` presenta campi generici senza writer; Salva Modifiche, Scarica Backup ed Elimina Account non hanno handler. Le funzioni dedicate di terreni/organizzazione/credenziali non sono comprese in questo difetto.  **Correzione locale: writer/reader e richiesta amministrativa di chiusura implementati; lifecycle effettivo e prove backend ancora aperti.** | Collegare ogni comando al percorso autorevole con errore esplicito e verifica di persistenza, oppure rimuovere/disabilitare chiaramente i controlli non implementati. |
+| O69 | M10 | **Audit locale 18/11/2026:** `submitAgronomistRequest` in `app/app/health/page.tsx` crea solo un oggetto locale, lo stampa in console e mostra conferma di invio/risposta entro 24 ore; nessun invio o salvataggio.  **Correzione locale: coda, delivery, idempotenza e storico implementati; prova provider reale ancora aperta.** | Persistenza e consegna tracciate con esito reale, oppure UI esplicitamente indisponibile senza conferma ingannevole. |
+| O70 | M09 | **Audit locale 18/11/2026:** Aggiungi Pianta in `app/app/plants/page.tsx` passa `tab=plants` a `/app/garden`; l'hub non gestisce quel parametro e non apre il modulo richiesto.  **Correzione locale: modulo inserimento con writer e filare; prova UI con fixture superata.** | Il comando apre un flusso di inserimento coerente con il terreno e verifica l'esemplare dopo il salvataggio. |
+| O71 | M09 | **Audit locale 18/11/2026:** `FarmCommandCenter.handleFieldSelect`, in assenza di alert, apre `/app/garden` anche per frutteti/oliveti/vigneti che l'hub generico filtra.  **Correzione locale: routing specializzato conserva il terreno; regressioni superate.** | Navigazione verso il modulo corretto per tipo di appezzamento; regressione su tutti i tipi con e senza alert. |
+| O72 | M13 | **Audit locale 18/11/2026:** `SatelliteCredentialsManager.testConnection` non verifica lo status HTTP e usa solo `data.simulated`; una risposta `{error: ...}` può apparire positiva. Richiesta con bbox fissa e senza garden.  **Correzione locale: test OAuth admin e gestione errori; endpoint Copernicus corretto anche per NDVI.** | Test autorizzato sul contesto corretto; errori HTTP/provider/shape gestiti e successo associato a evidenza reale. |
+| O73 | M05 | **Audit locale 18/11/2026:** Anteprima in `PrescriptionMapsDashboard.tsx` mostra soltanto un alert di funzione in sviluppo. Limite ora dichiarato nel manuale.  **Correzione locale: anteprima geometrie/zone/dosi/fonti e prova mobile/tastiera superate.** | Anteprima implementata e verificata oppure comando esplicitamente disabilitato/rimosso. |
+| O74 | M16 | **Audit locale 18/11/2026:** `test:release` fallisce su 13 test landing: componenti rimossi, copy/ordine atteso, frammenti, classi contrasto/focus e sitemap. Non classificare tutti come test innocui senza revisione. | Riconciliare requisiti commerciali, UI e test con prove dei percorsi/contrasto/SEO; suite release verde senza indebolire le asserzioni per convenienza. |
+| O75 | M16 | **Audit locale 18/11/2026:** `docs:hygiene` fallisce su documenti e librerie di skill già presenti fuori allowlist. Il nuovo rapporto ha un'eccezione esatta; nessuna esclusione globale introdotta. | Definire il perimetro effettivo e riconciliare i documenti preesistenti; igiene documentale e sincronizzazione manuale entrambe verdi. |
+| O76 | M14 | **Audit app 18/11, A01:** il Director legge `weather_data`/`agronomic_data` mentre il diario restituisce `weather`/`tracking`/`events`; briefing e riepilogo perdono segnali. | Contratto tipizzato canonico, aggregazione stress per coltura e prova diario persistito → briefing visibile con pioggia/caldo/freddo e dati mancanti. |
+| O77 | M14 | **Audit app 18/11, A02:** gli ultimi record storici di `daily_weather_log` vengono inseriti in `forecast15Days` e sottratti dal fabbisogno futuro. | Storico e forecast distinti per data, fonte e uso; la pioggia passata non diventa pioggia futura e l'assenza di previsione è dichiarata. |
+| O78 | M14 | **Audit app 18/11, A03:** raccolto calcolato da `asOf + 60 giorni + ritardo altitudine`, senza ancoraggio al ciclo della coltura. | Finestra ancorata a impianto/ciclo e fenologia secondo regole approvate; nessuna deriva automatica a parità di evidenze; dati insufficienti espliciti. |
+| O79 | M14 | **Audit app 18/11, A04:** consumi da quantità generiche di task senza periodo/stato/unità e sottrazione di mm da volumi non normalizzati. | Consumi effettivi in litri nel periodo dichiarato, piano separato dall'eseguito, pioggia convertita sulla superficie corretta; nessun risparmio o costo privo di baseline valida. |
+| O80 | M14 | **Audit app 18/11, A05:** endpoint finestre non passa suolo/altitudine al motore; `historicalWeather` è accettato ma inutilizzato. | Suolo/altitudine trasferiti e verificati; contributo dello storico definito e validato oppure esplicitamente non supportato, senza dichiararlo applicato. |
+| O81 | M13 | **Audit app 18/11, A06:** coordinate in gradi esportate con etichetta UTM ed EPSG 32633 fisso, senza trasformazione. | GeoJSON standard WGS84 coerente; export proiettato soltanto in formato compatibile, con zona/emisfero e trasformazione verificati da un lettore indipendente. |
+| O82 | M13 | **Audit app 18/11, A07:** Shapefile preselezionato ma encoder sempre in errore. | Default utilizzabile; Shapefile completo e leggibile da GIS indipendente prima di offrirlo come supportato. La disabilitazione temporanea è contenimento, non implementazione. |
+| O83 | M14 | **Audit app 18/11, provenienza:** timestamp assenti producono età zero/confidenza 0,9 e un flag sensore può etichettare tutto il bundle come misurato. | Fonte, timestamp, freschezza e natura misurata/stimata per segnale; timestamp assente o invalido non vale dato fresco; test su fonti miste e scadute. |
+| O84 | M10 | **Verifica 18/11 `[L]`:** Vercel e sorgente del deployment pubblico ispezionati: solo diario pianificato. Candidato aggiunge salute/delivery giornalieri; HTTP locale prova run, idempotenza ed esclusione simulazioni. Ultimo run produttivo osservato resta quello del 22/07; rollout non eseguito. | Inventario scheduler del deploy reale, invocazioni autenticate e run recenti osservabili; percorso controllato monitoraggio → coda → provider/esito, idempotente e con allarme su mancata esecuzione. |
+
+| O85 | M01/M16 | **Collaudo 18/11 `[L]`:** 17 vulnerabilità npm (2 critical, 9 high, 6 moderate) nella baseline. Aggiornamenti diretti/transitivi portano a zero; build con TypeScript e PDF con parser indipendente passano. | Pubblicare il candidato verificato e ripetere audit sul lockfile effettivamente distribuito. |
+| O86 | M14 | **Collaudo 18/11 `[L]`:** proxy Gemini inoltrava stringhe/parti nel formato errato; provider esterni usavano chiavi pubbliche e fallback ripetuti. Normalizzazione testo/foto, proxy server e retry limitati implementati; test SDK/HTTP passati. | Smoke provider reale e prove UI dei chiamanti multimodali corretti; evidenza sul deploy. |
+
+## 5.2 Piano correttivo dell'app dopo il login — 18 novembre 2026
+
+**Stato: correzioni implementate e collaudate localmente; tre migrazioni applicate solo al clone Docker; variabili server aggiunte a Vercel; nessuna pubblicazione né migrazione produttiva.** Prove e limiti: [esecuzione](../audit-2026-11-18/EXECUTION.md), [runbook Docker](../audit-2026-11-18/LOCAL_RUNBOOK.md). Obiettivo: eliminare i difetti emersi, completare i percorsi dichiarati e dimostrare quali parametri raggiungono davvero l'orchestratore. Il perimetro è il sistema autenticato: dashboard, terreni e colture, Planner, diario, salute, irrigazione, previsioni, mappe, impostazioni e automazioni. O74/landing resta nella coda generale, fuori da questo intervento; non si azzera il suo fallimento per dichiarare verde la release completa.
+
+Fonti: [audit applicativo con riproduzioni](../audit-2026-11-18/REPORT.md), [audit locale/manuale](../ORTOMIO_AUDIT_LOCALE_MANUALE_2026-11-18.md), registro §5.1 e rapporti storici M06-M16. A01-A07 sono prove, mappate rispettivamente a O76-O82; provenienza e runtime sono O83-O84. I gap storici O48/O60-O67 vanno riconfermati sul candidato prima di modificarli. Le modifiche locali concorrenti a manuale e navigazione possono aver già corretto una parte di O70-O71: in quel caso si verifica e si registra la prova, senza rifare il lavoro.
+
+### Sequenza e dipendenze
+
+| Lotto | Priorità e risultato | ID principali | Dipendenze | Responsabilità |
+|---|---|---|---|---|
+| L0 | Baseline ripetibile, ambiente e schema affidabili | O06-O15, O63; conferma di tutti i rilievi | Nessuna per analisi locale; target isolato per prove con scritture | Backend/DB e gestione deploy |
+| L1 | Eliminare falsi successi e completare comandi di base | O68-O72, O48; contenimento O73/O81/O82 | L0; provider reale per consegna consulti | Frontend/backend, referente servizio |
+| L2 | Correggere dati e contratti dell'orchestratore | O76, O77, O79, O83 | Baseline L0; schema verificato per integrazione | Backend e dati |
+| L3 | Rendere i parametri agronomici effettivi e spiegabili | O78, O80, O61, residui M14 | L2; regole e dataset approvati | Backend e agronomo/referente di dominio |
+| L4 | Completare proposta → operazione → storico → feedback | O65-O67, O70-O71, O18, O27-O28 | L0; L2-L3 per proposte predittive | Frontend/backend e DB |
+| L5 | Mappe, anteprima, export e stime economiche reali | O60, O64, O73, O81-O82 | L2-L3 per indicatori; L4 per zone; provider per fonti esterne | GIS/backend/frontend e agronomo |
+| L6 | Automazioni e notifiche osservabili | O84, O23, O69 | Inventario da L0; L1-L4 prima dell'attivazione operativa | Backend e gestione deploy/provider |
+| L7 | Certificare l'app e pubblicare per lotti verificati | O13-O15, O29-O37, O38-O43 aperti, O75 | Evidenze dei lotti pertinenti, restore e rollback | QA, gestione deploy, agronomo e responsabile prodotto |
+
+Ordine iniziale: L0 → L1 → L2. L3 e L4 seguono i contratti corretti; la correttezza dell'export L5 può essere affrontata prima delle stime economiche, che dipendono dalle fonti. L6 avvia subito l'indagine sullo scheduler ma non abilita esecuzioni operative prima dei gate. Nessuna data di completamento è promessa prima di conoscere disponibilità di staging, provider e validazione agronomica.
+
+### Avanzamento verificato dei lotti — 18 novembre, dopo le correzioni
+
+| Lotto | Stato locale | Condizione di uscita ancora aperta |
+|---|---|---|
+| L0 | Clone Docker, schema e restore sintetico verificati; dipendenze aggiornate, O85 | Drift storico, backup/ripristino produttivo, candidato immutabile |
+| L1 | Credenziali/proxy e comandi corretti; O68–O73 inclusi nelle regressioni | Migrazione archivi legacy, rotazione chiavi, provider reali |
+| L2 | Contratti diario/forecast/volumi/provenienza corretti e testati | Percorso pubblicato e osservazione con dati reali |
+| L3 | Ancore e parametri corretti, fonti sensore validate | Dataset e validazione agronomica; segnali ancora senza fonte |
+| L4 | Task atomici, raccolti attribuiti, analisi zona e rimozione codice morto | Giornata E2E e outcome sul pilot |
+| L5 | Export GIS binario/proiezioni verificati, valori inventati rimossi | Poligoni/fonti georeferenziate e modello economico approvato |
+| L6 | Inventario produttivo e prove Docker completati, cron candidati preparati | Provider/mittente/destinatario, rollout e ricorrenze osservate |
+| L7 | Suite applicativa/build/restore e documentazione aggiornati | Test remoti, pilot, rilascio e monitoraggio; landing esclusa |
+
+Questa tabella registra avanzamento, non chiusura dei gate. Le prove puntuali, la matrice dei parametri e i limiti sono in [EXECUTION](../audit-2026-11-18/EXECUTION.md).
+
+### L0 — Fissare baseline e prove prima delle correzioni
+
+1. Registrare commit candidato, diff locale, versione realmente distribuita e configurazione delle feature. Conservare il lavoro concorrente; separare le correzioni in commit/PR per lotto dopo aver identificato i file condivisi.
+2. Riconfermare ogni difetto sulla versione candidata. Convertire le riproduzioni dell'audit in test dell'esito corretto: gli assert attuali descrivono il bug e non sono test di accettazione da mantenere verdi.
+3. Preparare un ambiente isolato con due aziende e ruoli distinti; fixture per orto, frutteto, oliveto, vigneto, zone/filari, dati completi e mancanti. Documentare reset delle fixture e recupero dell'ambiente.
+4. Eseguire confronto attuale schema/migrazioni, incluso O63 (`drainage_quality`, `water_retention`, `slope_percentage`, `soil_type`), RLS e tabelle dei nuovi writer. Le tabelle campionate a novembre esistono: non applicare migrazioni sulla sola base delle lacune di luglio.
+5. Chiudere staging/restore/drift secondo O06-O12 prima di applicare migrazioni; preparare prove di isolamento O13-O15. Le modifiche locali e i test senza rete possono procedere mentre si risolvono queste dipendenze.
+
+**Uscita:** elenco per ID con stato riconfermato/corretto da altra modifica/non riprodotto, versione e prova; schema candidato noto, fixture e ripristino disponibili per i test con scritture. Un problema non riprodotto non è automaticamente chiuso.
+
+### L1 — Comandi affidabili e assenza di falsi successi
+
+- **O68, Impostazioni:** mappare ogni campo e comando al proprietario reale. Collegare profilo, preferenze e tema a writer/reader autorevoli; usare i percorsi esistenti per sicurezza, export dati e cancellazione. Verificare ricaricamento, nuova sessione, ruoli ed errori. Backup esportato deve essere realmente scaricabile e coerente; cancellazione con conferma esplicita nel prodotto e prove solo su account di test. Non duplicare i moduli dedicati già funzionanti.
+- **O69, consulto:** creare richiesta persistente con identificativo, stato e destinatario configurato; collegare coda e delivery canonici. Mostrare “registrata”, “in attesa”, “inviata” o “fallita” secondo evidenza. Eliminare la promessa delle 24 ore finché non esiste un servizio con quel livello concordato. Se manca il destinatario reale, dichiarare indisponibilità e mantenere aperta la consegna funzionale; non simulare un invio.
+- **O72/O48, satellite e credenziali:** controllare status HTTP, schema della risposta, origine dei dati e contesto del terreno. Usare geometria/autorizzazione del garden, senza bbox fissa di Roma. Credenziali esclusivamente lato server, cifratura e rotazione secondo O48; non usare il vecchio endpoint che restituisce segreti al browser. Provare 400/401/403/429/500, timeout, risposta malformata e risposta valida.
+- **O70/O71, navigazione:** verificare prima le correzioni locali concorrenti; completare apertura di Aggiungi Pianta e selezione del modulo per tipo di terreno, conservando `gardenId`. Prove con e senza alert, ritorno alla lista e rilettura dell'esemplare inserito.
+- **Contenimento immediato O73/O81/O82:** evitare pulsanti che promettono anteprima non disponibile, disabilitare UTM scorretto e scegliere un export funzionante come default. Indicare cosa manca. Implementazione completa resta nel lotto L5 e non è chiusa dal solo contenimento.
+
+**Uscita:** nessun toast di successo prima del risultato persistente o del riscontro provider pertinente; errori visibili e recuperabili; doppio clic/retry senza duplicati. Ogni funzione contenuta ma incompleta resta esplicitamente aperta.
+
+### L2 — Contratti, date, unità e qualità dei dati
+
+- **O76:** adottare un tipo canonico del diario e aggiornare raccomandazioni e riepilogo del Director. Tradurre `weather`, `tracking`, `events` in segnali con unità e aggregazione per coltura documentate. Conservare il percorso distinto dello storico ambientale, già funzionante. Prova integrata: diario con 40 mm, massima 39 °C e minima 1 °C → segnali attesi nel briefing; prove anche di assenza, zero reale e stress riferito a colture diverse.
+- **O77:** caricare un vero forecast datato dalla fonte autorevole; separare misure storiche, condizioni attuali e previsione. Validare orizzonte, giorno corrente, timezone e freschezza. La pioggia del giorno precedente può influire sul bilancio storico, non essere ricopiata come pioggia futura. Senza previsione usare uno stato di dati insufficienti per la relativa stima.
+- **O79:** leggere i consumi eseguiti dal registro irriguo canonico (`litersApplied`) nel periodo esplicito. Separare task pianificati, annullati ed eseguiti; gestire paginazione e non limitarsi agli ultimi 500 task generici. Normalizzare unità e area: mm × m² = litri, con eventuale quota efficace definita da regola approvata. Riutilizzare motori irrigui validati; nessuna formula sostitutiva arbitraria. Escludere il task del gennaio 2025 dal consumo di novembre 2026. Risparmio e costo richiedono baseline e tariffe confrontabili.
+- **O83:** qualità per singolo segnale, con fonte, osservazione, acquisizione, scadenza e natura misurata/stimata. Timestamp mancante, futuro non valido o scaduto non significa dato fresco; un sensore non rende “misurata” un'intera previsione. Aggregare la confidenza con regola esplicita e mostrare i limiti nella UI.
+
+**Uscita:** test unitari e di integrazione su date/volumi/provenienza, percorso loader → pipeline → persistenza → dashboard, nessuna percentuale idrica o confidenza apparentemente misurata priva di basi. Versionare modello e regole per distinguere i risultati precedenti.
+
+### L3 — Parametri e modelli agronomici
+
+1. **O78:** definire per specie/varietà il ciclo e l'ancora temporale (semina, trapianto, impianto o ciclo produttivo pertinente), poi usare fenologia/osservazioni disponibili. Rimuovere il riferimento universale `asOf + 60`; conservare e verificare il contributo altitudine già presente. Con sole nuove date di calcolo e nessuna nuova evidenza il raccolto non slitta automaticamente di dieci giorni; se cambia per nuove osservazioni, il motivo deve essere leggibile.
+2. **O80:** passare e normalizzare suolo/altitudine dall'endpoint al motore delle finestre; test a pari coordinate con quote e suoli diversi, quota zero valida, dati assenti e cambio anno. Lo storico meteo richiede una regola specifica e approvata: non basta inoltrare un argomento attualmente ignorato.
+3. **O61:** inventariare ogni segnale irriguo esteso (sensori a profondità diverse, fenologia, NDVI, portata, ecc.), fonte disponibile, garden, unità e freschezza. Collegare i segnali reali; quelli senza fonte restano esplicitamente mancanti. Non eliminare una penalità di confidenza soltanto per migliorare il numero mostrato.
+4. Completare una matrice parametro → writer → storage → loader → regola → effetto visibile → test. Includere coordinate, sole, ostacoli, suolo/pH/sostanza organica, altitudine, meteo, coltura/età/stadio, segnali sensore, priorità, feedback ed economia. Per ogni percorso distinguere “applicato”, “non applicabile”, “mancante”, “non supportato”. Il collegamento nel piano annuale non dimostra lo stesso effetto nel modello di resa.
+5. Per residui M14 (sole/ostacoli nella resa, regole malattie, andamento complessivo) definire il requisito e la regola con il referente agronomico. Niente coefficienti inventati né KPI composito presentato come misurato. Test di sensibilità devono dimostrare l'effetto atteso dei parametri applicabili e l'assenza di effetti impropri.
+
+**Uscita:** matrice completa e dataset approvato; test di confine, unità, stagione, località e dati incompleti. Correttezza software e validità agronomica hanno evidenze separate; senza quest'ultima il modello resta in shadow, come previsto da O34-O37.
+
+### L4 — Dal suggerimento all'esecuzione registrata
+
+- **O66:** definire uno schema discriminato per `PLANTING_PLAN`, `HARVEST_TIMING`, `ROTATION_PLAN`: terreno/coltura, date, tipo task e parametri obbligatori. Mostrare anteprima dei task e ottenere conferma operativa dell'utente; solo allora creare task e registrare decisione/ledger in modo atomico o recuperabile e idempotente. Accettare un consiglio non deve essere confuso con aver eseguito il lavoro. Le proposte non mappabili mostrano il motivo senza creare task inventati.
+- **O65:** aggiungere riferimenti persistenti a filare/pianta nel raccolto, propagandoli da UI e task ai writer e ai reader predittivi. Migrazione e backfill soltanto dove il legame è certo; i record storici non attribuibili restano tali. Non associare per somiglianza del nome libero della pianta.
+- **O67:** usare schema reale (`land_zones` e relazioni verificate) e contratto corretto del provider; evitare `.from()` su `IStorageProvider`. Provare Analizza zona con risultato, assenza dati, permessi negati ed errore esplicito. Confermare prima i nomi sul candidato e sullo schema isolato.
+- Verificare O70-O71 e il ciclo O18/O27-O28: proposta → task → calendario → modulo pertinente → esecuzione registrata → diario/ledger → outcome → feedback. Annullamento, modifica, riapertura, ricorrenze e retry devono produrre un unico stato coerente.
+- **O62:** verificare che il sottosistema di aggregazione sia ancora irraggiungibile. Preferire rimozione del codice morto se non serve; se riattivato, normalizzare tutti i campi e sostituire gli stub con fonti reali. Non collegarlo alla UI soltanto per renderlo raggiungibile.
+
+**Uscita:** una giornata E2E riproducibile per i ruoli previsti, con salvataggio e rilettura dopo logout/login, nessun task duplicato né perdita dell'identità garden/filare e riconciliazione finale dei registri.
+
+### L5 — Mappe, export e ottimizzazione economica
+
+- **O81:** mantenere GeoJSON standard in WGS84; progettare gli export proiettati nei formati che supportano il CRS scelto. Trasformazione reale con zona/emisfero corretti e asse delle coordinate verificato. Test su punti noti, confini di zona, emisferi e geometrie valide; confronto con lettore GIS indipendente, non solo con la stessa funzione di conversione.
+- **O82:** integrare un encoder Shapefile mantenuto e verificabile, producendo archivio con `.shp`, `.shx`, `.dbf`, `.prj` coerenti. Test indipendente di geometrie, attributi, codifica, CRS, file vuoto e geometrie non supportate. Abilitare l'opzione solo dopo questa prova; conservare un default funzionante nel frattempo.
+- **O60/O73:** fornire dati pianta e suolo reali nel contesto spaziale/temporale corretto. L'anteprima deve mostrare geometrie, zone, legenda, dosi/unità, fonti, qualità e dati mancanti della stessa versione esportata. Nessun peso configurabile silenziosamente ignorato né confidenza fissata a 0,8. Confrontare anteprima e file esportato.
+- **O64:** definire fonti di costo, prezzi, resa e vincoli prima dell'algoritmo; implementare calcolo reale con obiettivo verificabile e stato di avanzamento legato al job. Togliere l'incremento di resa fisso del 15% e gli score mock dai risultati operativi. Provare un caso piccolo con soluzione nota, vincoli impossibili, input mancanti, annullamento e ripresa. Senza curva costo/resa approvata mantenere la funzione dichiaratamente dimostrativa e il completamento aperto.
+
+**Uscita:** Analizza → Anteprima → Export funziona sullo stesso terreno; file leggibili da software indipendente; valori economici tracciabili a input e regole. Rendering della mappa e correttezza agronomica sono verifiche distinte.
+
+### L6 — Scheduler, monitoraggio e consegna
+
+1. **O84:** inventariare scheduler della versione distribuita (Vercel, database o servizio esterno), frequenze/timezone, autenticazione dei job, log delle invocazioni e registri canonici. L'ultimo monitoraggio osservato a luglio e le code vuote sono indizi da spiegare, non prova sufficiente per creare un secondo scheduler.
+2. Riprodurre in ambiente isolato un input che deve generare monitoraggio, predizione e notifica; verificare run ID, proprietario, destinatario e persistenza. Collegare o riparare il componente effettivamente mancante.
+3. Provare lock/claim concorrenti, deduplica, retry/backoff, dead-letter, limite invii e webhook autenticati. O23 richiede ID messaggio ed esito reale del provider; O69 richiede destinatario effettivo del consulto. Nessun test spedisce richieste a clienti reali.
+4. Esporre ultimo avvio/esito, durata, ritardo coda e fallimenti; definire alert di mancata esecuzione rispetto alla frequenza attesa, runbook e responsabile. Attivare prima in shadow, con possibilità di sospensione e senza comandi fisici automatici.
+
+**Uscita:** esecuzioni pianificate osservate per una finestra concordata che copra le ricorrenze previste, assenza di duplicati, consegna/fallimento verificabili e recupero provato dopo un guasto controllato.
+
+### L7 — Accettazione, documentazione e rilascio
+
+La matrice E2E deve coprire almeno:
+
+| Percorso autenticato | Prova richiesta |
+|---|---|
+| Accesso e recupero password | Nuova email di recupero verso callback di produzione corretto; impostazione password e successivo login, senza riutilizzare link/codici già consumati. Nessun redirect a localhost nel flusso pubblicato. |
+| Terreni e colture | Orto/frutteto/oliveto/vigneto, inserimento pianta, cambio terreno e ritorno alla pagina senza perdere contesto. |
+| Director/Planner | Parametri completi/incompleti/scaduti, briefing, predizione, conferma task, calendario e rilettura. |
+| Operazioni | Irrigazione, nutrizione/trattamenti, raccolta e lavorazioni con unità, permessi, annullamento e ledger coerenti; nessuna attuazione fisica nei test software. |
+| Mappe e provider | Dati validi, errori esterni, Analizza/Anteprima/Export, CRS e attributi verificati indipendentemente. |
+| Impostazioni e assistenza | Modifica → salva → nuova sessione; export; richiesta consulto con stato reale; lifecycle account test e ruoli. |
+| Isolamento | Due aziende e ruoli diversi, accessi API/UI/storage negati tra clienti, job e cache separati per tenant. |
+| Robustezza | Doppio clic, retry, rete interrotta, risposta malformata, data assente/zero reale, cambio giorno/anno e DST Europe/Rome. |
+
+Per ogni lotto: type-check e suite pertinenti con nuove regressioni di comportamento. Prima del rilascio: nove suite applicative, meteo/manuale, build, igiene/sincronizzazione documentale e prove remote richieste. Baseline dell'audit app: 424 test applicativi + 13 meteo + 10 manuale = 447 passati; non è una copertura E2E completa. La suite globale resta distinta e non diventa verde ignorando O74.
+
+Aggiornare manuale, capability manifest e documentazione storica corrente solo dopo la verifica del comportamento; mantenere la storia delle vecchie evidenze. O75 va ricontrollato perché lo script di igiene è oggetto di lavoro concorrente. Le credenziali e i dati personali non entrano negli artefatti di prova.
+
+Pubblicare incrementi piccoli dopo prove in staging e gate pertinenti, con versione di codice/modello/regole, migrazioni compatibili, backup verificato e procedura di rollback. Sospendere il rollout su scritture perse, accessi tra clienti, duplicati operativi, unità/CRS errati o regressioni nei percorsi critici. I vecchi risultati predittivi vanno identificati per versione e ricalcolati soltanto con politica esplicita; non riscrivere il ledger storico per farlo coincidere con il nuovo modello.
+
+**Completamento:** ogni ID ha prova prima/dopo, test, verifica di persistenza se pertinente, versione distribuita e residui dichiarati. Una mitigazione può rendere il percorso sicuro ma non chiude il completamento della funzione. Se si decide di ritirare una capability, registrare esplicitamente la decisione di prodotto e allineare UI/manuale; non chiamarla funzione implementata. I gate remoti originali e la validazione agronomica restano necessari per il GO commerciale.
+
+### Copertura finale e dipendenze aperte
+
+- Nuovi rilievi: O76/O77/O79/O83 → L2; O78/O80 → L3; O81/O82 → L5; O84 → L6.
+- Rilievi UI del 18/11: O68/O69/O70/O71/O72 → L1, con verifica operativa L4/L6; O73 → L5.
+- Residui storici: O48 → L1; O60/O64 → L5; O61 → L3; O62/O65/O66/O67 → L4; O63 → L0. Esiti locali ora registrati nel rapporto esecuzione; nessuno è chiuso automaticamente per la release.
+- Gate preesistenti: M03-M08 schema, restore e isolamento → L0/L7; M09-M11 persistenza e giornata → L4/L6; M12-M14 provider, pilot e shadow → L3/L6/L7; M15 lifecycle e ruoli → L1/L7. Il registro §5.1 conserva tutti i singoli deliverable e gli stati precedenti.
+- Decisioni/input da ottenere nel lotto competente: staging e restore disponibili; referente e regole agronomiche; dati affidabili di resa/costo; provider avanzato e credenziali; destinatario e livello di servizio consulti; finestra shadow e soglie quantitative di accettazione. La preparazione software procede dove indipendente; le prove che ne dipendono restano aperte finché esistono questi input.
 
 ### Aggiornamento T01 - lotto 14 (26/07/2026)
 
@@ -3074,3 +3266,10 @@ Il 24/07/2026, su decisione esplicita dell'utente, il lavoro M01-M09 (branch `ag
 - **Database:** le 8 migrazioni nuove sono state applicate direttamente al progetto Supabase di produzione (`qhmujoivfxftlrcrluaj`), in ordine: `create_macerate_logs`, `land_zones_garden_ownership`, `garden_soil_states`, `notification_delivery_lifecycle`, `task_transition_ledger`, `link_custom_plans_to_tasks`, `season_adjustment_decisions`, `archive_completed_garden_tasks`. Verifica pre-applicazione: nessuna riga orfana in `land_zones` (query diretta, 0 risultati) prima di imporre `NOT NULL` su `garden_id`. Verifica post-applicazione: tutte e 8 presenti in `list_migrations`; `get_advisors(security)` non segnala nulla di nuovo oltre un WARN atteso (`transition_garden_task` raggiungibile da `anon` via RPC, ma la funzione stessa richiede `auth.uid()` non nullo e solleva `authentication_required` altrimenti — difesa interna gia' presente, non una falla).
 - **Rischio esplicitamente accettato:** nessuno staging isolato ha mai validato queste migrazioni (O06-O08 restano aperti); nessun restore drill (O10-O12) le copre; se una di queste emergesse come difettosa in produzione, il rollback non e' stato provato.
 - **Non cambia:** il resto del registro O01-O44 (M10-M16) resta nello stato descritto sopra. Questo deploy porta in produzione la convergenza provider M09 e le migrazioni M03/M04, non chiude M06-M08 ne' alcuna milestone successiva.
+
+
+### Aggiornamento remoto 18 novembre: backup e notifiche
+
+Il backup/restore del database produttivo con ACL è ora riuscito in Docker isolato, con conteggi e impronta corrispondenti e le tre nuove migrazioni testate sulla copia. Questa evidenza supera il blocco storico della sola prova DB, senza certificare Storage, configurazioni, restore selettivo o RTO completo. Candidato separato dalla produzione `d1435e27`, landing preservata, build e 481 test superati prima della correzione aggiuntiva del trasporto email. Il provider di notifiche puntava a una funzione inesistente anche nel progetto remoto; il candidato usa ora Resend esclusivamente server-side e dispone di quattro nuovi test di trasporto/queue. Dominio `ortomioapp.it` verificato nello screenshot utente, DKIM/SPF verificati; la chiave completa deve essere salvata direttamente su Vercel. Nessun invio reale o deploy eseguito. I conteggi release non cambiano.
+
+Ulteriore correzione O23/O84: quarta migrazione di recupero notifiche interrotte e restrizione degli stati inseribili dai client, testata sulla copia produttiva con privilegi originali. Cron batch 10, producer distinguono queued/sent; test audit 39/39. Tre mittenti Resend salvati su Vercel Production, chiave completa ancora da inserire; nessun invio reale o deploy.

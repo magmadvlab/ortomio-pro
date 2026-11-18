@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { resolveGardenSelection } from '@/lib/gardens/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import { OrchardConfiguration } from '@/types/orchard'
@@ -27,6 +29,7 @@ type ViewMode = 'dashboard' | 'trees' | 'rows' | 'individual-plants' | 'pruning'
 
 export default function OrchardPage() {
   const { storageProvider } = useStorage()
+  const gardenParam = useSearchParams().get('garden')
   const [gardens, setGardens] = useState<Garden[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState<string>('')
   const [selectedOrchard, setSelectedOrchard] = useState<OrchardConfiguration | null>(null)
@@ -43,19 +46,23 @@ export default function OrchardPage() {
       const gardensList = allGardens.filter(g => g.gardenType === 'Orchard')
       setGardens(gardensList)
 
-      if (gardensList.length > 0) {
-        setSelectedGardenId(prev => prev || gardensList[0].id)
-      }
+      setSelectedGardenId(prev => resolveGardenSelection(gardensList, gardenParam, prev))
     } catch (error) {
       console.error('Error loading gardens:', error)
     } finally {
       setLoading(false)
     }
-  }, [storageProvider])
+  }, [storageProvider, gardenParam])
 
   useEffect(() => {
     loadGardens()
   }, [loadGardens])
+
+  useEffect(() => {
+    setSelectedGardenId(gardenParam ?? '')
+    setSelectedOrchard(null)
+    setViewMode('dashboard')
+  }, [gardenParam])
 
   const handleCreateOrchard = () => {
     setShowWizard(true)

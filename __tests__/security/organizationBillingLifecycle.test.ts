@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
-import { handleAdminBillingAction } from '@/app/api/organizations/billing/route'
+import { handleAdminBillingAction } from '@/app/api/organizations/billing/handlers'
 
-const route = readFileSync('app/api/organizations/billing/route.ts', 'utf8')
+const route = readFileSync('app/api/organizations/billing/handlers.ts', 'utf8')
 const migration = readFileSync(
   'supabase/migrations/20260726150000_single_pro_billing_lifecycle.sql',
   'utf8',

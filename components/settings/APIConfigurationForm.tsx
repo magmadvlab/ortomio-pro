@@ -75,6 +75,7 @@ export default function APIConfigurationForm() {
   const [testing, setTesting] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   
   const [formData, setFormData] = useState<{
     service_type: ServiceType | ''
@@ -101,17 +102,20 @@ export default function APIConfigurationForm() {
   const loadConfigurations = async () => {
     try {
       setLoading(true)
+      setLoadError(null)
       const configs = await getUserAPIConfigurations()
       setConfigurations(configs)
     } catch (error) {
       console.error('Errore caricamento configurazioni API:', error)
+      setLoadError('Impossibile leggere le configurazioni. Riprova prima di aggiungerne una.')
     } finally {
       setLoading(false)
     }
   }
 
   const handleSave = async () => {
-    if (!formData.service_type || !formData.provider_name || !formData.api_key) {
+    const keyless = ['weather_openmeteo', 'ai_ollama', 'ai_local'].includes(formData.service_type)
+    if (!formData.service_type || !formData.provider_name || (!editingId && !keyless && !formData.api_key)) {
       alert('Compila tutti i campi obbligatori')
       return
     }
@@ -199,7 +203,7 @@ export default function APIConfigurationForm() {
     setFormData({
       service_type: config.service_type,
       provider_name: config.provider_name,
-      api_key: config.api_key,
+      api_key: '',
       config: config.config || {},
       is_default: config.is_default || false,
     })
@@ -228,6 +232,7 @@ export default function APIConfigurationForm() {
 
   return (
     <div className="space-y-6">
+      {loadError && <div role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{loadError} <button onClick={loadConfigurations} className="underline">Riprova</button></div>}
       <div className="flex items-center justify-between">
         <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-3">
           <Key size={24} />
@@ -328,13 +333,13 @@ export default function APIConfigurationForm() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              API Key *
+              API Key {['weather_openmeteo', 'ai_ollama', 'ai_local'].includes(formData.service_type) ? '(facoltativa)' : '*'}
             </label>
             <input
               type="password"
               value={formData.api_key}
               onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
-              placeholder="Inserisci la tua API key"
+              placeholder={editingId ? 'Lascia vuoto per conservare la chiave salvata' : 'Inserisci la tua API key'}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             />
             <p className="text-xs text-gray-500 mt-1">

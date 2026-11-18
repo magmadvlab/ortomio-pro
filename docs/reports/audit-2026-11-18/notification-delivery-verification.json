@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-11-18T20:23:09.282011+00:00",
+  "productionEdgeFunctions": [
+    "compute-field-alerts"
+  ],
+  "missingFunctionReplaced": "send-notification",
+  "resendDomainVerifiedBy": "user screenshot and DNS records",
+  "domain": "ortomioapp.it",
+  "productionSendersConfigured": true,
+  "apiKeyConfigured": false,
+  "actualEmailsSent": 0,
+  "newTestsPassed": 5,
+  "auditSuitePassed": 39,
+  "migration": "20261118213000_notification_delivery_recovery.sql",
+  "migrationTarget": "offline Docker copy of production",
+  "sqlTestsPassed": true,
+  "postTestCounts": {
+    "users": 10,
+    "gardens": 6,
+    "fixtureDeliveries": 0
+  },
+  "productionDatabaseModified": false,
+  "candidateDeployed": false,
+  "candidateBuildPassed": true,
+  "appTestsPassed": 486,
+  "appTestsFailed": 0,
+  "targetedLintErrors": 0,
+  "targetedLintWarnings": 0,
+  "docsHygienePassed": true
+}

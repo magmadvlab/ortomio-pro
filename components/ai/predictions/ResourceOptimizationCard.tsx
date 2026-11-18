@@ -70,7 +70,8 @@ export default function ResourceOptimizationCard({ optimizations }: Props) {
                   {getResourceLabel(optimization.type)}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Ottimizzazione Risorse
+                  {optimization.comparisonKind === 'historical_requirement' ? 'Confronto consumi e fabbisogno' : 'Ottimizzazione Risorse'}
+                  {optimization.period && ` · ${optimization.period.start} – ${optimization.period.end}`}
                 </p>
               </div>
             </div>
@@ -79,7 +80,7 @@ export default function ResourceOptimizationCard({ optimizations }: Props) {
           {/* Savings */}
           <div className="grid grid-cols-3 gap-4 mb-4 p-4 bg-green-50 rounded-lg">
             <div>
-              <div className="text-sm text-gray-600 mb-1">Risparmio</div>
+              <div className="text-sm text-gray-600 mb-1">{optimization.comparisonKind === 'historical_requirement' ? 'Scostamento' : 'Risparmio'}</div>
               <div className="text-2xl font-bold text-green-600 flex items-center gap-1">
                 <TrendingDown className="w-5 h-5" />
                 {optimization.savings.percentage.toFixed(0)}%
@@ -88,13 +89,13 @@ export default function ResourceOptimizationCard({ optimizations }: Props) {
             <div>
               <div className="text-sm text-gray-600 mb-1">Quantità</div>
               <div className="text-lg font-bold text-gray-900">
-                {optimization.savings.amount.toFixed(1)}
+                {optimization.savings.amount.toFixed(1)}{optimization.type === 'WATER' ? ' L' : ''}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Costo</div>
               <div className="text-lg font-bold text-gray-900">
-                €{optimization.savings.cost.toFixed(2)}
+                {optimization.savings.cost === null ? 'Tariffa non disponibile' : `€${optimization.savings.cost.toFixed(2)}`}
               </div>
             </div>
           </div>
@@ -102,15 +103,15 @@ export default function ResourceOptimizationCard({ optimizations }: Props) {
           {/* Current vs Optimized */}
           <div className="mb-4 p-4 bg-gray-50 rounded-lg">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-700">Uso Attuale</span>
+              <span className="text-sm font-medium text-gray-700">{optimization.comparisonKind === 'historical_requirement' ? 'Erogato registrato' : 'Uso Attuale'}</span>
               <span className="text-lg font-bold text-gray-900">
-                {optimization.currentUsage.toFixed(1)}
+                {optimization.currentUsage.toFixed(1)}{optimization.type === 'WATER' ? ' L' : ''}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Uso Ottimizzato</span>
+              <span className="text-sm font-medium text-gray-700">{optimization.comparisonKind === 'historical_requirement' ? 'Fabbisogno registrato' : 'Uso Ottimizzato'}</span>
               <span className="text-lg font-bold text-green-600">
-                {optimization.optimizedUsage.toFixed(1)}
+                {optimization.optimizedUsage.toFixed(1)}{optimization.type === 'WATER' ? ' L' : ''}
               </span>
             </div>
             <div className="mt-3">

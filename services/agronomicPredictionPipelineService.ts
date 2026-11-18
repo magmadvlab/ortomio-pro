@@ -10,9 +10,25 @@ import type {
   PlantHealthData,
 } from '@/services/aiPredictiveEngine'
 import { calculateAltitudeDelay } from '@/utils/altitudeUtils'
+import type { PersistedForecastSnapshot } from '@/types/environmental'
 
-export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v2'
-export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-07-31-altitude'
+export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v3'
+export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-11-18-canonical-inputs'
+
+export type PredictionPlant = PlantHealthData & {
+  plantingDate?: string
+  expectedHarvestDate?: string
+  // Only a validated crop-specific duration may be supplied. No universal 60 days.
+  cycle?: { minDays: number; maxDays: number; ruleId: string }
+}
+
+export type WaterComparison = {
+  startDate: string
+  endDate: string
+  actualLiters: number
+  requiredLiters: number
+  costPerLiter?: number
+}
 
 export type CanonicalPredictionInput = {
   gardenId: string
@@ -20,8 +36,11 @@ export type CanonicalPredictionInput = {
   altitudeMeters?: number
   weather?: WeatherData
   soil?: SoilData
-  plants: PlantHealthData[]
+  plants: PredictionPlant[]
   tasks: GardenTask[]
+  forecast?: PersistedForecastSnapshot[]
+  waterComparison?: WaterComparison
+  loadErrors?: string[]
   provenance: {
     weatherRecordedAt?: string
     soilRecordedAt?: string
@@ -119,15 +138,39 @@ const buildDiseasePredictions = (input: CanonicalPredictionInput, confidence: nu
   return result.sort((left, right) => right.probability - left.probability)
 }
 
+export function resolveHarvestWindow(plant: PredictionPlant, altitudeMeters = 0): YieldPrediction['harvestWindow'] | null {
+  const parseDay = (value?: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value ? new Date(value) : null
+  const planted = parseDay(plant.plantingDate)
+  const expected = parseDay(plant.expectedHarvestDate)
+  if (expected && (!planted || expected >= planted)) {
+    // An explicitly recorded expected date already includes local adjustments.
+    const date = isoDay(expected)
+    return { start: date, optimal: date, end: date }
+  }
+  const cycle = plant.cycle
+  if (!planted || !cycle?.ruleId || !Number.isFinite(cycle.minDays) || !Number.isFinite(cycle.maxDays) ||
+      cycle.minDays <= 0 || cycle.maxDays < cycle.minDays) return null
+  const delay = calculateAltitudeDelay(altitudeMeters)
+  return {
+    start: isoDay(addDays(planted, cycle.minDays + delay)),
+    optimal: isoDay(addDays(planted, Math.round((cycle.minDays + cycle.maxDays) / 2) + delay)),
+    end: isoDay(addDays(planted, cycle.maxDays + delay)),
+  }
+}
+
 const buildYieldPredictions = (input: CanonicalPredictionInput, confidence: number): YieldPrediction[] => {
   if (!input.weather || !input.soil) return []
-  const groups = new Map<string, PlantHealthData[]>()
+  const groups = new Map<string, PredictionPlant[]>()
   for (const plant of input.plants) {
-    const key = plant.plantName.trim()
+    // Separate cycles/varieties: a younger plant must not inherit another's date.
+    const window = resolveHarvestWindow(plant, input.altitudeMeters)
+    if (!window) continue
+    const key = JSON.stringify([plant.plantName.trim(), plant.variety, window])
     groups.set(key, [...(groups.get(key) ?? []), plant])
   }
-  const reference = new Date(input.asOf)
-  return Array.from(groups.entries()).flatMap(([plantName, plants]) => {
+  return Array.from(groups.entries()).flatMap(([key, plants]) => {
+    const plantName = plants[0].plantName.trim()
     const baseline = baseYield[plantName.toLocaleLowerCase('it-IT')]
     if (!baseline) return []
     const avgHealth = plants.reduce((sum, plant) => sum + plant.healthScore, 0) / plants.length
@@ -136,47 +179,46 @@ const buildYieldPredictions = (input: CanonicalPredictionInput, confidence: numb
     const healthImpact = (avgHealth - 75) / 100
     const soilImpact = (soilScore - 75) / 200
     const expectedYield = round(baseline * (1 + healthImpact) * (1 + soilImpact) * (1 + weatherImpact))
-    const harvestDays = 60 + calculateAltitudeDelay(input.altitudeMeters ?? 0)
     return [{
-      id: `yield:${plantName}:${input.asOf.slice(0, 10)}`,
+      id: `yield:${createHash('sha256').update(key).digest('hex').slice(0, 16)}:${input.asOf.slice(0, 10)}`,
       plantName,
       variety: plants[0].variety || 'Non specificata',
       expectedYield,
       yieldRange: { min: round(expectedYield * 0.8), max: round(expectedYield * 1.2), confidence },
-      harvestWindow: {
-        start: isoDay(addDays(reference, harvestDays - 7)),
-        optimal: isoDay(addDays(reference, harvestDays)),
-        end: isoDay(addDays(reference, harvestDays + 7)),
-      },
+      harvestWindow: resolveHarvestWindow(plants[0], input.altitudeMeters)!,
       qualityScore: Math.max(0, Math.min(100, Math.round(75 + (avgHealth - 75) * 0.3 + (soilScore - 75) * 0.2))),
       factors: [
         { factor: 'Salute piante', impact: round(healthImpact, 4), description: `Punteggio salute medio ${Math.round(avgHealth)}%`, controllable: true },
         { factor: 'Qualita suolo', impact: round(soilImpact, 4), description: `Qualita suolo ${Math.round(soilScore)}%`, controllable: true },
         { factor: 'Condizioni meteo', impact: round(weatherImpact, 4), description: 'Snapshot meteo persistito', controllable: false },
       ],
-      recommendations: ['Confrontare la previsione con resa e qualita misurate a raccolta'],
+      recommendations: ['Stima sperimentale: confrontare con resa e qualità misurate a raccolta',
+        plants[0].expectedHarvestDate ? 'Data attesa registrata per questa coltivazione; confermare sul campo' : `Finestra ancorata all’impianto, regola ${plants[0].cycle?.ruleId}`],
     }]
   })
 }
 
 const buildResourceOptimizations = (input: CanonicalPredictionInput): ResourceOptimization[] => {
-  if (!input.weather || !input.soil) return []
-  const currentWater = input.tasks
-    .filter(task => ['Watering', 'Irrigation', 'Irrigazione'].includes(task.taskType))
-    .reduce((sum, task) => sum + (typeof task.quantity === 'number' ? task.quantity : 0), 0)
-  const forecastRain = input.weather.precipitation.forecast15Days.reduce((sum, value) => sum + value, 0)
-  const neededWater = input.plants.length * 2 * (1 + input.weather.temperature.current * 0.02)
-  const optimizedWater = Math.max(0, neededWater - forecastRain * 0.8)
+  const comparison = input.waterComparison
+  if (!comparison || !Number.isFinite(comparison.actualLiters) || !Number.isFinite(comparison.requiredLiters) ||
+      comparison.actualLiters < 0 || comparison.requiredLiters < 0 ||
+      comparison.startDate > comparison.endDate || comparison.endDate > input.asOf.slice(0, 10)) return []
+  const currentWater = comparison.actualLiters
+  const optimizedWater = comparison.requiredLiters
   if (!(currentWater > optimizedWater)) return []
   const saving = currentWater - optimizedWater
   return [{
     id: `water:${input.asOf.slice(0, 10)}`,
     type: 'WATER',
+    comparisonKind: 'historical_requirement',
+    period: { start: comparison.startDate, end: comparison.endDate },
     currentUsage: round(currentWater),
     optimizedUsage: round(optimizedWater),
-    savings: { amount: round(saving), percentage: round((saving / currentWater) * 100), cost: round(saving * 0.002) },
+    savings: { amount: round(saving), percentage: round((saving / currentWater) * 100),
+      cost: comparison.costPerLiter !== undefined && Number.isFinite(comparison.costPerLiter) && comparison.costPerLiter >= 0 ? round(saving * comparison.costPerLiter) : null },
     schedule: [],
-    recommendations: ['Validare il piano con misura locale e volume effettivamente erogato'],
+    recommendations: ['Confronto retrospettivo tra litri erogati e fabbisogni persistiti per le stesse zone e date; non è un risparmio futuro garantito',
+      'Verificare sul campo la causa dello scostamento prima di cambiare il piano irriguo'],
   }]
 }
 
@@ -185,8 +227,10 @@ export const buildPredictionBundle = (input: CanonicalPredictionInput): Predicti
   if (!input.weather) missingSignals.push('persisted_weather')
   if (!input.soil) missingSignals.push('soil_analysis_and_moisture')
   if (input.plants.length === 0) missingSignals.push('observed_plant_health')
+  missingSignals.push(...(input.loadErrors ?? []))
   const inputHash = hashPredictionInput(input)
   const validFrom = new Date(input.asOf)
+  if (!Number.isFinite(validFrom.getTime())) throw new Error('invalid_prediction_date')
   const validUntil = addDays(validFrom, 15)
   if (missingSignals.length > 0) {
     return {
@@ -198,14 +242,20 @@ export const buildPredictionBundle = (input: CanonicalPredictionInput): Predicti
     }
   }
 
-  const timestamps = [input.provenance.weatherRecordedAt, input.provenance.soilRecordedAt, input.provenance.plantRecordedAt]
-    .filter((value): value is string => Boolean(value))
+  const allTimestamps = [input.provenance.weatherRecordedAt, input.provenance.soilRecordedAt, input.provenance.plantRecordedAt]
+  const timestamps = allTimestamps.filter((value): value is string => Boolean(value) && Number.isFinite(Date.parse(value!)) && Date.parse(value!) <= validFrom.getTime())
+  if (timestamps.length < allTimestamps.length) missingSignals.push('source_timestamps')
+  if (!input.forecast?.length) missingSignals.push('dated_weather_forecast')
+  for (const plant of input.plants) {
+    if (!resolveHarvestWindow(plant, input.altitudeMeters)) missingSignals.push(`harvest_cycle:${plant.plantId}`)
+  }
+  if (!input.waterComparison) missingSignals.push('comparable_irrigation_volumes')
   const oldestAgeHours = timestamps.reduce((max, timestamp) => Math.max(max, (validFrom.getTime() - new Date(timestamp).getTime()) / 3_600_000), 0)
-  const confidence = round(Math.max(0.45, Math.min(0.9, 0.9 - Math.max(0, oldestAgeHours - 24) * 0.002)), 4)
+  const confidence = round(Math.max(0, Math.min(timestamps.length === 3 ? 0.9 : 0.35, 0.9 - Math.max(0, oldestAgeHours - 24) * 0.002)), 4)
   return {
     status: 'generated', missingSignals, inputHash,
     modelVersion: PREDICTION_MODEL_VERSION, ruleVersion: PREDICTION_RULE_VERSION,
-    sourceQuality: input.provenance.sensorBacked ? 'measured' : 'mixed', confidence,
+    sourceQuality: timestamps.length < 3 ? 'estimated' : 'mixed', confidence,
     horizonDays: 15, validFrom: validFrom.toISOString(), validUntil: validUntil.toISOString(),
     diseasePredicitions: buildDiseasePredictions(input, confidence),
     yieldPredictions: buildYieldPredictions(input, confidence),
@@ -215,6 +265,7 @@ export const buildPredictionBundle = (input: CanonicalPredictionInput): Predicti
 
 const finite = (...values: unknown[]) => {
   for (const value of values) {
+    if (value === null || value === undefined || value === '') continue
     const number = typeof value === 'string' ? Number(value) : value
     if (typeof number === 'number' && Number.isFinite(number)) return number
   }
@@ -245,6 +296,9 @@ interface TaskRow {
 interface WeatherLogRow {
   log_date: string
   raw_data?: unknown
+  temp_max?: number | string | null
+  temp_min?: number | string | null
+  humidity_avg?: number | string | null
   temperature_max?: number | string | null
   temperature_min?: number | string | null
   precipitation_mm?: number | string | null
@@ -253,6 +307,9 @@ interface WeatherLogRow {
 interface SensorRow {
   sensor_type: string
   value: number | string
+  unit: string
+  recorded_at: string
+  is_simulated: boolean
 }
 
 interface SoilRow {
@@ -273,6 +330,85 @@ interface PlantRow {
   status?: string | null
   updated_at?: string | null
   created_at: string
+  planting_date?: string | null
+  expected_harvest_date?: string | null
+}
+
+export function selectDatedForecast(rows: WeatherLogRow[], asOf: Date): PersistedForecastSnapshot[] {
+  const byDay = new Map<string, PersistedForecastSnapshot>()
+  const today = asOf.toISOString().slice(0, 10)
+  const lastDay = isoDay(addDays(asOf, 14))
+  for (const row of rows) {
+    const snapshots = nested(row.raw_data, ['forecastSnapshots'])
+    if (!Array.isArray(snapshots)) continue
+    for (const value of snapshots) {
+      const entry = value as PersistedForecastSnapshot
+      const generated = Date.parse(entry.generatedAt)
+      if (entry.source !== 'open_meteo_forecast' || !Number.isFinite(generated) ||
+          generated > asOf.getTime() || asOf.getTime() - generated > 48 * 3_600_000 ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(entry.forecastDate) ||
+          entry.forecastDate < today || entry.forecastDate > lastDay ||
+          !Number.isFinite(entry.precipitationMm) || entry.precipitationMm < 0 ||
+          !Number.isFinite(entry.tempMin) || !Number.isFinite(entry.tempMax) || entry.tempMin > entry.tempMax) continue
+      const previous = byDay.get(entry.forecastDate)
+      if (!previous || generated > Date.parse(previous.generatedAt)) byDay.set(entry.forecastDate, entry)
+    }
+  }
+  return [...byDay.values()].sort((a, b) => a.forecastDate.localeCompare(b.forecastDate))
+}
+
+type WaterLogRow = { id: string; zone_id: string; date: string; liters_applied: number | string; completed: boolean }
+type RequirementRow = { zone_id: string; calculation_date: string; recommended_volume_liters: number | string; created_at: string }
+
+export function compareRecordedWater(logs: WaterLogRow[], requirements: RequirementRow[], startDate: string, endDate: string): WaterComparison | undefined {
+  const requirementsByDay = new Map<string, RequirementRow>()
+  for (const row of requirements) {
+    if (row.calculation_date < startDate || row.calculation_date > endDate || finite(row.recommended_volume_liters) === undefined || Number(row.recommended_volume_liters) < 0) continue
+    const key = `${row.zone_id}:${row.calculation_date}`
+    const previous = requirementsByDay.get(key)
+    if (!previous || row.created_at > previous.created_at) requirementsByDay.set(key, row)
+  }
+  const actualByDay = new Map<string, number>()
+  const seen = new Set<string>()
+  for (const row of logs) {
+    const liters = finite(row.liters_applied)
+    if (!row.completed || seen.has(row.id) || row.date < startDate || row.date > endDate || liters === undefined || liters < 0) continue
+    seen.add(row.id)
+    const key = `${row.zone_id}:${row.date}`
+    // Partial coverage cannot be presented as a whole-period comparison.
+    if (!requirementsByDay.has(key)) return undefined
+    actualByDay.set(key, (actualByDay.get(key) ?? 0) + liters)
+  }
+  if (!actualByDay.size) return undefined
+  return { startDate, endDate,
+    actualLiters: [...actualByDay.values()].reduce((sum, liters) => sum + liters, 0),
+    requiredLiters: [...actualByDay.keys()].reduce((sum, key) => sum + Number(requirementsByDay.get(key)!.recommended_volume_liters), 0),
+  }
+}
+
+async function loadWaterComparison(supabase: SupabaseClient, gardenId: string, asOf: Date): Promise<WaterComparison | undefined> {
+  // Closed days only: today's partial execution is not a daily consumption.
+  const endDate = isoDay(addDays(asOf, -1))
+  const startDate = isoDay(addDays(asOf, -15))
+  const logs: WaterLogRow[] = []
+  const requirements: RequirementRow[] = []
+  for (let offset = 0; ; offset += 1000) {
+    const result = await supabase.from('watering_logs').select('id,zone_id,date,liters_applied,completed')
+      .eq('garden_id', gardenId).gte('date', startDate).lte('date', endDate).eq('completed', true).order('id').range(offset, offset + 999)
+    if (result.error) return undefined
+    logs.push(...(result.data ?? []))
+    if ((result.data?.length ?? 0) < 1000) break
+  }
+  const zoneIds = [...new Set(logs.map(row => row.zone_id))]
+  if (!zoneIds.length) return undefined
+  for (let offset = 0; ; offset += 1000) {
+    const result = await supabase.from('water_requirements').select('zone_id,calculation_date,recommended_volume_liters,created_at')
+      .in('zone_id', zoneIds).gte('calculation_date', startDate).lte('calculation_date', endDate).order('id').range(offset, offset + 999)
+    if (result.error) return undefined
+    requirements.push(...(result.data ?? []))
+    if ((result.data?.length ?? 0) < 1000) break
+  }
+  return compareRecordedWater(logs, requirements, startDate, endDate)
 }
 
 export async function loadCanonicalPredictionInput(
@@ -280,13 +416,14 @@ export async function loadCanonicalPredictionInput(
   gardenId: string,
   asOf = new Date()
 ): Promise<CanonicalPredictionInput> {
-  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult] = await Promise.all([
+  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult, waterComparison] = await Promise.all([
     supabase.from('garden_tasks').select('*').eq('garden_id', gardenId).order('date', { ascending: false }).limit(500),
-    supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).order('log_date', { ascending: false }).limit(15),
+    supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).lte('log_date', isoDay(asOf)).order('log_date', { ascending: false }).limit(15),
     supabase.from('soil_analysis').select('*').eq('garden_id', gardenId).order('analysis_date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('garden_plants').select('*').eq('garden_id', gardenId).neq('status', 'harvested').neq('status', 'dead').limit(1000),
-    supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),
+    supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).eq('is_simulated', false).lte('recorded_at', asOf.toISOString()).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),
     supabase.from('gardens').select('altitude_meters').eq('id', gardenId).maybeSingle(),
+    loadWaterComparison(supabase, gardenId, asOf),
   ])
   const tasks = ((tasksResult.data ?? []) as TaskRow[]).map((row) => ({
     id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
@@ -296,32 +433,33 @@ export async function loadCanonicalPredictionInput(
   const latestWeather = weatherRows[0]
   const rawWeather = latestWeather?.raw_data
   const latestSensors = (sensorsResult.data ?? []) as SensorRow[]
-  const sensor = (type: string) => latestSensors.find((row) => row.sensor_type === type)
-  const humiditySensor = sensor('humidity')
-  const moistureSensor = sensor('soil_moisture')
-  const windSensor = sensor('wind_speed')
+  const sensor = (type: string, units: string[]) => latestSensors.find(row => row.sensor_type === type && row.is_simulated === false && units.includes(row.unit) && finite(row.value) !== undefined && Date.parse(row.recorded_at) <= asOf.getTime() && Date.parse(row.recorded_at) >= asOf.getTime() - 48 * 3600000)
+  const humiditySensor = sensor('humidity_air', ['%'])
+  const moistureSensor = sensor('moisture', ['%'])
+  const windSensor = sensor('wind', ['km/h'])
   const tempCurrent = finite(
     nested(rawWeather, ['snapshot', 'weather', 'temperatureCelsius']),
-    latestWeather?.temperature_max !== undefined && latestWeather?.temperature_min !== undefined
-      ? (Number(latestWeather.temperature_max) + Number(latestWeather.temperature_min)) / 2
+    finite(latestWeather?.temp_max, latestWeather?.temperature_max) !== undefined && finite(latestWeather?.temp_min, latestWeather?.temperature_min) !== undefined
+      ? (finite(latestWeather?.temp_max, latestWeather?.temperature_max)! + finite(latestWeather?.temp_min, latestWeather?.temperature_min)!) / 2
       : undefined
   )
-  const humidity = finite(humiditySensor?.value, nested(rawWeather, ['snapshot', 'weather', 'humidityPercentage']), nested(rawWeather, ['humidity']))
-  const forecastTemps = weatherRows.map((row) => finite(row.temperature_max, row.temperature_min)).filter((value): value is number => value !== undefined)
-  const forecastRain = weatherRows.map((row) => finite(row.precipitation_mm) ?? 0)
+  const humidity = finite(humiditySensor?.value, latestWeather?.humidity_avg, nested(rawWeather, ['snapshot', 'weather', 'humidityPercentage']), nested(rawWeather, ['humidity']))
+  const forecast = selectDatedForecast(weatherRows, asOf)
+  const forecastTemps = forecast.map(row => row.tempMax)
+  const forecastRain = forecast.map(row => row.precipitationMm)
   const weather = tempCurrent !== undefined && humidity !== undefined ? {
     temperature: {
       current: tempCurrent,
-      min: finite(latestWeather?.temperature_min, tempCurrent)!,
-      max: finite(latestWeather?.temperature_max, tempCurrent)!,
+      min: finite(latestWeather?.temp_min, latestWeather?.temperature_min, tempCurrent)!,
+      max: finite(latestWeather?.temp_max, latestWeather?.temperature_max, tempCurrent)!,
       forecast15Days: forecastTemps,
     },
     humidity,
     precipitation: { current: finite(latestWeather?.precipitation_mm) ?? 0, forecast15Days: forecastRain },
     windSpeed: finite(windSensor?.value, nested(rawWeather, ['snapshot', 'weather', 'windSpeedKmh'])) ?? 0,
-    pressure: finite(sensor('pressure')?.value) ?? 1013,
+    pressure: finite(sensor('pressure', ['hPa'])?.value) ?? 1013,
     uvIndex: finite(nested(rawWeather, ['uvIndex'])) ?? 0,
-    soilTemperature: finite(sensor('temperature')?.value, tempCurrent)!,
+    soilTemperature: finite(sensor('temperature_soil', ['°C', 'C'])?.value, tempCurrent)!,
   } satisfies WeatherData : undefined
   const soilRow = soilResult.data as SoilRow | null
   const soilMoisture = finite(moistureSensor?.value)
@@ -329,7 +467,7 @@ export async function loadCanonicalPredictionInput(
     ph: finite(soilRow.ph_value) ?? 7,
     ec: finite(soilRow.electrical_conductivity) ?? 0,
     moisture: soilMoisture,
-    temperature: finite(sensor('temperature')?.value, tempCurrent) ?? 20,
+    temperature: finite(sensor('temperature_soil', ['°C', 'C'])?.value, tempCurrent) ?? 20,
     nutrients: {
       nitrogen: finite(soilRow.nitrogen_ppm) ?? 0,
       phosphorus: finite(soilRow.phosphorus_ppm) ?? 0,
@@ -339,13 +477,15 @@ export async function loadCanonicalPredictionInput(
     compaction: 0,
     lastAnalysis: soilRow.analysis_date,
   } satisfies SoilData : undefined
-  const plants = ((plantsResult.data ?? []) as PlantRow[]).map((row) => ({
+  const plants = ((plantsResult.data ?? []) as PlantRow[]).filter(row => finite(row.health_score) !== undefined).map((row) => ({
     plantId: row.id, plantName: row.plant_name, variety: row.variety,
     healthScore: finite(row.health_score) ?? 0, growthStage: row.status || 'unknown',
     stressIndicators: [], diseases: row.status === 'diseased' ? ['observed_status_diseased'] : [], pests: [],
     nutritionalStatus: { nitrogen: 'ADEQUATE', phosphorus: 'ADEQUATE', potassium: 'ADEQUATE' },
     lastUpdate: row.updated_at || row.created_at,
-  })) as PlantHealthData[]
+    plantingDate: row.planting_date || undefined,
+    expectedHarvestDate: row.expected_harvest_date || undefined,
+  })) as PredictionPlant[]
   return {
     gardenId,
     asOf: asOf.toISOString(),
@@ -354,10 +494,14 @@ export async function loadCanonicalPredictionInput(
     soil,
     plants,
     tasks,
+    forecast,
+    waterComparison,
+    loadErrors: [weatherResult, soilResult, plantsResult, sensorsResult, gardenResult]
+      .flatMap((result, index) => result.error ? [`source_read_failed:${['weather', 'soil', 'plants', 'sensors', 'garden'][index]}`] : []),
     provenance: {
-      weatherRecordedAt: latestWeather?.log_date ? `${latestWeather.log_date}T12:00:00.000Z` : undefined,
-      soilRecordedAt: soilRow?.analysis_date ? `${soilRow.analysis_date}T12:00:00.000Z` : undefined,
-      plantRecordedAt: plants.map(plant => plant.lastUpdate).sort().at(-1),
+      weatherRecordedAt: latestWeather?.log_date ? `${latestWeather.log_date}T00:00:00.000Z` : undefined,
+      soilRecordedAt: soilRow?.analysis_date ? new Date(soilRow.analysis_date).toISOString() : undefined,
+      plantRecordedAt: plants.map(plant => plant.lastUpdate).sort().at(0),
       sensorBacked: Boolean(humiditySensor && moistureSensor),
     },
   }

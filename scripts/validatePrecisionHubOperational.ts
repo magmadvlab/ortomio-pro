@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import type { SmartDevice, SmartDeviceAutomationLog } from '@/types'
 
 import { SupabaseStorageProvider } from '@/packages/storage-cloud/SupabaseStorageProvider'
-import { createTelemetryPostHandler } from '@/app/api/iot/devices/telemetry/route'
+import { createTelemetryPostHandler } from '@/app/api/iot/devices/telemetry/handlers'
 
 type DbRow = Record<string, unknown>
 

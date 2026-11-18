@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  distDir: process.env.NEXT_BUILD_DIR || '.next',
 
-  // Disabilita TypeScript check durante build per velocizzare
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 
   images: {
     remotePatterns: [

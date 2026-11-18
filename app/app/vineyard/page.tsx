@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { resolveGardenSelection } from '@/lib/gardens/navigation'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { FeatureGate } from '@/components/shared/FeatureGate'
 import VineyardDashboard from '@/components/vineyard/VineyardDashboard'
@@ -21,6 +23,7 @@ type ViewMode = 'dashboard' | 'vines' | 'rows' | 'individual-plants'
 
 export default function VineyardPage() {
   const { storageProvider } = useStorage()
+  const gardenParam = useSearchParams().get('garden')
   const [allGardens, setAllGardens] = useState<Garden[]>([])
   const [contexts, setContexts] = useState<VineyardGardenContext[]>([])
   const [selectedGardenId, setSelectedGardenId] = useState('')
@@ -30,6 +33,12 @@ export default function VineyardPage() {
   const [focusedVineId, setFocusedVineId] = useState<string | null>(null)
   const [showWizard, setShowWizard] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setSelectedGardenId(gardenParam ?? '')
+    setSelectedVineyard(null)
+    setViewMode('dashboard')
+  }, [gardenParam])
 
   const selectedContext = useMemo(
     () => contexts.find((context) => context.garden.id === selectedGardenId),
@@ -45,11 +54,11 @@ export default function VineyardPage() {
     }
 
     if (!selectedGardenId || !contexts.some((context) => context.garden.id === selectedGardenId)) {
-      setSelectedGardenId(contexts[0].garden.id)
+      setSelectedGardenId(resolveGardenSelection(contexts.map(context => context.garden), gardenParam, selectedGardenId))
       setSelectedVineyard(null)
       setViewMode('dashboard')
     }
-  }, [contexts, selectedGardenId])
+  }, [contexts, selectedGardenId, gardenParam])
 
   useEffect(() => {
     if (!selectedContext) {

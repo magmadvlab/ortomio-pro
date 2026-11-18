@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateTelemetryEnvelope } from '@/app/api/iot/devices/telemetry/route'
+import { validateTelemetryEnvelope } from '@/app/api/iot/devices/telemetry/handlers'
 import { decideCommandRetry } from '@/services/iotCommandLifecycleService'
 import { buildIrrigationVolumeEvidence, projectNutritionStock } from '@/services/physicalOperationSemantics'
 import { adjustIrrigationNeedForRain } from '@/logic/rainManager'

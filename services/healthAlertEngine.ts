@@ -150,7 +150,7 @@ function checkWeatherDiseaseRisk(context: AlertCheckContext): Omit<HealthAlert, 
 
   // Rischio OIDIO (Powdery Mildew)
   // Condizioni: alta umidità (>70%) + temp 20-30°C + no pioggia
-  if (weather.humidity > 70 && weather.temp > 20 && weather.temp < 30 && !weather.rainTomorrow) {
+  if (weather.humidity > 70 && weather.temp > 20 && weather.temp < 30 && weather.rainTomorrow === false) {
     const vulnerablePlants = tasks.filter(t =>
       !t.completed &&
       (t.taskType === 'Sowing' || t.taskType === 'Transplant') &&

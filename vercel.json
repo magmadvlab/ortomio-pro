@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/daily-diary",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/notification-delivery",
+      "schedule": "0 7 * * *"
     }
   ],
   "headers": [
@@ -42,4 +50,3 @@
     }
   ]
 }
-

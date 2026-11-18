@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { createTelemetryPostHandler } from '@/app/api/iot/devices/telemetry/route'
+import { createTelemetryPostHandler } from '@/app/api/iot/devices/telemetry/handlers'
 
 const createCurrentDeviceRow = () => ({
   id: 'device-1',

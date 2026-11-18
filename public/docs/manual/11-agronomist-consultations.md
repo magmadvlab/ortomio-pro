@@ -1,75 +1,38 @@
-# Consultazioni Agronomo
+# Richiedere un consulto al proprio agronomo
 
-[← Torna all'Indice](./README.md)
+Da **Salute** puoi inviare una richiesta via email a un professionista salvato nei tuoi contatti e consultarne lo stato. Disponibilità, modalità, compenso e tempi di risposta si concordano con lui.
 
----
+## Preparare le informazioni
 
-## Stato Modulo
+1. Identifica terreno, coltura, filare e pianta coinvolti.
+2. Annota quando sono comparsi i sintomi e come sono cambiati.
+3. Raccogli osservazioni e foto chiare.
+4. Recupera irrigazioni, prodotti e lavorazioni recenti dai registri.
+5. Prepara, se utile, un [export del periodo](./23-export-system.md).
 
-**Stato attuale**: parzialmente persistito, non marketplace.
+## Inviare la richiesta passo per passo
 
-Esistono tipi, componenti UI e metodi nello storage provider per gestire agronomi, consultazioni e advice. Il service dedicato `agronomistService.ts` però contiene ancora helper leggeri/stub per diverse letture, quindi il dominio non va presentato come piattaforma consulenziale completa.
+1. Apri **Salute** e controlla il terreno attivo.
+2. Apri **Agronomo** nell’avviso che vuoi approfondire.
+3. In **Invia a**, scegli il professionista. Se manca, apri **Aggiungi un agronomo ai contatti**, inserisci nome ed email e premi **Salva contatto**.
+4. Controlla **Oggetto** e scegli la **Priorità richiesta**.
+5. Completa **Problema, sintomi e interventi già eseguiti**. Il professionista riceverà questo testo e il nome del terreno.
+6. Ricontrolla l’indirizzo del destinatario e premi **Invia richiesta via email**.
+7. Consulta la conferma e **Ultime richieste per questo terreno**. Per rileggerne l’esito premi **Aggiorna stato**.
 
-**Percorso dichiarato**: Sidebar → Salute → Tab "Agronomi"
+## Leggere lo stato
 
----
+| Stato | Significato |
+| --- | --- |
+| In attesa di invio | La richiesta è registrata nella coda. |
+| Invio in corso | Il servizio sta elaborando la richiesta. |
+| Accettata dal servizio email | Il provider ha confermato la presa in carico del messaggio. |
+| Email consegnata | È disponibile una conferma di consegna. |
+| Invio da riprovare automaticamente | Il primo tentativo è fallito; il sistema prevede un nuovo tentativo. |
+| Invio non riuscito | I tentativi sono terminati. Verifica il contatto e comunica con il professionista tramite un altro canale. |
 
-## Cosa è disponibile oggi
+Il professionista può rispondere all’email del tuo account. La registrazione della richiesta e la risposta agronomica sono due momenti distinti. Se manca la configurazione email, il responsabile deve completarla prima dell’invio.
 
-- tipi per agronomi, consultazioni e advice
-- componenti per ricerca/contatto/consultation form/lista
-- persistenza tramite `SupabaseStorageProvider` su tabelle `agronomists`, `agronomist_consultations` e `agronomist_advice`
-- collegamento opzionale di consultazioni a giardino e task
-- advice collegabile a task, categoria, priorità, data/stagione e stato applicato
+## Dopo la risposta e quando intervenire
 
----
-
-## Cosa non è chiuso
-
-- marketplace di agronomi verificati
-- booking con disponibilità real-time
-- pagamenti, fatture, abbonamenti e SLA
-- prescrizioni applicate automaticamente a workflow e registri operativi
-- rating, ranking, matching professionale o copertura nazionale garantita
-- metriche ROI dei risultati consulenziali
-
----
-
-## Uso corretto oggi
-
-Usa questa area per:
-- registrare contatti o riferimenti agronomici dove il provider lo supporta
-- salvare consultazioni e consigli tecnici
-- collegare advice a task quando il flusso lo consente
-- preparare materiale operativo usando registri, storico e allegati
-
-Non usarla come:
-- marketplace professionale completo
-- sistema contrattuale di consulenza
-- garanzia che una prescrizione sia stata eseguita o abbia prodotto outcome
-- sostituto di responsabilità professionale esterna
-
----
-
-## Moduli utili per una consulenza reale
-
-- [Planner AI](./09-planner-ai-chat.md): per task, priorità e passaggio all'esecuzione
-- [Registro Attività](./10-activity-registry.md): per ricostruire lo storico
-- [Sistema Irrigazione](./15-irrigation-system.md): per dati irrigui reali e log
-- [Nutrizione e Trattamenti](./16-nutrition-treatments.md): per trattamenti e note operative
-- [Smart Hub](./14-smart-hub.md): solo come supporto parziale, non come fonte IoT sempre stabile
-
----
-
-## Backlog tracciato
-
-Per rendere il modulo un prodotto consulenziale completo servirebbe:
-- consolidare `agronomistService.ts` sulla stessa persistenza del provider
-- UX completa per richieste, report, prescrizioni e follow-up
-- workflow esplicito advice → task → operazione → outcome
-- gestione privacy/documenti/allegati più robusta
-- eventuale marketplace/booking/pagamenti come dominio separato
-
----
-
-[← Torna all'Indice](./README.md)
+Conserva le indicazioni ricevute, pianifica le attività concordate e registra gli interventi effettivamente eseguiti. Chiedi il consulto quando i sintomi sono incerti o il problema evolve; per un’urgenza concorda anche un contatto diretto con il professionista.

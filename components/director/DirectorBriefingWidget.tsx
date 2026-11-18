@@ -457,10 +457,10 @@ export default function DirectorBriefingWidget({
                       <div className="font-semibold">{(briefing.agronomicInsights.water_stress_index * 100).toFixed(0)}%</div>
                     </div>
                   )}
-                  {briefing.agronomicInsights.heat_stress_hours !== undefined && (
+                  {briefing.agronomicInsights.heat_stress_index !== undefined && (
                     <div className="p-2 bg-background rounded border">
                       <div className="text-muted-foreground">Stress Termico</div>
-                      <div className="font-semibold">{briefing.agronomicInsights.heat_stress_hours}h</div>
+                      <div className="font-semibold">{Math.round(briefing.agronomicInsights.heat_stress_index * 100)}%</div>
                     </div>
                   )}
                   {briefing.agronomicInsights.photoperiod_hours !== undefined && (

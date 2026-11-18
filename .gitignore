@@ -54,3 +54,8 @@ vcchiortomio/
 # Claude Code local state
 .claude/worktrees/
 .claude/settings.local.json
+
+# Isolated local audit build
+.next-audit/
+
+.next-audit-build/

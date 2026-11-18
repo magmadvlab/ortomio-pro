@@ -1,39 +1,19 @@
-# Success Stories: Policy di Pubblicazione
+# Risultati ed esempi: distinguere le prove dalle promesse
 
-Questo capitolo non contiene success stories verificate. Il repository non fornisce evidenza sufficiente per pubblicare nomi di clienti, citazioni, premi, risultati economici o casi aziendali come fatti storici.
+Un esempio rende più chiaro un percorso. Un risultato verificato richiede invece dati, periodo e un metodo di confronto. Il manuale non presenta testimonianze o risparmi non documentati.
 
-## Regola
+## Come valutare un risultato
 
-Una storia cliente puo' entrare nel manuale o nel materiale prodotto solo se esistono:
+1. Controlla quale terreno e periodo riguarda.
+2. Identifica i registri che sostengono quantità, tempi e costi.
+3. Verifica le informazioni mancanti e le eventuali stime.
+4. Confronta condizioni e unità prima di attribuire un miglioramento a un intervento.
+5. Mantieni riconoscibili gli esempi dimostrativi e i dati simulati.
 
-- consenso esplicito alla pubblicazione;
-- azienda, contatto o fonte verificabile;
-- periodo di riferimento;
-- metriche misurate e metodo di calcolo;
-- distinzione tra risultato osservato, stima e opinione;
-- approvazione editoriale/commerciale.
+## Quando usare questo controllo
 
-Senza questi elementi, il contenuto deve restare fuori dal manuale operativo.
+Prima di condividere un caso aziendale, una previsione di beneficio o un report con altre persone. Per pubblicare dati o immagini di un’azienda serve anche il consenso appropriato di chi ne è responsabile.
 
-## Promessa convertita in TODO
+## Limiti
 
-Il master plan conserva l'obiettivo come `T7-IMPLEMENT-05 customer evidence workflow`: un flusso per raccogliere consenso, metriche, fonti, allegati e stato di approvazione delle storie cliente.
-
-## Cosa e' stato respinto
-
-Sono esclusi dalla documentazione corrente:
-
-- testimonianze inventate o non verificabili;
-- aziende nominate senza fonte;
-- premi, media mention o partnership non confermati;
-- ROI e risultati percentuali presentati come reali senza dati;
-- citazioni dirette non approvate.
-
-## Alternative corrette
-
-Per mostrare possibilita' d'uso senza fingere validazione cliente, usare:
-
-- esempi illustrativi nel capitolo casi d'uso;
-- template operativi con limiti dichiarati;
-- dati demo chiaramente marcati;
-- report interni non pubblici finche' non sono verificati.
+Una schermata promozionale, una simulazione o un valore di esempio non dimostrano lo stesso risultato nel tuo terreno. Per costruire una storia verificabile parti da [Registri](./10-activity-registry.md), [Raccolti](./40-harvest.md) ed [Export](./23-export-system.md).

@@ -1,0 +1,73 @@
+{
+  "recordedAt": "2026-11-18T19:45:02.726674+00:00",
+  "scope": "authenticated-app-local",
+  "head": "0dcd9769856ad409cefb35d91ebd69ea788e50f7",
+  "branch": "codex/manuale-audit-locale",
+  "testApp": {
+    "passed": 481,
+    "failed": 0
+  },
+  "http": {
+    "passed": true,
+    "tests": [
+      "real-auth-login",
+      "ai-proxy-auth-and-invalid-input",
+      "unconfigured-provider-explicit",
+      "legacy-secret-access-denied",
+      "credential-crud-reread",
+      "encrypted-at-rest",
+      "browser-secret-access-denied",
+      "cross-owner-list-write-proxy-denied",
+      "blank-key-preserves-secret",
+      "planting-soil-altitude-zero",
+      "cross-owner-garden-denied",
+      "monitoring-persisted",
+      "simulation-excluded",
+      "cron-idempotency",
+      "email-preference-suppression"
+    ],
+    "providerRequestsSent": 0
+  },
+  "dockerRestore": {
+    "ok": true,
+    "mode": "restore",
+    "project": "ortomio-audit-local",
+    "schemaOnlyClone": true,
+    "fixtureRollback": true,
+    "migrations": [
+      "20261118210000_audit_irrigation_and_harvest_contracts.sql",
+      "20261118211000_atomic_planner_suggestion_tasks.sql",
+      "20261118212000_private_api_configurations.sql"
+    ],
+    "completedAt": "2026-11-18T19:43:29.793Z"
+  },
+  "npmAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "typeCheck": "passed",
+  "build": "passed (Next 16.4.6, webpack, mandatory TypeScript)",
+  "lint": {
+    "errors": 0,
+    "warnings": 629
+  },
+  "manualChapters": 46,
+  "productionDeploymentChanged": false,
+  "productionDatabaseChanged": false,
+  "vercelServerEnvironmentAdded": [
+    "GEMINI_API_KEY",
+    "API_CONFIGURATION_ENCRYPTION_KEY"
+  ],
+  "remainingReleaseGates": [
+    "remote schema/history/backup",
+    "review legacy credential migration conflicts and organization scope",
+    "provider key rotation",
+    "email delivery and agronomist recipient",
+    "production smoke and cron observation",
+    "agronomic datasets and pilot"
+  ]
+}

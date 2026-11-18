@@ -2,13 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { NextRequest } from 'next/server'
-import { handleAdminBillingAction } from '@/app/api/organizations/billing/route'
+import { handleAdminBillingAction } from '@/app/api/organizations/billing/handlers'
 
 const migration = readFileSync(
   'supabase/migrations/20260726160000_organization_suspension_lifecycle.sql',
   'utf8',
 )
-const invitationRoute = readFileSync('app/api/organizations/invitations/route.ts', 'utf8')
+const invitationRoute = readFileSync('app/api/organizations/invitations/handlers.ts', 'utf8')
 
 test('suspension atomically revokes organization memberships and API keys', () => {
   const suspension = migration.slice(

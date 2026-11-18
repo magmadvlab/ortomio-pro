@@ -1,89 +1,38 @@
-# Casi d'Uso e Template Operativi
+# Tre percorsi di esempio, dall’inizio alla verifica
 
-I casi d'uso in questo capitolo sono esempi illustrativi, non prove di deployment reali e non success stories. Ogni scenario combina moduli esistenti con limiti espliciti; dove manca automazione guidata, il lavoro resta un TODO del master plan.
+Gli esempi mostrano come collegare le sezioni. Non descrivono risultati reali di clienti e non stabiliscono dosi o interventi agronomici.
 
-## Stato attuale
+## Esempio 1: un lavoro nell’orto
 
-OrtoMio puo' supportare scenari operativi basati su moduli reali:
+1. Seleziona l’orto e verifica il filare in **Appezzamenti**.
+2. In **Planner AI → Lista Task** crea il lavoro concordato con data e note.
+3. Prima dell’esecuzione controlla il campo e le informazioni del task.
+4. Dopo il lavoro apri il modulo appropriato, per esempio **Irrigazione**, e registra dati effettivi.
+5. Controlla il registro e lo stato del task.
+6. A fine giornata verifica il riepilogo nel **Diario operativo**, se disponibile.
 
-- pianificazione e registro attivita';
-- trattamenti, nutrizione, irrigazione e lavorazioni;
-- mappe NDVI e prescrizione;
-- certificazioni/readiness con maturita' diversa per standard;
-- Smart Hub e sensoristica con confini di automazione dichiarati;
-- verticali frutteto, oliveto e vigneto con livelli di persistenza differenti.
+Se il task manca dopo un suggerimento AI, controlla la lista prima di crearne uno manuale. Se il registro contiene già l’intervento, non inserirlo una seconda volta.
 
-## Template di scenario
+## Esempio 2: una pianta da controllare nel frutteto
 
-### Azienda orticola operativa
+1. Apri **Frutteto**, scegli l’impianto e identifica fila e posizione dell’albero.
+2. Consulta **Piante Individuali** e lo storico disponibile.
+3. Raccogli osservazioni e, se utile, una foto in **Salute**.
+4. Leggi le ipotesi dell’app e chiedi la valutazione del professionista quando necessaria.
+5. Pianifica soltanto il lavoro approvato e registralo dopo l’esecuzione.
+6. Nel controllo successivo aggiungi il risultato osservato, senza dedurre il miglioramento dalla sola spunta del task.
 
-Uso tipico: pianificare attivita', registrare interventi, monitorare colture, collegare osservazioni e mantenere storico operativo.
+## Esempio 3: preparare un resoconto
 
-Moduli coinvolti:
+1. Definisci terreno, periodo e domanda: attività svolte, raccolti o evidenze documentali.
+2. Verifica i registri del periodo e correggi le incongruenze accertate.
+3. Controlla in **Analytics** quali indicatori hanno dati sufficienti.
+4. Apri **Export**, seleziona terreno, dataset, date e formato.
+5. Scarica e apri il file; confronta alcune righe con i registri.
+6. Condividi il documento indicando ciò che è misurato, stimato o mancante.
 
-- planner;
-- diario/registro;
-- trattamenti e nutrizione;
-- irrigazione;
-- analytics di base.
+## Quando fermarsi
 
-Limite: non e' un percorso automatico di certificazione o ROI; l'operatore deve validare dati, esecuzioni e risultati.
+Se il terreno non coincide, il salvataggio è incerto, il dispositivo non conferma o manca una valutazione necessaria, chiarisci prima quel punto. Proseguire con dati sbagliati rende meno affidabile anche il resoconto finale.
 
-### Precision agriculture
-
-Uso tipico: leggere mappe, generare o usare prescrizioni, pianificare interventi differenziati e registrare l'esecuzione.
-
-Moduli coinvolti:
-
-- NDVI e mappe;
-- prescription maps;
-- task planner;
-- trattamenti/nutrizione;
-- registri di esecuzione.
-
-Limite: la catena non garantisce ancora piena chiusura VRT macchina-origin o telemetria di applicazione.
-
-### Readiness certificazioni
-
-Uso tipico: raccogliere dati, checklist e documentazione di supporto per prepararsi a controlli o audit.
-
-Moduli coinvolti:
-
-- BIO readiness DB-backed;
-- GlobalG.A.P. workspace/checklist;
-- trattamenti e quaderno operativo;
-- registri e documenti.
-
-Limite: OrtoMio supporta preparazione e organizzazione; non sostituisce ente certificatore, consulente normativo o chiusura ufficiale audit.
-
-### Smart monitoring e irrigazione
-
-Uso tipico: usare letture sensori, condizioni meteo e storico irriguo per decidere interventi piu' consapevoli.
-
-Moduli coinvolti:
-
-- Smart Hub;
-- sensor readings;
-- irrigation system;
-- weather;
-- analytics.
-
-Limite: automazione fisica e comandi attuatori dipendono da hardware, provider e configurazioni non uniformemente chiuse.
-
-### Verticali specializzati
-
-Uso tipico: gestire parcelle, piante o filari con strumenti specialistici per frutteto, oliveto e vigneto.
-
-Moduli coinvolti:
-
-- orchard management;
-- olive management;
-- vineyard management;
-- piante individuali dove applicabile;
-- registri e raccolte.
-
-Limite: ogni verticale ha maturita' propria; non tutti i widget specialistici sono persistiti o equivalenti a una piattaforma end-to-end.
-
-## Promessa convertita in TODO
-
-Il master plan traccia `T7-IMPLEMENT-03 use-case templates and deployment playbooks`: trasformare questi esempi in percorsi guidati dentro il prodotto, con checklist, prerequisiti, dati richiesti, limiti e stato di maturita'.
+Per la routine usa [Cosa fare ogni giorno](./44-daily-checklist.md); per gli errori usa [Problemi frequenti](./42-troubleshooting.md).

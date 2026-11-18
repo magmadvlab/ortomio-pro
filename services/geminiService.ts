@@ -213,7 +213,7 @@ export const getSeasonalSuggestions = async (lat: number, lng: number): Promise<
   // Verifica API disponibile (incluso configurazioni personalizzate)
   const apiAvailable = await checkApiAvailableAsync();
   if (!apiAvailable) {
-    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env o nelle Impostazioni > API Keys");
+    throw new Error("API Key non configurata. Configura il provider nelle Impostazioni > API Keys oppure chiedi al gestore di configurare il servizio AI");
   }
 
   const model = "gemini-2.5-flash";
@@ -621,7 +621,7 @@ Rispondi SOLO in formato JSON valido, rispettando esattamente lo schema fornito.
 
 export const getTreatmentAdvice = async (query: string): Promise<TreatmentAdvice | null> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Chiedi al gestore di configurare il servizio AI");
   }
 
   const model = "gemini-2.5-flash";
@@ -681,7 +681,7 @@ export const analyzePlantImage = async (
   context?: AnalyzeImageContext
 ): Promise<string> => {
   if (!checkApiAvailable()) {
-    return "API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.";
+    return "Servizio AI non disponibile. Verifica la configurazione del provider nelle impostazioni.";
   }
 
   const model = "gemini-2.5-flash";
@@ -773,7 +773,7 @@ export const analyzePlantImage = async (
 
 export const diagnosePlantHealth = async (base64Image: string): Promise<TreatmentAdvice | null> => {
   if (!checkApiAvailable()) {
-    throw new Error("API Key non configurata. Configura NEXT_PUBLIC_GEMINI_API_KEY nel file .env");
+    throw new Error("API Key non configurata. Chiedi al gestore di configurare il servizio AI");
   }
 
   const model = "gemini-2.5-flash";
@@ -827,7 +827,7 @@ export const diagnosePlantHealth = async (base64Image: string): Promise<Treatmen
 
 export const checkHarvestReadiness = async (plantName: string, brix: number): Promise<string> => {
   if (!checkApiAvailable()) {
-    return "API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.";
+    return "Servizio AI non disponibile. Verifica la configurazione del provider nelle impostazioni.";
   }
 
   const model = "gemini-2.5-flash";
@@ -856,7 +856,7 @@ export const checkHarvestReadiness = async (plantName: string, brix: number): Pr
 
 export const analyzeSensorData = async (moisture: number, temperature: number, gardenName: string): Promise<string> => {
   if (!checkApiAvailable()) {
-    return "API Key non configurata. Configura VITE_GEMINI_API_KEY nel file .env per utilizzare questa funzionalità.";
+    return "Servizio AI non disponibile. Verifica la configurazione del provider nelle impostazioni.";
   }
 
   const model = "gemini-2.5-flash";

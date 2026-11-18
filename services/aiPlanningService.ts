@@ -140,11 +140,12 @@ Fornisci valutazione di idoneità per ${cropName} e raccomandazioni specifiche.`
         },
         { 
           role: 'user', 
-          content: `${prompt}\n\nImmagine: data:image/jpeg;base64,${imageBase64}` 
+          content: prompt,
+          imageData: { mimeType: 'image/jpeg', data: imageBase64 }
         }
       ], {
-        provider: 'groq', // Groq per analisi veloce e accurata
-        model: 'llama-3.2-90b-vision-preview', // Modello vision per immagini
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
         temperature: 0.3
       });
 
@@ -201,11 +202,12 @@ Progetta layout efficiente per massimizzare produzione e minimizzare costi opera
         },
         { 
           role: 'user', 
-          content: `${prompt}\n\nImmagine aerea: data:image/jpeg;base64,${imageBase64}` 
+          content: prompt,
+          imageData: { mimeType: 'image/jpeg', data: imageBase64 }
         }
       ], {
-        provider: 'groq', // Groq per analisi spaziali veloci
-        model: 'llama-3.2-90b-vision-preview', // Vision per foto aeree
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
         temperature: 0.2
       });
 
@@ -257,11 +259,12 @@ Fornisci identificazione precisa e consigli per pianificazione.`;
         },
         { 
           role: 'user', 
-          content: `${prompt}\n\nImmagine pianta: data:image/jpeg;base64,${imageBase64}` 
+          content: prompt,
+          imageData: { mimeType: 'image/jpeg', data: imageBase64 }
         }
       ], {
-        provider: 'huggingface', // HuggingFace specializzato per piante
-        model: 'microsoft/GODEL-v1_1-large-seq2seq', // Modello conversazionale per identificazione
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
         temperature: 0.1
       });
 

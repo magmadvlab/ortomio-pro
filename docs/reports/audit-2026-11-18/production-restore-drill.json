@@ -1,0 +1,56 @@
+{
+  "backup": {
+    "sourceProject": "qhmujoivfxftlrcrluaj",
+    "schemas": [
+      "public",
+      "private",
+      "auth",
+      "supabase_migrations"
+    ],
+    "startedAt": "2026-11-18T20:03:11.666147+00:00",
+    "completedAt": "2026-11-18T20:04:42.144208+00:00",
+    "bytes": 2051600,
+    "sha256": "525e569c5a79c6a2db0d3687aee40270e3e03639abbff7e895f9dcd00ab1433e",
+    "file": "/Users/magma/.codex/private-backups/ortomio/2026-11-18/pre-audit-production-with-acl.dump",
+    "format": "PostgreSQL 17.6 custom",
+    "remoteWrites": false
+  },
+  "restore": {
+    "startedAt": "2026-11-18T20:06:48.180433+00:00",
+    "completedAt": "2026-11-18T20:06:51.344575+00:00",
+    "container": "ortomio-production-restore-20261118",
+    "database": "audit_restore",
+    "network": "none",
+    "hostPorts": [],
+    "restored": true
+  },
+  "migrationDrill": {
+    "realBackupRestoredWithPrivileges": true,
+    "beforeAfterCountsMatch": true,
+    "syntheticFixturesRolledBack": true,
+    "migrationsPassed": 3,
+    "sourceProject": "qhmujoivfxftlrcrluaj",
+    "targetNetwork": "none",
+    "productionWrites": false,
+    "completedAt": "2026-11-18T20:08:15.059238+00:00",
+    "counts": {
+      "users": 10,
+      "gardens": 6,
+      "harvest_logs": 0,
+      "api_keys": 0,
+      "garden_fingerprint": "ecee3a222c1e0eb3dba134fc0fcaba2f"
+    }
+  },
+  "scopeLimits": [
+    "Database schemas public/private/auth/supabase_migrations; no Storage object binaries or platform secrets",
+    "No selective tenant restore tested",
+    "No production schema or application writes",
+    "Remote migration history requires reviewed reconciliation; no blanket db push"
+  ],
+  "candidate": {
+    "path": "/Volumes/990P/ortomio-audit-release",
+    "branch": "codex/app-audit-2026-11-18",
+    "baseDeploymentCommit": "d1435e2799ee61e839c1a643d31de456f7b84672",
+    "productionLandingPreserved": true
+  }
+}

@@ -1,125 +1,38 @@
-# Lavorazioni Meccaniche
+# Lavorazioni: registrare un lavoro davvero eseguito
 
-[← Torna all'Indice](./README.md)
+Il registro delle lavorazioni raccoglie operazioni, attrezzature, tempi e costi. Serve a ricostruire ciò che è avvenuto, anche quando il lavoro riguarda un albero o un filare.
 
----
+## Dove andare e quando usarlo
 
-## Panoramica
+Apri **Lavorazioni**. Le schede sono **Panoramica**, **Registro** e **Analytics**. Usa il modulo dopo l’operazione, oppure aprilo dal task collegato per mantenere il contesto.
 
-Modulo per registrare lavorazioni meccaniche eseguite o pianificate, con un registro operativo persistente e integrazione nei flussi task-aware più recenti.
+## Registrare una lavorazione
 
-**Percorso**: Sidebar → "Lavorazioni"
+1. Seleziona il terreno e premi **Registra lavorazione**.
+2. Se arrivi da un task, controlla il riepilogo prima di compilare.
+3. Inserisci data e tipo di lavorazione. L’elenco comprende lavori del terreno e operazioni sulle piante, come potature, diradamento e legatura.
+4. Nel gruppo **Dove**, quando pertinente, specifica la posizione disponibile.
+5. Indica attrezzatura e modalità di esecuzione richieste dal modulo.
+6. Registra **Durata** in minuti, **Area** in m², **Profondità** in cm e **Costo** in euro quando conosci questi valori.
+7. Inserisci l’operatore e le note utili. Riporta meteo o condizioni del terreno solo se osservati.
+8. Salva e cerca la nuova voce in **Registro**. Riaprila per controllare luogo, data e tipo.
 
----
+## Come compilare senza ambiguità
 
-## Stato modulo
+Una potatura non richiede necessariamente una profondità di lavoro del suolo. Lascia vuoti i campi non pertinenti quando consentito. La durata non è il numero di operatori: se devi distinguere ore macchina e ore persona, descrivilo nelle note disponibili.
 
-**Stato attuale**: operativo come registro, non come piattaforma telematica.
+Il costo registrato deve rappresentare il valore che intendi confrontare. Se non conosci il costo, un campo vuoto è diverso da una lavorazione gratuita.
 
-La parte consolidata oggi è:
-- route dedicata `/app/mechanical-work`
-- API `/api/mechanical-work` con lettura e scrittura su `mechanical_work_register`
-- registrazione di tipo lavorazione, data, area, profondità, attrezzatura, meteo, operatore e note
-- riferimenti a giardino, zona, filari e aiuole quando disponibili
-- collegamento con task sorgente nei flussi planner-aware già coperti
-- presenza nello storico operazioni insieme a irrigazioni, fertilizzazioni, trattamenti e raccolte
+## Leggere Panoramica e Analytics
 
-Non va presentato come già chiuso:
-- tracking GPS real-time delle macchine
-- telematica John Deere, Case IH, New Holland, Fendt, Claas o simili
-- auto-steer, guidance system e controllo automatico passate
-- fleet management multi-macchina
-- manutenzione predittiva o diagnosi remota
-- ottimizzazione AI completa della campagna meccanica
+Controlla periodo e insieme delle lavorazioni prima di confrontare i totali. Le statistiche derivano dalle registrazioni presenti; non possono ricostruire ore o costi mai inseriti. **Dati insufficienti** è una richiesta di informazioni, non una valutazione negativa dell’azienda.
 
----
+## Quando intervenire
 
-## Cosa è disponibile ora
+Dopo ogni operazione reale registra i dati disponibili. A fine giornata confronta il registro con i lavori svolti. Prima di un confronto economico verifica unità, periodi e completezza dei costi.
 
-Il registro meccanico permette di salvare:
-- tipo lavorazione
-- data lavorazione
-- area lavorata
-- profondità
-- attrezzatura e attrezzo specifico
-- metadati lavorazione
-- condizioni meteo
-- operatore
-- note
-- zona, filari o aiuole quando il flusso li fornisce
+## Errori e limiti
 
-I tipi lavorazione includono operazioni di suolo, preparazione terreno, tecniche conservative, chioma e operazioni generali.
+Se una lavorazione non appare, controlla terreno e filtri. Se il salvataggio restituisce errore, verifica la lista prima di ripetere. Il modulo è beta e la scrittura richiede l’archivio disponibile; un’apertura del modulo non equivale a una registrazione.
 
-Le attrezzature supportate coprono trattore, attrezzi trainati, piccoli mezzi, attrezzi elettrificati e manuale.
-
----
-
-## Registro persistente
-
-La fonte DB-backed è `mechanical_work_register`.
-
-La tabella nasce per il tracking operativo professionale e conserva i campi principali necessari a ricostruire una lavorazione. L'accesso è protetto da RLS per utente.
-
-La API `/api/mechanical-work`:
-- richiede tier PRO quando Supabase è disponibile
-- valida i tipi lavorazione supportati
-- valida i tipi attrezzatura supportati
-- inserisce record reali su `mechanical_work_register`
-- in locale senza Supabase simula la risposta per consentire lo sviluppo UI
-
----
-
-## Relazione con planner e precision chain
-
-Nei flussi più recenti una lavorazione può essere aperta da un task agronomico e mantenere il riferimento al task sorgente. Questo la rende utile come evidenza operativa dentro la catena:
-
-`segnale / raccomandazione → task → lavorazione registrata → storico operazioni`
-
-La catena non è ancora:
-
-`prescription map → macchina con import VRT → esecuzione automatica telemetrica → outcome misurato`
-
-Per ora la lavorazione meccanica è quindi una chiusura operativa manuale o task-aware, non una prova telematica automatica.
-
----
-
-## Uso consigliato
-
-Usa il modulo per:
-- registrare lavorazioni eseguite
-- indicare area, profondità e attrezzatura
-- collegare operazioni a zone, filari o aiuole
-- mantenere uno storico operativo consultabile
-- dare evidenza a task agronomici già pianificati
-
-Non usarlo come:
-- sistema di fleet tracking
-- registro automatico da macchina
-- prova GPS di copertura
-- manutenzione macchine completa
-- integrazione diretta con console agricole o Operations Center
-
----
-
-## Limiti attuali
-
-- alcune funzioni helper in `mechanicalWorkService` sono ancora mock o sequenze predefinite
-- la route API è la parte persistente più affidabile per il registro
-- non sono verificate integrazioni con macchine reali o provider telematici
-- non c'è misurazione automatica di sovrapposizioni, gap, consumi o qualità spaziale
-- l'ottimizzazione economica e la manutenzione restano fuori dal perimetro chiuso
-
----
-
-## Backlog tracciato
-
-Da trattare come lavoro futuro:
-- riconciliare helper/service mock con la fonte `mechanical_work_register`
-- aggiungere import/export tecnico se richiesto da macchine reali
-- collegare prescription maps a lavorazioni meccaniche con esito applicato
-- tracciare copertura, passate, overlap e gap solo quando esiste una fonte GPS/telematica reale
-- introdurre manutenzione e costi macchina come modulo dedicato, non come promessa implicita del registro
-
----
-
-[← Torna all'Indice](./README.md) | [Prossimo: Gestione Frutteto →](./18-orchard-management.md)
+Per i percorsi da vigneto e oliveto controlla che il contesto dell’impianto sia rimasto corretto.

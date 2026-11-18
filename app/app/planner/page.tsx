@@ -335,16 +335,9 @@ export default function PlannerPage() {
         <PlannerAISuggestions
           garden={selectedGarden}
           tasks={tasks}
-          onCreateTasks={async (newTasks) => {
-            try {
-              for (const task of newTasks) {
-                await storageProvider.createTask(task)
-              }
-              const updatedTasks = await storageProvider.getTasks()
-              setTasks(updatedTasks)
-            } catch (error) {
-              console.error('Error creating tasks:', error)
-            }
+          onTasksCreated={async () => {
+            const updatedTasks = await storageProvider.getTasks()
+            setTasks(updatedTasks)
           }}
         />
       )}

@@ -97,12 +97,12 @@ export async function GET(request: NextRequest) {
     }
     
     // Invia notifiche in batch
-    let sentCount = 0;
+    let queuedCount = 0;
     let failedCount = 0;
     
     if (emailNotifications.length > 0) {
       const result = await sendBatchNotifications(emailNotifications, supabase);
-      sentCount = result.sent;
+      queuedCount = result.queued;
       failedCount = result.failed;
       
       if (result.errors.length > 0) {
@@ -115,7 +115,8 @@ export async function GET(request: NextRequest) {
       date: today,
       gardens_checked: gardens.length,
       alerts_found: emailNotifications.length,
-      notifications_sent: sentCount,
+      notifications_sent: 0,
+      notifications_queued: queuedCount,
       notifications_failed: failedCount,
     });
   } catch (error: unknown) {
