@@ -584,6 +584,8 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 ## 5.2 Piano correttivo dell'app dopo il login — 18 novembre 2026
 
+**Onboarding terreno, 19 novembre 2026.** Verifica del codice completata, tre difetti aperti. Il [piano dal primo terreno al briefing](./ORTOMIO_ONBOARDING_TERRENO_2026-11-19.md) registra interventi, prove e criteri di chiusura.
+
 **Stato: correzioni implementate e collaudate localmente; tre migrazioni applicate solo al clone Docker; variabili server aggiunte a Vercel; nessuna pubblicazione né migrazione produttiva.** Prove e limiti: [esecuzione](../audit-2026-11-18/EXECUTION.md), [runbook Docker](../audit-2026-11-18/LOCAL_RUNBOOK.md). Obiettivo: eliminare i difetti emersi, completare i percorsi dichiarati e dimostrare quali parametri raggiungono davvero l'orchestratore. Il perimetro è il sistema autenticato: dashboard, terreni e colture, Planner, diario, salute, irrigazione, previsioni, mappe, impostazioni e automazioni. O74/landing resta nella coda generale, fuori da questo intervento; non si azzera il suo fallimento per dichiarare verde la release completa.
 
 Fonti: [audit applicativo con riproduzioni](../audit-2026-11-18/REPORT.md), [audit locale/manuale](../ORTOMIO_AUDIT_LOCALE_MANUALE_2026-11-18.md), registro §5.1 e rapporti storici M06-M16. A01-A07 sono prove, mappate rispettivamente a O76-O82; provenienza e runtime sono O83-O84. I gap storici O48/O60-O67 vanno riconfermati sul candidato prima di modificarli. Le modifiche locali concorrenti a manuale e navigazione possono aver già corretto una parte di O70-O71: in quel caso si verifica e si registra la prova, senza rifare il lavoro.

@@ -1,5 +1,7 @@
 # Tasks
 
+- **19 novembre · Onboarding terreno aperto.** [Piano e registro delle prove](./docs/reports/execution-plans/ORTOMIO_ONBOARDING_TERRENO_2026-11-19.md).
+
 - **Aggiornamento:** 18 novembre 2026.
 - **Coda canonica:** [piano master](./docs/reports/execution-plans/ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md), registro §5.1.
 - **Stato release:** M01-M02 chiusi per la release; M16 eseguita con NO-GO il 26 luglio. Le evidenze remote mancanti non sono state chiuse dall'audit locale.
