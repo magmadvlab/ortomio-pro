@@ -48,3 +48,18 @@ Le colonne si riferiscono a `gardens`, salvo dove indicato. Le verifiche con fix
 | Configurazione di frutteto, oliveto e vigneto | Il secondo wizard riceve l’ID del terreno appena salvato | La conferma apre la dashboard dello stesso terreno. Chi chiude la configurazione ritrova il terreno base già creato. |
 
 Il [piano master](./ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md) mantiene lo stato complessivo dell’audit.
+
+## Collaudo successivo dalla semina al raccolto
+
+**Esito del 19 novembre 2026: continuità parziale.** Prova sui servizi applicativi con Supabase locale in Docker, account temporaneo, meteo fisso e una zona irrigua manuale. Gli eventi sono stati registrati in sequenza nella stessa esecuzione, con una semina datata 90 giorni prima. Il diario è stato invocato esplicitamente. Il confronto riguarda riepilogo, raccomandazioni, indicatori e titoli e punteggi della coda del Director. [Script ripetibile](../../../scripts/audit/crop-cycle.ts).
+
+| Evento | Evidenza nel briefing o nel diario |
+|---|---|
+| Terreno iniziale | Il briefing legge il fotoperiodo e il meteo. Compare già «Irrigazione Unknown Zone», priorità 78, pur avendo creato una zona con nome. |
+| Semina di pomodoro | La coda acquisisce «Pomodoro - Segni di stress», priorità 78. Questa prova dimostra che il Director legge la coltura. Lo stress non è stato misurato. |
+| Aggiornamento a fioritura | La fase Flowering viene riletta dal database. I titoli, le priorità e le raccomandazioni osservati rimangono uguali. |
+| Irrigazione manuale di 20 L | Il registro restituisce 20 L per la coltura. Il rapporto fallisce sulla colonna assente irrigation_zones.description e restituisce una zona sconosciuta. |
+| Registrazione giornaliera | Con meteo disponibile il diario cerca public.cultivations, assente nello schema locale. Restituisce zero coltivazioni aggiornate e una lista errori vuota. |
+| Raccolto di 3 kg e fase Harvested | Il raccolto viene riletto. La coda mantiene l’avviso di stress per la coltura raccolta. |
+
+Criteri per chiudere i difetti: il diario deve elaborare la coltura registrata e segnalare eventuali fallimenti; il rapporto irriguo deve attribuire l’evento alla zona e usare il volume effettivo; una coltura conclusa deve uscire dalle azioni per colture attive, distinguendo il raccolto parziale dalla chiusura. Ripetere con una seconda coltura ancora attiva per verificare l’isolamento delle azioni. La prova riguarda il flusso software di un orto in pieno campo.
