@@ -592,9 +592,10 @@ export interface EfficiencyReport {
   zoneId: string
   zoneName: string
   period: string
-  averageEfficiency: number
-  uniformityCoefficient: number
-  waterUseEfficiency: number
+  recordedLiters?: number
+  averageEfficiency?: number
+  uniformityCoefficient?: number
+  waterUseEfficiency?: number
   recommendations: string[]
   agronomicProfileId?: string
   operationalContextTags?: AgronomicOperationalContextTag[]

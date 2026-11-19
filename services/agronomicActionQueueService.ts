@@ -292,6 +292,7 @@ const toIrrigationQueueItems = (
       missingSignals: report.missingSignals || [],
       urgencyLabel: resolveUrgencyLabel(priorityResult.score, economicSummary),
       metadata: {
+        recordedLiters: report.recordedLiters,
         averageEfficiency: report.averageEfficiency,
         uniformityCoefficient: report.uniformityCoefficient,
         waterUseEfficiency: report.waterUseEfficiency,

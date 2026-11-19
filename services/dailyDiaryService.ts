@@ -59,6 +59,7 @@ export interface DailyWeatherLog {
 }
 
 export interface CultivationDailyTracking {
+  garden_id?: string
   id?: string
   user_id: string
   cultivation_id: string
@@ -144,7 +145,7 @@ export interface PredictiveInsight {
 // DAILY DIARY SERVICE
 // ============================================================================
 
-class DailyDiaryService {
+export class DailyDiaryService {
   // Client iniettabile per contesti server-side (cron) che devono bypassare la RLS
   // con service_role, senza cambiare il comportamento lato browser (utente reale loggato).
   private supabaseOverride: SupabaseClient | null = null
@@ -203,10 +204,12 @@ class DailyDiaryService {
     for (const userId of userIds) {
       try {
         const result = await this.runDailyRegistration(userId, logDate)
-        if (result.errors.length > 0) {
+        if (result.errors.length) {
           errors.push(...result.errors.map((entry) => `${userId}: ${entry}`))
+          failedUsers++
+        } else {
+          succeededUsers++
         }
-        succeededUsers += 1
       } catch (entry) {
         failedUsers += 1
         errors.push(`${userId}: ${entry instanceof Error ? entry.message : String(entry)}`)
@@ -238,30 +241,28 @@ class DailyDiaryService {
     let eventsGenerated = 0
 
     try {
-      // 1. Registra dati meteo giornalieri
-      weatherLog = await this.recordDailyWeather(userId, logDate)
-
-      if (!weatherLog) {
-        errors.push('Impossibile registrare i dati meteo')
-        return { weatherLog, cultivationsUpdated, eventsGenerated, errors }
-      }
-
-      // 2. Aggiorna tracking per ogni coltivazione attiva
-      const cultivations = await this.getActiveCultivations(userId)
-
-      for (const cultivation of cultivations) {
+      const { data: gardens, error } = await this.supabase.from('gardens').select('id').eq('user_id', userId)
+      if (error) throw error
+      for (const garden of gardens ?? []) {
         try {
-          await this.updateCultivationTracking(userId, cultivation, weatherLog, logDate)
-          cultivationsUpdated++
+          const weather = await this.recordDailyWeather(userId, logDate, garden.id)
+          if (!weather) throw new Error('Meteo giornaliero indisponibile')
+          weatherLog = weather
+          const crops = await this.getActiveCultivations(garden.id, logDate)
+          for (const crop of crops) {
+            try {
+              await this.updateCultivationTracking(userId, crop, weather, logDate)
+              cultivationsUpdated++
+            } catch (err) {
+              errors.push(`Tracking ${crop.id}: ${err instanceof Error ? err.message : JSON.stringify(err)}`)
+            }
+          }
+          eventsGenerated += (await this.generateAutomaticEvents(userId, weather, logDate)).length
+          weatherLog = await this.persistZoneEnvironmentalLedger(userId, weather, logDate)
         } catch (err) {
-          errors.push(`Errore tracking ${cultivation.id}: ${err}`)
+          errors.push(`Terreno ${garden.id}: ${err instanceof Error ? err.message : JSON.stringify(err)}`)
         }
       }
-
-      // 3. Genera eventi automatici basati sui dati
-      const events = await this.generateAutomaticEvents(userId, weatherLog, logDate)
-      eventsGenerated = events.length
-      weatherLog = await this.persistZoneEnvironmentalLedger(userId, weatherLog, logDate)
 
     } catch (err) {
       errors.push(`Errore generale: ${err}`)
@@ -277,30 +278,29 @@ class DailyDiaryService {
   /**
    * Registra i dati meteorologici giornalieri
    */
-  async recordDailyWeather(userId: string, date: string): Promise<DailyWeatherLog | null> {
+  async recordDailyWeather(userId: string, date: string, selectedGardenId?: string): Promise<DailyWeatherLog | null> {
     try {
+      const gardenId = selectedGardenId ?? await this.resolvePrimaryGardenId(userId)
+      if (!gardenId) return null
       // Controlla se esiste già un log per questa data
       const { data: existing, error: existingError } = await this.supabase
         .from('daily_weather_log')
         .select('*')
-        .eq('user_id', userId)
+        .eq('garden_id', gardenId)
         .eq('log_date', date)
-        .single()
+        .maybeSingle()
 
-      if (existing && !existingError) {
-        return existing as DailyWeatherLog
+      if (existingError) throw existingError
+      if (existing) {
+        return { ...existing, eto_calculated: existing.eto_mm } as DailyWeatherLog
       }
 
       // Ottieni i dati meteo dall'API
-      const weatherData = await this.fetchWeatherData(userId, date)
+      const weatherData = await this.fetchWeatherData(gardenId, date)
 
       if (!weatherData) {
         return null
       }
-
-      // La RLS su daily_weather_log richiede garden_id valorizzato (policy basata su
-      // gardens.user_id), quindi associamo il log all'orto più recente dell'utente.
-      const gardenId = await this.resolvePrimaryGardenId(userId)
 
       // Calcola ETo (evapotraspirazione di riferimento)
       const eto = this.calculateETo(
@@ -372,7 +372,7 @@ class DailyDiaryService {
         .single()
 
       if (error || !data) throw error || new Error('No data returned')
-      return data as DailyWeatherLog
+      return { ...data, eto_calculated: data.eto_mm } as DailyWeatherLog
 
     } catch (err) {
       console.error('Errore registrazione meteo:', err)
@@ -398,44 +398,13 @@ class DailyDiaryService {
   /**
    * Recupera dati meteo da API o stazione locale
    */
-  private async fetchWeatherData(userId: string, date: string): Promise<Partial<DailyWeatherLog> | null> {
+  private async fetchWeatherData(gardenId: string, date: string): Promise<Partial<DailyWeatherLog> | null> {
     try {
-      // Ottieni la posizione dell'utente
-      const { data: profile, error } = await this.supabase
-        .from('profiles')
-        .select('latitude, longitude, location')
-        .eq('id', userId)
-        .single()
-
-      const profileLat = profile?.latitude !== undefined ? Number(profile.latitude) : NaN
-      const profileLon = profile?.longitude !== undefined ? Number(profile.longitude) : NaN
-      if (!error && Number.isFinite(profileLat) && Number.isFinite(profileLon)) {
-        return this.fetchFromOpenMeteo(profileLat, profileLon, date)
-      }
-
-      // Fallback su coordinate del primo giardino dell'utente (evita default hardcoded su Roma)
-      const { data: gardens, error: gardensError } = await this.supabase
-        .from('gardens')
-        .select('name, coordinates, latitude, longitude')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (!gardensError && gardens && gardens.length > 0) {
-        const garden = gardens[0] as {
-          name?: string
-          coordinates?: unknown
-          latitude?: number
-          longitude?: number
-        }
-        const coords =
-          normalizeGeoCoordinates(garden?.coordinates) ||
-          normalizeGeoCoordinates(garden)
-
-        if (coords) {
-          return this.fetchFromOpenMeteo(coords.latitude, coords.longitude, date)
-        }
-      }
+      const { data: garden, error } = await this.supabase.from('gardens')
+        .select('*').eq('id', gardenId).single()
+      if (error) throw error
+      const coords = normalizeGeoCoordinates(garden.coordinates) ?? normalizeGeoCoordinates(garden)
+      if (coords) return this.fetchFromOpenMeteo(coords.latitude, coords.longitude, date)
 
       console.warn('Nessuna coordinata valida disponibile per daily weather log, uso fallback sintetico')
       return this.getSyntheticWeatherFallback(date)
@@ -486,7 +455,7 @@ class DailyDiaryService {
     weatherLog: DailyWeatherLog,
     date: string
   ): Promise<DailyWeatherLog> {
-    const zones = await this.getActiveEnvironmentalZones(userId)
+    const zones = await this.getActiveEnvironmentalZones(weatherLog.garden_id!)
     if (zones.length === 0) {
       return weatherLog
     }
@@ -503,7 +472,7 @@ class DailyDiaryService {
         gardenId: zone.gardenId,
         zoneId: zone.zoneId,
         date,
-      }).catch(() => null)
+      }, this.supabase)
 
       if (!snapshot) {
         continue
@@ -529,53 +498,28 @@ class DailyDiaryService {
     const { data, error } = await this.supabase
       .from('daily_weather_log')
       .update({ raw_data: nextRawData })
-      .eq('user_id', userId)
+      .eq('garden_id', weatherLog.garden_id)
       .eq('log_date', date)
       .select()
       .single()
 
     if (error || !data) {
-      console.warn('Impossibile aggiornare zone environmental ledger sul daily weather log:', error)
-      return {
-        ...weatherLog,
-        raw_data: nextRawData,
-      }
+      throw error ?? new Error('Aggiornamento del diario ambientale fallito')
     }
 
-    return data as DailyWeatherLog
+    return { ...data, eto_calculated: data.eto_mm } as DailyWeatherLog
   }
 
-  private async getActiveEnvironmentalZones(userId: string): Promise<Array<{
+  private async getActiveEnvironmentalZones(gardenId: string): Promise<Array<{
     gardenId: string
     zoneId: string
     zoneName?: string
   }>> {
-    const { data: gardens, error: gardensError } = await this.supabase
-      .from('gardens')
-      .select('id')
-      .eq('user_id', userId)
-
-    if (gardensError || !gardens || gardens.length === 0) {
-      return []
-    }
-
-    const gardenIds = gardens
-      .map((garden: { id?: string }) => garden.id)
-      .filter((gardenId): gardenId is string => Boolean(gardenId))
-
-    if (gardenIds.length === 0) {
-      return []
-    }
-
-    const { data: zones, error: zonesError } = await this.supabase
-      .from('irrigation_zones')
-      .select('id, garden_id, name, is_active')
-      .in('garden_id', gardenIds)
-      .eq('is_active', true)
+    const { data: zones, error: zonesError } = await this.supabase.from('irrigation_zones')
+      .select('id, garden_id, name').eq('garden_id', gardenId)
 
     if (zonesError || !zones) {
-      console.warn('Impossibile recuperare irrigation_zones per environmental ledger:', zonesError)
-      return []
+      throw zonesError ?? new Error('Zone irrigue non disponibili')
     }
 
     return zones
@@ -749,26 +693,14 @@ class DailyDiaryService {
   /**
    * Ottieni coltivazioni attive dell'utente
    */
-  private async getActiveCultivations(userId: string): Promise<Array<{
-    id: string
-    crop_type: string
-    variety?: string
-    planting_date?: string
-    zone_id?: string
-    status: string
-  }>> {
-    const { data, error } = await this.supabase
-      .from('cultivations')
-      .select('id, crop_type, variety, planting_date, zone_id, status')
-      .eq('user_id', userId)
-      .in('status', ['active', 'growing', 'flowering', 'fruiting'])
-
-    if (error || !data) {
-      console.error('Errore fetch cultivations:', error)
-      return []
-    }
-
-    return data
+  private async getActiveCultivations(gardenId: string, date: string) {
+    const { data, error } = await this.supabase.from('garden_tasks')
+      .select('id, plant_name, stage, lifecycle_state, final_harvest, operational_status')
+      .eq('garden_id', gardenId).in('task_type', ['Sowing', 'Transplant']).lte('date', date)
+    if (error) throw error
+    return (data ?? []).filter(task => task.stage !== 'Harvested' && task.lifecycle_state !== 'Disposal'
+      && !task.final_harvest && task.operational_status !== 'cancelled')
+      .map(task => ({ id: task.id, crop_type: task.plant_name, stage: task.stage }))
   }
 
   /**
@@ -776,85 +708,80 @@ class DailyDiaryService {
    */
   async updateCultivationTracking(
     userId: string,
-    cultivation: { id: string; crop_type: string; planting_date?: string },
+    cultivation: { id: string; crop_type: string; stage?: string; planting_date?: string },
     weather: DailyWeatherLog,
     date: string
-  ): Promise<CultivationDailyTracking | null> {
-    try {
-      // Ottieni parametri GDD per questa coltura
-      const gddParams = await this.getGDDParameters(cultivation.crop_type)
+  ): Promise<CultivationDailyTracking> {
+    // Ottieni parametri GDD per questa coltura
+    const gddParams = await this.getGDDParameters(cultivation.crop_type)
 
-      // Calcola GDD giornaliero
-      const dailyGDD = this.calculateDailyGDD(
-        weather.temp_min,
-        weather.temp_max,
-        gddParams.t_base,
-        gddParams.t_max_threshold
-      )
+    // Calcola GDD giornaliero
+    const dailyGDD = this.calculateDailyGDD(
+      weather.temp_min,
+      weather.temp_max,
+      gddParams.t_base,
+      gddParams.t_max_threshold
+    )
 
-      // Ottieni GDD accumulato precedente
-      const accumulatedGDD = await this.getAccumulatedGDD(userId, cultivation.id, date)
+    // Ottieni GDD accumulato precedente
+    const accumulatedGDD = await this.getAccumulatedGDD(userId, cultivation.id, date)
 
-      // Calcola ore di freddo (per colture perenni)
-      const dailyChillHours = this.calculateChillHours(weather.temp_min, weather.temp_max)
-      const accumulatedChillHours = await this.getAccumulatedChillHours(userId, cultivation.id, date)
+    // Calcola ore di freddo (per colture perenni)
+    const dailyChillHours = this.calculateChillHours(weather.temp_min, weather.temp_max)
+    const accumulatedChillHours = await this.getAccumulatedChillHours(userId, cultivation.id, date)
 
-      // Calcola indici di stress
-      const coldStress = this.calculateColdStressIndex(weather.temp_min, gddParams.t_base)
-      const heatStress = this.calculateHeatStressIndex(weather.temp_max, gddParams.t_optimal_max)
-      const waterStress = this.calculateWaterStressIndex(
-        weather.precipitation_mm,
-        weather.eto_calculated || 0,
-        weather.humidity_avg
-      )
+    // Calcola indici di stress
+    const coldStress = this.calculateColdStressIndex(weather.temp_min, gddParams.t_base)
+    const heatStress = this.calculateHeatStressIndex(weather.temp_max, gddParams.t_optimal_max)
+    const waterStress = this.calculateWaterStressIndex(
+      weather.precipitation_mm,
+      weather.eto_calculated || 0,
+      weather.humidity_avg
+    )
 
-      // Determina fase fenologica
-      const phenoStage = this.determinePhenologicalStage(
-        accumulatedGDD + dailyGDD,
-        gddParams
-      )
+    // Determina fase fenologica
+    const phenoStage = this.determinePhenologicalStage(
+      accumulatedGDD + dailyGDD,
+      gddParams
+    )
 
-      // Stima tasso di crescita
-      const growthRate = this.estimateGrowthRate(dailyGDD, gddParams, coldStress, heatStress, waterStress)
+    // Stima tasso di crescita
+    const growthRate = this.estimateGrowthRate(dailyGDD, gddParams, coldStress, heatStress, waterStress)
 
-      const tracking: CultivationDailyTracking = {
-        user_id: userId,
-        cultivation_id: cultivation.id,
-        tracking_date: date,
-        daily_gdd: dailyGDD,
-        accumulated_gdd: accumulatedGDD + dailyGDD,
-        daily_chill_hours: dailyChillHours,
-        accumulated_chill_hours: (accumulatedChillHours || 0) + dailyChillHours,
-        cold_stress_index: coldStress,
-        heat_stress_index: heatStress,
-        water_stress_index: waterStress,
-        phenological_stage: phenoStage,
-        growth_rate_estimate: growthRate
-      }
-
-      // Upsert nel database
-      const { data, error } = await this.supabase
-        .from('cultivation_daily_tracking')
-        .upsert(tracking, {
-          onConflict: 'user_id,cultivation_id,tracking_date'
-        })
-        .select()
-        .single()
-
-      if (error || !data) {
-        console.error('Errore upsert tracking:', error)
-        throw error || new Error('No data returned')
-      }
-
-      // Genera eventi se necessario
-      await this.checkAndGenerateStressEvents(userId, cultivation.id, tracking, date)
-
-      return data as CultivationDailyTracking
-
-    } catch (err) {
-      console.error('Errore tracking cultivation:', err)
-      return null
+    const tracking: CultivationDailyTracking = {
+      user_id: userId,
+      garden_id: weather.garden_id,
+      cultivation_id: cultivation.id,
+      tracking_date: date,
+      daily_gdd: dailyGDD,
+      accumulated_gdd: accumulatedGDD + dailyGDD,
+      daily_chill_hours: dailyChillHours,
+      accumulated_chill_hours: (accumulatedChillHours || 0) + dailyChillHours,
+      cold_stress_index: coldStress,
+      heat_stress_index: heatStress,
+      water_stress_index: waterStress,
+      phenological_stage: cultivation.stage || phenoStage,
+      growth_rate_estimate: growthRate
     }
+
+    // Upsert nel database
+    const { data, error } = await this.supabase
+      .from('crop_daily_tracking')
+      .upsert(tracking, {
+        onConflict: 'cultivation_id,tracking_date'
+      })
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error('Errore upsert tracking:', error)
+      throw error || new Error('No data returned')
+    }
+
+    // Genera eventi se necessario
+    await this.checkAndGenerateStressEvents(userId, cultivation.id, tracking, date)
+
+    return data as CultivationDailyTracking
   }
 
   /**
@@ -1049,18 +976,17 @@ class DailyDiaryService {
    */
   async getAccumulatedGDD(userId: string, cultivationId: string, beforeDate: string): Promise<number> {
     const { data, error } = await this.supabase
-      .from('cultivation_daily_tracking')
+      .from('crop_daily_tracking')
       .select('accumulated_gdd')
       .eq('user_id', userId)
       .eq('cultivation_id', cultivationId)
       .lt('tracking_date', beforeDate)
       .order('tracking_date', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (error || !data) {
-      return 0
-    }
+    if (error) throw error
+    if (!data) return 0
 
     return data.accumulated_gdd || 0
   }
@@ -1070,18 +996,17 @@ class DailyDiaryService {
    */
   async getAccumulatedChillHours(userId: string, cultivationId: string, beforeDate: string): Promise<number> {
     const { data, error } = await this.supabase
-      .from('cultivation_daily_tracking')
+      .from('crop_daily_tracking')
       .select('accumulated_chill_hours')
       .eq('user_id', userId)
       .eq('cultivation_id', cultivationId)
       .lt('tracking_date', beforeDate)
       .order('tracking_date', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
-    if (error || !data) {
-      return 0
-    }
+    if (error) throw error
+    if (!data) return 0
 
     return data.accumulated_chill_hours || 0
   }
@@ -1184,7 +1109,7 @@ class DailyDiaryService {
 
     // Salva eventi nel database
     for (const event of events) {
-      await this.supabase.from('diary_events').insert(event)
+      await this.saveAutomaticEvent(weather.garden_id!, event)
     }
 
     return events
@@ -1193,6 +1118,16 @@ class DailyDiaryService {
   /**
    * Controlla e genera eventi di stress per una coltivazione
    */
+  private async saveAutomaticEvent(gardenId: string, event: DiaryEvent) {
+    const { error } = await this.supabase.from('diary_events').insert({
+      garden_id: gardenId, author_id: event.user_id, task_id: event.cultivation_id,
+      event_date: event.event_date, event_type: event.event_type, title: event.title,
+      description: event.description, source: 'automation', payload: event,
+      idempotency_key: [event.event_date, event.cultivation_id ?? 'garden', event.title].join('/'),
+    })
+    if (error && error.code !== '23505') throw error
+  }
+
   private async checkAndGenerateStressEvents(
     userId: string,
     cultivationId: string,
@@ -1201,7 +1136,7 @@ class DailyDiaryService {
   ): Promise<void> {
     // Stress da freddo significativo
     if (tracking.cold_stress_index > 0.5) {
-      await this.supabase.from('diary_events').insert({
+      await this.saveAutomaticEvent(tracking.garden_id!, {
         user_id: userId,
         cultivation_id: cultivationId,
         event_date: date,
@@ -1218,7 +1153,7 @@ class DailyDiaryService {
 
     // Stress da caldo significativo
     if (tracking.heat_stress_index > 0.5) {
-      await this.supabase.from('diary_events').insert({
+      await this.saveAutomaticEvent(tracking.garden_id!, {
         user_id: userId,
         cultivation_id: cultivationId,
         event_date: date,
@@ -1235,7 +1170,7 @@ class DailyDiaryService {
 
     // Stress idrico significativo
     if (tracking.water_stress_index > 0.5) {
-      await this.supabase.from('diary_events').insert({
+      await this.saveAutomaticEvent(tracking.garden_id!, {
         user_id: userId,
         cultivation_id: cultivationId,
         event_date: date,
@@ -1307,7 +1242,8 @@ class DailyDiaryService {
    */
   async getDailyEntry(
     gardenId: string,
-    date: Date | string
+    date: Date | string,
+    activeOnly = false
   ): Promise<{
     weather: DailyWeatherLog | null
     tracking: CultivationDailyTracking[]
@@ -1315,6 +1251,15 @@ class DailyDiaryService {
   }> {
     const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0]
     
+    let trackingQuery = this.supabase.from('crop_daily_tracking')
+      .select('*, garden_tasks!inner(stage, lifecycle_state, final_harvest, operational_status)')
+      .eq('garden_id', gardenId).eq('tracking_date', dateStr)
+    if (activeOnly) {
+      trackingQuery = trackingQuery.or('stage.is.null,stage.neq.Harvested', { referencedTable: 'garden_tasks' })
+        .or('lifecycle_state.is.null,lifecycle_state.neq.Disposal', { referencedTable: 'garden_tasks' })
+        .is('garden_tasks.final_harvest', null)
+        .or('operational_status.is.null,operational_status.neq.cancelled', { referencedTable: 'garden_tasks' })
+    }
     const [weatherRes, trackingRes, eventsRes] = await Promise.all([
       this.supabase
         .from('daily_weather_log')
@@ -1322,11 +1267,7 @@ class DailyDiaryService {
         .eq('garden_id', gardenId)
         .eq('log_date', dateStr)
         .maybeSingle(),
-      this.supabase
-        .from('cultivation_daily_tracking')
-        .select('*')
-        .eq('garden_id', gardenId)
-        .eq('tracking_date', dateStr),
+      trackingQuery,
       this.supabase
         .from('diary_events')
         .select('*')
@@ -1334,6 +1275,9 @@ class DailyDiaryService {
         .eq('event_date', dateStr)
     ])
 
+    for (const result of [weatherRes, trackingRes, eventsRes]) {
+      if (result.error) throw result.error
+    }
     return {
       weather: weatherRes.data || null,
       tracking: trackingRes.data || [],
@@ -1364,7 +1308,7 @@ class DailyDiaryService {
         .order('log_date'),
 
       this.supabase
-        .from('cultivation_daily_tracking')
+        .from('crop_daily_tracking')
         .select('*')
         .eq('user_id', userId)
         .gte('tracking_date', startDate)
@@ -1380,13 +1324,13 @@ class DailyDiaryService {
       this.supabase
         .from('diary_events')
         .select('*')
-        .eq('user_id', userId)
+        .eq('author_id', userId)
         .gte('event_date', startDate)
         .lte('event_date', endDate)
         .order('event_date')
         .then(res => {
           if (cultivationId && res.data) {
-            return { ...res, data: res.data.filter(e => !e.cultivation_id || e.cultivation_id === cultivationId) }
+            return { ...res, data: res.data.filter(e => !e.task_id || e.task_id === cultivationId) }
           }
           return res
         })
@@ -1421,7 +1365,7 @@ class DailyDiaryService {
 
       // Ottieni dati aggregati
       const { data: tracking, error: trackingError } = await this.supabase
-        .from('cultivation_daily_tracking')
+        .from('crop_daily_tracking')
         .select('*')
         .eq('user_id', userId)
         .eq('cultivation_id', cultivationId)
@@ -1477,7 +1421,7 @@ class DailyDiaryService {
 
     // Ottieni dati attuali
     const { data: currentTracking, error } = await this.supabase
-      .from('cultivation_daily_tracking')
+      .from('crop_daily_tracking')
       .select('*')
       .eq('user_id', userId)
       .eq('cultivation_id', cultivationId)

@@ -857,8 +857,7 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
   zoneId?: string
   date?: string | Date
   maxSensorAgeHours?: number
-}): Promise<EnvironmentalMonitoringSnapshot> {
-  const supabase = getSupabaseClient()
+}, supabase = getSupabaseClient()): Promise<EnvironmentalMonitoringSnapshot> {
   const dateStr =
     typeof params.date === 'string'
       ? params.date
@@ -879,6 +878,7 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
       .from('daily_weather_log')
       .select('*')
       .eq('user_id', params.userId)
+      .eq('garden_id', params.gardenId)
       .gte('log_date', lookupStartDate)
       .lte('log_date', dateStr)
       .order('log_date', { ascending: false }),
@@ -921,7 +921,8 @@ export async function getEnvironmentalMonitoringSnapshot(params: {
         params.gardenId,
         sensorType,
         params.zoneId,
-        params.maxSensorAgeHours || 24
+        params.maxSensorAgeHours || 24,
+        supabase
       )
     ),
   ])

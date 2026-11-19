@@ -8,13 +8,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { dailyDiaryService } from '@/services/dailyDiaryService'
+import { DailyDiaryService } from '@/services/dailyDiaryService'
 import { requireSupabase } from '@/lib/supabase-server'
 import { AccessError, requireCron } from '@/lib/auth.server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minuti max
+
+async function registerDiary() {
+  const diary = new DailyDiaryService()
+  diary.setSupabaseClient(requireSupabase())
+  const result = await diary.recordDailyEntries()
+  if (result.failedUsers || result.errors.length) {
+    throw new Error(result.errors.join(' | ') || 'Daily registration failed')
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,12 +35,7 @@ export async function GET(request: NextRequest) {
     // Usa un client service_role: il cron non ha un utente loggato, e la RLS
     // di daily_weather_log richiede auth.uid() -- senza questo, ogni scrittura
     // fallirebbe silenziosamente.
-    dailyDiaryService.setSupabaseClient(requireSupabase())
-    try {
-      await dailyDiaryService.recordDailyEntries()
-    } finally {
-      dailyDiaryService.setSupabaseClient(null)
-    }
+    await registerDiary()
 
     const duration = Date.now() - startTime
     console.log(`✅ Daily diary cron job completed in ${duration}ms`)
@@ -67,12 +71,7 @@ export async function POST() {
   
   try {
     console.log('🔧 Manual trigger of daily diary...')
-    dailyDiaryService.setSupabaseClient(requireSupabase())
-    try {
-      await dailyDiaryService.recordDailyEntries()
-    } finally {
-      dailyDiaryService.setSupabaseClient(null)
-    }
+    await registerDiary()
 
     return NextResponse.json({
       success: true,

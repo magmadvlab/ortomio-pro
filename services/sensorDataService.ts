@@ -347,9 +347,9 @@ export async function getLatestSensorReading(
   gardenId: string,
   sensorType: SensorType,
   zoneId?: string,
-  maxAgeHours: number = 24
+  maxAgeHours: number = 24,
+  supabase = getSupabaseClient()
 ): Promise<SensorReading | null> {
-  const supabase = getSupabaseClient();
 
   if (!supabase) {
     return null;

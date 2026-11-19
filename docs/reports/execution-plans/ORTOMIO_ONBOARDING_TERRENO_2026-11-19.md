@@ -63,3 +63,17 @@ Il [piano master](./ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md) mantiene l
 | Raccolto di 3 kg e fase Harvested | Il raccolto viene riletto. La coda mantiene l’avviso di stress per la coltura raccolta. |
 
 Criteri per chiudere i difetti: il diario deve elaborare la coltura registrata e segnalare eventuali fallimenti; il rapporto irriguo deve attribuire l’evento alla zona e usare il volume effettivo; una coltura conclusa deve uscire dalle azioni per colture attive, distinguendo il raccolto parziale dalla chiusura. Ripetere con una seconda coltura ancora attiva per verificare l’isolamento delle azioni. La prova riguarda il flusso software di un orto in pieno campo.
+
+### Correzioni verificate il 19 novembre in Docker
+
+| Verifica | Risultato |
+|---|---|
+| Diario con due colture | Il diario legge semine e trapianti del terreno. Registra il pomodoro in fioritura e il peperone in fase vegetativa. Una seconda esecuzione nello stesso giorno mantiene due sole registrazioni. |
+| Irrigazione | Il briefing attribuisce alla zona Pomodori i 20 L registrati. Senza un volume pianificato abbinato a una misura, l’efficienza resta indeterminata. Una misura separata di 8 L su 10 L pianificati produce l’80% del volume previsto. |
+| Raccolto | Registrare 3 kg conserva l’avviso per il pomodoro ancora attivo. Chiudere il ciclo rimuove il suo avviso e il suo contributo agli indici del briefing corrente. Il peperone resta attivo. Lo storico giornaliero resta consultabile. |
+| Secondo terreno | Lo spinacio compare solo nel suo terreno. Il diario usa il meteo specifico di ciascun terreno. |
+| Fallimento e recupero | Un errore indotto nel tracking viene riportato tra gli errori della registrazione. Il conteggio del cron indica un utente fallito, zero riusciti. |
+
+La [prova ripetibile](../../../scripts/audit/crop-cycle.ts) verifica i servizi dell’app e i dati salvati. Il meteo e i volumi della prova sono controllati. Il risultato verifica il passaggio dei dati e la gestione delle priorità osservate. La validazione agronomica sul campo e il collaudo del cron in produzione restano aperti.
+
+Per il rilascio applicare la [migrazione del diario per coltura](../../../supabase/migrations/20261119100000_crop_daily_tracking.sql) prima del codice che la utilizza. La migrazione crea una tabella distinta per le misure per coltura e giorno. Le annotazioni storiche del terreno mantengono la loro tabella.

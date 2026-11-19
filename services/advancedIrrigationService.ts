@@ -352,7 +352,7 @@ class AdvancedIrrigationService {
             Object.prototype.hasOwnProperty.call(zone, 'system_id')
               ? systems?.filter(s => s.id === zone.system_id) || []
               : systems?.filter(s => s.zone_id === zone.id) || []
-          ).map(this.mapSystemFromDatabase)
+          ).map(system => this.mapSystemFromDatabase(system))
         }))
       } catch (systemError) {
         console.warn('Error fetching irrigation systems, returning zones without systems:', systemError)
@@ -498,7 +498,7 @@ class AdvancedIrrigationService {
 
       return (data || [])
         .filter((system) => system.is_active !== false)
-        .map(this.mapSystemFromDatabase)
+        .map(system => this.mapSystemFromDatabase(system))
     } catch (error) {
       console.error('Error fetching irrigation systems:', error)
       return []
@@ -1151,7 +1151,7 @@ class AdvancedIrrigationService {
       // Get zone info
       const { data: zone, error: zoneError } = await supabase
         .from('irrigation_zones')
-        .select('name, description, garden_id, slope_percentage, sun_exposure, soil_type, ph_level')
+        .select('name, description:notes, garden_id, slope_percentage, sun_exposure, soil_type, ph_level')
         .eq('id', zoneId)
         .single()
 
@@ -1172,64 +1172,29 @@ class AdvancedIrrigationService {
           startDate.setDate(endDate.getDate() - 30)
       }
 
-      // Get irrigation logs
-      const { data: logs, error } = await supabase
-        .from('irrigation_logs')
-        .select('*')
-        .eq('zone_id', zoneId)
-        .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString())
-        .not('actual_volume_liters', 'is', null)
-
-      if (error) throw error
-
-      const irrigationLogs = logs || []
-
-      // Calculate efficiency metrics
-      let totalEfficiency = 0
-      let uniformitySum = 0
-      let waterUseEfficiencySum = 0
-      let validLogs = 0
-
-      irrigationLogs.forEach(log => {
-        if (log.planned_volume_liters && log.actual_volume_liters) {
-          const efficiency = (log.actual_volume_liters / log.planned_volume_liters) * 100
-          totalEfficiency += efficiency
-          
-          if (log.distribution_uniformity) {
-            uniformitySum += log.distribution_uniformity
-          }
-          
-          if (log.application_efficiency) {
-            waterUseEfficiencySum += log.application_efficiency
-          }
-          
-          validLogs++
-        }
-      })
-
-      const averageEfficiency = validLogs > 0 ? totalEfficiency / validLogs : 0
-      const uniformityCoefficient = validLogs > 0 ? uniformitySum / validLogs : 0
-      const waterUseEfficiency = validLogs > 0 ? waterUseEfficiencySum / validLogs : 0
-
-      // Generate recommendations
-      const recommendations: string[] = []
-      
-      if (averageEfficiency < 80) {
-        recommendations.push('Considera di verificare il sistema per perdite o malfunzionamenti')
-      }
-      
-      if (uniformityCoefficient < 85) {
-        recommendations.push('Migliora la distribuzione uniforme dell\'acqua regolando gli emettitori')
-      }
-      
-      if (waterUseEfficiency < 75) {
-        recommendations.push('Ottimizza gli orari di irrigazione per ridurre l\'evaporazione')
-      }
-
-      if (recommendations.length === 0) {
-        recommendations.push('Il sistema sta funzionando in modo ottimale')
-      }
+      const [watering, measurements] = await Promise.all([
+        supabase.from('watering_logs').select('liters_applied, soil_moisture_before, soil_moisture_after')
+          .eq('garden_id', zone.garden_id).eq('zone_id', zoneId).eq('completed', true)
+          .gte('watered_at', startDate.toISOString()).lte('watered_at', endDate.toISOString()),
+        supabase.from('irrigation_logs').select('actual_volume_liters, planned_volume_liters')
+          .eq('garden_id', zone.garden_id).eq('zones_irrigated', `{"${zoneId}"}`)
+          .gte('irrigation_date', startDate.toISOString()).lte('irrigation_date', endDate.toISOString())
+          .in('volume_source', ['meter', 'sensor', 'operator']).not('actual_volume_liters', 'is', null),
+      ])
+      if (watering.error) throw watering.error
+      if (measurements.error) throw measurements.error
+      const logs = watering.data ?? []
+      const recordedLiters = logs.reduce((sum, log) => sum + Number(log.liters_applied), 0)
+      const ratios = (measurements.data ?? []).filter(log => log.planned_volume_liters > 0)
+      const validLogs = ratios.length
+      const averageEfficiency = validLogs
+        ? ratios.reduce((sum, log) => sum + 100 * log.actual_volume_liters / log.planned_volume_liters, 0) / validLogs
+        : undefined
+      const recommendations = [
+        logs.length ? `Registro della zona: ${recordedLiters} L distribuiti nel periodo.` : 'Nessuna irrigazione completata nel registro della zona.',
+      ]
+      if (averageEfficiency === undefined) recommendations.push('Mancano misure abbinate a un volume pianificato per valutare l’efficienza.')
+      else if (averageEfficiency < 80) recommendations.push('Verifica lo scostamento tra volume pianificato e distribuito.')
 
       const systems = await this.getIrrigationSystems(zoneId).catch(() => [])
       const { data: gardenProfile } = await supabase
@@ -1279,13 +1244,10 @@ class AdvancedIrrigationService {
         aspectDirection: gardenProfile?.aspect_direction,
         windProtection: gardenProfile?.wind_protection,
       })
-      const availableSignals = this.getAvailableWaterSignalsFromEfficiencyLogs(irrigationLogs)
+      const availableSignals = new Set<AgronomicSignalKey>(['operation_ledger'])
+      if (logs.some(log => log.soil_moisture_before != null || log.soil_moisture_after != null)) availableSignals.add('soil_moisture_10cm')
       const priorityResult = scoreAgronomicPriority({
-        baseScore: this.calculateIrrigationRecommendationPriorityBaseScore(
-          averageEfficiency,
-          uniformityCoefficient,
-          waterUseEfficiency
-        ),
+        baseScore: averageEfficiency === undefined ? 20 : Math.max(20, Math.min(100, 100 - averageEfficiency)),
         confidence: this.calculateIrrigationRecommendationConfidence(validLogs),
         resolvedProfile: resolvedAgronomicProfile,
         focus: 'water',
@@ -1307,8 +1269,7 @@ class AdvancedIrrigationService {
         zoneName: zone.name,
         period,
         averageEfficiency,
-        uniformityCoefficient,
-        waterUseEfficiency,
+        recordedLiters,
         recommendations,
         agronomicProfileId: resolvedAgronomicProfile?.profile.id,
         operationalContextTags: refinedContextResult.operationalContextTags,
@@ -1320,15 +1281,7 @@ class AdvancedIrrigationService {
       }
     } catch (error) {
       console.error('Error generating efficiency report:', error)
-      return {
-        zoneId,
-        zoneName: 'Unknown Zone',
-        period,
-        averageEfficiency: 0,
-        uniformityCoefficient: 0,
-        waterUseEfficiency: 0,
-        recommendations: ['Errore nel calcolo delle metriche di efficienza']
-      }
+      throw error
     }
   }
 
@@ -1667,7 +1620,7 @@ class AdvancedIrrigationService {
       phLevel: data.ph_level,
       organicMatterPercentage: data.organic_matter_percentage,
       isActive: data.is_active ?? true,
-      systems: data.irrigation_systems?.map(this.mapSystemFromDatabase) || [],
+      systems: data.irrigation_systems?.map(system => this.mapSystemFromDatabase(system)) || [],
       createdAt: data.created_at,
       updatedAt: data.updated_at
     }
@@ -2677,24 +2630,6 @@ class AdvancedIrrigationService {
     return availableSignals
   }
 
-  private calculateIrrigationRecommendationPriorityBaseScore(
-    averageEfficiency: number,
-    uniformityCoefficient: number,
-    waterUseEfficiency: number
-  ): number {
-    const efficiencyGap = Math.max(0, 100 - averageEfficiency)
-    const uniformityGap = Math.max(0, 100 - uniformityCoefficient)
-    const waterUseGap = Math.max(0, 100 - waterUseEfficiency)
-
-    return Math.max(
-      20,
-      Math.min(
-        100,
-        Math.round(efficiencyGap * 0.45 + uniformityGap * 0.25 + waterUseGap * 0.3)
-      )
-    )
-  }
-
   private calculateIrrigationRecommendationConfidence(validLogs: number): number {
     if (validLogs >= 8) return 0.88
     if (validLogs >= 4) return 0.78
@@ -2702,35 +2637,7 @@ class AdvancedIrrigationService {
     return 0.52
   }
 
-  private getAvailableWaterSignalsFromEfficiencyLogs(
-    logs: Array<Pick<
-      RawIrrigationLogRow,
-      'pressure_avg_bar' | 'pressure_start_bar' | 'soil_moisture_before_percentage' |
-      'soil_moisture_after_percentage' | 'weather_conditions' | 'temperature_celsius' | 'humidity_percentage'
-    >>
-  ): Set<AgronomicSignalKey> {
-    const availableSignals = new Set<AgronomicSignalKey>(['operation_ledger'])
 
-    if (logs.length === 0) {
-      return availableSignals
-    }
-
-    availableSignals.add('flow_rate_actual')
-
-    if (logs.some((log) => log.pressure_avg_bar !== null || log.pressure_start_bar !== null)) {
-      availableSignals.add('line_pressure')
-    }
-
-    if (logs.some((log) => log.soil_moisture_before_percentage !== null || log.soil_moisture_after_percentage !== null)) {
-      availableSignals.add('soil_moisture_10cm')
-    }
-
-    if (logs.some((log) => log.weather_conditions || log.temperature_celsius !== null || log.humidity_percentage !== null)) {
-      availableSignals.add('weather_current')
-    }
-
-    return availableSignals
-  }
 }
 
 export const advancedIrrigationService = new AdvancedIrrigationService()

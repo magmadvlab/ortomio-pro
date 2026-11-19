@@ -326,7 +326,7 @@ class DirectorService {
       const today = new Date()
       
       // 1. Ottieni dati dal diario automatico
-      const diaryEntry = await dailyDiaryService.getDailyEntry(gardenId, today)
+      const diaryEntry = await dailyDiaryService.getDailyEntry(gardenId, today, true)
       const [environmentalSummary, environmentalHistorySummary] = await Promise.all([
         getEnvironmentalMonitoringSnapshot({
           userId,
@@ -955,10 +955,11 @@ class DirectorService {
       }).slice(0, 12)
     }
 
-    const dominantCropName = this.getDominantCropName(tasks)
+    const activeTasks = tasks.filter(task => task.stage !== 'Harvested' && !task.finalHarvest && task.lifecycleState !== 'Disposal' && task.operationalStatus !== 'cancelled')
+    const dominantCropName = this.getDominantCropName(activeTasks)
     const [healthAlerts, phenologyCandidate, individualPlants] = await Promise.all([
       plantHealthMonitoringService
-        .analyzeGardenHealth(garden, tasks, { devices, storageProvider })
+        .analyzeGardenHealth(garden, activeTasks, { devices, storageProvider })
         .catch(() => []),
       this.buildPhenologyCandidate(storageProvider, garden, dominantCropName),
       typeof storageProvider.getIndividualPlants === 'function'
