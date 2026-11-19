@@ -553,11 +553,14 @@ export class DailyDiaryService {
         'uv_index_max',
         'weather_code',
       ].join(',')
+      const forecastEnd = new Date(date + 'T12:00:00Z')
+      forecastEnd.setUTCDate(forecastEnd.getUTCDate() + 6)
       const url = isHistorical
         ? `${endpoint}?latitude=${lat}&longitude=${lon}&daily=${baseDailyFields}&timezone=auto&start_date=${date}&end_date=${date}`
-        : `${endpoint}?latitude=${lat}&longitude=${lon}&daily=${baseDailyFields}&timezone=auto&start_date=${date}&end_date=${date}&forecast_days=7`
+        : `${endpoint}?latitude=${lat}&longitude=${lon}&daily=${baseDailyFields}&timezone=auto&start_date=${date}&end_date=${forecastEnd.toISOString().slice(0, 10)}`
 
       const response = await fetch(url)
+      if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`)
       const data = await response.json()
 
       if (!data.daily) return null
