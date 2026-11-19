@@ -537,18 +537,24 @@ export async function persistPredictionBundle(
   input: CanonicalPredictionInput,
   bundle: PredictionBundle
 ) {
-  const { data: existing } = await supabase.from('agronomic_predictions').select('*')
+  const findExisting = () => supabase.from('agronomic_predictions').select('*')
     .eq('garden_id', input.gardenId).eq('input_hash', bundle.inputHash)
     .eq('model_version', bundle.modelVersion).eq('rule_version', bundle.ruleVersion).maybeSingle()
+  const { data: existing } = await findExisting()
   if (existing) return existing
   const { data, error } = await supabase.from('agronomic_predictions').insert({
     user_id: userId, garden_id: input.gardenId, status: bundle.status,
+    idempotency_key: [bundle.modelVersion, bundle.ruleVersion, bundle.inputHash].join(':'),
     input_hash: bundle.inputHash, input_snapshot: input, output_snapshot: bundle,
     missing_signals: bundle.missingSignals, model_version: bundle.modelVersion,
     rule_version: bundle.ruleVersion, source_quality: bundle.sourceQuality,
     confidence: bundle.confidence, horizon_days: bundle.horizonDays,
     valid_from: bundle.validFrom, valid_until: bundle.validUntil,
   }).select('*').single()
+  if (error?.code === '23505') {
+    const { data: concurrent } = await findExisting()
+    if (concurrent) return concurrent
+  }
   if (error || !data) throw new Error(error?.message ?? 'prediction_persistence_failed')
   return data
 }

@@ -102,6 +102,20 @@ try {
   assert.equal(canonical.waterComparison.requiredLiters,15)
   const bundle = buildPredictionBundle(canonical)
   assert.equal(bundle.status, 'generated')
+  if (process.env.AUDIT_LOCAL_HTTP === '1') {
+    const session = await client.auth.getSession()
+    const response = await fetch('http://127.0.0.1:3004/api/ai/predictions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: 'sb-access-token=' + session.data.session!.access_token },
+      body: JSON.stringify({ gardenId: garden.id }),
+    })
+    const prediction = await response.json()
+    assert.equal(response.status, 200, prediction.message)
+    assert.ok(prediction.predictionId)
+    assert.equal(prediction.data.operationFeedback.recorded_work_cost, 12)
+    assert.equal(prediction.data.recentOperations.find((row: {product: string | null}) => row.product === 'Planner').total, 3)
+    console.log('AUDIT authenticated predictions: HTTP 200, persisted quantities and cost')
+  }
   console.log('AUDIT zone',JSON.stringify({comparison:canonical.waterComparison,status:bundle.status,results:bundle.resourceOptimizations}))
 } finally {
   // Local auth's deletion trigger lacks rights on field-row dependants.
