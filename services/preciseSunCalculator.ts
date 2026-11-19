@@ -5,6 +5,7 @@
  */
 
 export interface Obstacle3D {
+  id?: string;
   azimuth: number;        // Direzione ostacolo (0-360°, 0=Nord, 90=Est, 180=Sud, 270=Ovest)
   height: number;         // Altezza ostacolo in metri
   distance: number;       // Distanza orizzontale in metri

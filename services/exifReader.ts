@@ -95,18 +95,14 @@ export function orientationToDegrees(orientation: number): number {
 export function calculateNorthOffsetFromEXIF(exifData: EXIFData): number | null {
   // Se abbiamo direzione GPS, quella è il Nord nella foto
   // Offset = 0 - gpsImgDirection (perché vogliamo sapere quanto ruotare la foto)
-  if (exifData.gpsImgDirection !== undefined) {
+  if (typeof exifData.gpsImgDirection === "number" && Number.isFinite(exifData.gpsImgDirection)) {
     // gpsImgDirection è la direzione in cui punta la fotocamera
     // Se punta a Nord (0°), offset è 0
     // Se punta a Est (90°), offset è -90 (ruota foto di 90° per allineare Nord)
     return (360 - exifData.gpsImgDirection) % 360;
   }
 
-  // Altrimenti usa orientation per correggere rotazione base
-  if (exifData.orientation !== undefined) {
-    return orientationToDegrees(exifData.orientation);
-  }
-
+  // La rotazione dei pixel non indica il nord geografico.
   return null;
 }
 

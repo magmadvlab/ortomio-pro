@@ -1,7 +1,7 @@
 'use client'
 
 import { useStorage } from '@/packages/core/hooks/useStorage'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Garden, GardenTask } from '@/types'
 import HomeDashboard from '@/components/shared/HomeDashboard'
 import { GardenTypeWizard } from '@/components/GardenTypeWizard'
@@ -11,6 +11,7 @@ export default function AppPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [tasks, setTasks] = useState<GardenTask[]>([])
+  const taskRequest = useRef(0)
   const [loading, setLoading] = useState(true)
   const [showGardenWizard, setShowGardenWizard] = useState(false)
 
@@ -69,14 +70,11 @@ export default function AppPage() {
         setGardens(loadedGardens)
         
         if (loadedGardens.length > 0) {
-          const firstGarden = loadedGardens[0]
+          const lastId = localStorage.getItem('ortoLastUsedGardenId')
+          const firstGarden = loadedGardens.find(item => item.id === lastId) ?? loadedGardens[0]
           console.log('✅ Setting active garden:', firstGarden.name, firstGarden.id)
           setActiveGarden(firstGarden)
           
-          // Load tasks for the first garden
-          const gardenTasks = await storageProvider.getTasks(firstGarden.id)
-          console.log('✅ Tasks loaded:', gardenTasks?.length || 0)
-          setTasks(gardenTasks || [])
         } else {
           console.log('❌ No gardens found!')
         }
@@ -89,16 +87,23 @@ export default function AppPage() {
     loadData()
   }, [storageProvider, isInitialized])
 
-  const refreshTasks = async () => {
-    if (activeGarden) {
-      try {
-        const gardenTasks = await storageProvider.getTasks(activeGarden.id)
-        setTasks(gardenTasks || [])
-      } catch (error) {
-        console.error('Error refreshing tasks:', error)
-      }
+  const activeGardenId = activeGarden?.id
+  const refreshTasks = useCallback(async () => {
+    const request = ++taskRequest.current
+    if (!activeGardenId) return
+    try {
+      const loaded = await storageProvider.getTasks(activeGardenId)
+      if (request === taskRequest.current) setTasks(loaded ?? [])
+    } catch (error) {
+      console.error('Error refreshing tasks:', error)
     }
-  }
+  }, [activeGardenId, storageProvider])
+
+  useEffect(() => {
+    setTasks([])
+    void refreshTasks()
+    return () => { taskRequest.current++ }
+  }, [refreshTasks])
 
   const handleUpdateTask = async (task: GardenTask) => {
     try {
@@ -111,8 +116,8 @@ export default function AppPage() {
 
   const handleUpdateGarden = async (garden: Garden) => {
     try {
-      await storageProvider.updateGarden(garden.id, garden)
-      setActiveGarden(garden)
+      const savedGarden = await storageProvider.updateGarden(garden.id, garden)
+      setActiveGarden(savedGarden)
       // Update gardens list
       const updatedGardens = await storageProvider.getGardens()
       setGardens(updatedGardens)
@@ -177,7 +182,8 @@ export default function AppPage() {
   return (
     <HomeDashboard 
       garden={activeGarden || undefined}
-      tasks={tasks}
+      tasks={tasks.filter(task => task.gardenId === activeGarden?.id)}
+      onSelectGarden={setActiveGarden}
       onUpdateGarden={handleUpdateGarden}
       onUpdateTask={handleUpdateTask}
       onRefreshTasks={refreshTasks}

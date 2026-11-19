@@ -381,16 +381,25 @@ class DirectorService {
         conditions: diaryEntry.weather.weather_conditions
       } : {}
       
-      const agronomicInsights = diaryEntry?.tracking?.length ? {
-        ...summarizeDiaryTracking(diaryEntry.tracking),
-        photoperiod_hours: gardenForContext?.coordinates
-          ? calculatePhotoperiodHours(gardenForContext.coordinates.latitude, today)
-          : 0
-      } : {}
-      
+      const agronomicInsights = {
+        ...(diaryEntry?.tracking?.length ? summarizeDiaryTracking(diaryEntry.tracking) : {}),
+        ...(gardenForContext?.coordinates ? {
+          photoperiod_hours: calculatePhotoperiodHours(gardenForContext.coordinates.latitude, today),
+        } : {}),
+      }
+      if (gardenForContext && !suggestions.length && !diaryEntry?.tracking?.length) {
+        const missing = [
+          !gardenForContext.coordinates && 'posizione',
+          !gardenForContext.soilType && !['Hydroponic', 'Aquaponic', 'Aeroponic', 'Indoor'].includes(gardenForContext.gardenType ?? '') && 'tipo di suolo',
+          gardenForContext.dailySunHours == null && !gardenForContext.sunExposure && 'esposizione alla luce',
+        ].filter(Boolean)
+        if (missing.length) recommendations.push('Completa i dati del terreno: ' + missing.join(', ') + '.')
+      }
+
       return {
         date: today,
         gardenId,
+        gardenName: gardenForContext?.name,
         summary,
         criticalActions,
         transversalQueue,

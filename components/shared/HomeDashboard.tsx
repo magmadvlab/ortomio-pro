@@ -65,12 +65,13 @@ import { executeTaskFertilizationThroughUnifiedService } from '@/services/operat
 interface HomeDashboardProps {
   garden?: Garden
   tasks?: GardenTask[]
+  onSelectGarden: (garden: Garden) => void
   onUpdateGarden?: (garden: Garden) => void
   onUpdateTask?: (task: GardenTask) => void
   onRefreshTasks?: () => Promise<void>
 }
 
-export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
+export default function HomeDashboard({ garden, tasks, onSelectGarden, onUpdateGarden, onUpdateTask, onRefreshTasks }: HomeDashboardProps) {
   const { storageProvider } = useStorage()
   const router = useRouter()
 
@@ -515,7 +516,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
           tasks={currentTasks}
           onGardenChange={(garden) => {
             setActiveGarden(garden)
-            if (onUpdateGarden) onUpdateGarden(garden)
+            onSelectGarden(garden)
           }}
           onAddGarden={() => setShowGardenTypeWizard(true)}
         />
@@ -570,6 +571,7 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
         {/* Director Briefing Widget - Orchestratore Predittivo */}
         {activeGarden && (
           <DirectorBriefingWidget
+            gardenId={activeGarden.id}
             compact={false}
             maxActions={5}
             weatherAlerts={weatherAlerts}
@@ -1340,24 +1342,11 @@ export default function HomeDashboard({ garden, tasks, onUpdateGarden, onUpdateT
       {/* Garden Type Wizard */}
       {showGardenTypeWizard && (
         <GardenTypeWizard
-          onComplete={async (garden) => {
-            try {
-              await storageProvider.createGarden(garden)
-              const updatedGardens = await storageProvider.getGardens()
-              setGardens(updatedGardens)
-              setActiveGarden(garden)
-              setShowGardenTypeWizard(false)
-
-              // Carica task per il nuovo giardino (saranno vuoti inizialmente)
-              await refreshTasks()
-
-              if (onUpdateGarden) {
-                onUpdateGarden(garden)
-              }
-            } catch (error) {
-              console.error('Error creating garden:', error)
-              alert('Errore nella creazione: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'))
-            }
+          onComplete={(garden) => {
+            setGardens(previous => [garden, ...previous.filter(item => item.id !== garden.id)])
+            setActiveGarden(garden)
+            onSelectGarden(garden)
+            setShowGardenTypeWizard(false)
           }}
           onCancel={() => setShowGardenTypeWizard(false)}
         />

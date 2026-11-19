@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { X, MapPin, Info, Grid, Layers, TreeDeciduous, Sun, Trash2, Plus, Edit2 } from 'lucide-react'
+import { normalizeGeoCoordinates } from '@/utils/coordinates'
 import { Garden, GardenBed, GardenRow } from '@/types'
 import type { FieldRow } from '@/types/fieldRow'
 import { useStorage } from '@/packages/core/hooks/useStorage'
@@ -97,8 +98,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
   const [name, setName] = useState(garden.name)
   const [sizeSqMeters, setSizeSqMeters] = useState(garden.sizeSqMeters)
   const [sizeUnit, setSizeUnit] = useState<'sqm' | 'are' | 'hectare'>(garden.sizeUnit || 'sqm')
-  const [latitude, setLatitude] = useState(garden.coordinates?.latitude || 0)
-  const [longitude, setLongitude] = useState(garden.coordinates?.longitude || 0)
+  const [latitude, setLatitude] = useState(garden.coordinates?.latitude?.toString() ?? '')
+  const [longitude, setLongitude] = useState(garden.coordinates?.longitude?.toString() ?? '')
   const [soilPh, setSoilPh] = useState(garden.soilPh?.toString() || '')
 
   // Structures state
@@ -199,7 +200,13 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
     }
   }, [isOpen, loadGardenStructures])
 
+  const coordinates = normalizeGeoCoordinates({ latitude, longitude })
+
   const handleSave = async () => {
+    if ((latitude || longitude) && !coordinates) {
+      alert('Verifica la latitudine e la longitudine.')
+      return
+    }
     try {
       setLoading(true)
 
@@ -207,10 +214,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
         name,
         sizeSqMeters,
         sizeUnit,
-        coordinates: latitude && longitude ? {
-          latitude,
-          longitude
-        } : undefined,
+        coordinates,
         soilPh: soilPh ? parseFloat(soilPh) : undefined,
         structureConfig: {
           ...garden.structureConfig,
@@ -675,7 +679,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <input
                       type="number"
                       value={latitude}
-                      onChange={(e) => setLatitude(parseFloat(e.target.value))}
+                      onChange={(e) => setLatitude(e.target.value)}
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                       placeholder="41.9028"
                       step="0.0001"
@@ -686,7 +690,7 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                     <input
                       type="number"
                       value={longitude}
-                      onChange={(e) => setLongitude(parseFloat(e.target.value))}
+                      onChange={(e) => setLongitude(e.target.value)}
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg text-sm"
                       placeholder="12.4964"
                       step="0.0001"
@@ -724,8 +728,8 @@ export function GardenEditModal({ garden, isOpen, onClose, onSave }: GardenEditM
                 <h4 className="font-semibold text-gray-900 mb-2">Riepilogo</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Area: {formatArea(sizeSqMeters, sizeUnit)}</li>
-                  {latitude && longitude && (
-                    <li>• GPS: {latitude.toFixed(4)}, {longitude.toFixed(4)}</li>
+                  {coordinates && (
+                    <li>• GPS: {coordinates.latitude.toFixed(4)}, {coordinates.longitude.toFixed(4)}</li>
                   )}
                   {soilPh && (
                     <li>• pH Terreno: {parseFloat(soilPh).toFixed(1)}</li>

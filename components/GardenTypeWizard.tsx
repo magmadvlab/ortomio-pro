@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Garden } from '../types';
 import { X, Sprout, TreePine, CircleDot, Grape, Droplets } from 'lucide-react';
 import GardenOnboarding from './GardenOnboarding';
@@ -19,7 +19,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
   const [selectedType, setSelectedType] = useState<SpaceType | null>(null);
   const [selectedHydroponicType, setSelectedHydroponicType] = useState<'NFT' | 'DWC' | 'EbbFlow' | 'Drip' | 'Wick' | 'Kratky' | null>(null);
   const [createdGarden, setCreatedGarden] = useState<Garden | null>(null);
-  const [, setSaving] = useState(false);
+  const saving = useRef(false);
 
   console.log('[GardenTypeWizard] Rendered - selectedType:', selectedType, 'createdGarden:', createdGarden);
 
@@ -28,12 +28,14 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
   };
 
   const handleGardenCreated = async (garden: Garden) => {
+    if (saving.current) return;
+    saving.current = true;
     try {
       console.log('✅ Garden created from GardenOnboarding:', garden);
       console.log('📊 Storage provider available:', storageProvider.isAvailable());
       console.log('🔐 About to save garden to database...');
       
-      setSaving(true);
+
       
       // CRITICAL: Save garden to database FIRST
       const savedGarden = await storageProvider.createGarden(garden);
@@ -42,7 +44,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
       setCreatedGarden(savedGarden);
       
       // Se è un orto, completa subito
-      if (selectedType === 'vegetable') {
+      if (selectedType && !['orchard', 'oliveGrove', 'vineyard'].includes(selectedType)) {
         console.log('🎉 Vegetable garden complete, calling onComplete');
         onComplete(savedGarden);
       }
@@ -58,7 +60,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
       // Show error to user
       alert(`Errore nel salvare il giardino: ${error instanceof Error ? error.message : 'Errore sconosciuto'}. Riprova.`);
     } finally {
-      setSaving(false);
+      saving.current = false;
     }
   };
 
@@ -72,7 +74,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
   // Step 1: Selezione Tipo
   if (!selectedType) {
     return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">Crea Nuovo Spazio</h2>
@@ -244,7 +246,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
     ];
 
     return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
@@ -332,7 +334,7 @@ export const GardenTypeWizard: React.FC<GardenTypeWizardProps> = ({ onComplete, 
         garden={createdGarden}
         presetType={presetType}
         onComplete={handleOrchardConfigComplete}
-        onCancel={() => setCreatedGarden(null)}
+        onCancel={handleOrchardConfigComplete}
       />
     );
   }

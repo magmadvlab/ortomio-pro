@@ -371,7 +371,9 @@ export interface Garden {
   dailySunHours?: number;
   aspectDirection?: 'North' | 'South' | 'East' | 'West' | 'Flat';
   windProtection?: 'High' | 'Medium' | 'Low';
+  removedObstacleIds?: string[];
   obstacles?: Array<{
+    id?: string;
     azimuth: number;        // 0-360°
     height: number;         // metri
     distance: number;       // metri

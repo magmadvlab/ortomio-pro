@@ -584,7 +584,7 @@ Questo registro contiene i deliverable ancora necessari. Gli ID sono stabili: un
 
 ## 5.2 Piano correttivo dell'app dopo il login — 18 novembre 2026
 
-**Onboarding terreno, 19 novembre 2026.** Verifica del codice completata, tre difetti aperti. Il [piano dal primo terreno al briefing](./ORTOMIO_ONBOARDING_TERRENO_2026-11-19.md) registra interventi, prove e criteri di chiusura.
+**Onboarding terreno, 19 novembre 2026.** Correzioni e collaudo su Supabase locale completati. Rilascio da verificare. Il [piano dal primo terreno al briefing](./ORTOMIO_ONBOARDING_TERRENO_2026-11-19.md) registra interventi, prove e criteri di chiusura.
 
 **Stato: correzioni implementate e collaudate localmente; tre migrazioni applicate solo al clone Docker; variabili server aggiunte a Vercel; nessuna pubblicazione né migrazione produttiva.** Prove e limiti: [esecuzione](../audit-2026-11-18/EXECUTION.md), [runbook Docker](../audit-2026-11-18/LOCAL_RUNBOOK.md). Obiettivo: eliminare i difetti emersi, completare i percorsi dichiarati e dimostrare quali parametri raggiungono davvero l'orchestratore. Il perimetro è il sistema autenticato: dashboard, terreni e colture, Planner, diario, salute, irrigazione, previsioni, mappe, impostazioni e automazioni. O74/landing resta nella coda generale, fuori da questo intervento; non si azzera il suo fallimento per dichiarare verde la release completa.
 

@@ -732,7 +732,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data, error } = await client
       .from('gardens')
-      .select('*')
+      .select('*,garden_obstacles(*)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -743,7 +743,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
     const client = this.ensureClient();
     const { data, error } = await client
       .from('gardens')
-      .select('*')
+      .select('*,garden_obstacles(*)')
       .eq('id', id)
       .single();
 
@@ -948,7 +948,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       }
     }
 
-    return this.mapGardenFromDB(data);
+    return garden.obstacles?.length ? (await this.getGarden(data.id)) ?? this.mapGardenFromDB(data) : this.mapGardenFromDB(data);
   }
 
   async updateGarden(id: string, updates: Partial<Garden>): Promise<Garden> {
@@ -960,7 +960,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       console.warn('updateGarden: No DB fields to update, fetching current garden');
       const { data, error } = await client
         .from('gardens')
-        .select()
+        .select('*,garden_obstacles(*)')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -975,7 +975,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .single();
 
     if (error) throw error;
-    return this.mapGardenFromDB(data);
+    return (await this.getGarden(id)) ?? this.mapGardenFromDB(data);
   }
 
   async deleteGarden(id: string): Promise<void> {
@@ -2907,6 +2907,12 @@ export class SupabaseStorageProvider implements IStorageProvider {
       sizeUnit: db.size_unit,
       soilType: db.soil_type,
       soilPh: db.soil_ph ? Number(db.soil_ph) : undefined,
+      obstacles: db.garden_obstacles?.map((row: { id: string; azimuth: number; height_meters: number; distance_meters: number; width_degrees: number; type: string }) => ({
+        id: row.id, azimuth: Number(row.azimuth), height: Number(row.height_meters),
+        distance: Number(row.distance_meters), widthDegrees: Number(row.width_degrees), type: row.type,
+      })),
+      visualSunInput: db.visual_sun_input ?? undefined,
+      photoNorthOffset: db.photo_north_offset == null ? undefined : Number(db.photo_north_offset),
       primaryCrop: undefined, // primary_crop non esiste nello schema database
       altitudeMeters: db.altitude_meters,
       delayFactorDays: db.delay_factor_days,
@@ -2942,6 +2948,13 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.sizeUnit !== undefined) db.size_unit = garden.sizeUnit;
     if (garden.soilType !== undefined) db.soil_type = garden.soilType;
     if (garden.soilPh !== undefined) db.soil_ph = garden.soilPh;
+    if ('visualSunInput' in garden) db.visual_sun_input = garden.visualSunInput ?? null;
+    if ('photoNorthOffset' in garden) db.photo_north_offset = garden.photoNorthOffset ?? null;
+    const added = garden.obstacles?.filter(item => !item.id) ?? [];
+    if (added.length || garden.removedObstacleIds?.length) {
+      db.obstacle_changes = { added, removed: garden.removedObstacleIds ?? [] };
+    }
+    if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
     // primaryCrop non esiste nello schema database
     // if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
     if (garden.altitudeMeters !== undefined) db.altitude_meters = Math.round(Number(garden.altitudeMeters));
@@ -2958,9 +2971,6 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (garden.hydroponicConfig !== undefined) db.hydroponic_config = garden.hydroponicConfig;
     if (garden.aquaponicConfig !== undefined) db.aquaponic_config = garden.aquaponicConfig;
     if (garden.aeroponicConfig !== undefined) db.aeroponic_config = garden.aeroponicConfig;
-    // Note: structure_config, orchard_config, olive_grove_config, vineyard_config 
-    // non esistono nello schema del database online, quindi non vengono inseriti
-    // if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
     if (garden.vacationMode !== undefined) db.vacation_mode = garden.vacationMode;
     if (garden.orchardConfig !== undefined) db.orchard_config = garden.orchardConfig;
     if (garden.oliveGroveConfig !== undefined) db.olive_grove_config = garden.oliveGroveConfig;

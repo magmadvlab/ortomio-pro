@@ -26,7 +26,6 @@ import {
 } from 'lucide-react'
 import { directorService, type DailyBriefing } from '@/services/directorService'
 import { useAuth } from '@/packages/core/hooks/useAuth'
-import { useGarden } from '@/packages/core/hooks/useGarden'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
@@ -40,30 +39,35 @@ import {
 import type { WeatherAlert } from '@/services/weatherService'
 
 interface DirectorBriefingWidgetProps {
+  gardenId: string
   compact?: boolean
   maxActions?: number
   weatherAlerts?: WeatherAlert[]
 }
 
-export default function DirectorBriefingWidget({ 
+export default function DirectorBriefingWidget(props: DirectorBriefingWidgetProps) {
+  const { user } = useAuth()
+  if (!user) return null
+  return <GardenBriefing key={user.id + '/' + props.gardenId} {...props} userId={user.id} />
+}
+
+function GardenBriefing({
+  userId, gardenId,
   compact = false,
   maxActions = 5,
   weatherAlerts = [],
-}: DirectorBriefingWidgetProps) {
-  const { user } = useAuth()
-  const { activeGarden } = useGarden()
+}: DirectorBriefingWidgetProps & { userId: string }) {
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(!compact)
 
   const loadBriefing = useCallback(async () => {
-    if (!user || !activeGarden) return
 
     try {
       setLoading(true)
       setError(null)
-      const data = await directorService.getDailyBriefing(user.id, activeGarden.id)
+      const data = await directorService.getDailyBriefing(userId, gardenId)
       setBriefing(data)
     } catch (err) {
       console.error('Error loading briefing:', err)
@@ -71,13 +75,11 @@ export default function DirectorBriefingWidget({
     } finally {
       setLoading(false)
     }
-  }, [user, activeGarden])
+  }, [userId, gardenId])
 
   useEffect(() => {
-    if (user && activeGarden) {
-      loadBriefing()
-    }
-  }, [user, activeGarden, loadBriefing])
+    void loadBriefing()
+  }, [loadBriefing])
 
   if (loading) {
     return (

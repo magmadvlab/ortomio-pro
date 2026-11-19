@@ -1,8 +1,8 @@
 # Dal primo terreno al briefing dell’orchestratore
 
-19 novembre 2026 · Stato aperto · Versione esaminata `63cc6cda`, pubblicata il 19 novembre.
+19 novembre 2026 · Collaudo locale completato · Versione esaminata `63cc6cda`, pubblicata il 19 novembre.
 
-L’utente entra in /app, sceglie «Crea il tuo orto», descrive il terreno e lo ritrova dopo un nuovo accesso. Il primo briefing deve usare i dati del terreno selezionato e indicare quali informazioni servono ancora. La verifica iniziale ha seguito il codice. Le prove attraverso l’interfaccia sono da eseguire.
+L’utente entra in /app, sceglie «Crea il tuo orto», descrive il terreno e lo ritrova dopo un nuovo accesso. Il primo briefing deve usare i dati del terreno selezionato e indicare quali informazioni servono ancora. La verifica iniziale ha seguito il codice. Il registro sotto riporta le prove eseguite dopo le correzioni.
 
 ## Ordine di lavoro e criteri di chiusura
 
@@ -23,6 +23,28 @@ Con un account di prova creare il terreno A con suolo argilloso, pH 6,5, esposiz
 | Data | Stato | Evidenza |
 |---|---|---|
 | 19 novembre 2026 | Verifica del codice completata | [Ingresso dopo il login](../../../app/app/page.tsx), [modulo terreno](../../../components/GardenOnboarding.tsx), [coordinate predefinite](../../../services/geolocationService.ts), [completamento per tipo](../../../components/GardenTypeWizard.tsx), [persistenza Supabase](../../../packages/storage-cloud/SupabaseStorageProvider.ts), [contesto del Director](../../../services/directorService.ts). Rilevati ripiego su Roma, perdita degli ostacoli e mancata conclusione dei tre percorsi fuori suolo. |
-| Da compilare | Correzioni e prove aperte | Per ogni intervento aggiungere commit, ambiente, scenario provato ed esito. Registrare a parte il collaudo dopo il rilascio. |
+| 19 novembre | Browser locale con sessione Supabase | Dal primo ingresso sono stati creati orto, idroponica NFT, acquaponica, aeroponica, frutteto, oliveto e vigneto. Verificati gli ID salvati, il tipo e il briefing del terreno. I tre impianti arborei hanno completato anche la seconda configurazione. Doppio clic su «Completa» nei sei percorsi specializzati, un record per prova. |
+| 19 novembre | GPS e nuovo tentativo | GPS negato, campi vuoti, latitudine 0 inserita manualmente e riletta dopo ricarica. Con risposta 503 al primo salvataggio il modulo segnala il problema. Al secondo tentativo il terreno compare una sola volta. |
+| 19 novembre | Supabase locale, Docker | Lo [script ripetibile](../../../scripts/audit/onboarding-roundtrip.ts) crea due terreni, esce, rientra e confronta i briefing. Con un suggerimento di prova verifica il conteggio degli ostacoli prima e dopo la modifica e l’isolamento della cancellazione tra terreni. |
+| 19 novembre | Cambio terreno su schermo mobile | Dal selettore è stato aggiunto B, poi è stato riselezionato A. La dashboard ha mostrato il briefing di A anche dopo la ricarica. Nel database sono rimasti esattamente due terreni. Corrette la doppia creazione dalla dashboard e la sovrapposizione della chat al pulsante Avanti. |
+| 19 novembre | Regressioni | Superati 108 test esistenti del Director e della persistenza. Build di produzione compilata in locale. |
+| Da eseguire dopo il rilascio | Produzione | Applicare prima la migrazione dei dati di onboarding, distribuire la versione corrispondente e ripetere il primo ingresso con un terreno di prova. |
+
+## Dati raccolti e uso effettivo
+
+Le colonne si riferiscono a `gardens`, salvo dove indicato. Le verifiche con fixture coprono suolo, pH, ore, direzione, coordinate, orientamento, risposte visive e ostacoli. Per gli altri parametri la tabella descrive il percorso nel codice.
+
+| Dato del modulo | Scrittura e rilettura | Uso e comportamento in assenza del dato |
+|---|---|---|
+| Nome e tipo di spazio | `name`, `garden_type` | Il nome identifica il terreno nel briefing. Il tipo seleziona le configurazioni e contribuisce al contesto agronomico. |
+| Superficie e unità | `size_sq_meters`, `size_unit` | Il modulo richiede una superficie positiva e converte in m². La dashboard mostra la superficie. |
+| GPS o coordinate manuali | `coordinates`, gradi decimali | La latitudine alimenta il fotoperiodo. Senza posizione il briefing indica il dato mancante. |
+| Quota | `altitude_meters`, metri | Contesto dei suggerimenti se disponibile. |
+| Suolo e pH | `soil_type`, `soil_ph` | Contesto delle priorità. Il primo briefing distingue gli spazi coltivati in suolo dai sistemi fuori suolo. |
+| Esposizione, ore, direzione, protezione dal vento | `sun_exposure`, `daily_sun_hours`, `aspect_direction`, `wind_protection` | Profilo del sito usato per valutare i suggerimenti. Le ore dirette inserite o stimate restano distinte dal fotoperiodo astronomico. |
+| Risposte visive e orientamento panoramico | `visual_sun_input`, `photo_north_offset` (gradi) | Le risposte alimentano la stima delle ore. Per la panoramica si usa la direzione EXIF oppure la calibrazione manuale. Zero gradi è un valore valido. |
+| Ostacoli misurati | `garden_obstacles` per ID terreno, azimut e larghezza in gradi, altezza e distanza in metri | Geometria per l’analisi solare e conteggio per il Director. Un terreno senza righe ha un elenco vuoto. Le osservazioni testuali da foto restano distinte dagli ostacoli misurati. |
+| Strutture, compost e dati tecnici | `structure_config`, `has_compost_bin`, configurazioni di serra, indoor e sistemi fuori suolo | Gestione del terreno e dei rispettivi impianti. Il primo briefing non elabora singolarmente ogni dettaglio costruttivo. |
+| Configurazione di frutteto, oliveto e vigneto | Il secondo wizard riceve l’ID del terreno appena salvato | La conferma apre la dashboard dello stesso terreno. Chi chiude la configurazione ritrova il terreno base già creato. |
 
 Il [piano master](./ORTOMIO_PIANO_MASTER_COMPLETAMENTO_2026-07-24.md) mantiene lo stato complessivo dell’audit.

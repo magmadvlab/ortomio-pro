@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Garden, GardenType, StructureConfig } from '../types';
-import { getCurrentPositionForceRefresh, getCurrentPositionWithAccuracy, getDefaultCoordinates } from '../services/geolocationService';
+import { getCurrentPositionForceRefresh, getCurrentPositionWithAccuracy } from '../services/geolocationService';
+import { normalizeGeoCoordinates } from '../utils/coordinates';
 import { getGeoClimateInfo } from '../services/geoClimateService';
 import { analyzeSunExposure, analyzeAspectDirection, analyzePanoramic360, fileToBase64 } from '../services/photoAnalysisService';
 import { convertFromSqMeters, AreaUnit } from '../utils/areaConverter';
@@ -15,7 +16,6 @@ import { AdvancedSunExposureWizard } from './sunExposure/AdvancedSunExposureWiza
 import { GreenhouseConfig } from '../types/greenhouse';
 import { HydroponicSystemConfig, AquaponicSystemConfig, AeroponicSystemConfig, IndoorGrowingConfig } from '../types/indoorGrowing';
 import { useTier } from '../packages/core/hooks/useTier';
-import { getDeviceHeadingOnce } from '../hooks/useDeviceOrientation';
 import { readEXIF, calculateNorthOffsetFromEXIF } from '../services/exifReader';
 import { CompassCalibrator } from './sunExposure/CompassCalibrator';
 
@@ -55,6 +55,10 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   // Determina se Step 3 è necessario
   // La posizione è obbligatoria per tutti gli spazi esterni (orto, frutteto, oliveto, vigneto, etc.)
   // Per Indoor resta opzionale.
+  const locationAttempt = useRef(0);
+  const autoLocated = useRef(false);
+  const [locationMessage, setLocationMessage] = useState('');
+  const coordinates = normalizeGeoCoordinates({ latitude, longitude });
   const needsLocation = gardenType !== 'Indoor';
 
   // Step 4: Configurazione Strutture e Dimensioni
@@ -185,12 +189,6 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   }, []);
 
   useEffect(() => {
-    // Auto-riempi coordinate se esiste già un giardino
-    if (existingGarden?.coordinates) {
-      setLatitude(existingGarden.coordinates.latitude.toString());
-      setLongitude(existingGarden.coordinates.longitude.toString());
-    }
-    
     // Inizializza configurazione idroponica se tipo pre-selezionato
     if (initialHydroponicType && !existingGarden && !hydroponicConfig) {
       setHydroponicConfig({
@@ -208,7 +206,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
     
     // Geolocalizzazione automatica al mount se non esistente e necessario
-    if (!existingGarden && !latitude && !longitude && needsLocation && step >= 3) {
+    if (!autoLocated.current && !existingGarden && !latitude && !longitude && needsLocation && step === 3) {
+      autoLocated.current = true;
       handleGetLocation(false); // Auto-detect senza forzare refresh
     }
     
@@ -270,8 +269,10 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
   }, [existingGarden]);
 
   const handleGetLocation = async (forceRefresh: boolean = false) => {
+    const attempt = ++locationAttempt.current;
+    setLocationMessage('');
     setLoading(true);
-    setIsRefreshingLocation(false);
+    setIsRefreshingLocation(forceRefresh);
     try {
       // Usa funzione con alta precisione per distinguere serre/campi vicini
       // Accetta solo se accuratezza < 20m (sufficiente per distinguere posizioni a pochi metri)
@@ -279,7 +280,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
         ? await getCurrentPositionForceRefresh({ timeout: 20000 })
         : await getCurrentPositionWithAccuracy(20, 2, { timeout: 20000 });
 
-      if (result.success && result.latitude && result.longitude) {
+      if (attempt !== locationAttempt.current) return;
+      if (result.success && result.latitude != null && result.longitude != null && normalizeGeoCoordinates(result)) {
         setLatitude(result.latitude.toString());
         setLongitude(result.longitude.toString());
         setLocationAccuracy(result.accuracy);
@@ -293,38 +295,21 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           setInferringGeo(true);
           const geoInfo = await getGeoClimateInfo(result.latitude, result.longitude, true);
 
-          if (geoInfo) {
+          if (geoInfo && attempt === locationAttempt.current) {
             setAltitudeMeters(geoInfo.altitude.toString());
             setAltitudeSource('inferred');
           }
           setInferringGeo(false);
         }
       } else {
-        // Fallback a coordinate default
-        const defaultCoords = getDefaultCoordinates();
-        setLatitude(defaultCoords.latitude.toString());
-        setLongitude(defaultCoords.longitude.toString());
-        setLocationAccuracy(undefined);
+        setLocationMessage('Posizione non rilevata. Riprova con il GPS oppure inserisci le coordinate del terreno.');
       }
-    } catch (error) {
-      // Filtra errori temporanei (kCLErrorLocationUnknown) per evitare spam nella console
-      const errorMessage = error instanceof Error ? error.message : '';
-      const isLocationUnknown = errorMessage.includes('kCLErrorLocationUnknown') || 
-                               errorMessage.includes('locationUnknown') ||
-                               errorMessage.includes('LocationUnknown');
-      
-      // Log solo errori critici, non quelli temporanei
-      if (!isLocationUnknown) {
-        console.error('Error getting location:', error);
-      }
-      const defaultCoords = getDefaultCoordinates();
-      setLatitude(defaultCoords.latitude.toString());
-      setLongitude(defaultCoords.longitude.toString());
-      setLocationAccuracy(undefined);
+    } catch {
+      if (attempt === locationAttempt.current) setLocationMessage('Rilevamento non riuscito. Verifica le coordinate del terreno.');
     } finally {
+      setInferringGeo(false);
       setLoading(false);
       setIsRefreshingLocation(false);
-      setInferringGeo(false);
     }
   };
 
@@ -361,8 +346,8 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     }
     if (step === 3) {
       // Validazione step 3: posizione geografica (solo se necessaria)
-      if (needsLocation && (!latitude || !longitude)) {
-        alert('Inserisci latitudine e longitudine');
+      if (needsLocation && !normalizeGeoCoordinates({ latitude, longitude })) {
+        alert('Inserisci una latitudine tra −90 e 90 e una longitudine tra −180 e 180.');
         return;
       }
     }
@@ -378,7 +363,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
 
   const handlePrevious = () => {
     // Gestisci correttamente gli step skippati
-    if (step === 4 && initialGardenType) {
+    if (initialGardenType && (step === 3 || (step === 4 && !needsLocation))) {
       // Se abbiamo skippato step 2 e 3, torna a step 1
       setStep(1);
       return;
@@ -495,47 +480,15 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
     };
     reader.readAsDataURL(file);
 
-    // Tentativo 1: Cattura orientamento dispositivo durante selezione file
-    let deviceHeading: number | null = null;
-    try {
-      deviceHeading = await getDeviceHeadingOnce();
-      if (deviceHeading !== null) {
-        // Se abbiamo heading dispositivo, quello è il Nord nella foto
-        // Offset = 0 - heading (perché vogliamo sapere quanto ruotare la foto)
-        // Ma in realtà, se il dispositivo punta a Nord (0°), la foto è già orientata correttamente
-        // Quindi offset = 0 se heading = 0
-        setPhotoNorthOffset(0); // Assumiamo che la foto sia stata scattata con dispositivo orientato correttamente
-        console.log('Device heading captured:', deviceHeading);
-      }
-    } catch (error) {
-      console.warn('Could not capture device orientation:', error);
-    }
-
-    // Tentativo 2: Leggi EXIF dalla foto
-    let exifOffset: number | null = null;
-    if (deviceHeading === null) {
-      try {
-        const exifData = await readEXIF(file);
-        if (exifData) {
-          exifOffset = calculateNorthOffsetFromEXIF(exifData);
-          if (exifOffset !== null) {
-            setPhotoNorthOffset(exifOffset);
-            console.log('EXIF offset calculated:', exifOffset);
-          }
-        }
-      } catch (error) {
-        console.warn('Could not read EXIF data:', error);
-      }
-    }
-
-    // Tentativo 3: Se entrambi falliscono, mostra calibratore manuale
-    if (deviceHeading === null && exifOffset === null) {
+    setPhotoNorthOffset(undefined);
+    const exif = await readEXIF(file).catch(() => null);
+    const offset = exif ? calculateNorthOffsetFromEXIF(exif) : null;
+    if (offset === null) {
       setShowCompassCalibrator(true);
-      return; // Non analizzare ancora, aspetta calibrazione
+      return;
     }
-
-    // Analizza foto con offset determinato
-    await analyzePanoramicPhotoWithOffset(file, photoNorthOffset || 0);
+    setPhotoNorthOffset(offset);
+    await analyzePanoramicPhotoWithOffset(file, offset);
   };
 
   /**
@@ -609,13 +562,14 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
       dailySunHours: useVisualInput && estimatedHoursFromVisual !== undefined
         ? estimatedHoursFromVisual
         : dailySunHours ? parseFloat(dailySunHours) : undefined,
-      visualSunInput: visualSunInput,
+      visualSunInput: useVisualInput ? visualSunInput : undefined,
       aspectDirection: aspectDirection || undefined,
       windProtection: windProtection || undefined,
       hasCompostBin: hasCompostBin,
       photoNorthOffset: photoNorthOffset,
       // isRaisedBed deprecato - gestito tramite garden_beds con bedType: 'RaisedBed'
-      obstacles: obstacles.length > 0 ? obstacles : undefined,
+      obstacles,
+      removedObstacleIds: (existingGarden?.obstacles ?? []).flatMap(old => old.id && !obstacles.some(item => item.id === old.id) ? [old.id] : []),
       structureConfig: structureConfig,
       createdAt: existingGarden?.createdAt || new Date().toISOString()
     };
@@ -637,7 +591,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
           initialOffset={photoNorthOffset || 0}
         />
       )}
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Header */}
@@ -824,7 +778,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   <input
                     type="number"
                     value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
+                    onChange={(e) => { locationAttempt.current++; setLocationAccuracy(undefined); setLocationMessage(''); setLatitude(e.target.value) }}
                     placeholder="Es. 41.9028"
                     step="0.0001"
                     required={needsLocation}
@@ -838,7 +792,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                   <input
                     type="number"
                     value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
+                    onChange={(e) => { locationAttempt.current++; setLocationAccuracy(undefined); setLocationMessage(''); setLongitude(e.target.value) }}
                     placeholder="Es. 12.4964"
                     step="0.0001"
                     required={needsLocation}
@@ -847,6 +801,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                 </div>
               </div>
 
+              {locationMessage && <p role="status">{locationMessage}</p>}
               <div className="space-y-2">
                 <button
                   onClick={() => handleGetLocation(false)}
@@ -1307,10 +1262,10 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       setEstimatedHoursFromVisual(hours);
                     }}
                   />
-                ) : (
+                ) : coordinates ? (
                   <AdvancedSunExposureWizard
-                    latitude={parseFloat(latitude) || 0}
-                    longitude={parseFloat(longitude) || 0}
+                    latitude={coordinates.latitude}
+                    longitude={coordinates.longitude}
                     onComplete={(data) => {
                       // Aggiorna tutti gli stati con i dati del wizard
                       setDailySunHours(data.dailySunHours.toString());
@@ -1319,7 +1274,7 @@ const GardenOnboarding: React.FC<GardenOnboardingProps> = ({ onComplete, onCance
                       setObstacles(data.obstacles);
                     }}
                   />
-                )}
+                ) : <p>Per il calcolo avanzato servono le coordinate. Puoi usare la modalità semplice.</p>}
               </div>
 
               <div>
