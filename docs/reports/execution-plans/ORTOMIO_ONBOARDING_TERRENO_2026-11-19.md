@@ -77,3 +77,27 @@ Criteri per chiudere i difetti: il diario deve elaborare la coltura registrata e
 La [prova ripetibile](../../../scripts/audit/crop-cycle.ts) verifica i servizi dell’app e i dati salvati. Il meteo e i volumi della prova sono controllati. Il risultato verifica il passaggio dei dati e la gestione delle priorità osservate. La validazione agronomica sul campo e il collaudo del cron in produzione restano aperti.
 
 Per il rilascio applicare la [migrazione del diario per coltura](../../../supabase/migrations/20261119100000_crop_daily_tracking.sql) prima del codice che la utilizza. La migrazione crea una tabella distinta per le misure per coltura e giorno. Le annotazioni storiche del terreno mantengono la loro tabella.
+
+### Riuso delle operazioni dopo il login · 19 novembre 2026
+
+Prova su un terreno temporaneo in Supabase Docker attraverso i servizi usati dall’app. Si confrontano i dati letti dal motore predittivo prima e dopo ciascuna scrittura, mantenendo fissa l’ora di riferimento. Il test sul filare usa la registrazione unificata con propagazione alle singole piante disattivata. Il feedback della schermata dedicata è provato separatamente invocando il servizio che conclude l’azione. [Script di verifica](../../../scripts/audit/operation-reuse.ts)
+
+| Percorso | Esito osservato | Riuso verificato |
+|---|---|---|
+| Irrigazione per zona | Il registro conserva i 20 L erogati. Per la stessa zona e data esiste un fabbisogno di 15 L. | Il motore calcola 5 L di scostamento, pari al 25% del volume erogato. È un confronto storico. |
+| Irrigazione per filare | Zero registrazioni. Il servizio omette la zona irrigua richiesta dal registro. | Il consumo manca dal confronto. |
+| Lavorazione per filare | Il servizio registra una lavorazione su 1 m² anche quando l’operatore indica 50 m². Il tipo di lavoro è fissato a Tilling. | Il contenuto letto dal motore predittivo rimane identico. |
+| Lavorazione dalla schermata dedicata | Il servizio di conclusione salva un feedback che il provider rilegge con una seconda richiesta. | Il Director e i servizi per lo storico delle decisioni leggono questo archivio. La prova non ha rilevato variazioni negli input del motore predittivo principale. |
+| Trattamento e concimazione per filare | Entrambe le scritture falliscono sul database locale migrato. Il codice del provider usa campi diversi dallo schema del registro. | Zero registrazioni e nessuna variazione degli input. Il planner nutrizionale ha un percorso distinto per concludere un trattamento e registrare feedback. |
+| Semina, raccolto parziale, chiusura | Il test del ciclo colturale documentato sopra distingue le tre transizioni. | Si aggiornano il diario o le priorità della coltura interessata. |
+
+**Ordine degli interventi e criteri di verifica**
+
+1. Allineare le scritture allo schema per filare. Verificare dalla schermata autenticata che zona, filare, data, quantità, unità e superficie persistano dopo il ricaricamento. Rendere visibile l’errore se manca una relazione indispensabile.
+2. Collegare ogni esecuzione al lavoro di origine e al terreno. Ripetere l’invio dalla stessa schermata e verificare un solo evento. Due interventi distinti nello stesso giorno devono conservare due registrazioni.
+3. Per ciascun calcolo dichiarare quali eventi legge, in quali unità, su quale intervallo e quali misure successive servono per valutare l’esito. Quantità applicata, costo sostenuto ed efficacia osservata sono grandezze diverse.
+4. Ripetere il ciclo con due terreni e due colture. Per ogni evento confrontare registrazione, storico del Director e risultato prima/dopo. Verificare separatamente i percorsi per pianta, per intero terreno e per ambiente controllato. La precisione predittiva richiede dati di campo con esiti successivi misurati.
+
+Ripetizione del test con il Supabase Docker di audit attivo: `NODE_OPTIONS=--conditions=react-server npx tsx scripts/audit/operation-reuse.ts`.
+
+**Verifica del rilascio.** Applicate le due migrazioni dell’onboarding e del diario per coltura. Il primo collaudo Vercel ha rilevato parametri temporali incompatibili nella richiesta a Open-Meteo. Dopo la correzione della richiesta, il database rifiutava un’umidità media frazionaria nella colonna intera. Entrambe le correzioni sono in produzione sul commit `c9a541e1`. Il cron del diario, avviato manualmente da Vercel, si è concluso in 14,2 secondi. Supabase contiene un record meteo giornaliero per ciascuno dei sei terreni, di cui due con meteo del provider e quattro con fallback sintetico. Non c’erano colture idonee a verificare il tracking per coltura in produzione. Il ciclo con colture è stato provato in Docker.
