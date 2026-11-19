@@ -3,6 +3,7 @@
  * Mostra dettagli completi pianta con storico operazioni
  */
 
+import PlantObservationJournal from './PlantObservationJournal';
 import React, { useCallback, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { GardenPlant, PlantOperation } from '../../types/individualPlant';
@@ -454,6 +455,7 @@ const PlantDetailModal: React.FC<PlantDetailModalProps> = ({ plant, isOpen, onCl
 
         {/* Corpo scrollabile: orchestratore, tabs e lista operazioni */}
         <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+          <PlantObservationJournal key={plant.id} plant={plant} />
         {/* Orchestratore + registrazione manuale/IOT */}
         <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-emerald-50 px-6 py-4">
           <div className="flex items-center justify-between gap-4 mb-4">

@@ -5,7 +5,7 @@
 
 // Le analisi foto passano dalla route server-side /api/ai/generate (tier + crediti),
 // che tiene GEMINI_API_KEY solo lato server. Nessuna chiave esposta al client.
-const generatePhotoAnalysisContent = async (imageData: string, prompt: string): Promise<string> => {
+export const generatePhotoAnalysisContent = async (imageData: string, prompt: string, mimeType = 'image/jpeg'): Promise<string> => {
   const response = await fetch('/api/ai/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -17,7 +17,7 @@ const generatePhotoAnalysisContent = async (imageData: string, prompt: string): 
         {
           inlineData: {
             data: imageData,
-            mimeType: 'image/jpeg',
+            mimeType,
           },
         },
       ],
@@ -238,22 +238,18 @@ Rispondi in formato JSON:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      if (typeof parsed.isHealthy !== 'boolean' || !Array.isArray(parsed.issues) || !Number.isFinite(parsed.confidence)) throw new Error('Analisi incompleta');
       return {
-        isHealthy: parsed.isHealthy !== false,
+        isHealthy: parsed.isHealthy,
         growthRate: parsed.growthRate || 'normal',
         issues: parsed.issues || [],
         phase: parsed.phase,
         leafCount: parsed.leafCount,
-        confidence: parsed.confidence || 0.7,
+        confidence: parsed.confidence,
       };
     }
 
-    return {
-      isHealthy: true,
-      growthRate: 'normal',
-      issues: [],
-      confidence: 0.5,
-    };
+    throw new Error('Risposta visiva non interpretabile');
   } catch (error) {
     console.error('Error analyzing plant health:', error);
     throw new Error('Failed to analyze plant health');

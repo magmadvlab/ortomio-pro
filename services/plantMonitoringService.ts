@@ -209,47 +209,7 @@ function updatePhoto(photoId: string, updater: (photo: PlantPhoto) => PlantPhoto
   })
 }
 
-function buildDeterministicAnalysis(photo: PlantPhoto, analysisType: AIPhotoAnalysisRequest['analysisType']): NonNullable<PlantPhoto['aiAnalysis']> {
-  const seed = hashString(`${photo.id}:${analysisType}:${photo.photoType}:${photo.notes || ''}:${(photo.tags || []).join(',')}`)
-  const photoPenalty =
-    photo.photoType === 'health_issue'
-      ? 20
-      : photo.photoType === 'treatment_before'
-        ? 15
-        : photo.photoType === 'treatment_after'
-          ? 5
-          : 0
 
-  const healthScore = clamp(92 - photoPenalty - (seed % 18), 45, 98)
-  const detectedIssues: string[] = []
-
-  if (analysisType === 'disease' || photo.photoType === 'health_issue') {
-    detectedIssues.push('possible_leaf_stress')
-  }
-  if (analysisType === 'pest' && seed % 3 === 0) {
-    detectedIssues.push('possible_pest_damage')
-  }
-  if (analysisType === 'health' && healthScore < 70) {
-    detectedIssues.push('possible_nutrient_deficiency')
-  }
-
-  const recommendations =
-    detectedIssues.length === 0
-      ? ['Continuare il monitoraggio fotografico periodico']
-      : [
-          'Verificare la pianta in campo entro 24-48 ore',
-          'Confrontare la foto con osservazioni precedenti',
-          'Collegare l esito a una osservazione o trattamento reale'
-        ]
-
-  return {
-    healthScore,
-    detectedIssues,
-    confidence: Number((0.62 + (seed % 25) / 100).toFixed(2)),
-    recommendations,
-    analyzedAt: new Date().toISOString()
-  }
-}
 
 function buildDeterministicBrix(photo: PlantPhoto): NonNullable<PlantPhoto['brixMeasurement']> {
   const seed = hashString(`${photo.id}:brix:${photo.photoType}`)
@@ -391,7 +351,11 @@ export const aiPhotoAnalysisService = {
       return undefined
     }
 
-    const analysis = buildDeterministicAnalysis(photo, request.analysisType)
+    const { assessPlantImage } = await import('./plantPhotoObservationService')
+    const report = await assessPlantImage(photo.url, 'specie non specificata', request.analysisType)
+    const analysis = { detectedIssues: [report.observation], recommendations: [
+      ...report.hypotheses.map(h => h.cause + '. ' + h.check + ' ' + h.action), report.followUp,
+    ], analyzedAt: new Date().toISOString() }
     updatePhoto(request.photoId, currentPhoto => ({
       ...currentPhoto,
       aiAnalysis: analysis

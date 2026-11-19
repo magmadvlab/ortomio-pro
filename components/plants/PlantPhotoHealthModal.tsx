@@ -3,11 +3,12 @@
  * Modal compatto per foto e aggiornamento stato salute
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { GardenPlant } from '../../types/individualPlant';
-import { Camera, Upload, X, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useStorage } from '../../packages/core/hooks/useStorage';
-import { createOperationContextService } from '../../services/operationContextService';
+import PlantObservationJournal from './PlantObservationJournal';
+import { X, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { getSupabaseClient } from '@/config/supabase';
+
 
 interface PlantPhotoHealthModalProps {
   plant: GardenPlant;
@@ -21,84 +22,24 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
   plant,
   isOpen,
   onClose,
-  onSuccess,
-  gardenCoordinates
+  onSuccess
 }) => {
-  const { storageProvider } = useStorage();
-  const contextService = createOperationContextService();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
   const [healthScore, setHealthScore] = useState(plant.healthScore);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setPhotos(prev => [...prev, ...files]);
-    
-    // Create previews
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
-    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleSave = async () => {
     try {
       setSaving(true);
 
-      // Get operation context
-      const context = gardenCoordinates
-        ? await contextService.getOperationContext(
-            gardenCoordinates.latitude,
-            gardenCoordinates.longitude
-          )
-        : undefined;
-
-      // Upload photos
-      const photoUrls: string[] = [];
-      for (const photo of photos) {
-        const url = plant.gardenId
-          ? await storageProvider.uploadPhoto?.(photo, plant.id, plant.gardenId)
-          : undefined;
-        if (url) photoUrls.push(url);
-      }
-
-      // Create health update operation
-      const operation = {
-        id: `health-${Date.now()}`,
-        plantId: plant.id,
-        operationType: 'health' as const,
-        date: new Date().toISOString(),
-        healthScoreBefore: plant.healthScore,
-        healthScoreAfter: healthScore,
-        photos: photoUrls,
-        notes,
-        context,
-      };
-
-      await storageProvider.createPlantOperation?.(operation);
-
-      // Update plant health score
-      await storageProvider.updateIndividualPlant?.(plant.id, {
-        ...plant,
-        healthScore,
-        photos: [...(plant.photos || []), ...photoUrls],
-      });
-
-      alert('✅ Foto e stato salute salvati con successo!');
+      const db = getSupabaseClient()
+      if (!db) throw new Error('Archivio non disponibile.')
+      const {error} = await db.rpc('record_plant_health_observation', {p_plant:plant.id,p_score:healthScore,p_notes:notes})
+      if (error) throw error
+      alert('✅ Stato salute salvato con successo!');
       onSuccess();
       onClose();
     } catch (error) {
@@ -138,62 +79,7 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
 
         {/* Content */}
         <div className="p-4 space-y-4">
-          {/* Photo Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Foto Pianta
-            </label>
-            <div className="space-y-3">
-              {/* Upload Buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Camera size={20} />
-                  Scatta Foto
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <Upload size={20} />
-                  Carica
-                </button>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-
-              {/* Photo Previews */}
-              {photoPreviews.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {photoPreviews.map((preview, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
+          <PlantObservationJournal key={plant.id} plant={plant} />
           {/* Health Score */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -264,13 +150,6 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
             />
           </div>
 
-          {/* Context Info */}
-          {gardenCoordinates && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-              <div className="font-medium mb-1">📊 Contesto Automatico</div>
-              <div>Verranno registrati: data/ora, meteo, temperatura, fase lunare</div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
@@ -284,7 +163,7 @@ const PlantPhotoHealthModal: React.FC<PlantPhotoHealthModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || (photos.length === 0 && healthScore === plant.healthScore)}
+            disabled={saving || (healthScore === plant.healthScore && !notes.trim())}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Salvataggio...' : 'Salva'}

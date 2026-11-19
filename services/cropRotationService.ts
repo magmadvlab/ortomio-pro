@@ -3,6 +3,9 @@
  * Servizio per gestire la rotazione delle colture con memoria storica
  */
 
+import { getSoilCompatibility } from '@/utils/soilTemperatureUtils'
+import type { Garden } from '@/types'
+import { plantPHData } from '@/data/plantPHData'
 import { getSupabaseClient } from '@/config/supabase'
 import { CropRotationHistory, CropRotationPlan, SuggestedCrop } from '@/types/activeAIAdvice'
 
@@ -168,57 +171,11 @@ class CropRotationService {
   }
 
   async getHistory(gardenId: string, fieldRowId?: string): Promise<CropRotationHistory[]> {
-    const backendMode = await this.getBackendMode()
-    if (backendMode === 'field_row_history') {
-      return this.getHistoryFromFieldRowFallback(gardenId, fieldRowId)
-    }
-
-    try {
-      let query = this.getClient()
-        .from('crop_rotation_history')
-        .select('*')
-        .eq('garden_id', gardenId)
-        .order('harvest_date', { ascending: false, nullsFirst: false })
-
-      if (fieldRowId) {
-        query = query.eq('field_row_id', fieldRowId)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-      return (data || []).map(this.mapHistoryFromDb)
-    } catch (error) {
-      if (!isMissingRelationError(error, 'crop_rotation_history')) {
-        throw error
-      }
-
-      return this.getHistoryFromFieldRowFallback(gardenId, fieldRowId)
-    }
+    return this.getHistoryFromFieldRowFallback(gardenId, fieldRowId)
   }
 
   async getHistoryByRow(fieldRowId: string): Promise<CropRotationHistory[]> {
-    const backendMode = await this.getBackendMode()
-    if (backendMode === 'field_row_history') {
-      return this.getHistoryFromFieldRowFallback(undefined, fieldRowId)
-    }
-
-    try {
-      const { data, error } = await this.getClient()
-        .from('crop_rotation_history')
-        .select('*')
-        .eq('field_row_id', fieldRowId)
-        .order('year', { ascending: false })
-        .order('harvest_date', { ascending: false, nullsFirst: false })
-
-      if (error) throw error
-      return (data || []).map(this.mapHistoryFromDb)
-    } catch (error) {
-      if (!isMissingRelationError(error, 'crop_rotation_history')) {
-        throw error
-      }
-
-      return this.getHistoryFromFieldRowFallback(undefined, fieldRowId)
-    }
+    return this.getHistoryFromFieldRowFallback(undefined, fieldRowId)
   }
 
   // ===== ROTATION PLANNING =====
@@ -233,7 +190,9 @@ class CropRotationService {
     const history = await this.getHistoryByRow(fieldRowId)
     
     // Analyze history to determine best next crops
-    const suggestions = this.analyzeCropRotation(currentFamily, history)
+    const soil = await this.loadSoil(gardenId)
+    const ph = soil.forRow(fieldRowId)
+    const suggestions = this.analyzeCropRotation(currentFamily, history, ph)
     
     // Calculate confidence based on history completeness
     const confidence = this.calculateConfidence(history)
@@ -253,7 +212,7 @@ class CropRotationService {
       currentFamily,
       suggestedNextCrops: suggestions,
       rotationCycle: 4,
-      reasoning: rules.reasoning,
+      reasoning: rules.reasoning + soil.description(ph),
       benefits: this.getRotationBenefits(currentFamily, suggestions),
       risksToAvoid: this.getRotationRisks(currentFamily, history),
       confidenceScore: confidence,
@@ -295,9 +254,28 @@ class CropRotationService {
     }
   }
 
+  private async loadSoil(gardenId: string) {
+    const db = this.getClient()
+    const [garden, zones, rows] = await Promise.all([
+      db.from('gardens').select('soil_ph,soil_type').eq('id',gardenId).single(),
+      db.from('garden_zones').select('id,soil_ph,soil_type').eq('garden_id',gardenId),
+      db.from('field_rows').select('id,zone_id').eq('garden_id',gardenId),
+    ])
+    for (const result of [garden,zones,rows]) if (result.error) throw result.error
+    return {
+      forRow: (id: string) => {
+        const zoneId = rows.data?.find(row => row.id === id)?.zone_id
+        const zone = zones.data?.find(zone => zone.id === zoneId)
+        const ph = zone?.soil_ph ?? garden.data?.soil_ph
+        return { ph: ph != null && Number.isFinite(Number(ph)) ? Number(ph) : undefined, type: (zone?.soil_type || garden.data?.soil_type) as Garden['soilType'] }
+      },
+      description: (soil: {ph?: number; type?: string}) => ` Suolo: ${soil.type || 'tipo non registrato'}. pH: ${soil.ph ?? 'non registrato'}.`,
+    }
+  }
+
   private analyzeCropRotation(
     currentFamily: string,
-    history: CropRotationHistory[]
+    history: CropRotationHistory[], soil?: {ph?: number; type?: Garden['soilType']}
   ): SuggestedCrop[] {
     const rules = ROTATION_RULES[currentFamily as keyof typeof ROTATION_RULES]
     if (!rules) return []
@@ -305,9 +283,9 @@ class CropRotationService {
     const suggestions: SuggestedCrop[] = []
     
     // Get families used in last 3 years
-    const recentFamilies = history
-      .filter(h => h.harvestDate)
-      .slice(0, 3)
+    const cutoff = new Date()
+    cutoff.setUTCFullYear(cutoff.getUTCFullYear() - 3)
+    const recentFamilies = history.filter(h => Date.parse(h.harvestDate || h.plantedDate) >= cutoff.getTime())
       .map(h => h.plantFamily)
 
     // Score each possible family
@@ -329,20 +307,20 @@ class CropRotationService {
         score += 25
       }
 
-      // Penalty if used in last 3 years
-      const yearsAgo = recentFamilies.indexOf(family)
-      if (yearsAgo >= 0) {
-        score -= (30 - yearsAgo * 10)
-      }
-
-      // Add suggestions for each plant in family
       plants.forEach(plant => {
+        const ph = soil?.ph
+        const texture = getSoilCompatibility(plant,soil?.type)
+        if (!texture.compatible) return
+        const textureScore = soil?.type && texture.optimalSoilTypes ? (texture.optimalSoilTypes.includes(soil.type) ? 5 : -5) : 0
+        const range = plantPHData[plant.toLowerCase()]
+        if (ph !== undefined && range && (ph < range.tolerable.min || ph > range.tolerable.max)) return
+        const ideal = ph !== undefined && range && ph >= range.ideal.min && ph <= range.ideal.max
         suggestions.push({
           plantName: plant,
           plantFamily: family,
-          score: Math.max(0, Math.min(100, score)),
+          score: Math.max(0, Math.min(100, score + textureScore + (ideal ? 8 : 0))),
           benefits: this.getCropBenefits(family, currentFamily),
-          requirements: this.getCropRequirements(plant)
+          requirements: [...this.getCropRequirements(plant), ...(texture.optimalSoilTypes && texture.reason ? [texture.reason] : []), ...(range ? [`pH ideale ${range.ideal.min}–${range.ideal.max}`] : [])]
         })
       })
     })
@@ -523,7 +501,7 @@ class CropRotationService {
 
   getPlantFamily(plantName: string): string | null {
     for (const [family, plants] of Object.entries(PLANT_FAMILIES)) {
-      if (plants.includes(plantName)) {
+      if (plants.some(name => name.toLowerCase() === plantName.trim().toLowerCase())) {
         return family
       }
     }
@@ -549,14 +527,38 @@ class CropRotationService {
     }
 
     const { data, error } = await query
-    if (error) {
-      if (isMissingRelationError(error, 'field_row_crop_history')) {
-        return []
-      }
-      throw error
-    }
+    if (error && !isMissingRelationError(error, 'field_row_crop_history')) throw error
 
-    return (data || []).map(this.mapHistoryFromFieldRowDb)
+    const db = this.getClient()
+    let recorded = db.from('crop_rotation_history').select('*').lte('planted_date',new Date().toISOString().slice(0,10))
+    let tasks = db.from('garden_tasks').select('id,garden_id,field_row_id,bed_row_id,plant_name,date,created_at,updated_at')
+      .in('task_type',['Sowing','Transplant']).eq('completed',true)
+      .lte('date',new Date().toISOString().slice(0,10)).or('operational_status.is.null,operational_status.neq.cancelled')
+    let plants = db.from('garden_plants').select('id,garden_id,field_row_id,plant_name,planting_date,created_at,updated_at')
+      .not('field_row_id','is',null).not('planting_date','is',null).lte('planting_date',new Date().toISOString().slice(0,10))
+    if (gardenId) {
+      recorded = recorded.eq('garden_id',gardenId); tasks = tasks.eq('garden_id',gardenId); plants = plants.eq('garden_id',gardenId)
+    }
+    if (fieldRowId) {
+      recorded = recorded.eq('field_row_id',fieldRowId); tasks = tasks.eq('field_row_id',fieldRowId); plants = plants.eq('field_row_id',fieldRowId)
+    }
+    const [ledger, sowings, planted] = await Promise.all([recorded,tasks,plants])
+    if (ledger.error && !isMissingRelationError(ledger.error, 'crop_rotation_history')) throw ledger.error
+    for (const result of [sowings,planted]) if (result.error) throw result.error
+    const history = [...(ledger.data ?? []).map(this.mapHistoryFromDb), ...(data ?? []).map(this.mapHistoryFromFieldRowDb)]
+    for (const row of [...(sowings.data ?? []).map(t => ({...t, planting_date:t.date})), ...(planted.data ?? [])]) {
+      if (!row.plant_name?.trim()) continue
+      history.push({id:row.id,gardenId:row.garden_id,fieldRowId:row.field_row_id ?? ('bed_row_id' in row ? row.bed_row_id : undefined),plantName:row.plant_name,
+        plantFamily:this.getPlantFamily(row.plant_name) || 'Altro',plantedDate:row.planting_date,
+        season:getSeasonFromDate(row.planting_date),year:Number(row.planting_date.slice(0,4)),createdAt:row.created_at,updatedAt:row.updated_at})
+    }
+    const unique = new Map<string,CropRotationHistory>()
+    for (const entry of history) {
+      const key = JSON.stringify([entry.fieldRowId,entry.plantName.trim().toLowerCase(),entry.plantedDate.slice(0,10)])
+      if (!unique.has(key)) unique.set(key,{...entry,plantFamily:this.getPlantFamily(entry.plantName) ?? entry.plantFamily})
+    }
+    return [...unique.values()].sort((a,b) => b.plantedDate.localeCompare(a.plantedDate))
+
   }
 
   private async getFallbackPlansFromFieldHistory(
@@ -576,8 +578,7 @@ class CropRotationService {
     const historyByRow = new Map<string, CropRotationHistory[]>()
 
     for (const entry of history) {
-      const rowId = entry.fieldRowId
-      if (!rowId) continue
+      const rowId = entry.fieldRowId || gardenId
 
       if (!latestByRow.has(rowId)) {
         latestByRow.set(rowId, entry)
@@ -588,9 +589,10 @@ class CropRotationService {
       historyByRow.set(rowId, rowHistory)
     }
 
+    const soil = await this.loadSoil(gardenId)
     return Array.from(latestByRow.entries()).map(([rowId, currentEntry]) => {
       const rowHistory = historyByRow.get(rowId) || []
-      const suggestions = this.analyzeCropRotation(currentEntry.plantFamily, rowHistory)
+      const suggestions = this.analyzeCropRotation(currentEntry.plantFamily, rowHistory, soil.forRow(rowId))
       const rules = ROTATION_RULES[currentEntry.plantFamily as keyof typeof ROTATION_RULES] || {
         reasoning: 'Suggerimento derivato dallo storico filari'
       }
@@ -598,12 +600,12 @@ class CropRotationService {
       return this.buildVirtualPlan({
         id: `${VIRTUAL_PLAN_PREFIX}${rowId}`,
         gardenId,
-        fieldRowId: rowId,
+        fieldRowId: currentEntry.fieldRowId,
         currentCrop: currentEntry.plantName,
         currentFamily: currentEntry.plantFamily,
         suggestedNextCrops: suggestions,
         rotationCycle: 4,
-        reasoning: rules.reasoning,
+        reasoning: rules.reasoning + soil.description(soil.forRow(rowId)),
         benefits: this.getRotationBenefits(currentEntry.plantFamily, suggestions),
         risksToAvoid: this.getRotationRisks(currentEntry.plantFamily, rowHistory),
         confidenceScore: this.calculateConfidence(rowHistory),

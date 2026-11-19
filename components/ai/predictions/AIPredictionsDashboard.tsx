@@ -15,6 +15,7 @@ function missingSignalLabels(signals: string[]) {
 }
 
 interface PredictionsData {
+  photoFollowUps?: import('@/services/agronomicPredictionPipelineService').PhotoFollowUp[]
   recentOperations?: import('@/services/agronomicPredictionPipelineService').OperationTotal[]
   operationFeedback?: { measured_records: number; recorded_work_cost: number | null }
   status: 'generated' | 'insufficient_data'
@@ -186,6 +187,10 @@ export default function AIPredictionsDashboard() {
             <p>Costo registrato delle lavorazioni: {predictions.operationFeedback.recorded_work_cost.toLocaleString('it-IT', {style:'currency',currency:'EUR'})}</p>}
         </section>
       )}
+          {Boolean(predictions?.photoFollowUps?.length) && <section className="mt-4">
+            <h2 className="font-semibold">Controlli suggeriti dalle foto recenti</h2>
+            {predictions?.photoFollowUps?.map((item,i) => <p key={i}><strong>{item.plantCode}</strong> · {new Date(item.capturedAt).toLocaleDateString('it-IT')} · {item.observation} {item.followUp}</p>)}
+          </section>}
       {/* Tabs */}
           <div className="mt-6 flex gap-2">
             {tabs.map((tab) => {

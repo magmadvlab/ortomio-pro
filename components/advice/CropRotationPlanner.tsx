@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   RefreshCw,
   AlertTriangle,
@@ -22,6 +22,7 @@ import type { FieldRow } from '@/types/fieldRow'
 export default function CropRotationPlanner() {
   const { activeGarden } = useGarden()
   const { storageProvider } = useStorage()
+  const [loadError,setLoadError] = useState('')
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState<CropRotationHistory[]>([])
   const [plans, setPlans] = useState<CropRotationPlan[]>([])
@@ -33,6 +34,7 @@ export default function CropRotationPlanner() {
   const [selectedZoneId, setSelectedZoneId] = useState('')
   const [selectedFieldRowId, setSelectedFieldRowId] = useState('')
 
+  const requestSeq = useRef(0)
   const loadFieldRows = useCallback(async () => {
     if (!activeGarden) return
     try {
@@ -41,8 +43,8 @@ export default function CropRotationPlanner() {
         : []
       setFieldRows(rows || [])
       setAvailableZoneIds(Array.from(new Set((rows || []).flatMap((row) => row.zoneId ? [row.zoneId] : []))))
-      setSelectedFieldRowId((current) => current || rows?.[0]?.id || '')
-      setSelectedZoneId((current) => current || (rows || []).find((row) => row.zoneId)?.zoneId || '')
+      setSelectedFieldRowId('')
+      setSelectedZoneId('')
     } catch (error) {
       console.error('Error loading field rows for rotation planner:', error)
       setFieldRows([])
@@ -53,25 +55,30 @@ export default function CropRotationPlanner() {
   const loadData = useCallback(async (fieldRowId?: string) => {
     if (!activeGarden) return
     
+    const sequence = ++requestSeq.current
     try {
-      setLoading(true)
+      setLoadError(''); setLoading(true)
       const scopedRowId = fieldRowId || selectedFieldRowId || undefined
       const scopedZoneId = selectedZoneId || undefined
       const scopedRows = scopedZoneId
         ? fieldRows.filter((row) => row.zoneId === scopedZoneId)
         : fieldRows
-      const effectiveRowId = scopedRowId || scopedRows[0]?.id
+      const effectiveRowId = scopedRowId
+      const matches = (id?: string) => effectiveRowId ? id === effectiveRowId : !scopedZoneId || scopedRows.some(row => row.id === id)
       const [historyData, plansData] = await Promise.all([
         cropRotationService.getHistory(activeGarden.id, effectiveRowId),
         cropRotationService.getPlans(activeGarden.id, 'SUGGESTED')
       ])
-      setHistory(historyData)
-      setPlans(plansData)
-      setReadOnlyFallback(plansData.some((plan) => isVirtualCropRotationPlanId(plan.id)))
+      if (sequence !== requestSeq.current) return
+      setHistory(historyData.filter(item => matches(item.fieldRowId)))
+      setPlans(plansData.filter(plan => matches(plan.fieldRowId)))
+      setReadOnlyFallback(plansData.some(plan => matches(plan.fieldRowId) && isVirtualCropRotationPlanId(plan.id)))
     } catch (error) {
+      if (sequence !== requestSeq.current) return
+      setPlans([]); setHistory([]); setLoadError('Impossibile caricare le fonti della rotazione.')
       console.error('Error loading crop rotation data:', error)
     } finally {
-      setLoading(false)
+      if (sequence === requestSeq.current) setLoading(false)
     }
   }, [activeGarden, fieldRows, selectedFieldRowId, selectedZoneId])
 
@@ -180,8 +187,7 @@ export default function CropRotationPlanner() {
               onChange={(e) => {
                 const nextZoneId = e.target.value
                 setSelectedZoneId(nextZoneId)
-                const nextRow = fieldRows.find((row) => row.zoneId === nextZoneId) || fieldRows[0]
-                setSelectedFieldRowId(nextRow?.id || '')
+                setSelectedFieldRowId('')
               }}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             >
@@ -206,6 +212,7 @@ export default function CropRotationPlanner() {
             onChange={(e) => setSelectedFieldRowId(e.target.value)}
             className="w-full md:w-96 rounded-lg border border-gray-300 px-3 py-2 text-sm"
           >
+            <option value="">{selectedZoneId ? 'Tutti i filari della zona' : 'Tutto il terreno'}</option>
             {(selectedZoneId ? fieldRows.filter((row) => row.zoneId === selectedZoneId) : fieldRows).map((row) => (
               <option key={row.id} value={row.id}>
                 {row.name}{row.cultivar ? ` - ${row.cultivar}` : ''}
@@ -215,6 +222,7 @@ export default function CropRotationPlanner() {
         </div>
       )}
 
+      {loadError && <p role="alert">{loadError}</p>}
       {/* AI Info Banner */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
@@ -225,7 +233,7 @@ export default function CropRotationPlanner() {
             </h3>
             <p className="text-sm text-green-800">
               Analisi storia colture • Regole famiglie botaniche • Prevenzione malattie • 
-              Ottimizzazione fertilità suolo • Confidenza {Math.round((plans[0]?.confidenceScore || 0.5) * 100)}%
+              Compatibilità con il pH registrato
             </p>
           </div>
         </div>
@@ -317,7 +325,7 @@ export default function CropRotationPlanner() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Dopo {plan.currentCrop}
+                          Dopo {plan.currentCrop} · {fieldRows.find(row => row.id === plan.fieldRowId)?.name || (plan.fieldRowId ? 'Filare storico' : 'Terreno senza filare assegnato')}
                         </h3>
                         <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
                           {plan.currentFamily}

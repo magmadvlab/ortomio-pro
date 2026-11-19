@@ -113,3 +113,9 @@ Il collaudo impiega un utente Supabase locale e i servizi applicativi. Copre il 
 La prova HTTP autenticata ha rilevato e verificato la correzione dell’errore 500 causato dalla chiave obbligatoria mancante al salvataggio delle predizioni. Con l’app Docker di audit in ascolto sulla porta 3004, aggiungere `AUDIT_LOCAL_HTTP=1` al comando di prova. La risposta deve contenere un ID di previsione, i 3 L del trattamento pianificato e i 12 euro misurati.
 
 Verificato anche il ciclo del planner nutrizionale con giacenza iniziale di 10 g. La registrazione di 3 g sul filare porta la giacenza a 7 g, conserva la categoria fertilizzante e produce un totale analitico di 3 g.
+
+### Rotazione per filare e osservazioni individuali
+
+- Il planner riunisce storico colturale, semine e trapianti completati e piante con data d'impianto. Valuta le famiglie recenti nel singolo filare e usa pH e tipo di suolo della zona, con i dati del terreno come seconda scelta. I suggerimenti dipendono dalla copertura del catalogo e dello storico.
+- Nella scheda pianta e nella mappa, il diario salva la foto e la posizione al momento della registrazione. L'analisi su richiesta salva segni visibili, ipotesi, verifiche, eventuale sostanza e controllo successivo. Il predittivo riprende i controlli degli ultimi 14 giorni. Le ipotesi richiedono riscontro in campo.
+- Collaudo ripetibile con Supabase locale e utente temporaneo in scripts/audit/rotation-plant-photos.ts. Copre due piante in posizione 10 su filari diversi, cambio di pH, coltura precedente, salvataggio del punteggio e delle foto, trasmissione JPEG, risposta malformata e lettura predittiva. La risposta del modello nel test è simulata. La validazione agronomica su foto reali rimane aperta.
