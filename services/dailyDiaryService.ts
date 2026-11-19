@@ -605,14 +605,16 @@ export class DailyDiaryService {
         longitude: lon,
       })
 
+      const minHumidity = daily.relative_humidity_2m_min?.[0]
+      const maxHumidity = daily.relative_humidity_2m_max?.[0]
       return {
         temp_min: tempMin,
         temp_max: tempMax,
         temp_avg: (tempMin + tempMax) / 2,
-        humidity_min: daily.relative_humidity_2m_min?.[0],
-        humidity_max: daily.relative_humidity_2m_max?.[0],
-        humidity_avg: daily.relative_humidity_2m_min && daily.relative_humidity_2m_max
-          ? (daily.relative_humidity_2m_min[0] + daily.relative_humidity_2m_max[0]) / 2
+        humidity_min: minHumidity,
+        humidity_max: maxHumidity,
+        humidity_avg: typeof minHumidity === 'number' && typeof maxHumidity === 'number'
+          ? Math.round((minHumidity + maxHumidity) / 2)
           : undefined,
         precipitation_mm: daily.precipitation_sum[0] || 0,
         wind_speed_avg: daily.wind_speed_10m_mean?.[0],
