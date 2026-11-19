@@ -43,7 +43,7 @@ export default function AddIndividualPlantModal({ garden, initialRowId, onClose,
       if (!storageProvider.createIndividualPlant) throw new Error('Archivio piante non disponibile.')
       const rowId = text('fieldRowId')
       if (rowId && !rows.some(row => row.id === rowId)) throw new Error('Il filare selezionato non appartiene a questo terreno.')
-      const plant = buildIndividualPlant({ gardenId: garden.id, plantName: text('plantName'), plantCode: text('plantCode'), variety: text('variety'), fieldRowId: rowId, positionInRow: Number(text('positionInRow')), plantingDate: text('plantingDate'), status: text('status') as GardenPlant['status'], healthScore: Number(text('healthScore')), notes: text('notes') })
+      const plant = buildIndividualPlant({ gardenId: garden.id, plantName: text('plantName'), plantCode: text('plantCode'), variety: text('variety'), fieldRowId: rowId, positionInRow: Number(text('positionInRow')), plantingDate: text('plantingDate'), source:(text('source') || undefined) as GardenPlant['source'], expectedHarvestDate:text('expectedHarvestDate'), status: text('status') as GardenPlant['status'], healthScore: Number(text('healthScore')), notes: text('notes') })
       await storageProvider.createIndividualPlant(plant)
       setSaved(true)
       onCreated()
@@ -62,6 +62,8 @@ export default function AddIndividualPlantModal({ garden, initialRowId, onClose,
         <label>Varietà<input name="variety" maxLength={150} className={field} /></label>
         <label>Filare<select name="fieldRowId" value={rowId} onChange={event => setRowId(event.target.value)} className={field}><option value="">Senza filare</option>{rows.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
         <label>Posizione *<input required name="positionInRow" type="number" min="1" step="1" className={field} /></label>
+        <label>Origine<select name="source" className={field}><option value="">Non registrata</option><option value="seed">Seme in campo</option><option value="nursery">Piantina da vivaio</option><option value="transplant">Trapianto dal semenzaio</option></select></label>
+        <label>Raccolta prevista per la varietà<input name="expectedHarvestDate" type="date" className={field} /></label>
         <label>Data di impianto<input name="plantingDate" type="date" className={field} /></label>
         <label>Stato osservato *<select required name="status" defaultValue="" className={field}><option value="" disabled>Seleziona</option><option value="healthy">Sana</option><option value="diseased">Con sintomi</option><option value="dead">Morta</option><option value="harvested">Raccolta</option><option value="transplanted">Trapiantata</option></select></label>
         <label>Valutazione salute osservata (0–100) *<input required name="healthScore" type="number" min="0" max="100" step="1" className={field} /></label>

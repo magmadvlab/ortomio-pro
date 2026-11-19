@@ -202,7 +202,9 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       throw new Error('Invalid weather API response')
     }
 
-    return daily.time.map((dateStr, idx): WeatherForecast => {
+    return daily.time.flatMap((dateStr, idx): WeatherForecast[] => {
+      const required = [daily.temperature_2m_min, daily.temperature_2m_max, daily.precipitation_sum, daily.wind_speed_10m_max]
+      if (!required.every(series => Number.isFinite(series?.[idx]))) return []
       const hourlyIndexes = hourlyIndexesByDay.get(dateStr) || []
       const weatherCode = Number(daily.weather_code?.[idx] ?? daily.weathercode?.[idx] ?? 0)
       const hourlyWeatherCodes = hourlyIndexes
@@ -213,7 +215,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       const rainMm = Number(daily.precipitation_sum?.[idx] ?? 0)
       const windSpeed = Number(daily.wind_speed_10m_max?.[idx] ?? 0)
 
-      return {
+      return [{
         date: dateStr,
         tempMin,
         tempMax,
@@ -240,7 +242,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
         cape_max: maxAtIndexes(data.hourly?.cape, hourlyIndexes),
         uv_index: daily.uv_index_max?.[idx] || 0,
         snowfall: daily.snowfall_sum?.[idx] || 0
-      }
+      }]
     });
   } catch (error) {
     console.error('Error fetching weather:', error);

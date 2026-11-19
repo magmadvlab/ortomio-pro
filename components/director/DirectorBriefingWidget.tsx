@@ -7,6 +7,7 @@
  * con azioni prioritizzate, meteo, insights agronomici e raccomandazioni.
  */
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
@@ -195,7 +196,7 @@ function GardenBriefing({
   const weatherHighCount = weatherAlerts.length - weatherCriticalCount
   const summary = weatherAlerts.length > 0
     ? `${weatherAlerts.length} ${weatherAlerts.length === 1 ? 'allerta operativa richiede' : 'allerte operative richiedono'} attenzione immediata`
-    : briefing.summary
+    : briefing.fieldAgenda?.actions.length ? briefing.fieldAgenda.actions.length + ' lavori e controlli in agenda. ' + briefing.summary : briefing.summary
 
   return (
     <Card className="border-l-4 border-l-primary">
@@ -244,7 +245,7 @@ function GardenBriefing({
           </div>
           <div className="text-center p-2 bg-background rounded border">
             <div className="text-2xl font-bold text-primary">
-              {briefing.stats.totalSuggestions + weatherAlerts.length}
+              {briefing.stats.totalSuggestions + weatherAlerts.length + (briefing.fieldAgenda?.actions.length ?? 0)}
             </div>
             <div className="text-xs text-muted-foreground">Totali</div>
           </div>
@@ -252,6 +253,15 @@ function GardenBriefing({
 
         {expanded && (
           <>
+            {briefing.fieldAgenda && <section className="space-y-2">
+              <h4 className="font-semibold">Lavori e controlli nei prossimi sette giorni</h4>
+              {briefing.fieldAgenda.missing.length > 0 && <p>Dati da verificare: {briefing.fieldAgenda.missing.join(', ')}.</p>}
+              {!briefing.fieldAgenda.actions.length && !briefing.fieldAgenda.missing.length && <p>Nessun controllo in scadenza dai dati registrati.</p>}
+              {briefing.fieldAgenda.actions.map(action => <article className="rounded border p-3" key={action.id}>
+                <time>{action.date}</time> · <strong>{action.title}</strong>
+                <p>{action.instruction}</p><Link className="underline" href={action.href}>Apri la scheda</Link>
+              </article>)}
+            </section>}
             {weatherAlerts.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold flex items-center gap-2 text-red-700">
@@ -317,7 +327,7 @@ function GardenBriefing({
                   {briefing.lunarPhase.phase}
                   {briefing.lunarPhase.favorable_for && briefing.lunarPhase.favorable_for.length > 0 && (
                     <span className="ml-2">
-                      • Favorevole per: {briefing.lunarPhase.favorable_for.join(', ')}
+                      Calendario lunare tradizionale: {briefing.lunarPhase.favorable_for.join(', ')}
                     </span>
                   )}
                 </p>

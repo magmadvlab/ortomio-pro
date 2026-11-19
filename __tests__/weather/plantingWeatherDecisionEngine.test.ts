@@ -70,3 +70,10 @@ test('non inventa una valutazione per date fuori dall’orizzonte disponibile', 
   assert.equal(result.status, 'UNVERIFIED')
   assert.equal(result.recommendedDate, undefined)
 })
+
+test('un giorno mancante o un vento sconosciuto impediscono di approvare la finestra', () => {
+  for (const forecast of [baseForecast.filter(d => d.date !== '2026-06-18'),
+    baseForecast.map((d,i) => i === 1 ? {...d, wind_speed:undefined} : d)]) {
+    assert.equal(assessPlantingWeatherWindow({operation:'transplant',requestedDate:'2026-06-17',forecast}).status,'UNVERIFIED')
+  }
+})

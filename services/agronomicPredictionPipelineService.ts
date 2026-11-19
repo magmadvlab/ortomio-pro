@@ -438,7 +438,7 @@ export async function loadCanonicalPredictionInput(
 ): Promise<CanonicalPredictionInput> {
   const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult, waterComparison, operations, feedback, photos] = await Promise.all([
     supabase.from('garden_tasks').select('*').eq('garden_id', gardenId).order('date', { ascending: false }).limit(500),
-    supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).lte('log_date', isoDay(asOf)).order('log_date', { ascending: false }).limit(15),
+    supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).or('weather_conditions.is.null,weather_conditions.neq.fallback_synthetic').lte('log_date', isoDay(asOf)).order('log_date', { ascending: false }).limit(15),
     supabase.from('soil_analysis').select('*').eq('garden_id', gardenId).order('analysis_date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('garden_plants').select('*').eq('garden_id', gardenId).neq('status', 'harvested').neq('status', 'dead').limit(1000),
     supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).eq('is_simulated', false).lte('recorded_at', asOf.toISOString()).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),

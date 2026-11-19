@@ -291,7 +291,7 @@ export class DailyDiaryService {
         .maybeSingle()
 
       if (existingError) throw existingError
-      if (existing) {
+      if (existing && existing.weather_conditions !== 'fallback_synthetic') {
         return { ...existing, eto_calculated: existing.eto_mm } as DailyWeatherLog
       }
 
@@ -359,7 +359,7 @@ export class DailyDiaryService {
       // solar_radiation -> solar_radiation_mj, uv_index -> uv_index_max, eto_calculated -> eto_mm.
       const { data, error } = await this.supabase
         .from('daily_weather_log')
-        .insert({
+        .upsert({
           ...log,
           solar_radiation: undefined,
           uv_index: undefined,
@@ -367,7 +367,7 @@ export class DailyDiaryService {
           solar_radiation_mj: log.solar_radiation,
           uv_index_max: log.uv_index,
           eto_mm: log.eto_calculated,
-        })
+        }, {onConflict:'garden_id,log_date'})
         .select()
         .single()
 
@@ -406,47 +406,10 @@ export class DailyDiaryService {
       const coords = normalizeGeoCoordinates(garden.coordinates) ?? normalizeGeoCoordinates(garden)
       if (coords) return this.fetchFromOpenMeteo(coords.latitude, coords.longitude, date)
 
-      console.warn('Nessuna coordinata valida disponibile per daily weather log, uso fallback sintetico')
-      return this.getSyntheticWeatherFallback(date)
+      return null
     } catch (err) {
       console.error('Errore fetch weather:', err)
       return null
-    }
-  }
-
-  private getSyntheticWeatherFallback(date: string): Partial<DailyWeatherLog> {
-    const targetDate = new Date(`${date}T12:00:00`)
-    const month = targetDate.getMonth()
-
-    let tempMin = 8
-    let tempMax = 16
-
-    if (month >= 5 && month <= 8) {
-      tempMin = 18
-      tempMax = 30
-    } else if (month >= 2 && month <= 4) {
-      tempMin = 12
-      tempMax = 22
-    } else if (month >= 9 && month <= 10) {
-      tempMin = 10
-      tempMax = 20
-    } else if (month === 11 || month <= 1) {
-      tempMin = 4
-      tempMax = 12
-    }
-
-    return {
-      temp_min: tempMin,
-      temp_max: tempMax,
-      temp_avg: (tempMin + tempMax) / 2,
-      precipitation_mm: 0,
-      humidity_avg: 60,
-      weather_conditions: 'fallback_synthetic',
-      data_source: 'manual',
-      raw_data: {
-        fallback: true,
-        reason: 'missing_coordinates'
-      }
     }
   }
 
@@ -568,6 +531,7 @@ export class DailyDiaryService {
       const daily = data.daily
       const tempMin = daily.temperature_2m_min[0]
       const tempMax = daily.temperature_2m_max[0]
+      if (![tempMin,tempMax,daily.precipitation_sum?.[0]].every(Number.isFinite)) return null
 
       // Reverse geocoding per ottenere il nome della località
       let locationName: string | undefined
@@ -701,7 +665,7 @@ export class DailyDiaryService {
   private async getActiveCultivations(gardenId: string, date: string) {
     const { data, error } = await this.supabase.from('garden_tasks')
       .select('id, plant_name, stage, lifecycle_state, final_harvest, operational_status')
-      .eq('garden_id', gardenId).in('task_type', ['Sowing', 'Transplant']).lte('date', date)
+      .eq('garden_id', gardenId).in('task_type', ['Sowing', 'Transplant']).eq('completed',true).lte('date', date)
     if (error) throw error
     return (data ?? []).filter(task => task.stage !== 'Harvested' && task.lifecycle_state !== 'Disposal'
       && !task.final_harvest && task.operational_status !== 'cancelled')
@@ -1260,7 +1224,7 @@ export class DailyDiaryService {
       .select('*, garden_tasks!inner(stage, lifecycle_state, final_harvest, operational_status)')
       .eq('garden_id', gardenId).eq('tracking_date', dateStr)
     if (activeOnly) {
-      trackingQuery = trackingQuery.or('stage.is.null,stage.neq.Harvested', { referencedTable: 'garden_tasks' })
+      trackingQuery = trackingQuery.eq('garden_tasks.completed',true).or('stage.is.null,stage.neq.Harvested', { referencedTable: 'garden_tasks' })
         .or('lifecycle_state.is.null,lifecycle_state.neq.Disposal', { referencedTable: 'garden_tasks' })
         .is('garden_tasks.final_harvest', null)
         .or('operational_status.is.null,operational_status.neq.cancelled', { referencedTable: 'garden_tasks' })
@@ -1284,7 +1248,7 @@ export class DailyDiaryService {
       if (result.error) throw result.error
     }
     return {
-      weather: weatherRes.data || null,
+      weather: weatherRes.data?.weather_conditions === 'fallback_synthetic' ? null : weatherRes.data || null,
       tracking: trackingRes.data || [],
       events: eventsRes.data || []
     }

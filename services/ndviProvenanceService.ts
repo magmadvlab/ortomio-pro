@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const NDVI_ALGORITHM_VERSION = 'sentinel-statistics-ndvi-v1'
+export const NDVI_ALGORITHM_VERSION = 'sentinel-statistics-ndvi-v2'
 
 export type NDVIStats = {
   mean: number
@@ -21,11 +21,14 @@ const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(
 export const parseLatestSentinelNDVI = (payload: { data?: SentinelInterval[] }) => {
   const valid = (payload.data ?? []).flatMap((entry) => {
     const stats = entry.outputs?.ndvi?.bands?.B0?.stats
+    const from = Date.parse(entry.interval?.from || '')
+    const to = Date.parse(entry.interval?.to || '')
+    if (!Number.isFinite(from) || !Number.isFinite(to) || from >= to) return []
     if (!stats || !finite(stats.mean) || !finite(stats.min) || !finite(stats.max)) return []
     const sampleCount = finite(stats.sampleCount) ? Number(stats.sampleCount) : 0
     const noDataCount = finite(stats.noDataCount) ? Number(stats.noDataCount) : 0
     const usableCount = Math.max(0, sampleCount - noDataCount)
-    if (usableCount === 0) return []
+    if (usableCount === 0 || Number(stats.mean) < -1 || Number(stats.mean) > 1) return []
     return [{
       from: String(entry.interval?.from || ''),
       to: String(entry.interval?.to || ''),
@@ -37,7 +40,7 @@ export const parseLatestSentinelNDVI = (payload: { data?: SentinelInterval[] }) 
       validPixelPercent: Number(((usableCount / Math.max(1, sampleCount)) * 100).toFixed(2)),
     }]
   }).sort((left, right) => right.to.localeCompare(left.to))
-  return valid[0] ?? null
+  return valid.find(interval => interval.validPixelPercent >= 70) ?? valid[0] ?? null
 }
 
 export const validateNDVIBounds = (value: unknown) => {

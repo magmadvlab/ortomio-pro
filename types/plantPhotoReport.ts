@@ -6,6 +6,7 @@ export const reportSchema = z.object({
     cause: description, category: z.enum(['nutrizione','acqua','fitosanitario','altro']),
     check: description, action: description, substance: description.nullable(),
   })).max(4),
+  maturity: z.enum(['not_visible','developing','check_harvest']).optional(),
   followUp: description,
 })
 export type PlantPhotoReport = z.infer<typeof reportSchema>

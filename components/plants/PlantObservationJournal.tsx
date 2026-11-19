@@ -65,7 +65,7 @@ export default function PlantObservationJournal({ plant }: { plant: GardenPlant 
         </> : photo.url.startsWith('data:image/') && <button type="button" disabled={busy}
           className="rounded border px-3 py-2" onClick={() => void run(async () => {
             const context = await plantObservationContext(plant.gardenId,plant.fieldRowId || undefined)
-            const analysis = await assessPlantImage(photo.url,plant.plantName,context)
+            const analysis = await assessPlantImage(photo.url,[plant.plantName, plant.variety].filter(Boolean).join(' · '),context)
             await savePlantReport(plant.gardenId,plant.id,photo.id,analysis)
             setPhotos(current => current.map(row => row.id === photo.id ? {...row,ai_analysis:analysis} : row))
           })}>Analizza con Gemini · {CREDIT_COSTS.advanced_analysis} crediti</button>}

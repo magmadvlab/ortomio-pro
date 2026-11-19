@@ -44,12 +44,16 @@ export async function POST(request: NextRequest) {
     let token: string
     try { token = await copernicusToken(clientId, clientSecret) }
     catch { return NextResponse.json({ status: 'unavailable', sourceKind: 'fallback', error: 'sentinel_auth_failed' }, { status: 502 }) }
+    const latitude = (bbox.north + bbox.south) / 2
+    const width = Math.max(1, Math.round((bbox.east - bbox.west) * 111320 * Math.cos(latitude * Math.PI / 180) / 10))
+    const height = Math.max(1, Math.round((bbox.north - bbox.south) * 111320 / 10))
+    if (Math.max(width, height) > 2500) return NextResponse.json({ error: 'area_too_large' }, { status: 400 })
     const providerRequest = {
       input: {
         bounds: { bbox: [bbox.west, bbox.south, bbox.east, bbox.north], properties: { crs: 'http://www.opengis.net/def/crs/EPSG/0/4326' } },
         data: [{ type: 'sentinel-2-l2a', dataFilter: { maxCloudCoverage: cloudCoverage, mosaickingOrder: 'leastCC' } }],
       },
-      aggregation: { timeRange: { from, to }, aggregationInterval: { of: 'P5D' }, evalscript, resx: 10, resy: 10 },
+      aggregation: { timeRange: { from, to }, aggregationInterval: { of: 'P1D' }, evalscript, width, height },
       calculations: { ndvi: {} },
     }
     const statsResponse = await fetch('https://sh.dataspace.copernicus.eu/api/v1/statistics', {
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
     const supabase = requireSupabase()
     const persistence = {
       garden_id: gardenId, latitude: center.latitude, longitude: center.longitude,
-      ndvi_value: latest.stats.mean, data_date: latest.to.slice(0, 10), data_quality: Math.round(latest.validPixelPercent),
+      ndvi_value: latest.stats.mean, data_date: latest.from.slice(0, 10), data_quality: Math.round(latest.validPixelPercent),
       data_source: 'sentinel_hub_statistics', resolution_meters: 10, provider: 'sentinel-hub',
       acquisition_from: latest.from, acquisition_to: latest.to, bbox, algorithm_version: NDVI_ALGORITHM_VERSION,
       quality_status: qualityStatus, source_kind: 'real', statistics: latest.stats, input_hash: requestHash,
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
       success: qualityStatus !== 'rejected', status: qualityStatus === 'rejected' ? 'insufficient_data' : 'available',
       sourceKind: 'real', provider: 'sentinel-hub', algorithmVersion: NDVI_ALGORITHM_VERSION,
       ndvi: latest.stats.mean, minNdvi: latest.stats.min, maxNdvi: latest.stats.max,
-      date: latest.to, cloudCoverage: null, maskedPixelPercent: persistence.masked_pixel_pct, validPixelPercent: latest.validPixelPercent,
+      date: latest.from, cloudCoverage: null, maskedPixelPercent: persistence.masked_pixel_pct, validPixelPercent: latest.validPixelPercent,
       qualityStatus, stats: latest.stats, bbox, resolutionMeters: 10, inputHash: requestHash,
     }, { status: qualityStatus === 'rejected' ? 422 : 200 })
   } catch (error) {

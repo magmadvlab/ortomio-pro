@@ -66,6 +66,20 @@ try {
     await assert.rejects(assessPlantImage(jpeg,'Pomodoro'))
   } finally {globalThis.fetch=originalFetch}
   assert.equal((await listPlantObservations(garden,plant))[0].ai_analysis != null,true)
+  const {SupabaseStorageProvider} = await import('../../packages/storage-cloud/SupabaseStorageProvider')
+  const {loadFieldAgenda} = await import('../../services/fieldDayAgenda')
+  const storage = new SupabaseStorageProvider()
+  const saved = await storage.createIndividualPlant({gardenId:garden, plantCode:'F1-P11', plantName:'Pomodoro',
+    plantingDate:prior.toISOString().slice(0,10), source:'nursery', expectedHarvestDate:date, healthScore:88,
+    fieldRowId:first, positionInRow:11, status:'healthy',photos:[]})
+  await storage.updateIndividualPlant(saved.id,{healthScore:85})
+  const individual = await storage.getIndividualPlants(garden)
+  assert.equal(individual.find(p => p.id === saved.id)?.source,'nursery')
+  assert.equal(individual.find(p => p.id === saved.id)?.fieldRowId,first)
+  const context = await storage.updateGarden(garden,{primaryCrop:{canonicalPlantName:'Pomodoro',label:'Pomodoro',archetypeId:'MIX'}})
+  const agenda = await loadFieldAgenda(db,context,new Date(),[],individual)
+  assert.ok(agenda.actions.some(a => a.id === 'maturity-'+saved.id && a.href.includes(saved.id)))
+  assert.ok(agenda.missing.includes('rilievo satellitare recente'))
   const input = await loadCanonicalPredictionInput(admin,garden)
   assert.equal(buildPredictionBundle(input).photoFollowUps?.[0]?.plantId,plant)
   console.log('OK: due filari isolati, effetto pH, foto pianta 10 persistita, pixel trasmessi, errore modello gestito, controllo predittivo collegato.')

@@ -2913,7 +2913,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       })),
       visualSunInput: db.visual_sun_input ?? undefined,
       photoNorthOffset: db.photo_north_offset == null ? undefined : Number(db.photo_north_offset),
-      primaryCrop: undefined, // primary_crop non esiste nello schema database
+      primaryCrop: db.primary_crop ?? undefined,
       altitudeMeters: db.altitude_meters,
       delayFactorDays: db.delay_factor_days,
       sunExposure: db.sun_exposure,
@@ -2955,8 +2955,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       db.obstacle_changes = { added, removed: garden.removedObstacleIds ?? [] };
     }
     if (garden.structureConfig !== undefined) db.structure_config = garden.structureConfig;
-    // primaryCrop non esiste nello schema database
-    // if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
+    if (garden.primaryCrop !== undefined) db.primary_crop = garden.primaryCrop;
     if (garden.altitudeMeters !== undefined) db.altitude_meters = Math.round(Number(garden.altitudeMeters));
     if (garden.delayFactorDays !== undefined) db.delay_factor_days = Math.round(Number(garden.delayFactorDays));
     if (garden.sunExposure !== undefined) db.sun_exposure = garden.sunExposure;
@@ -6230,7 +6229,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     try {
       const { data, error } = await this.client
-        .from('individual_plants')
+        .from('garden_plants')
         .select('*')
         .eq('garden_id', gardenId)
         .order('created_at', { ascending: false });
@@ -6249,7 +6248,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     try {
       const { data, error } = await this.client
-        .from('individual_plants')
+        .from('garden_plants')
         .select('*')
         .eq('id', id)
         .single();
@@ -6273,7 +6272,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       const dbPlant = this.mapIndividualPlantToDB(plant);
 
       const { data, error } = await this.client
-        .from('individual_plants')
+        .from('garden_plants')
         .insert(dbPlant)
         .select()
         .single();
@@ -6296,7 +6295,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       delete dbUpdates.id; // Remove ID from updates
 
       const { data, error } = await this.client
-        .from('individual_plants')
+        .from('garden_plants')
         .update(dbUpdates)
         .eq('id', id)
         .select()
@@ -6317,7 +6316,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
     try {
       const { error } = await this.client
-        .from('individual_plants')
+        .from('garden_plants')
         .delete()
         .eq('id', id);
 
@@ -6351,6 +6350,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
       plantName: db.plant_name,
       variety: db.variety || undefined,
       plantingDate: db.planting_date,
+      expectedHarvestDate: db.expected_harvest_date ?? undefined,
+      source: db.source ?? undefined,
+      seedlingBatchId: db.seedling_batch_id ?? undefined,
+      saplingBatchId: db.sapling_batch_id ?? undefined,
+      seedPacketId: db.seed_packet_id ?? undefined,
+      plantingContext: db.planting_context ?? undefined,
+      notes: db.notes ?? undefined,
+      coordinates: db.coordinates ?? undefined,
       transplantDate: db.transplant_date || undefined,
       sourceVivaio: db.source_vivaio || undefined,
       status: db.status,
@@ -6374,33 +6381,41 @@ export class SupabaseStorageProvider implements IStorageProvider {
       garden_id: plant.gardenId,
       
       // Campo aperto / aiuole
-      field_row_id: plant.fieldRowId || null,
-      field_row_name: plant.fieldRowName || null,
-      garden_row_id: plant.gardenRowId || null,
+      field_row_id: plant.fieldRowId,
+      field_row_name: plant.fieldRowName,
+      garden_row_id: plant.gardenRowId,
       
       // Serra (NUOVO)
-      greenhouse_bench_id: plant.greenhouseBenchId || null,
-      bench_row_number: plant.benchRowNumber || null,
-      position_in_bench_row: plant.positionInBenchRow || null,
-      bench_name: plant.benchName || null,
+      greenhouse_bench_id: plant.greenhouseBenchId,
+      bench_row_number: plant.benchRowNumber,
+      position_in_bench_row: plant.positionInBenchRow,
+      bench_name: plant.benchName,
       
-      position_in_row: plant.positionInRow || null,
+      position_in_row: plant.positionInRow,
       plant_code: plant.plantCode,
       plant_name: plant.plantName,
-      variety: plant.variety || null,
+      variety: plant.variety,
       planting_date: plant.plantingDate,
-      transplant_date: plant.transplantDate || null,
-      source_vivaio: plant.sourceVivaio || null,
+      expected_harvest_date: plant.expectedHarvestDate,
+      source: plant.source,
+      seedling_batch_id: plant.seedlingBatchId,
+      sapling_batch_id: plant.saplingBatchId,
+      seed_packet_id: plant.seedPacketId,
+      planting_context: plant.plantingContext,
+      coordinates: plant.coordinates,
+      notes: plant.notes,
+      transplant_date: plant.transplantDate,
+      source_vivaio: plant.sourceVivaio,
       status: plant.status,
       health_score: plant.healthScore,
       stage: plant.stage,
       
       // Parametri serra (NUOVO) - salva come JSONB
-      greenhouse_conditions: plant.greenhouseConditions || null,
+      greenhouse_conditions: plant.greenhouseConditions,
       
-      photos: plant.photos || [],
-      operations: plant.operations || [],
-      orchestrator_enabled: plant.orchestratorEnabled || false
+      photos: plant.photos,
+      operations: plant.operations,
+      orchestrator_enabled: plant.orchestratorEnabled
     };
     
     return db;

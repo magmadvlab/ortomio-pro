@@ -27,11 +27,6 @@ export interface NDVIReading {
   image_url?: string;
   analysis: {
     vegetation_health: 'excellent' | 'good' | 'moderate' | 'poor' | 'critical';
-    stress_indicators: {
-      water_stress: boolean;
-      nutrient_deficiency: boolean;
-      disease_risk: boolean;
-    };
     recommendations: string[];
   };
 }
@@ -43,13 +38,6 @@ export interface NDVIZoneAnalysis {
   min_ndvi: number;
   max_ndvi: number;
   area_hectares: number;
-  health_distribution: {
-    excellent: number; // percentage
-    good: number;
-    moderate: number;
-    poor: number;
-    critical: number;
-  };
   problem_areas: Array<{
     coordinates: [number, number][];
     issue_type: string;
@@ -124,12 +112,11 @@ export class NDVISatelliteService {
       // differenze tra zone finche non esiste un raster georiferito persistito.
       return [{
         zone_id: 'main',
-        zone_name: 'Area Principale',
+        zone_name: 'Area campionata attorno alle coordinate',
         avg_ndvi: ndviReading.ndvi_value,
         min_ndvi: ndviReading.statistics?.min ?? ndviReading.ndvi_value,
         max_ndvi: ndviReading.statistics?.max ?? ndviReading.ndvi_value,
         area_hectares: garden.sizeSqMeters / 10000,
-        health_distribution: this.calculateHealthDistribution(ndviReading.ndvi_value),
         problem_areas: []
       }];
     } catch (error) {
@@ -205,9 +192,9 @@ export class NDVISatelliteService {
   static async generateNDVIReport(garden: Garden): Promise<{
     summary: {
       overall_health: string;
-      avg_ndvi: number;
-      trend_direction: 'improving' | 'stable' | 'declining';
-      last_update: string;
+      avg_ndvi: number | null;
+      trend_direction: 'improving' | 'stable' | 'declining' | 'unknown';
+      last_update: string | null;
     };
     zones: NDVIZoneAnalysis[];
     stress_areas: NDVIStressArea[];
@@ -215,21 +202,21 @@ export class NDVISatelliteService {
     next_analysis_date: string;
   }> {
     try {
-      const [ndviReading, zones, stressAreas, trend] = await Promise.all([
+      const [ndviReading, trend] = await Promise.all([
         this.getLatestNDVI(garden),
-        this.analyzeGardenZones(garden),
-        this.detectStressAreas(garden),
         this.getNDVITrend(garden, 30)
       ]);
 
+      const zones = await this.analyzeGardenZones(garden, ndviReading);
+      const stressAreas = await this.detectStressAreas(garden, ndviReading);
       const trendDirection = this.calculateTrendDirection(trend);
       
       return {
         summary: {
           overall_health: ndviReading?.analysis.vegetation_health || 'unknown',
-          avg_ndvi: ndviReading?.ndvi_value || 0,
+          avg_ndvi: ndviReading?.ndvi_value ?? null,
           trend_direction: trendDirection,
-          last_update: ndviReading?.date || new Date().toISOString()
+          last_update: ndviReading?.date ?? null
         },
         zones,
         stress_areas: stressAreas,
@@ -308,11 +295,6 @@ export class NDVISatelliteService {
         image_url: data.imageUrl,
         analysis: {
           vegetation_health: this.classifyVegetationHealth(data.ndvi),
-          stress_indicators: {
-            water_stress: data.ndvi < 0.4,
-            nutrient_deficiency: data.ndvi < 0.5 && data.ndvi >= 0.3,
-            disease_risk: data.ndvi < 0.3
-          },
           recommendations: this.generateNDVIRecommendations(data.ndvi)
         }
       };
@@ -332,40 +314,17 @@ export class NDVISatelliteService {
   }
 
   private static generateNDVIRecommendations(ndvi: number): string[] {
-    const recommendations = [];
-    
-    if (ndvi < 0.3) {
-      recommendations.push('Intervento urgente necessario');
-      recommendations.push('Verificare sistema irrigazione');
-      recommendations.push('Analisi fitosanitaria immediata');
-    } else if (ndvi < 0.5) {
-      recommendations.push('Aumentare fertilizzazione');
-      recommendations.push('Monitorare stress idrico');
-      recommendations.push('Considerare trattamenti preventivi');
-    } else if (ndvi < 0.7) {
-      recommendations.push('Mantenere regime attuale');
-      recommendations.push('Monitoraggio regolare');
-    } else {
-      recommendations.push('Vegetazione in ottima salute');
-      recommendations.push('Continuare pratiche attuali');
-    }
-
-    return recommendations;
+    return ndvi < 0.5
+      ? ['Controlla la copertura vegetale e confronta il vigore con la fase della coltura sul campo.']
+      : ['Confronta il vigore medio con le osservazioni in campo e i rilievi precedenti.'];
   }
 
-
-  private static calculateHealthDistribution(ndvi: number) {
-    const distribution = { excellent: 0, good: 0, moderate: 0, poor: 0, critical: 0 };
-    distribution[this.classifyVegetationHealth(ndvi)] = 100;
-    return distribution;
-  }
-
-
-  private static calculateTrendDirection(trend: Array<{ date: string; ndvi: number; health: string }>): 'improving' | 'stable' | 'declining' {
-    if (trend.length < 2) return 'stable';
+  private static calculateTrendDirection(trend: Array<{ date: string; ndvi: number; health: string }>): 'improving' | 'stable' | 'declining' | 'unknown' {
+    if (trend.length < 2) return 'unknown';
     
-    const recentWindow = trend.slice(-5);
-    const olderWindow = trend.slice(0, Math.min(5, trend.length));
+    const size = Math.min(5, Math.floor(trend.length / 2));
+    const recentWindow = trend.slice(-size);
+    const olderWindow = trend.slice(0, size);
     const recent = recentWindow.reduce((sum, t) => sum + t.ndvi, 0) / recentWindow.length;
     const older = olderWindow.reduce((sum, t) => sum + t.ndvi, 0) / olderWindow.length;
     

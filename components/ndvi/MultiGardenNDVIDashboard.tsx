@@ -111,11 +111,7 @@ const MultiGardenNDVIDashboard: React.FC<MultiGardenNDVIDashboardProps> = ({ gar
     .filter(g => g.ndviReading)
     .reduce((sum, g) => sum + g.ndviReading!.ndvi_value, 0) / Math.max(loadedGardens, 1)
   const gardensNeedingAttention = gardenData.filter(g => 
-    g.ndviReading && (
-      g.ndviReading.analysis.stress_indicators.water_stress ||
-      g.ndviReading.analysis.stress_indicators.nutrient_deficiency ||
-      g.ndviReading.analysis.stress_indicators.disease_risk
-    )
+    g.ndviReading && g.ndviReading.ndvi_value < 0.5
   ).length
 
   return (
@@ -273,22 +269,6 @@ const MultiGardenNDVIDashboard: React.FC<MultiGardenNDVIDashboardProps> = ({ gar
                     <span className={`text-sm font-medium ${getHealthColor(ndviReading.analysis.vegetation_health)}`}>
                       {ndviReading.analysis.vegetation_health.toUpperCase()}
                     </span>
-                  </div>
-
-                  {/* Indicatori stress */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-gray-700">Indicatori:</div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className={`text-center p-2 rounded ${ndviReading.analysis.stress_indicators.water_stress ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        💧 {ndviReading.analysis.stress_indicators.water_stress ? 'Stress' : 'OK'}
-                      </div>
-                      <div className={`text-center p-2 rounded ${ndviReading.analysis.stress_indicators.nutrient_deficiency ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                        🌿 {ndviReading.analysis.stress_indicators.nutrient_deficiency ? 'Carenza' : 'OK'}
-                      </div>
-                      <div className={`text-center p-2 rounded ${ndviReading.analysis.stress_indicators.disease_risk ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        🦠 {ndviReading.analysis.stress_indicators.disease_risk ? 'Rischio' : 'OK'}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Data ultimo aggiornamento */}

@@ -119,3 +119,13 @@ Verificato anche il ciclo del planner nutrizionale con giacenza iniziale di 10 g
 - Il planner riunisce storico colturale, semine e trapianti completati e piante con data d'impianto. Valuta le famiglie recenti nel singolo filare e usa pH e tipo di suolo della zona, con i dati del terreno come seconda scelta. I suggerimenti dipendono dalla copertura del catalogo e dello storico.
 - Nella scheda pianta e nella mappa, il diario salva la foto e la posizione al momento della registrazione. L'analisi su richiesta salva segni visibili, ipotesi, verifiche, eventuale sostanza e controllo successivo. Il predittivo riprende i controlli degli ultimi 14 giorni. Le ipotesi richiedono riscontro in campo.
 - Collaudo ripetibile con Supabase locale e utente temporaneo in scripts/audit/rotation-plant-photos.ts. Copre due piante in posizione 10 su filari diversi, cambio di pH, coltura precedente, salvataggio del punteggio e delle foto, trasmissione JPEG, risposta malformata e lettura predittiva. La risposta del modello nel test è simulata. La validazione agronomica su foto reali rimane aperta.
+
+### Director, satellite e diario di campo
+
+Nel Diario Operativo si può registrare la specie da pianificare. Il Director confronta le finestre del catalogo con la posizione, la luce, il metodo di avvio e il meteo disponibile. Le attività eseguite alimentano i controlli di emergenza, attecchimento e fase. Le attività aperte conservano la data prevista. Il diario mostra anche i rischi fitosanitari delle previsioni valide e i controlli sulla pianta.
+
+Per i pomodori da vivaio senza una data attesa, il primo controllo visivo può essere anticipato sulla base del trapianto e della precocità delle cultivar. Una data di raccolta registrata per la varietà ha precedenza. La soglia di 50 giorni serve a programmare l’ispezione. La maturazione visibile va confrontata con il colore della varietà e con osservazioni in campo. [NC State Extension](https://content.ces.ncsu.edu/growing-tomatoes-in-the-home-garden)
+
+Il diario cerca un rilievo reale accettato e recente. All’apertura prova a rinnovarlo dopo cinque giorni. La media satellitare copre un rettangolo attorno alle coordinate. Un valore basso suggerisce di controllare copertura e vigore del campo. La griglia della richiesta ha un passo nominale di 10 metri e distingue i giorni di acquisizione. [Statistical API](https://docs.sentinel-hub.com/api/latest/api/statistical/)
+
+Collaudo con Supabase locale, prove di regressione su rinvio per gelo, previsioni incomplete, origine vivaio, filari, salvataggio e rilettura del diario. Restano da verificare il primo rilievo con credenziali Copernicus di produzione e l’accuratezza agronomica su cicli con esiti reali.

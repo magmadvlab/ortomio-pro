@@ -194,7 +194,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-600">Salute Vegetazione</span>
+                <span className="text-sm font-medium text-gray-600">Vigore medio</span>
                 <Activity className="w-4 h-4 text-gray-400" />
               </div>
               <div className={`text-lg font-bold px-2 py-1 rounded border ${getHealthColor(ndviData.analysis.vegetation_health)}`}>
@@ -258,41 +258,7 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
           {/* Overview Tab */}
           {activeTab === 'overview' && ndviData && (
             <div className="space-y-6">
-              {/* Stress Indicators */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Indicatori di Stress</h3>
-                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.water_stress ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <Droplets className={`w-5 h-5 ${ndviData.analysis.stress_indicators.water_stress ? 'text-red-600' : 'text-green-600'}`} />
-                      <span className="font-medium">Stress Idrico</span>
-                    </div>
-                    <div className={`text-sm ${ndviData.analysis.stress_indicators.water_stress ? 'text-red-700' : 'text-green-700'}`}>
-                      {ndviData.analysis.stress_indicators.water_stress ? 'Rilevato' : 'Non rilevato'}
-                    </div>
-                  </div>
-
-                  <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.nutrient_deficiency ? 'bg-orange-50 border-orange-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <Leaf className={`w-5 h-5 ${ndviData.analysis.stress_indicators.nutrient_deficiency ? 'text-orange-600' : 'text-green-600'}`} />
-                      <span className="font-medium">Carenza Nutrizionale</span>
-                    </div>
-                    <div className={`text-sm ${ndviData.analysis.stress_indicators.nutrient_deficiency ? 'text-orange-700' : 'text-green-700'}`}>
-                      {ndviData.analysis.stress_indicators.nutrient_deficiency ? 'Possibile' : 'Non rilevata'}
-                    </div>
-                  </div>
-
-                  <div className={`p-4 rounded-lg border ${ndviData.analysis.stress_indicators.disease_risk ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      <AlertTriangle className={`w-5 h-5 ${ndviData.analysis.stress_indicators.disease_risk ? 'text-red-600' : 'text-green-600'}`} />
-                      <span className="font-medium">Rischio Malattie</span>
-                    </div>
-                    <div className={`text-sm ${ndviData.analysis.stress_indicators.disease_risk ? 'text-red-700' : 'text-green-700'}`}>
-                      {ndviData.analysis.stress_indicators.disease_risk ? 'Elevato' : 'Basso'}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p>Il satellite misura il vigore medio dell’area osservata. Per individuare la causa di un calo servono osservazioni in campo.</p>
 
               {/* Recommendations */}
               <div>
@@ -365,7 +331,6 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                                 ndvi_value: zone.avg_ndvi,
                                 min_ndvi: zone.min_ndvi,
                                 max_ndvi: zone.max_ndvi,
-                                health_distribution: zone.health_distribution,
                                 area_hectares: zone.area_hectares
                               }}
                               zoneId={zone.zone_id}
@@ -393,21 +358,6 @@ const NDVIDashboard: React.FC<NDVIDashboardProps> = ({ garden }) => {
                           </span>
                         </div>
 
-                        {/* Health Distribution */}
-                        <div>
-                          <span className="text-sm text-gray-600 block mb-2">Distribuzione Salute:</span>
-                          <div className="flex h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="bg-green-600" style={{ width: `${zone.health_distribution.excellent}%` }}></div>
-                            <div className="bg-green-400" style={{ width: `${zone.health_distribution.good}%` }}></div>
-                            <div className="bg-yellow-full max-w-sm" style={{ width: `${zone.health_distribution.moderate}%` }}></div>
-                            <div className="bg-orange-400" style={{ width: `${zone.health_distribution.poor}%` }}></div>
-                            <div className="bg-red-500" style={{ width: `${zone.health_distribution.critical}%` }}></div>
-                          </div>
-                          <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>Eccellente</span>
-                            <span>Critico</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   ))}

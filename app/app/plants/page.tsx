@@ -321,6 +321,7 @@ export default function PlantsPage() {
               {/* Smart Plant Manager Component */}
               <SmartPlantManager key={`${activeGarden.id}-${plantRefresh}`}
                 garden={activeGarden} 
+                plantId={searchParams.get('plantId') || undefined}
                 fieldRow={fieldRowParam || undefined}
               />
             </div>

@@ -50,6 +50,7 @@ const isoDate = (value: string | Date): string => {
 
 const numberValue = (...values: unknown[]): number | undefined => {
   for (const value of values) {
+    if (value == null || value === '') continue
     const parsed = Number(value)
     if (Number.isFinite(parsed)) return parsed
   }
@@ -116,7 +117,15 @@ export function assessPlantingWeatherWindow(options: PlantingWindowOptions): Pla
     .sort((left, right) => left.normalizedDate.localeCompare(right.normalizedDate))
   const requestedIndex = forecast.findIndex((day) => day.normalizedDate === options.requestedDate)
 
-  if (requestedIndex < 0 || requestedIndex + establishmentDays > forecast.length) {
+  const completeAt = (index: number) => {
+    const days = forecast.slice(index, index + establishmentDays)
+    return index >= 0 && days.length === establishmentDays && days.every((d, i) =>
+      Date.parse(d.normalizedDate) === Date.parse(days[0].normalizedDate) + i * 86400000 &&
+      numberValue(d.tempMin, d.temp_min) !== undefined && numberValue(d.tempMax, d.temp_max) !== undefined &&
+      numberValue(d.precipitation, d.rainMm, d.rainForecastMm) !== undefined &&
+      numberValue(d.windSpeed, d.wind_speed) !== undefined)
+  }
+  if (!completeAt(requestedIndex)) {
     return {
       status: 'UNVERIFIED',
       requestedDate: options.requestedDate,
@@ -166,7 +175,7 @@ export function assessPlantingWeatherWindow(options: PlantingWindowOptions): Pla
 
   let recommendedDate: string | undefined
   for (let index = requestedIndex + 1; index + establishmentDays <= forecast.length; index += 1) {
-    if (evaluateWindowAt(index).suitable) {
+    if (completeAt(index) && evaluateWindowAt(index).suitable) {
       recommendedDate = forecast[index].normalizedDate
       break
     }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { BookOpen, Clock, MapPin, Zap } from 'lucide-react'
 import { useStorage } from '@/packages/core/hooks/useStorage'
 import { Garden } from '@/types'
+import DirectorBriefingWidget from '@/components/director/DirectorBriefingWidget'
 import UnifiedTimelineDiary from '@/components/diary/UnifiedTimelineDiary'
 import AutomatedDiaryViewer from '@/components/diary/AutomatedDiaryViewer'
 
@@ -12,6 +13,8 @@ export default function DiaryPage() {
   const [gardens, setGardens] = useState<Garden[]>([])
   const [activeGarden, setActiveGarden] = useState<Garden | null>(null)
   const [activeView, setActiveView] = useState<'timeline' | 'automated'>('timeline')
+  const [cropError, setCropError] = useState('')
+  const [savingCrop,setSavingCrop] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -119,6 +122,26 @@ export default function DiaryPage() {
         </div>
       ) : (
         <>
+          <form key={activeGarden.id} className="mb-4 flex flex-wrap items-end gap-2" onSubmit={async event => {
+            event.preventDefault()
+            const name = String(new FormData(event.currentTarget).get('crop') || '').trim()
+            if (!name || savingCrop) return
+            setSavingCrop(true)
+            setCropError('')
+            try {
+              const updated = await storageProvider.updateGarden(activeGarden.id, {primaryCrop:{
+                archetypeId: activeGarden.primaryCrop?.archetypeId ?? 'MIX', label:name, canonicalPlantName:name, createdFrom:'user'
+              }})
+              setGardens(current => current.map(g => g.id === updated.id ? updated : g))
+              setActiveGarden(current => current?.id === updated.id ? updated : current)
+            } catch {setCropError('Salvataggio della coltura non riuscito. Riprova.')}
+            finally {setSavingCrop(false)}
+          }}>
+            <label>Coltura da pianificare<input required name="crop" maxLength={100} defaultValue={activeGarden.primaryCrop?.canonicalPlantName} placeholder="Es. Pomodoro" className="ml-2 rounded border p-2"/></label>
+            <button type="submit" disabled={savingCrop} className="rounded border p-2">Aggiorna piano</button>
+            {cropError && <p role="alert">{cropError}</p>}
+          </form>
+          <DirectorBriefingWidget key={activeGarden.id + '/' + activeGarden.primaryCrop?.canonicalPlantName} gardenId={activeGarden.id} />
           {activeView === 'timeline' && (
             <UnifiedTimelineDiary gardenId={activeGarden.id} garden={activeGarden} />
           )}

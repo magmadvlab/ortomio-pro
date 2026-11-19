@@ -8,6 +8,7 @@
  * @date 2026-01-20
  */
 
+import { loadFieldAgenda } from './fieldDayAgenda'
 import { getSupabaseClient } from '@/config/supabase'
 import { createStorageProvider } from '@/packages/core/storage/factory'
 import type { IStorageProvider } from '@/packages/core/storage/interface'
@@ -52,7 +53,7 @@ import { getCurrentPhenologyState } from '@/services/phenologyService'
 import { plantHealthMonitoringService } from '@/services/plantHealthMonitoringService'
 import { PrescriptionMapsService } from '@/services/prescriptionMapsService'
 import { calculatePhotoperiodHours } from '@/services/photoperiodService'
-import { getLunarPhase, getLunarActivities, getPhaseDisplayName, isWaxingPhase, type LunarPhase } from '@/services/lunarPhaseService'
+import { getLunarPhase, getLunarActivities, getPhaseDisplayName } from '@/services/lunarPhaseService'
 import type { PrescriptionAgronomicIntelligenceSummary } from '@/services/prescriptionAgronomicIntelligenceService'
 import {
   getEnvironmentalMonitoringSnapshot,
@@ -133,6 +134,7 @@ interface DailyBriefingStats {
 }
 
 export interface DailyBriefing {
+  fieldAgenda?: Awaited<ReturnType<typeof loadFieldAgenda>>
   date: Date
   gardenId: string
   gardenName?: string
@@ -346,7 +348,13 @@ class DirectorService {
       const actions = suggestions
         .map((suggestion) => this.suggestionToAction(suggestion, gardenForContext))
         .sort((left, right) => right.priorityScore - left.priorityScore)
-      const transversalQueue = await this.buildTransversalQueue(userId, gardenId, actions)
+      const storage = this.getStorageProvider()
+      const [transversalQueue, fieldAgenda] = await Promise.all([
+        this.buildTransversalQueue(userId, gardenId, actions),
+        gardenForContext ? Promise.all([storage.getTasks(gardenId), storage.getIndividualPlants?.(gardenId) ?? []])
+          .then(([tasks, plants]) => loadFieldAgenda(this.getClient(), gardenForContext, today, tasks, plants))
+          .catch(() => ({ actions: [], missing: ['agenda di campo'] })) : undefined,
+      ])
       
       // 5. Filtra azioni critiche
       const criticalActions = actions.filter(a => 
@@ -354,12 +362,10 @@ class DirectorService {
       ).slice(0, 5)
       
       // 6. Genera raccomandazioni testuali
-      const todayLunarPhase = getLunarPhase(today)
       const recommendations = this.generateRecommendations(
         diaryEntry,
         criticalActions,
-        environmentalHistorySummary,
-        todayLunarPhase
+        environmentalHistorySummary
       )
       
       // 7. Calcola statistiche
@@ -398,6 +404,7 @@ class DirectorService {
 
       return {
         date: today,
+        fieldAgenda,
         gardenId,
         gardenName: gardenForContext?.name,
         summary,
@@ -1160,8 +1167,7 @@ class DirectorService {
   private generateRecommendations(
     diaryEntry: DiaryEntrySummary,
     actions: PrioritizedAction[],
-    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null,
-    lunarPhase?: LunarPhase
+    environmentalHistorySummary?: GardenEnvironmentalHistorySummary | null
   ): string[] {
     const recommendations: string[] = []
     
@@ -1215,19 +1221,6 @@ class DirectorService {
         recommendations.push(
           '🌫️ Bassa capacita di asciugatura negli ultimi giorni: evita interventi fogliari senza vera finestra asciutta'
         )
-      }
-    }
-    
-    // Raccomandazioni lunari basate su fase computata (priorità) o diary entry (fallback)
-    if (lunarPhase) {
-      const favorable = getLunarActivities(lunarPhase)
-      if (favorable.length > 0) {
-        recommendations.push(`🌙 Fase lunare favorevole per: ${favorable.join(', ')}`)
-      }
-      if (isWaxingPhase(lunarPhase)) {
-        recommendations.push('🌱 Luna crescente: ottimo per semina, trapianto e interventi fogliari')
-      } else if (lunarPhase !== 'full_moon' && lunarPhase !== 'new_moon') {
-        recommendations.push('✂️ Luna calante: favorevole per potatura, trattamenti radicali e raccolta')
       }
     }
     

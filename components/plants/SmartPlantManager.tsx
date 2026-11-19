@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 
 interface SmartPlantManagerProps {
+  plantId?: string;
   garden: Garden;
   fieldRow?: string; // Optional field row ID for filtering
 }
@@ -63,7 +64,7 @@ interface SyncStatistics {
   lastSyncDate?: string;
 }
 
-const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow }) => {
+const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow, plantId }) => {
   const { storageProvider } = useStorage();
   
   // Services — memoized to prevent recreation on every render
@@ -291,6 +292,14 @@ const SmartPlantManager: React.FC<SmartPlantManagerProps> = ({ garden, fieldRow 
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
+
+  useEffect(() => {
+    const requested = plantId && plants.find(p => p.id === plantId && p.gardenId === garden.id);
+    if (requested) {
+      setSelectedPlantForDetail(requested);
+      setShowPlantDetailModal(true);
+    }
+  }, [plantId, plants, garden.id]);
 
   const getSelectionModeInfo = (mode: SelectionMode) => {
     const modes = {
