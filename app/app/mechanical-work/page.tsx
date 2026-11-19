@@ -130,6 +130,7 @@ function MechanicalWorkContent() {
       ? appendSourceTaskReference(deduplicatedNotes.join(' | '), taskExecutionContext.sourceTaskId)
       : deduplicatedNotes.join(' | ') || undefined
 
+    if (!(log.areaCoveredSqm && log.areaCoveredSqm > 0)) throw new Error("Indica la superficie lavorata in m².")
     const createdWork = await storageProvider.createMechanicalWork({
       garden_id: activeGarden.id,
       bed_id: log.bedIds?.[0],
@@ -137,7 +138,8 @@ function MechanicalWorkContent() {
       zone_id: taskExecutionContext?.zoneId,
       work_type: log.workType,
       work_date: log.workDate,
-      area_m2: log.areaCoveredSqm || 1,
+      area_m2: log.areaCoveredSqm!,
+      task_id: taskExecutionContext?.sourceTaskId,
       depth_cm: log.depthCm,
       equipment_type: log.equipmentType,
       equipment_attachment: log.equipmentAttachment,
@@ -164,6 +166,7 @@ function MechanicalWorkContent() {
       measuredFeedback: buildMechanicalMeasuredFeedback(
         { ...log, gardenId: activeGarden.id, notes: mergedNotes },
         {
+          workId: createdWork.id,
           sourceTaskId: taskExecutionContext?.sourceTaskId,
           zoneId: taskExecutionContext?.zoneId,
           rowId: taskExecutionContext?.rowId,

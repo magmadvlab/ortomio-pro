@@ -73,6 +73,8 @@ const resolveFertilizerTarget = (
 
 type FieldRowUnifiedExecutionInput = {
   gardenId: string
+  productId?: string
+  irrigationZoneId?: string
   fieldRowId?: string
   gardenRowId?: string
   plantIds?: string[]
@@ -111,6 +113,7 @@ export async function executeFieldRowOperationThroughUnifiedService(
   const response = await unifiedOperationsService.executeUnifiedOperation({
     level,
     gardenId: input.gardenId,
+    irrigationZoneId: input.irrigationZoneId,
     gardenRowId: input.gardenRowId,
     fieldRowId: input.fieldRowId,
     plantIds: input.plantIds,
@@ -120,6 +123,7 @@ export async function executeFieldRowOperationThroughUnifiedService(
     quantity: input.quantity,
     unit: input.unit,
     productName: input.productName,
+    productId: input.productId,
     durationMinutes: input.durationMinutes,
     method: input.method,
     areaSqm: input.areaSqm,
@@ -156,6 +160,7 @@ export async function executeWateringLogThroughUnifiedService(
     gardenId: log.gardenId,
     ...target,
     operationType: 'watering',
+    irrigationZoneId: log.zoneId,
     operationDate: log.date,
     operationTime: normalizeTimeFromTimestamp(log.wateredAt),
     quantity: log.litersApplied,
@@ -198,6 +203,7 @@ export async function executeTaskFertilizationThroughUnifiedService(
     quantity: log.dosageAmount,
     unit: log.dosageUnit,
     productName: log.fertilizerProductName,
+    productId: log.fertilizerProductId,
     method: log.method,
     areaSqm: log.areaSqm || undefined,
     notes: [
@@ -241,6 +247,11 @@ export async function executeNutritionTreatmentThroughUnifiedService(
     quantity: treatment.dosage,
     unit: treatment.dosageUnit,
     productName: treatment.productName,
+    productId: treatment.productId,
+    plannerExecutionId: treatment.id,
+    targetZoneId: treatment.zoneId,
+    areaSqm: treatment.actualCoverage,
+    registerGardenTotal: level === 'garden',
     durationMinutes: treatment.applicationDurationMinutes,
     method: treatment.applicationMethod,
     notes: [

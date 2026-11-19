@@ -31,25 +31,30 @@ try {
   await provider.createTask({ gardenId: garden.id, plantName: 'Pomodoro', date, completed: true, taskType: 'Sowing' })
   const fieldRowId = randomUUID()
   assert.ifError((await admin.from('field_rows').insert({id: fieldRowId, garden_id: garden.id, name:'A', row_number:1, length_meters:10})).error)
+  const plantId = randomUUID()
   const common = { garden_id: garden.id, user_id: user.id }
   assert.ifError((await admin.from('daily_weather_log').insert({ ...common, log_date: date, temp_min: 16, temp_max: 25, humidity_avg: 55 })).error)
   assert.ifError((await admin.from('soil_analysis').insert({ ...common, analysis_date: date })).error)
   assert.ifError((await admin.from('sensor_readings').insert({ ...common, sensor_type:'moisture', unit:'%', value:45, is_simulated:false, recorded_at:asOf.toISOString() })).error)
-  assert.ifError((await admin.from('garden_plants').insert({garden_id:garden.id, field_row_id:fieldRowId, plant_code:'audit-1', position_in_row:1, plant_name:'Pomodoro', health_score:85,status:'healthy'})).error)
+  assert.ifError((await admin.from('garden_plants').insert({id:plantId, garden_id:garden.id, field_row_id:fieldRowId, plant_code:'audit-1', position_in_row:1, plant_name:'Pomodoro', health_score:85,status:'healthy'})).error)
   const input = () => loadCanonicalPredictionInput(client, garden.id, asOf)
   for (const operationType of ['watering', 'work', 'treatment', 'fertilizing'] as const) {
     const before = await input()
     const result = await service.executeUnifiedOperation({
       level:'row', gardenId:garden.id, fieldRowId, operationDate:date, operationType,
-      quantity:20, areaSqm:50, productName:'Fixture', propagateToPlants:false,
+      quantity:20, areaSqm:50, productName: operationType === 'work' ? 'weeding' : 'Fixture', propagateToPlants:false,
     })
-    if (operationType === 'work' && result.success) {
+    assert.equal(result.success, true, operationType + ': ' + result.errors?.join(', '))
+    if (operationType === 'work') {
       const registered = await client.from('mechanical_work_register')
         .select('work_type,area_m2').eq('id', result.rowOperationIds[0]).single()
       assert.ifError(registered.error)
+      assert.deepEqual(registered.data, {work_type:'Weeding', area_m2:50})
       console.log('AUDIT work register', JSON.stringify(registered.data))
     }
     const after = await input()
+    assert.notDeepEqual(before.recentOperations, after.recentOperations)
+    assert.equal(after.recentOperations?.find(row => row.kind === operationType && row.field_row_id === fieldRowId)?.total, operationType === 'work' ? 50 : 20)
     console.log('AUDIT', JSON.stringify({ operationType, saved:result.success, records:result.operationsCreated,
       errors:result.errors, predictionInputChanged:JSON.stringify(before)!==JSON.stringify(after) }))
   }
@@ -61,16 +66,31 @@ try {
   })
   assert.ok(measuredFeedback)
   const beforeFeedback = await input()
-  try {
-    await finalizeTaskExecutionPostAction({ storageProvider: provider, gardenId: garden.id, measuredFeedback })
-  } catch (error) {
-    console.log('AUDIT post-action error', error instanceof Error ? error.message : 'storage error')
-  }
+  await finalizeTaskExecutionPostAction({ storageProvider: provider, gardenId: garden.id, measuredFeedback })
   const reread = await getAgronomicMeasuredFeedbackRecords(provider, garden.id)
+  assert.ok(reread.some(record => record.id === measuredFeedback.id))
+  assert.equal((await input()).operationFeedback?.recorded_work_cost, 12)
   console.log('AUDIT mechanical feedback', JSON.stringify({
     persisted: reread.some(record => record.id === measuredFeedback.id),
     predictionInputChanged: JSON.stringify(beforeFeedback) !== JSON.stringify(await input()),
   }))
+  const { executeNutritionTreatmentThroughUnifiedService } = await import('../../services/operationExecutionBridgeService')
+  const plan = {
+    id: randomUUID(), gardenId: garden.id, productId: 'test', productName: 'Planner',
+    scheduledDate: date, treatmentType: 'pest_control', dosage: 3, dosageUnit: 'L',
+    applicationMethod: 'spray', actualCoverage: 50, calibrationCheck: false,
+    followUpRequired: false, organicCompliant: false, status: 'completed', createdAt: date, updatedAt: date,
+  } as const
+  await Promise.all([1, 2].map(() => executeNutritionTreatmentThroughUnifiedService(provider, plan)))
+  const planned = (await input()).recentOperations?.find(row => row.product === 'Planner')
+  assert.equal(planned?.executions, 1)
+  assert.equal(planned?.total, 3)
+  const plantPlan = { ...plan, id: randomUUID(), plantIds: [plantId], productName: 'Planner pianta' }
+  await executeNutritionTreatmentThroughUnifiedService(provider, plantPlan)
+  await executeNutritionTreatmentThroughUnifiedService(provider, plantPlan)
+  assert.equal((await input()).recentOperations?.find(row => row.product === plantPlan.productName)?.total, 3)
+  const privilegedInput = await loadCanonicalPredictionInput(admin, garden.id, asOf)
+  assert.equal(privilegedInput.operationFeedback?.recorded_work_cost, 12)
   const systemId = randomUUID()
   const zoneId = randomUUID()
   assert.ifError((await admin.from('irrigation_systems').insert({id:systemId, user_id:user.id, garden_id:garden.id,name:'Manuale'})).error)

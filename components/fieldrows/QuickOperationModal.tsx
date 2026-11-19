@@ -81,6 +81,7 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
     // Lavorazione
     cultivationType: 'weeding' as 'weeding' | 'hoeing' | 'mulching' | 'pruning',
     tools: 'Zappa manuale',
+    areaSqm: '',
     
     // Condizioni
     temperature: 20, // °C
@@ -283,6 +284,7 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
           quantity,
           unit,
           productName,
+          areaSqm: operationData.areaSqm ? Number(operationData.areaSqm) : undefined,
           method:
             operationType === 'fertilization' || operationType === 'treatment'
               ? operationData.applicationMethod
@@ -533,6 +535,13 @@ export const QuickOperationModal: React.FC<QuickOperationModalProps> = ({
                     <option value="mulching">Pacciamatura</option>
                     <option value="pruning">Potatura</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Superficie lavorata (m²)
+                  </label>
+                  <input type="number" min="0.01" step="any" value={operationData.areaSqm}
+                    onChange={e => setOperationData(prev => ({ ...prev, areaSqm: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

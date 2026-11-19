@@ -22,7 +22,7 @@ export type WorkType =
   | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying'
   | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding'
   // Generale
-  | 'Topping' | 'Pruning'
+  | 'Topping' | 'Pruning' | 'Weeding'
 
 // Equipment types
 export type EquipmentType = 

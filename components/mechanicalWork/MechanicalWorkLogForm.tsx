@@ -198,8 +198,9 @@ export function MechanicalWorkLogForm({
             <label className="block text-sm font-medium text-gray-700 mb-2">Area</label>
             <input
               type="number"
-              min="0"
-              step="0.1"
+              min="0.01"
+              required
+              step="any"
               value={formData.areaCoveredSqm ?? ''}
               onChange={e => setFormData({ ...formData, areaCoveredSqm: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"

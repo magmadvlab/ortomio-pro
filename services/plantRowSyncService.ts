@@ -517,6 +517,7 @@ export class PlantRowSyncService {
               unit: unit,
               productName: productName,
               notes: notes ? `${notes} (Calc: ${dist.efficiency.toFixed(2)}x eff)` : undefined,
+              idempotencyKey: `sync:${parentOperationTable}:${operationId}`,
               parentOperationId: operationId,
               parentOperationTable,
               sourceType: 'orchestrator_sync',

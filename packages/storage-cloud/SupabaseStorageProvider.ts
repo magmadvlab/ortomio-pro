@@ -3257,14 +3257,14 @@ export class SupabaseStorageProvider implements IStorageProvider {
       zoneId: db.zone_id || null,
       fieldRowId: db.field_row_id || null,
       fertilizerProductId: db.fertilizer_product_id,
-      fertilizerProductName: db.fertilizer_product_name,
+      fertilizerProductName: db.fertilizer_name,
       fertilizerType: db.fertilizer_type || null,
-      npk: db.npk || null,
+      npk: [db.nitrogen_n, db.phosphorus_p, db.potassium_k].some(v => v != null) ? { n: db.nitrogen_n, p: db.phosphorus_p, k: db.potassium_k } : null,
       applicationDate: db.application_date,
-      areaSqm: db.area_sqm ? Number(db.area_sqm) : null,
-      dosageAmount: Number(db.dosage_amount),
+      areaSqm: db.area_applied ? Number(db.area_applied) : null,
+      dosageAmount: Number(db.dosage),
       dosageUnit: db.dosage_unit,
-      method: db.method,
+      method: db.application_method,
       growthPhase: db.growth_phase || null,
       weatherConditions: db.weather_conditions || null,
       nextApplicationDate: db.next_application_date || null,
@@ -3283,14 +3283,18 @@ export class SupabaseStorageProvider implements IStorageProvider {
     if (log.zoneId !== undefined) db.zone_id = log.zoneId;
     if (log.fieldRowId !== undefined) db.field_row_id = log.fieldRowId;
     if (log.fertilizerProductId !== undefined) db.fertilizer_product_id = log.fertilizerProductId;
-    if (log.fertilizerProductName !== undefined) db.fertilizer_product_name = log.fertilizerProductName;
+    if (log.fertilizerProductName !== undefined) db.fertilizer_name = log.fertilizerProductName;
     if (log.fertilizerType !== undefined) db.fertilizer_type = log.fertilizerType;
-    if (log.npk !== undefined) db.npk = log.npk;
+    if (log.npk !== undefined) {
+      db.nitrogen_n = log.npk?.n ?? null;
+      db.phosphorus_p = log.npk?.p ?? null;
+      db.potassium_k = log.npk?.k ?? null;
+    }
     if (log.applicationDate !== undefined) db.application_date = log.applicationDate;
-    if (log.areaSqm !== undefined) db.area_sqm = log.areaSqm;
-    if (log.dosageAmount !== undefined) db.dosage_amount = log.dosageAmount;
+    if (log.areaSqm !== undefined) db.area_applied = log.areaSqm;
+    if (log.dosageAmount !== undefined) db.dosage = log.dosageAmount;
     if (log.dosageUnit !== undefined) db.dosage_unit = log.dosageUnit;
-    if (log.method !== undefined) db.method = log.method;
+    if (log.method !== undefined) db.application_method = log.method;
     if (log.growthPhase !== undefined) db.growth_phase = log.growthPhase;
     if (log.weatherConditions !== undefined) db.weather_conditions = log.weatherConditions;
     if (log.nextApplicationDate !== undefined) db.next_application_date = log.nextApplicationDate;
@@ -4640,11 +4644,17 @@ export class SupabaseStorageProvider implements IStorageProvider {
   ): Promise<FertilizerApplicationLogDB> {
     const client = this.ensureClient();
     const dbLog = this.mapFertilizerApplicationLogToDB(log);
+    if (log.plannerExecutionId) dbLog.planner_execution_id = log.plannerExecutionId;
     const { data, error } = await client
       .from('fertilizer_application_logs')
       .insert(dbLog)
       .select()
       .single();
+    if (error?.code === '23505' && log.plannerExecutionId) {
+      const existing = await client.from('fertilizer_application_logs').select('*')
+        .eq('garden_id', log.gardenId).eq('planner_execution_id', log.plannerExecutionId).maybeSingle();
+      if (existing.data) return this.mapFertilizerApplicationLogFromDB(existing.data);
+    }
     if (error) throw error;
     return this.mapFertilizerApplicationLogFromDB(data);
   }
@@ -4742,6 +4752,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .from('treatment_register')
       .insert({
         user_id: user.id,
+        planner_execution_id: treatment.planner_execution_id,
         garden_id: treatment.garden_id || null,
         task_id: treatment.task_id || null,
         bed_id: (treatment as any).bed_id || null,
@@ -4773,6 +4784,11 @@ export class SupabaseStorageProvider implements IStorageProvider {
       .select()
       .single();
 
+    if (error?.code === '23505' && treatment.planner_execution_id && treatment.garden_id) {
+      const existing = await client.from('treatment_register').select('*')
+        .eq('garden_id', treatment.garden_id).eq('planner_execution_id', treatment.planner_execution_id).maybeSingle();
+      if (existing.data) return this.mapTreatmentFromDB(existing.data);
+    }
     if (error) throw error;
     return this.mapTreatmentFromDB(data);
   }

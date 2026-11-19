@@ -81,6 +81,7 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
     applicationMethod: 'spray' as 'spray' | 'soil' | 'systemic',
     
     // Lavorazione
+    areaSqmPerRow: '',
     cultivationType: 'weeding' as 'weeding' | 'hoeing' | 'mulching' | 'pruning',
     
     // Raccolta
@@ -250,6 +251,7 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
           productName: operationType === 'treatment' ? operationConfig.productName : undefined,
           concentration: operationType === 'treatment' ? operationConfig.concentration : undefined,
           applicationMethod: operationType === 'treatment' ? operationConfig.applicationMethod : undefined,
+          areaSqmPerRow: operationConfig.areaSqmPerRow ? Number(operationConfig.areaSqmPerRow) : undefined,
           cultivationType: operationType === 'cultivation' ? operationConfig.cultivationType : undefined,
           expectedYield: operationType === 'harvest' ? calculations.totalAmount : undefined,
           qualityGrade: operationType === 'harvest' ? operationConfig.qualityGrade : undefined,
@@ -445,7 +447,20 @@ export const IntegratedFieldOperationsModal: React.FC<IntegratedFieldOperationsM
                   />
                 </div>
                 
-                {/* Configurazione specifica per tipo */}
+                {operationType === 'cultivation' && <>
+                  <label>Superficie lavorata per filare (m²)
+                    <input type="number" min="0.01" step="any" value={operationConfig.areaSqmPerRow}
+                      onChange={e => setOperationConfig(prev => ({ ...prev, areaSqmPerRow: e.target.value }))} />
+                  </label>
+                  <label>Tipo di lavorazione
+                    <select value={operationConfig.cultivationType} onChange={e => setOperationConfig(prev => ({
+                      ...prev, cultivationType: e.target.value as typeof prev.cultivationType
+                    }))}>
+                      <option value="weeding">Diserbo manuale</option><option value="hoeing">Sarchiatura</option>
+                      <option value="mulching">Pacciamatura</option><option value="pruning">Potatura</option>
+                    </select>
+                  </label>
+                </>}
                 {operationType === 'irrigation' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

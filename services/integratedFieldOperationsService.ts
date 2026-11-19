@@ -80,6 +80,7 @@ export interface FieldRowOperation {
     applicationMethod?: 'spray' | 'soil' | 'systemic' | 'foliar' | 'fertigation'
     
     // Lavorazione
+    areaSqmPerRow?: number
     cultivationType?: 'weeding' | 'hoeing' | 'mulching' | 'pruning'
     tools?: string
     
@@ -297,6 +298,7 @@ export class IntegratedFieldOperationsService {
             ? operationAmount
             : this.roundTo3(operationAmount / Math.max(targetPlants.length, 1)),
           unit: this.getOperationUnit(request.operationType, request.config),
+          areaSqm: request.config.areaSqmPerRow,
           productName: this.getOperationProductName(request.operationType, request.config),
           notes: this.composeOperationNotes(request, fieldRow),
           propagateToPlants: applyToEntireRow,

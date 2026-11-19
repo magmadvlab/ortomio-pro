@@ -512,6 +512,7 @@ export function buildMechanicalMeasuredFeedback(
     | 'notes'
   >,
   options?: {
+    workId?: string
     sourceTaskId?: string
     zoneId?: string
     rowId?: string
@@ -534,7 +535,7 @@ export function buildMechanicalMeasuredFeedback(
   const quickPayload = parseTaskExecutionQuickPayloadNotes(log.notes)
 
   return {
-    id: `agro_feedback:mechanical:${options?.sourceTaskId || log.workType}:${getDateOnly(log.workDate)}`,
+    id: `agro_feedback:mechanical:${options?.workId || options?.sourceTaskId || log.workType}:${getDateOnly(log.workDate)}`,
     gardenId: log.gardenId,
     sourceTaskId: options?.sourceTaskId,
     operation: 'mechanical_work',

@@ -203,8 +203,10 @@ export default function TreatmentPlanner({
     }
   }
 
+  const [executionError, setExecutionError] = useState<string | null>(null)
   const handleCompleteTreatment = async (treatment: NutritionTreatment) => {
     try {
+      setExecutionError(null)
       const executionDate = new Date().toISOString().split('T')[0]
       const treatmentForExecution: NutritionTreatment = {
         ...treatment,
@@ -226,6 +228,7 @@ export default function TreatmentPlanner({
         refresh: [loadData],
       })
     } catch (error) {
+      setExecutionError(error instanceof Error ? error.message : 'Impossibile registrare il trattamento.')
       console.error('Error completing treatment:', error)
     }
   }
@@ -273,6 +276,7 @@ export default function TreatmentPlanner({
 
   return (
     <div className="space-y-6">
+      {executionError && <p role="alert" className="text-red-700">{executionError}</p>}
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">

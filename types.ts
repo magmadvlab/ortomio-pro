@@ -214,7 +214,7 @@ export type MechanicalWorkType =
   | 'StrawberryMulching' | 'StrawberryCleaning' | 'CaneRemoval' | 'TipPruning' | 'RaspberryTying'
   | 'SuckerThinning' | 'FruitBagging' | 'ExoticThinning' | 'Shredding'
   // Generale
-  | 'Topping' | 'Pruning'
+  | 'Topping' | 'Pruning' | 'Weeding'
 
 // Equipment types for mechanical operations
 export type MechanicalEquipmentType = 
@@ -1906,6 +1906,7 @@ export interface MechanicalWorkRecord {
 
 // Treatment Record (per database)
 export interface TreatmentRecordDB {
+  planner_execution_id?: string
   id: string
   user_id: string
   garden_id?: string
@@ -2001,6 +2002,7 @@ export interface CompostLogDB {
 }
 
 export interface FertilizerApplicationLogDB {
+  plannerExecutionId?: string
   id: string
   gardenId: string
   taskId?: string | null

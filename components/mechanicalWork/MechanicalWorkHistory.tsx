@@ -46,6 +46,7 @@ export function MechanicalWorkHistory({
   // Labels traduzione
   const getWorkTypeLabel = (type: WorkType): string => {
     const labels: Record<WorkType, string> = {
+      Weeding: 'Diserbo manuale',
       Plowing: 'Aratura',
       Subsoiling: 'Ripuntatura',
       Harrowing: 'Erpicatura',

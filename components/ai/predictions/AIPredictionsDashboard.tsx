@@ -15,6 +15,8 @@ function missingSignalLabels(signals: string[]) {
 }
 
 interface PredictionsData {
+  recentOperations?: import('@/services/agronomicPredictionPipelineService').OperationTotal[]
+  operationFeedback?: { measured_records: number; recorded_work_cost: number | null }
   status: 'generated' | 'insufficient_data'
   missingSignals: string[]
   modelVersion: string
@@ -173,7 +175,18 @@ export default function AIPredictionsDashboard() {
             </div>
           )}
 
-          {/* Tabs */}
+          {Boolean(predictions?.recentOperations?.length) && (
+        <section className="max-w-7xl mx-auto px-4 py-4">
+          <h2 className="font-semibold">Interventi registrati negli ultimi 15 giorni</h2>
+          <ul>{Object.entries({ watering: 'Irrigazioni', work: 'Lavorazioni', treatment: 'Trattamenti', fertilizing: 'Concimazioni' }).map(([kind, label]) => (
+            <li key={kind}>{label}: {predictions?.recentOperations?.filter(row => row.kind === kind)
+              .reduce((sum, row) => sum + row.executions, 0)}</li>
+          ))}</ul>
+          {predictions?.operationFeedback?.recorded_work_cost != null &&
+            <p>Costo registrato delle lavorazioni: {predictions.operationFeedback.recorded_work_cost.toLocaleString('it-IT', {style:'currency',currency:'EUR'})}</p>}
+        </section>
+      )}
+      {/* Tabs */}
           <div className="mt-6 flex gap-2">
             {tabs.map((tab) => {
               const Icon = tab.icon

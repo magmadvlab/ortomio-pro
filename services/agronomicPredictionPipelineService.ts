@@ -13,7 +13,7 @@ import { calculateAltitudeDelay } from '@/utils/altitudeUtils'
 import type { PersistedForecastSnapshot } from '@/types/environmental'
 
 export const PREDICTION_MODEL_VERSION = 'ortomio-deterministic-v3'
-export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-11-18-canonical-inputs'
+export const PREDICTION_RULE_VERSION = 'agronomic-rules-2026-11-19-operation-totals'
 
 export type PredictionPlant = PlantHealthData & {
   plantingDate?: string
@@ -30,7 +30,19 @@ export type WaterComparison = {
   costPerLiter?: number
 }
 
+export type OperationTotal = {
+  kind: 'watering' | 'work' | 'fertilizing' | 'treatment'
+  field_row_id: string | null
+  bed_row_id: string | null
+  product: string | null
+  unit: string | null
+  executions: number
+  total: number | null
+}
+
 export type CanonicalPredictionInput = {
+  recentOperations?: OperationTotal[]
+  operationFeedback?: { measured_records: number; recorded_work_cost: number | null }
   gardenId: string
   asOf: string
   altitudeMeters?: number
@@ -50,6 +62,8 @@ export type CanonicalPredictionInput = {
 }
 
 export type PredictionBundle = {
+  recentOperations?: OperationTotal[]
+  operationFeedback?: { measured_records: number; recorded_work_cost: number | null }
   status: 'generated' | 'insufficient_data'
   missingSignals: string[]
   inputHash: string
@@ -234,6 +248,7 @@ export const buildPredictionBundle = (input: CanonicalPredictionInput): Predicti
   const validUntil = addDays(validFrom, 15)
   if (missingSignals.length > 0) {
     return {
+      recentOperations: input.recentOperations, operationFeedback: input.operationFeedback,
       status: 'insufficient_data', missingSignals, inputHash,
       modelVersion: PREDICTION_MODEL_VERSION, ruleVersion: PREDICTION_RULE_VERSION,
       sourceQuality: 'insufficient', confidence: null, horizonDays: 15,
@@ -253,6 +268,7 @@ export const buildPredictionBundle = (input: CanonicalPredictionInput): Predicti
   const oldestAgeHours = timestamps.reduce((max, timestamp) => Math.max(max, (validFrom.getTime() - new Date(timestamp).getTime()) / 3_600_000), 0)
   const confidence = round(Math.max(0, Math.min(timestamps.length === 3 ? 0.9 : 0.35, 0.9 - Math.max(0, oldestAgeHours - 24) * 0.002)), 4)
   return {
+    recentOperations: input.recentOperations, operationFeedback: input.operationFeedback,
     status: 'generated', missingSignals, inputHash,
     modelVersion: PREDICTION_MODEL_VERSION, ruleVersion: PREDICTION_RULE_VERSION,
     sourceQuality: timestamps.length < 3 ? 'estimated' : 'mixed', confidence,
@@ -394,12 +410,12 @@ async function loadWaterComparison(supabase: SupabaseClient, gardenId: string, a
   const requirements: RequirementRow[] = []
   for (let offset = 0; ; offset += 1000) {
     const result = await supabase.from('watering_logs').select('id,zone_id,date,liters_applied,completed')
-      .eq('garden_id', gardenId).gte('date', startDate).lte('date', endDate).eq('completed', true).order('id').range(offset, offset + 999)
+      .eq('garden_id', gardenId).not('zone_id', 'is', null).gte('date', startDate).lte('date', endDate).eq('completed', true).order('id').range(offset, offset + 999)
     if (result.error) return undefined
     logs.push(...(result.data ?? []))
     if ((result.data?.length ?? 0) < 1000) break
   }
-  const zoneIds = [...new Set(logs.map(row => row.zone_id))]
+  const zoneIds = [...new Set(logs.map(row => row.zone_id).filter(Boolean))]
   if (!zoneIds.length) return undefined
   for (let offset = 0; ; offset += 1000) {
     const result = await supabase.from('water_requirements').select('zone_id,calculation_date,recommended_volume_liters,created_at')
@@ -416,7 +432,7 @@ export async function loadCanonicalPredictionInput(
   gardenId: string,
   asOf = new Date()
 ): Promise<CanonicalPredictionInput> {
-  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult, waterComparison] = await Promise.all([
+  const [tasksResult, weatherResult, soilResult, plantsResult, sensorsResult, gardenResult, waterComparison, operations, feedback] = await Promise.all([
     supabase.from('garden_tasks').select('*').eq('garden_id', gardenId).order('date', { ascending: false }).limit(500),
     supabase.from('daily_weather_log').select('*').eq('garden_id', gardenId).lte('log_date', isoDay(asOf)).order('log_date', { ascending: false }).limit(15),
     supabase.from('soil_analysis').select('*').eq('garden_id', gardenId).order('analysis_date', { ascending: false }).limit(1).maybeSingle(),
@@ -424,6 +440,12 @@ export async function loadCanonicalPredictionInput(
     supabase.from('sensor_readings').select('*').eq('garden_id', gardenId).eq('is_simulated', false).lte('recorded_at', asOf.toISOString()).gte('recorded_at', new Date(asOf.getTime() - 48 * 3_600_000).toISOString()).order('recorded_at', { ascending: false }).limit(200),
     supabase.from('gardens').select('altitude_meters').eq('id', gardenId).maybeSingle(),
     loadWaterComparison(supabase, gardenId, asOf),
+    supabase.rpc('field_operation_totals', {
+      p_garden: gardenId, p_start: isoDay(addDays(asOf, -14)), p_end: isoDay(asOf),
+    }),
+    supabase.rpc('field_feedback_summary', {
+      p_garden: gardenId, p_start: isoDay(addDays(asOf, -14)), p_end: isoDay(asOf),
+    }).single(),
   ])
   const tasks = ((tasksResult.data ?? []) as TaskRow[]).map((row) => ({
     id: row.id, gardenId: row.garden_id, plantName: row.plant_name, variety: row.variety,
@@ -496,8 +518,10 @@ export async function loadCanonicalPredictionInput(
     tasks,
     forecast,
     waterComparison,
-    loadErrors: [weatherResult, soilResult, plantsResult, sensorsResult, gardenResult]
-      .flatMap((result, index) => result.error ? [`source_read_failed:${['weather', 'soil', 'plants', 'sensors', 'garden'][index]}`] : []),
+    recentOperations: operations.data ?? undefined,
+    operationFeedback: feedback.data as CanonicalPredictionInput['operationFeedback'],
+    loadErrors: [weatherResult, soilResult, plantsResult, sensorsResult, gardenResult, operations, feedback]
+      .flatMap((result, index) => result.error ? [`source_read_failed:${['weather', 'soil', 'plants', 'sensors', 'garden', 'operations', 'feedback'][index]}`] : []),
     provenance: {
       weatherRecordedAt: latestWeather?.log_date ? `${latestWeather.log_date}T00:00:00.000Z` : undefined,
       soilRecordedAt: soilRow?.analysis_date ? new Date(soilRow.analysis_date).toISOString() : undefined,
