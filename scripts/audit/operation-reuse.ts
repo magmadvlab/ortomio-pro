@@ -89,6 +89,25 @@ try {
   await executeNutritionTreatmentThroughUnifiedService(provider, plantPlan)
   await executeNutritionTreatmentThroughUnifiedService(provider, plantPlan)
   assert.equal((await input()).recentOperations?.find(row => row.product === plantPlan.productName)?.total, 3)
+  const { advancedNutritionService } = await import('../../services/advancedNutritionService')
+  const productId = randomUUID()
+  assert.ifError((await admin.from('product_inventory').insert({
+    product_id: productId, product_name: 'Concime planner', product_type: 'fertilizer',
+    garden_id: garden.id, stock_unit: 'g', current_stock: 10,
+  })).error)
+  const scheduled = await advancedNutritionService.createNutritionTreatment({
+    ...plan, treatmentType: 'fertilization', status: 'planned', productId, productName: 'Concime planner',
+    dosageUnit: 'g', applicationMethod: 'foliar', fieldRowId,
+  })
+  await advancedNutritionService.updateNutritionTreatment(scheduled.id, {status: 'in_progress'})
+  await executeNutritionTreatmentThroughUnifiedService(provider, scheduled)
+  await advancedNutritionService.updateNutritionTreatment(scheduled.id, {status:'completed', actualApplicationDate: date})
+  const inventory = await client.from('product_inventory').select('current_stock').eq('product_id', productId).single()
+  assert.equal(inventory.data?.current_stock, 7)
+  const completed = await client.from('nutrition_treatments').select('status,product_type').eq('id', scheduled.id).single()
+  assert.deepEqual(completed.data, {status:'completed', product_type:'fertilizer'})
+  const totals = (await input()).recentOperations?.filter(row => row.product === 'Concime planner')
+  assert.equal(totals?.reduce((sum, row) => sum + (row.total ?? 0), 0), 3)
   const privilegedInput = await loadCanonicalPredictionInput(admin, garden.id, asOf)
   assert.equal(privilegedInput.operationFeedback?.recorded_work_cost, 12)
   const systemId = randomUUID()
@@ -121,5 +140,5 @@ try {
   // Local auth's deletion trigger lacks rights on field-row dependants.
   assert.match(user.id, /^[a-f0-9-]{36}$/)
   execFileSync('docker',['exec','supabase_db_ortomio-audit-local','psql','-U','postgres','-v','ON_ERROR_STOP=1','-c',
-    `delete from auth.users where id='${user.id}' and email like '%@example.test'`])
+    `begin; delete from public.nutrition_treatments where operator_id in (select id from auth.users where id='${user.id}' and email like '%@example.test'); delete from auth.users where id='${user.id}' and email like '%@example.test'; commit`])
 }

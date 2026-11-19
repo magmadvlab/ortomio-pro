@@ -111,3 +111,5 @@ La pagina Predizioni dell’app mostra il numero di esecuzioni degli ultimi 15 g
 Il collaudo impiega un utente Supabase locale e i servizi applicativi. Copre il confronto di 20 L con un fabbisogno di 15 L in presenza di una registrazione manuale separata, e la rilettura di 12 euro di costo effettivo anche dal client usato dal server. L’efficacia agronomica dei trattamenti e la precisione delle stime richiedono osservazioni in campo. Le superfici storiche prive di misura attendibile restano da riconciliare.
 
 La prova HTTP autenticata ha rilevato e verificato la correzione dell’errore 500 causato dalla chiave obbligatoria mancante al salvataggio delle predizioni. Con l’app Docker di audit in ascolto sulla porta 3004, aggiungere `AUDIT_LOCAL_HTTP=1` al comando di prova. La risposta deve contenere un ID di previsione, i 3 L del trattamento pianificato e i 12 euro misurati.
+
+Verificato anche il ciclo del planner nutrizionale con giacenza iniziale di 10 g. La registrazione di 3 g sul filare porta la giacenza a 7 g, conserva la categoria fertilizzante e produce un totale analitico di 3 g.

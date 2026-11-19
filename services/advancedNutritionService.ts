@@ -1536,7 +1536,8 @@ class AdvancedNutritionService {
       treatment_type: treatment.treatmentType,
       product_id: treatment.productId,
       product_name: treatment.productName,
-      product_type: treatment.treatmentType?.includes('fertiliz') ? 'fertilizer' : 'treatment',
+      product_type: treatment.treatmentType === undefined ? undefined
+        : treatment.treatmentType === 'fertilization' ? 'fertilizer' : 'treatment',
       dosage: treatment.dosage,
       dosage_unit: treatment.dosageUnit,
       application_method: treatment.applicationMethod,
