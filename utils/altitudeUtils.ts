@@ -59,7 +59,7 @@ export const adjustPlantingDates = (
   // Piante tardive (pomodori, peperoni) hanno ritardo maggiore
   let plantModifier = 0;
   if (plantType === 'early') {
-    plantModifier = Math.round(delayDays * 0.5); // Ritardo ridotto del 50%
+    plantModifier = -Math.round(delayDays * 0.5); // Ritardo ridotto del 50%
   } else if (plantType === 'late') {
     plantModifier = Math.round(delayDays * 0.2); // Ritardo aumentato del 20%
   }

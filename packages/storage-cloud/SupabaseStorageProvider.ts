@@ -2983,6 +2983,7 @@ export class SupabaseStorageProvider implements IStorageProvider {
 
   private mapTaskFromDB(db: any): GardenTask {
     const task: Partial<GardenTask> = {
+      rowId: db.field_row_id ?? db.bed_row_id ?? undefined,
       id: db.id,
       gardenId: db.garden_id,
       plantName: db.plant_name,

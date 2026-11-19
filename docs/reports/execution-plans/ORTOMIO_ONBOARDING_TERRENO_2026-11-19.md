@@ -129,3 +129,11 @@ Per i pomodori da vivaio senza una data attesa, il primo controllo visivo può e
 Il diario cerca un rilievo reale accettato e recente. All’apertura prova a rinnovarlo dopo cinque giorni. La media satellitare copre un rettangolo attorno alle coordinate. Un valore basso suggerisce di controllare copertura e vigore del campo. La griglia della richiesta ha un passo nominale di 10 metri e distingue i giorni di acquisizione. [Statistical API](https://docs.sentinel-hub.com/api/latest/api/statistical/)
 
 Collaudo con Supabase locale, prove di regressione su rinvio per gelo, previsioni incomplete, origine vivaio, filari, salvataggio e rilettura del diario. Restano da verificare il primo rilievo con credenziali Copernicus di produzione e l’accuratezza agronomica su cicli con esiti reali.
+
+### Quota, pendenza e prosecuzione del ciclo
+
+La finestra stagionale estiva usa la correzione empirica di quota e suolo già presente nel catalogo. La previsione operativa Open-Meteo usa la quota del terreno se nota e richiede dieci giorni per valutare l’attecchimento anche a fine settimana. Le temperature misurate localmente conservano il valore registrato. Le attività visibili coprono sette giorni.
+
+Nelle zone irrigue si può ricavare la pendenza percentuale da dislivello e distanza orizzontale. La pioggia prevista su una zona con pendenza almeno del 12% attiva un sopralluogo. Il confronto satellitare usa due rilievi accettati della stessa area e versione di calcolo. Un calo di oltre 0,05 è un segnale da verificare. Queste soglie operative richiedono validazione locale.
+
+Le prove distinguono due quote a parità di luce, una gelata oltre il settimo giorno e una coltura ancora in fruttificazione a novembre con o senza successione pianificata sullo stesso filare. Sono scenari controllati. I risultati in campo a Marconia e Terranova del Pollino restano da misurare.

@@ -58,6 +58,9 @@ export default function IrrigationZoneManager({
   const [showForm, setShowForm] = useState(false)
   const [editingZone, setEditingZone] = useState<IrrigationZone | null>(null)
   const [formData, setFormData] = useState<ZoneFormData>(initialFormData)
+  const [rise,setRise] = useState('')
+  const [run,setRun] = useState('')
+  const computedSlope = rise && Number(run) > 0 ? Math.round(1000 * Math.abs(Number(rise)) / Number(run)) / 10 : null
   const [saving, setSaving] = useState(false)
   const [selectedZone, setSelectedZone] = useState<IrrigationZone | null>(null)
 
@@ -82,7 +85,7 @@ export default function IrrigationZoneManager({
   const handleCreateZone = () => {
     setEditingZone(null)
     setFormData(initialFormData)
-    setShowForm(true)
+    setRise(''); setRun(''); setShowForm(true)
   }
 
   const handleEditZone = (zone: IrrigationZone) => {
@@ -99,7 +102,7 @@ export default function IrrigationZoneManager({
       phLevel: zone.phLevel,
       organicMatterPercentage: zone.organicMatterPercentage
     })
-    setShowForm(true)
+    setRise(''); setRun(''); setShowForm(true)
   }
 
   const handleDeleteZone = async (zone: IrrigationZone) => {
@@ -525,6 +528,11 @@ export default function IrrigationZoneManager({
                       max="100"
                       step="0.1"
                     />
+                    <details className="mt-2"><summary>Calcola dal dislivello</summary>
+                      <label>Dislivello (m)<input type="number" min="0" step="any" value={rise} onChange={e => setRise(e.target.value)} /></label>
+                      <label>Distanza orizzontale (m)<input type="number" min="0" step="any" value={run} onChange={e => setRun(e.target.value)} /></label>
+                      {computedSlope != null && computedSlope <= 100 && <button type="button" onClick={() => setFormData(prev => ({...prev,slopePercentage:computedSlope}))}>Usa pendenza {computedSlope}%</button>}
+                    </details>
                   </div>
 
                   <div>

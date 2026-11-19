@@ -49,7 +49,7 @@ function adjustPlantingDateForConditions(
   const adjustedDate = new Date(baseDate);
 
   // 1. Applica ritardo altitudine
-  if (altitudeMeters && altitudeMeters > 200) {
+  if (altitudeMeters && altitudeMeters > 0) {
     const altitudeDelay = calculateAltitudePlantingDelay(altitudeMeters, plantType);
     adjustedDate.setDate(adjustedDate.getDate() + altitudeDelay);
   }
@@ -93,14 +93,15 @@ export function findPlantingWindows(
       const startDate = findFirstDateWithHours(lat, lng, obstacles, year, 6, [5, 6, 7]);
       const endDate = findLastDateWithHours(lat, lng, obstacles, year, 6, [6, 7, 8], 8);
       
+      const adjustedStart = adjustPlantingDateForConditions(startDate, soilType, altitudeMeters, 'late');
       plantingWindows.push({
         category: 'Estivo',
-        startDate,
+        startDate: adjustedStart,
         endDate,
         method: 'Seedling',
         recommendedPlants: ['Pomodoro', 'Peperone', 'Melanzana', 'Zucchina', 'Cetriolo'],
-        reason: 'Periodo con sole continuo ottimale per piante da frutto. Resa massima garantita.',
-        cycles: calculateCycles(startDate, endDate, 120), // ~120 giorni ciclo estivo
+        reason: 'Finestra estiva stimata dalla luce disponibile, con avvio corretto per suolo e quota.',
+        cycles: calculateCycles(adjustedStart, endDate, 120), // ~120 giorni ciclo estivo
       });
     }
   }
@@ -232,7 +233,7 @@ export function findPlantingWindows(
     }
   }
   
-  return plantingWindows;
+  return plantingWindows.filter(window => window.startDate <= window.endDate);
 }
 
 /**

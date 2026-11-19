@@ -130,7 +130,7 @@ interface OpenMeteoDailyForecast {
 export type { WeatherSnapshot } from '@/types/environmental'
 
 // Export standalone functions for compatibility
-export async function getWeatherForecast(lat: number, lng: number, days: number = 7): Promise<WeatherForecast[]> {
+export async function getWeatherForecast(lat: number, lng: number, days: number = 7, elevation?: number): Promise<WeatherForecast[]> {
   console.log('🌤️ API METEO: Richiesta per coordinate:', { lat, lng, days });
   
   try {
@@ -159,6 +159,7 @@ export async function getWeatherForecast(lat: number, lng: number, days: number 
       'cape',
       'precipitation_probability'
     ].join(','));
+    if (typeof elevation === 'number' && Number.isFinite(elevation)) url.searchParams.set('elevation', String(elevation));
     url.searchParams.append('forecast_days', days.toString());
     url.searchParams.append('timezone', 'Europe/Rome');
     

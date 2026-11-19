@@ -9,18 +9,27 @@ import { readPlantPhotoReport } from '@/types/plantPhotoReport'
 import { assessPlantingWeatherWindow } from '@/logic/plantingWeatherDecisionEngine'
 import { getMasterSheetSync } from './plantMasterService'
 import { calculatePhotoperiodHours } from './photoperiodService'
-import { generateWeatherAlerts, getWeatherForecast7Days, type WeatherForecast } from './weatherService'
+import { generateWeatherAlerts, getWeatherForecast, type WeatherForecast } from './weatherService'
 import type { PredictionBundle } from './agronomicPredictionPipelineService'
 
 type Photo = { plant_id: string; captured_at: string; ai_analysis: unknown }
-type Satellite = { data_date: string; ndvi_value: number }
+type Satellite = { data_date: string; ndvi_value: number; previousValue?: number }
+type TerrainZone = { name: string; slope_percentage: number | null }
 export type FieldAction = { id: string; date: string; title: string; instruction: string; href: string }
 const dayMs = 86_400_000
 const day = (date: Date) => date.toLocaleDateString('sv-SE')
 const offset = (date: string, n: number) => new Date(Date.parse(date) + n * dayMs).toISOString().slice(0, 10)
 
+// Six hours is the existing summer fruit-crop planning threshold. A shaded site needs a field check.
+function checkLight(garden: Garden, name: string, status: string, recommendation: string) {
+  if (status !== 'GO' || getMasterSheetSync(name)?.nutrientCategory !== 'FRUITING') return recommendation
+  const limited = garden.sunExposure === 'Shade' || (garden.dailySunHours != null && garden.dailySunHours < 6)
+  if (!limited) return recommendation
+  return 'Finestra termica compatibile. Prima di confermare verifica quante ore di sole diretto raggiungono il filare in questa stagione: l’esposizione registrata indica luce limitata.'
+}
+
 export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask[], plants: GardenPlant[],
-  forecast: WeatherForecast[], photos: Photo[], satellite?: Satellite, prediction?: PredictionBundle): FieldAction[] {
+  forecast: WeatherForecast[], photos: Photo[], satellite?: Satellite, prediction?: PredictionBundle, zones: TerrainZone[] = []): FieldAction[] {
   const actions: FieldAction[] = []
   const planner = '/app/planner?garden=' + encodeURIComponent(garden.id)
   const plantRoute = '/app/plants?garden=' + encodeURIComponent(garden.id)
@@ -49,13 +58,21 @@ export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask
       const direct = window.method === 'Seed' && !sheet?.requiredTools.seedTray
       const weather = assessPlantingWeatherWindow({operation:direct ? 'direct_sowing' : 'transplant',requestedDate:candidate,forecast,cropMinTemperature:direct ? sheet?.germination.minTemp : sheet?.transplanting.minTemp})
       actions.push({id:'start-'+crop,date:today,title:'Pianifica il primo impianto · '+crop,
-        instruction:'Finestra stagionale stimata per il campo dal '+field+' al '+day(window.endDate)+'. ' +
+        instruction:(garden.altitudeMeters == null ? 'Quota del terreno non registrata. ' : 'Quota del terreno '+garden.altitudeMeters+' m. ') + (garden.dailySunHours == null ? '' : 'Sole diretto registrato '+garden.dailySunHours+' ore. ') + 'Finestra stagionale stimata per il campo dal '+field+' al '+day(window.endDate)+'. ' +
           (sheet?.requiredTools.seedTray ? 'Da seme, avvio indicativo in semenzaio dal '+seed+'. ' : '') +
-          (direct ? 'Da seme, controlla la temperatura del letto di semina. ' : 'Da vivaio, controlla lo sviluppo della piantina. ')+weather.headline+'. '+weather.reasons.join(' '),href:planner})
+          (direct ? 'Da seme, controlla la temperatura del letto di semina. ' : 'Da vivaio, controlla lo sviluppo della piantina. ')+checkLight(garden,crop,weather.status,[weather.headline,...weather.reasons].join('. ')),href:planner})
       found = true
       break
     }
     if (!found) actions.push({id:'start-review',date:today,title:'Pianifica '+crop,instruction:'Il catalogo non fornisce una finestra locale per questa coltura. Registra il ciclo indicato per la varietà e scegli semina o trapianto nel planner.',href:planner})
+  }
+  const visibleWeather = forecast.filter(f => f.date >= today && f.date <= weekEnd)
+  const rainDay = visibleWeather.find(f => f.rainMm > 0)
+  for (const zone of zones) {
+    if (Number(zone.slope_percentage) >= 12 && rainDay) {
+      actions.push({id:'runoff-'+zone.name,date:today,title:'Verifica il deflusso · '+zone.name,
+        instruction:'Pendenza registrata '+zone.slope_percentage+'%. Pioggia prevista il '+rainDay.date+' ('+rainDay.rainMm+' mm). Controlla ruscellamento a monte e ristagno a valle prima di irrigare o lavorare il suolo.',href:planner})
+    }
   }
   for (const t of tasks) {
     if (!isActive(t)) continue
@@ -78,7 +95,7 @@ export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask
       } else if (t.stage === 'ReadyToTransplant') {
         title = 'Prepara il trapianto'
         const window = assessPlantingWeatherWindow({operation:'transplant',requestedDate:today,forecast,cropMinTemperature:sheet.transplanting.minTemp})
-        instruction = [sheet.seedlingCare.transplantWhen, window.headline, ...window.actions].join(' ')
+        instruction = checkLight(garden,t.plantName,window.status,[sheet.seedlingCare.transplantWhen, window.headline, ...window.actions].join(' '))
       } else if (t.stage === 'Vegetative' && sheet.supportRequirements?.needsSupport) {
         title = 'Controlla i sostegni prima della fioritura'
         instruction = sheet.transplanting.finalPlanting?.supportInstallation?.instructions || 'Verifica i tutori e regola le legature lasciando spazio alla crescita.'
@@ -87,7 +104,14 @@ export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask
         instruction = 'Registra la fase osservata e fotografa un campione di fiori e dei primi frutti.'
       } else if (t.stage === 'Fruiting') {
         title = 'Controlla la maturazione'
+        const frost = forecast.find(f => f.date >= today && f.tempMin <= 0)
+        const succession = t.rowId && tasks.find(next => isActive(next) && !next.completed && next.rowId === t.rowId &&
+          ['Sowing','Transplant'].includes(next.taskType) && next.plantName !== t.plantName &&
+          (next.scheduledDate || next.date) >= today && (next.scheduledDate || next.date) <= weekEnd)
         instruction = sheet.baseInstructions.harvestGuide + ' Fotografa la pianta intera e un frutto rappresentativo.'
+        if (frost) instruction += ' Minima prevista '+frost.tempMin+' °C il '+frost.date+'. Verifica in anticipo cosa è raccoglibile e se proteggere la coltura.'
+        else if (visibleWeather.length) instruction += ' Se la pianta continua a produrre, registra una raccolta parziale e mantieni il ciclo aperto.'
+        if (succession) instruction += ' Sullo stesso filare è programmata la coltura successiva '+succession.plantName+'. Confronta il raccolto residuo con la data necessaria per liberare il filare.'
       } else continue
     } else if (start) {
       title = label + ' prevista il ' + date
@@ -101,7 +125,7 @@ export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask
         const assessment = assessPlantingWeatherWindow({operation:t.taskType === 'Sowing' ? 'direct_sowing' : 'transplant',
           requestedDate:date < today ? today : date, forecast, cropMinTemperature:t.taskType === 'Sowing' ? sheet?.germination.minTemp : sheet?.transplanting?.minTemp,
           cropMaxTemperature:sheet?.germination.maxTemp})
-        instruction = [assessment.headline, ...assessment.reasons, ...assessment.actions].join(' ')
+        instruction = checkLight(garden,t.plantName,assessment.status,[assessment.headline, ...assessment.reasons, ...assessment.actions].join(' '))
         if (t.taskType === 'Transplant' && sheet) instruction += ' Verifica la piantina: ' + sheet.seedlingCare.transplantWhen
       }
     } else {
@@ -143,29 +167,41 @@ export function fieldDayActions(garden: Garden, today: string, tasks: GardenTask
     if (plant && ['HIGH','CRITICAL'].includes(risk.severity)) actions.push({id:risk.id,date:today,title:'Ispeziona '+plant.plantCode+' · rischio '+risk.disease,
       instruction:'Controlla questi segni: '+risk.symptoms.join(', ')+'. '+fieldCheck,href:plantRoute+'&plantId='+encodeURIComponent(plant.id)})
   }
-  if (satellite && satellite.data_date >= offset(today,-14) && satellite.data_date <= today && satellite.ndvi_value < 0.5) {
-    actions.push({id:'satellite',date:today,title:'Controlla il vigore nell’area satellitare',instruction:'NDVI medio '+satellite.ndvi_value.toFixed(2)+' al '+satellite.data_date+'. Confronta copertura vegetale, suolo scoperto e fase colturale. '+fieldCheck,href:'/app/ndvi'})
+  if (satellite && satellite.data_date >= offset(today,-14) && satellite.data_date <= today && (satellite.ndvi_value < 0.5 || (satellite.previousValue !== undefined && satellite.previousValue - satellite.ndvi_value > 0.05))) {
+    actions.push({id:'satellite',date:today,title:'Controlla il vigore nell’area satellitare',instruction:'NDVI medio '+satellite.ndvi_value.toFixed(2)+' al '+satellite.data_date+(satellite.previousValue === undefined ? '' : ' (rilievo precedente '+satellite.previousValue.toFixed(2)+')')+'. Confronta copertura vegetale, suolo scoperto e fase colturale. '+fieldCheck,href:'/app/ndvi'})
   }
   return actions.sort((a,b) => a.date.localeCompare(b.date))
 }
 
 export async function loadFieldAgenda(db: SupabaseClient, garden: Garden, date: Date, tasks: GardenTask[], plants: GardenPlant[]) {
   const today = day(date)
-  const [satellite, photos, bundle, forecast] = await Promise.all([
-    db.from('ndvi_data_cache').select('data_date,ndvi_value').eq('garden_id',garden.id).eq('source_kind','real').eq('quality_status','accepted')
-      .gte('data_date',offset(today,-14)).lte('data_date',today).order('data_date',{ascending:false}).limit(1).maybeSingle(),
+  const satelliteHistory = () => db.from('ndvi_data_cache').select('data_date,ndvi_value,bbox,algorithm_version').eq('garden_id',garden.id).eq('source_kind','real').eq('quality_status','accepted')
+      .gte('data_date',offset(today,-14)).lte('data_date',today).order('data_date',{ascending:false}).limit(30)
+  const [satellite, photos, bundle, forecast, zones] = await Promise.all([
+    satelliteHistory(),
     db.from('plant_photos').select('plant_id,captured_at,ai_analysis').eq('garden_id',garden.id).gte('captured_at',offset(today,-3)).lte('captured_at',date.toISOString())
       .not('ai_analysis','is',null).order('captured_at',{ascending:false}),
     db.from('agronomic_predictions').select('output_snapshot').eq('garden_id',garden.id).eq('status','generated')
       .lte('valid_from',date.toISOString()).gte('valid_until',date.toISOString()).order('valid_from',{ascending:false}).limit(1).maybeSingle(),
-    garden.coordinates ? getWeatherForecast7Days(garden.coordinates.latitude,garden.coordinates.longitude) : Promise.resolve([]),
+    garden.coordinates ? getWeatherForecast(garden.coordinates.latitude,garden.coordinates.longitude,10,garden.altitudeMeters) : Promise.resolve([]),
+    db.from('irrigation_zones').select('name,slope_percentage').eq('garden_id',garden.id),
   ])
-  let reading: Satellite | undefined = satellite.data ?? undefined
+  const compareReadings = (rows: typeof satellite.data): Satellite | undefined => {
+    const latest = rows?.[0]
+    if (!latest) return undefined
+    const previous = latest.bbox && rows?.find(row => row.data_date < latest.data_date &&
+      row.algorithm_version === latest.algorithm_version && JSON.stringify(row.bbox) === JSON.stringify(latest.bbox))
+    return {...latest,previousValue:previous?.ndvi_value}
+  }
+  let reading = compareReadings(satellite.data)
   if (!satellite.error && garden.coordinates && typeof window !== 'undefined' && (!reading || reading.data_date < offset(today,-5))) {
     const { NDVISatelliteService } = await import('./ndviSatelliteService')
     const refreshed = await NDVISatelliteService.getLatestNDVI(garden)
-    if (refreshed?.quality_status === 'accepted' && refreshed.date.slice(0,10) >= offset(today,-14) && refreshed.date.slice(0,10) <= today) reading = {data_date:refreshed.date.slice(0,10),ndvi_value:refreshed.ndvi_value}
+    if (refreshed?.quality_status === 'accepted') {
+      const {data} = await satelliteHistory()
+      reading = compareReadings(data) ?? reading
+    }
   }
-  const missing = [!reading && 'rilievo satellitare recente', photos.error && 'foto', bundle.error && 'previsioni agronomiche', !forecast.length && 'meteo'].filter(Boolean)
-  return {actions:fieldDayActions(garden,today,tasks,plants,forecast,photos.data ?? [],reading,bundle.data?.output_snapshot),missing}
+  const missing = [zones.error && 'pendenze delle zone', !reading && 'rilievo satellitare recente', photos.error && 'foto', bundle.error && 'previsioni agronomiche', !forecast.length && 'meteo'].filter(Boolean)
+  return {actions:fieldDayActions(garden,today,tasks,plants,forecast,photos.data ?? [],reading,bundle.data?.output_snapshot,zones.data ?? []),missing}
 }

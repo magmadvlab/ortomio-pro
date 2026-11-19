@@ -669,9 +669,7 @@ export async function getEffectiveTemperature(
       24
     );
     if (soilTemp) {
-      let temp = soilTemp.value;
-      // Applica modificatori microclima anche ai sensori (es. serra)
-      temp = applyMicroclimateModifiers(temp, garden, zoneId);
+      const temp = soilTemp.value;
       return {
         temperature: temp,
         source: 'sensor',
@@ -689,8 +687,7 @@ export async function getEffectiveTemperature(
       24
     );
     if (airTemp) {
-      let temp = airTemp.value;
-      temp = applyMicroclimateModifiers(temp, garden, zoneId);
+      const temp = airTemp.value;
       return {
         temperature: temp,
         source: 'sensor',
@@ -709,8 +706,7 @@ export async function getEffectiveTemperature(
     24
   );
   if (gardenAirTemp) {
-    let temp = gardenAirTemp.value;
-    temp = applyMicroclimateModifiers(temp, garden);
+    const temp = gardenAirTemp.value;
     return {
       temperature: temp,
       source: 'sensor',
@@ -727,8 +723,7 @@ export async function getEffectiveTemperature(
     24
   );
   if (gardenSoilTemp) {
-    let temp = gardenSoilTemp.value;
-    temp = applyMicroclimateModifiers(temp, garden);
+    const temp = gardenSoilTemp.value;
     return {
       temperature: temp,
       source: 'sensor',
@@ -743,15 +738,12 @@ export async function getEffectiveTemperature(
     try {
       const [forecastDay] = await getWeatherForecast(
         garden.coordinates.latitude,
-        garden.coordinates.longitude
+        garden.coordinates.longitude, 7, garden.altitudeMeters
       );
 
       const forecastMinTemp = getForecastMinTemperature(forecastDay)
       if (forecastMinTemp !== undefined) {
-        // Applica modificatori altitudine
-        let effectiveTemp = garden.altitudeMeters
-          ? calculateEffectiveTemperature(garden.altitudeMeters, forecastMinTemp)
-          : forecastMinTemp;
+        let effectiveTemp = forecastMinTemp;
 
         // Applica modificatori microclima (serra, indoor, ombreggiata)
         effectiveTemp = applyMicroclimateModifiers(effectiveTemp, garden, zoneId);
@@ -812,9 +804,7 @@ export async function getEffectiveMinTemperature(
     : await getLatestSensorReading(garden.id, 'temperature_air', undefined, 24);
 
   if (airTemp) {
-    let temp = airTemp.value;
-    // Applica modificatori microclima
-    temp = applyMicroclimateModifiers(temp, garden, zoneId);
+    const temp = airTemp.value;
     return {
       temperature: temp,
       source: 'sensor',
@@ -829,14 +819,12 @@ export async function getEffectiveMinTemperature(
     try {
       const [forecastDay] = await getWeatherForecast(
         garden.coordinates.latitude,
-        garden.coordinates.longitude
+        garden.coordinates.longitude, 7, garden.altitudeMeters
       );
 
       const forecastMinTemp = getForecastMinTemperature(forecastDay)
       if (forecastMinTemp !== undefined) {
-        let effectiveTemp = garden.altitudeMeters
-          ? calculateEffectiveTemperature(garden.altitudeMeters, forecastMinTemp)
-          : forecastMinTemp;
+        let effectiveTemp = forecastMinTemp;
 
         // Applica modificatori microclima
         effectiveTemp = applyMicroclimateModifiers(effectiveTemp, garden, zoneId);
